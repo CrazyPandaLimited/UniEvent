@@ -87,7 +87,7 @@ string AsyncTest::destroy_loop() {
         // to prevent destructor from call
         loop->retain(); // yes it is memory leak, but test will fail anyway
         broken_state = true;
-        return e.what();
+        return e.whats();
     }
     return "";
 }

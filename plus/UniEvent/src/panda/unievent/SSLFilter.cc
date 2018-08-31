@@ -69,7 +69,7 @@ SSLFilter::~SSLFilter () {
 }
 
 void SSLFilter::on_connect (const StreamError& err, ConnectRequest* req) {
-    _EDEBUG("ERR=%d WHAT=%.*s", err.code(), (int)err.what().length(), err.what().data());
+    _EDEBUG("ERR=%d WHAT=%s", err.code(), err.what());
 
     if (started) reset();
     if (err) return next_on_connect(err, req);
@@ -151,7 +151,7 @@ int SSLFilter::negotiate () {
 //}
 
 void SSLFilter::negotiation_finished (const StreamError& err) {
-    _EDEBUG("[%s] err=%.*s", PROFILE_STR, (int)err.what().length(), err.what().data());
+    _EDEBUG("[%s] err=%s", PROFILE_STR, err.what());
 
     if (err && !handle->connecting()) return; // if not connecting then it's ongoing packets for already failed handshake, just ignore them
     restore_read_start(); // stop reading if handle don't want to
@@ -253,7 +253,7 @@ void SSLFilter::write (WriteRequest* req) {
 
 void SSLFilter::on_write (const StreamError& err, WriteRequest* req) {
     SSLWriteRequest* sslreq = static_cast<SSLWriteRequest*>(req);
-    _EDEBUG("[%s] regular=%d ERR=%.*s", PROFILE_STR, sslreq->src ? 1 : 0, (int)err.what().length(), err.what().data());
+    _EDEBUG("[%s] regular=%d ERR=%s", PROFILE_STR, sslreq->src ? 1 : 0, err.what());
     if (sslreq->src) { // regular's on_write
         next_on_write(err, sslreq->src);
     } else { // negotiation's on_write

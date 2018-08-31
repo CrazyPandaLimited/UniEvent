@@ -232,7 +232,7 @@ TEST_CASE("connect timeout with black hole", "[timeout]") {
 
     client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.what() != "");
+        REQUIRE(err.whats() != "");
     });
     test.await(client->connect_event, "connected called");
 }
@@ -257,7 +257,7 @@ TEST_CASE("connect timeout clean queue", "[timeout]") {
 
     client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.what() != "");
+        REQUIRE(err.whats() != "");
     });
     test.await(client->connect_event, "connected called");
     REQUIRE(test.await_not(client->write_event, 100));
@@ -273,7 +273,7 @@ TEST_CASE("connect timeout with black hole in roll", "[timeout]") {
     size_t counter = 5;
     client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.what() != "");
+        REQUIRE(err.whats() != "");
         if (--counter > 0) {
             client->connect().to("google.com", "81") // black hole
                              .timeout(50);

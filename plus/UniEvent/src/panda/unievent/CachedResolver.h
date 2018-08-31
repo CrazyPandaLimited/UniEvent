@@ -10,7 +10,6 @@
 #include <panda/unievent/Debug.h>
 #include <panda/unievent/ResolveFunction.h>
 
-
 namespace panda { namespace unievent { namespace cached_resolver {
 
 struct AddressBase : public virtual Refcnt {
@@ -147,14 +146,43 @@ string to_string(const Key& key) {
     return string::from_number(cached_resolver::Hash{}(key), 16);
 }
 
-typedef iptr<Address> Value;
+using Value = iptr<Address>;
 
 } // namespace cached_resolver
 
-class ConnectRequest;
-class ResolveRequest;
-class CachedResolver : public virtual Refcnt {
+struct CachedResolver;
+
+class ResolveRequest : public CancelableRequest, public AllocatedObject<ResolveRequest, true> {
 public:
+    // XXX this API with Resolver as first argument here for backward compatibility, remove this when the time is right
+    using resolve_fptr = void(CachedResolver* req, addrinfo* res, const ResolveError& err, bool from_cache);
+    using resolve_fn   = function<resolve_fptr>;
+
+    CallbackDispatcher<resolve_fptr> event_compat;
+
+    CallbackDispatcher<ResolveFunctionPlain> event;
+
+    ~ResolveRequest() {
+        _ETRACETHIS("dtor");
+    }
+
+    ResolveRequest(resolve_fn callback);
+
+    ResolveRequest(ResolveFunction callback);
+
+    friend uv_getaddrinfo_t* _pex_(ResolveRequest*);
+
+public:
+    CachedResolver* resolver;
+    ConnectRequest* connect_request;
+    iptr<cached_resolver::Key> key;
+
+private:
+    uv_getaddrinfo_t uvr;
+};
+using ResolveRequestSP = iptr<ResolveRequest>;
+
+struct CachedResolver : virtual Refcnt {
     using resolve_fptr = void(CachedResolver* resolver, addrinfo* res, const ResolveError& err, bool from_cache);
     using resolve_fn = function<resolve_fptr>;
 
@@ -192,54 +220,34 @@ public:
     
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if cache is too big 
-    iptr<ResolveRequest> resolve_async(Loop* loop, 
-			std::string_view node,
-			std::string_view service,
-			const addrinfo* hints = nullptr,
-                        ResolveFunction callback = nullptr);
+    ResolveRequestSP resolve_async (Loop*, std::string_view node, std::string_view service, const addrinfo* hints = NULL, ResolveFunction cb = nullptr);
 
     // find and resolve_async combined
     // intended for an external cached resolver usage
-    iptr<ResolveRequest> resolve(Loop* loop, 
-                        std::string_view node, 
-                        std::string_view service = std::string_view(), 
-                        const addrinfo* hints = nullptr, 
-                        ResolveFunction callback = nullptr) {
+    ResolveRequestSP resolve (Loop* loop, std::string_view node, std::string_view service = {}, const addrinfo* hints = NULL, ResolveFunction cb = nullptr) {
         CacheType::const_iterator address_pos;
         bool found;
         std::tie(address_pos, found) = find(node, service, hints);
-        if(found) {
-            if(callback) {
-                callback(address_pos->second->head, ResolveError(0), true);
-                return nullptr;
-            }
+        if (found && cb) {
+            cb(address_pos->second->head, ResolveError(0), true);
+            return nullptr;
         }
 
-        return resolve_async(loop, node, service, hints, callback);
+        return resolve_async(loop, node, service, hints, cb);
     }
 
-    iptr<ResolveRequest> resolve_async_compat(Loop* loop, 
-			std::string_view node,
-			std::string_view service,
-			const addrinfo* hints = nullptr,
-                        resolve_fn callback = nullptr);
+    ResolveRequestSP resolve_async_compat (Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints = NULL, resolve_fn cb = nullptr);
 
-    iptr<ResolveRequest> resolve_compat(Loop* loop, 
-                        std::string_view node, 
-                        std::string_view service = std::string_view(), 
-                        const addrinfo* hints = nullptr, 
-                        resolve_fn callback = nullptr) {
+    ResolveRequestSP resolve_compat (Loop* loop, std::string_view node, std::string_view service = {}, const addrinfo* hints = NULL, resolve_fn cb = nullptr) {
         CacheType::const_iterator address_pos;
         bool found;
         std::tie(address_pos, found) = find(node, service, hints);
-        if(found) {
-            if(callback) {
-                callback(this, address_pos->second->head, ResolveError(0), true);
-                return nullptr;
-            }
+        if (found && cb) {
+            cb(this, address_pos->second->head, ResolveError(0), true);
+            return nullptr;
         }
 
-        return resolve_async_compat(loop, node, service, hints, callback);
+        return resolve_async_compat(loop, node, service, hints, cb);
     }
     
     size_t cache_size() const { return cache_.size(); }
@@ -247,8 +255,8 @@ public:
     void clear() { cache_.clear(); }
 
 private:
-    bool expunge_cache() {
-        if(cache_.size() >= limit_) {
+    bool expunge_cache () {
+        if (cache_.size() >= limit_) {
             _EDEBUG("cleaning cache %p %zd", this, cache_.size());
             cache_.clear();
             return true;
@@ -256,7 +264,6 @@ private:
         return false;
     }
 
-private:
     static void uvx_on_resolve (uv_getaddrinfo_t* req, int status, addrinfo* res);
 
 private:
@@ -264,48 +271,16 @@ private:
     time_t expiration_time_;
     size_t limit_;
 };
+using CachedResolverSP = iptr<CachedResolver>;
 
+inline uv_getaddrinfo_t* _pex_ (ResolveRequest* req) { return &req->uvr; }
 
-class Request;
-class ResolveRequest : public CancelableRequest, public AllocatedObject<ResolveRequest, true> {
-public:
-    // XXX this API with Resolver as first argument here for backward compatibility, remove this when the time is right
-    using resolve_fptr = void(CachedResolver* req, addrinfo* res, const ResolveError& err, bool from_cache);
-    using resolve_fn   = function<resolve_fptr>;
-
-    CallbackDispatcher<resolve_fptr> event_compat;
-
-    CallbackDispatcher<ResolveFunctionPlain> event;
-
-    ~ResolveRequest() {
-        _ETRACETHIS("dtor");
-    }
- 
-    ResolveRequest(resolve_fn callback); 
-
-    ResolveRequest(ResolveFunction callback); 
-
-    friend uv_getaddrinfo_t* _pex_(ResolveRequest*);
-
-public:
-    CachedResolver* resolver;
-    ConnectRequest* connect_request;
-    iptr<cached_resolver::Key> key;
-
-private:
-    uv_getaddrinfo_t uvr;
-};
-
-using ResolveRequestSP = iptr<ResolveRequest>;
-
-inline uv_getaddrinfo_t* _pex_(ResolveRequest* req) { return &req->uvr; }
-
-inline CachedResolver* get_thread_local_cached_resolver() {
-    thread_local iptr<CachedResolver> resolver(new CachedResolver());
+inline CachedResolver* get_thread_local_cached_resolver () {
+    thread_local CachedResolverSP resolver(new CachedResolver());
     return resolver.get();
 }
 
-inline void clear_resolver_cache() {
+inline void clear_resolver_cache () {
     get_thread_local_cached_resolver()->clear();
 }
 

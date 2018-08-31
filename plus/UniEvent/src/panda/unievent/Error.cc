@@ -4,32 +4,31 @@
 
 namespace panda { namespace unievent {
 
-Error::Error (const string& what_arg) : _what(what_arg) {}
-Error::Error (const char* what_arg)   : _what(string(what_arg)) {}
+Error::Error (const string& what) : _what(what) {}
 
-string Error::what () const throw() { return _what; }
+string Error::_mkwhat () const throw() { return string(); }
+
+const char*   Error::what  () const throw() { return whats().c_str(); }
+const string& Error::whats () const throw() { if (!_what) _what = _mkwhat(); return _what; }
 
 errno_t CodeError::code () const throw() { return _code; }
 string  CodeError::name () const throw() { return _code == 0 ? string() : string(uv_err_name(_code)); }
 string  CodeError::str  () const throw() { return _code == 0 ? string() : string(uv_strerror(_code)); }
 
-string CodeError::what () const throw() {
-    string ret;
-    if (_code) ret = (name() + '(' + string::from_number<errno_underlying_t>(code()) + ") " + str());
-    return ret;
+string CodeError::_mkwhat () const throw() {
+    if (!_code) return {};
+    return name() + '(' + string::from_number<errno_underlying_t>(code()) + ") " + str();
 }
 
-ImplRequiredError::ImplRequiredError (const string& what) throw() : Error(what + ": callback implementation required") {
-}
+ImplRequiredError::ImplRequiredError (const string& what) throw() : Error(what + ": callback implementation required") {}
 
 string DyLibError::dlerror () const throw() {
     return _code == 0 ? string() : string(uv_dlerror(lib));
 }
 
-string DyLibError::what () const throw() {
-    string ret;
-    if (_code) ret = (name() + '(' + string::from_number<errno_underlying_t>(code()) + ") " + str() + " : " + dlerror());
-    return ret;
+string DyLibError::_mkwhat () const throw() {
+    if (!_code) return {};
+    return CodeError::_mkwhat() + " : " + dlerror();
 }
 
 SSLError::SSLError (int ssl_code) throw() : StreamError(ERRNO_SSL), _ssl_code(ssl_code), _openssl_code(0) {
