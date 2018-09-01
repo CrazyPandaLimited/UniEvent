@@ -12,6 +12,9 @@ void Handle::uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf
 
     assert(cap >= size);
 
+    size_t align = (size_t(ptr) + cap) % sizeof(void*);
+    cap -= align;
+
     auto availcap = cap - sizeof(string);
 
     new ((string*)(ptr + availcap)) string(buf); // save string object at the end of the buffer, keeping it's internal ptr alive
