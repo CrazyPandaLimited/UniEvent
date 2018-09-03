@@ -5,14 +5,14 @@ namespace panda { namespace unievent {
 
 class FSPoll : public virtual Handle {
 public:
-    using fs_poll_fptr = void(FSPoll* handle, const stat_t* prev, const stat_t* curr, const FSPollError& err);
+    using fs_poll_fptr = void(FSPoll* handle, const stat_t* prev, const stat_t* curr, const CodeError& err);
     using fs_poll_fn = function<fs_poll_fptr>;
 
     CallbackDispatcher<fs_poll_fptr> fs_poll_event;
 
     FSPoll (Loop* loop = Loop::default_loop()) {
         int err = uv_fs_poll_init(_pex_(loop), &uvh);
-        if (err) throw new FSPollError(err);
+        if (err) throw new CodeError(err);
         _init(&uvh);
     }
 
@@ -24,14 +24,14 @@ public:
     size_t getpathlen () const {
         size_t len = 0;
         int err = uv_fs_poll_getpath((uv_fs_poll_t*)&uvh, nullptr, &len);
-        if (err && err != UV_ENOBUFS) throw FSPollError(err);
+        if (err && err != UV_ENOBUFS) throw CodeError(err);
         return len - 1; // because libuv returns len with null-byte
     }
 
     void getpath (char* buf) const {
         size_t len = (size_t)-1;
         int err = uv_fs_poll_getpath((uv_fs_poll_t*)&uvh, buf, &len);
-        if (err) throw FSPollError(err);
+        if (err) throw CodeError(err);
     }
 
     panda::string getpath () const {
@@ -42,10 +42,10 @@ public:
         return str;
     }
 
-    void call_on_fs_poll (const stat_t* prev, const stat_t* curr, const FSPollError& err) { on_fs_poll(prev, curr, err); }
+    void call_on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) { on_fs_poll(prev, curr, err); }
 
 protected:
-    virtual void on_fs_poll (const stat_t* prev, const stat_t* curr, const FSPollError& err);
+    virtual void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err);
 
 private:
     uv_fs_poll_t uvh;

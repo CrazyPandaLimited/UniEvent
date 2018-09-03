@@ -13,7 +13,7 @@ public:
 
     Signal (Loop* loop = Loop::default_loop()) {
         int err = uv_signal_init(_pex_(loop), &uvh);
-        if (err) throw SignalError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 

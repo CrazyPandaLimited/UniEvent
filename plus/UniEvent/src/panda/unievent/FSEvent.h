@@ -23,7 +23,7 @@ public:
 
     FSEvent (Loop* loop = Loop::default_loop()) {
         int err = uv_fs_event_init(_pex_(loop), &uvh);
-        if (err) throw FSEventError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 
@@ -35,14 +35,14 @@ public:
     size_t getpathlen () const {
         size_t len = 0;
         int err = uv_fs_event_getpath((uv_fs_event_t*)&uvh, nullptr, &len);
-        if (err && err != UV_ENOBUFS) throw FSEventError(err);
+        if (err && err != UV_ENOBUFS) throw CodeError(err);
         return len-1; // there's a bug in libuv and it returns length with terminating null-byte included
     }
 
     void getpath (char* buf) const {
         size_t len = (size_t)-1;
         int err = uv_fs_event_getpath((uv_fs_event_t*)&uvh, buf, &len);
-        if (err) throw FSEventError(err);
+        if (err) throw CodeError(err);
     }
 
     panda::string getpath () const {

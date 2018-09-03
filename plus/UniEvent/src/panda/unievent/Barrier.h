@@ -7,7 +7,7 @@ class Barrier {
 public:
     Barrier (unsigned int count) {
         int err = uv_barrier_init(&handle, count);
-        if (err) throw ThreadError(err);
+        if (err) throw CodeError(err);
     }
 
     virtual int wait ();

@@ -32,13 +32,13 @@ public:
     
     size_t getsockname (char* name, size_t namelen) const {
         int err = uv_pipe_getsockname(&uvh, name, &namelen);
-        if (err && err != UV_ENOBUFS) throw PipeError(err);
+        if (err && err != UV_ENOBUFS) throw CodeError(err);
         return namelen;
     }
 
     size_t getpeername (char* name, size_t namelen) const {
         int err = uv_pipe_getpeername(&uvh, name, &namelen);
-        if (err && err != UV_ENOBUFS) throw PipeError(err);
+        if (err && err != UV_ENOBUFS) throw CodeError(err);
         return namelen;
     }
     

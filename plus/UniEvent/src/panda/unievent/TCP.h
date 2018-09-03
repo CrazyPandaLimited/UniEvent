@@ -108,36 +108,36 @@ public:
 
     void tcp_nodelay (bool enable) {
         int err = uv_tcp_nodelay(&uvh, enable);
-        if (err) throw TCPError(err);
+        if (err) throw CodeError(err);
     }
 
     void tcp_keepalive (bool enable, unsigned int delay) {
         int err = uv_tcp_keepalive(&uvh, enable, delay);
-        if (err) throw TCPError(err);
+        if (err) throw CodeError(err);
     }
 
     void tcp_simultaneous_accepts (bool enable) {
         int err = uv_tcp_simultaneous_accepts(&uvh, enable);
-        if (err) throw TCPError(err);
+        if (err) throw CodeError(err);
     }
 
     void getsockname (sockaddr* name, int* namelen) {
         int err = uv_tcp_getsockname(&uvh, name, namelen);
-        if (err) throw TCPError(err);
+        if (err) throw CodeError(err);
     }
 
     void getpeername (sockaddr* name, int* namelen) {
         int err = uv_tcp_getpeername(&uvh, name, namelen);
-        if (err) throw TCPError(err);
+        if (err) throw CodeError(err);
     }
 
 #ifdef _WIN32
     void setsockopt (int level, int optname, const void* optval, int optlen) {
-    	if (::setsockopt(fileno(), level, optname, (const char*)optval, optlen)) throw TCPError(WSAGetLastError());
+    	if (::setsockopt(fileno(), level, optname, (const char*)optval, optlen)) throw CodeError(WSAGetLastError());
     }
 #else
     void setsockopt (int level, int optname, const void* optval, socklen_t optlen) {
-    	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw TCPError(-errno);
+    	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw CodeError(-errno);
     }
 #endif
 

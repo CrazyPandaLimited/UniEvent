@@ -5,7 +5,7 @@ namespace panda { namespace unievent {
 
 class Poll : public virtual Handle {
 public:
-    using poll_fptr = void(Poll* handle, int events, const PollError& err);
+    using poll_fptr = void(Poll* handle, int events, const CodeError& err);
     using poll_fn = panda::function<poll_fptr>;
     
     CallbackDispatcher<poll_fptr> poll_event;
@@ -20,7 +20,7 @@ public:
         int err;
         if (fd >= 0) err = uv_poll_init(_pex_(loop), &uvh, fd);
         else err = uv_poll_init_socket(_pex_(loop), &uvh, socket);
-        if (err) throw PollError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 
@@ -29,10 +29,10 @@ public:
 
     void reset () override;
 
-    void call_on_poll (int events, const PollError& err) { on_poll(events, err); }
+    void call_on_poll (int events, const CodeError& err) { on_poll(events, err); }
 
 protected:
-    virtual void on_poll (int events, const PollError& err);
+    virtual void on_poll (int events, const CodeError& err);
 
 private:
     uv_poll_t uvh;

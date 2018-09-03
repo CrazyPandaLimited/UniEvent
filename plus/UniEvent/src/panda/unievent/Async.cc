@@ -8,7 +8,7 @@ void Async::uvx_on_async (uv_async_t* handle) {
 
 void Async::send () {
     int err = uv_async_send(&uvh);
-    if (err) throw AsyncError(err);
+    if (err) throw CodeError(err);
 }
 
 void Async::reset () {}

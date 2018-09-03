@@ -18,7 +18,7 @@ void Timer::reset () { uv_timer_stop(&uvh); }
 void Timer::again () {
     loop()->update_time();
     int err = uv_timer_again(&uvh);
-    if (err) throw TimerError(err);
+    if (err) throw CodeError(err);
 }
 
 uint64_t Timer::repeat () const { return uv_timer_get_repeat(&uvh); }

@@ -40,7 +40,7 @@ public:
     os_fd_t fileno () const {
         os_fd_t fd;
         int err = uv_fileno(uvhp, &fd);
-        if (err) throw HandleError(err);
+        if (err) throw CodeError(err);
         return fd;
     }
 

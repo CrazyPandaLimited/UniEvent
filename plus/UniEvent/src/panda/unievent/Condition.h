@@ -8,7 +8,7 @@ class Condition {
 public:
     Condition () {
         int err = uv_cond_init(&handle);
-        if (err) throw ThreadError(err);
+        if (err) throw CodeError(err);
     }
 
     virtual void signal    ();

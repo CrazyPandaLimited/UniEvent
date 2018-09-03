@@ -22,7 +22,7 @@ ResolveRequestSP CachedResolver::resolve_async (Loop* loop, std::string_view nod
 
     _EDEBUGTHIS("resolve async, going async {resolve_request:%p}", resolve_request.get());
     int err = uv_getaddrinfo(_pex_(loop), _pex_(resolve_request), uvx_on_resolve, node_cstr, service.length() ? service_cstr : nullptr, hints);
-    if (err) throw ResolveError(err);
+    if (err) throw CodeError(err);
 
     resolve_request->retain();
     retain();
@@ -41,7 +41,7 @@ ResolveRequestSP CachedResolver::resolve_async_compat (Loop* loop, std::string_v
     PEXS_NULL_TERMINATE(service, service_cstr);
 
     int err = uv_getaddrinfo(_pex_(loop), _pex_(resolve_request), uvx_on_resolve, node_cstr, service.length() ? service_cstr : nullptr, hints);
-    if (err) throw ResolveError(err);
+    if (err) throw CodeError(err);
 
     resolve_request->retain();
     retain();
@@ -71,9 +71,9 @@ void CachedResolver::uvx_on_resolve (uv_getaddrinfo_t* req, int status, addrinfo
 
     bool die = false;
     if (resolve_request->event.has_listeners())
-        resolve_request->event(res, ResolveError(status), false);
+        resolve_request->event(res, CodeError(status), false);
     else if (resolve_request->event_compat.has_listeners())
-        resolve_request->event_compat(resolver, res, ResolveError(status), false);
+        resolve_request->event_compat(resolver, res, CodeError(status), false);
     else
         die = true;
 

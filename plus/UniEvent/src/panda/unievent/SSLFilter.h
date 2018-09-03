@@ -16,10 +16,10 @@ public:
     SSLFilter (Stream* h, const SSL_METHOD* method = nullptr);
 
     void accept     (Stream*) override;
-    void on_connect (const StreamError&, ConnectRequest*) override;
+    void on_connect (const CodeError&, ConnectRequest*) override;
     void write      (WriteRequest*) override;
-    void on_write   (const StreamError& err, WriteRequest* req) override;
-    void on_read    (const string&, const StreamError&) override;
+    void on_write   (const CodeError& err, WriteRequest* req) override;
+    void on_read    (const string&, const CodeError&) override;
     void reset      () override;
     bool is_secure  () override;
 
@@ -43,12 +43,12 @@ private:
     void init                 (SSL_CTX* context);
     void start_ssl_connection (Profile);
     int  negotiate            ();
-    void negotiation_finished (const StreamError& err = StreamError(0));
+    void negotiation_finished (const CodeError& err = CodeError(0));
 
     static bool openSSL_inited;
     static bool init_openSSL_lib ();
-    static void on_negotiate_write (Stream*, const StreamError&, WriteRequest*);
-    static void on_regular_write   (Stream*, const StreamError&, WriteRequest*);
+    static void on_negotiate_write (Stream*, const CodeError&, WriteRequest*);
+    static void on_regular_write   (Stream*, const CodeError&, WriteRequest*);
 };
 
 }}

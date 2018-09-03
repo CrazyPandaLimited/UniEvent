@@ -9,89 +9,76 @@ namespace panda { namespace unievent {
 
 using panda::string;
 using std::string_view;
-class Loop;
+struct Loop;
 
 struct Error : std::exception {
     Error () {}
     Error (const string&);
     virtual const char*   what  () const throw() override;
-    virtual const string& whats () const throw();
+    virtual const string& whats () const;
+    virtual Error*        clone () const;
 protected:
     mutable string _what;
-    virtual string _mkwhat () const throw();
+    virtual string _mkwhat () const;
+};
+
+struct ImplRequiredError : Error {
+    ImplRequiredError (const string& what);
+    virtual ImplRequiredError* clone () const override;
 };
 
 struct CodeError : Error {
-    CodeError (uv_errno_t code) throw() : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (int code = 0)    throw() : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (errno_t code)    throw() : Error(), _code(code)                  {}
+    CodeError (uv_errno_t code) : CodeError(static_cast<errno_t>(code)) {}
+    CodeError (int code = 0)    : CodeError(static_cast<errno_t>(code)) {}
+    CodeError (errno_t code)    : Error(), _code(code)                  {}
 
-    virtual errno_t code () const throw();
-    virtual string  name () const throw();
-    virtual string  str  () const throw();
+    virtual errno_t code () const;
+    virtual string  name () const;
+    virtual string  str  () const;
+
+    virtual CodeError* clone () const override;
 
     explicit
     operator bool() const { return _code != 0; }
 
 protected:
     errno_t _code;
-    string _mkwhat () const throw() override;
-};
-
-struct ImplRequiredError : Error {
-    ImplRequiredError (const string& what) throw();
+    string _mkwhat () const override;
 };
 
 struct DyLibError : CodeError {
-    DyLibError (int code = 0, uv_lib_t* lib = nullptr) throw() : CodeError(code), lib(lib) {}
+    DyLibError (int code = 0, uv_lib_t* lib = nullptr) : CodeError(code), lib(lib) {}
 
-    virtual string dlerror () const throw();
+    virtual string dlerror () const;
 
-    string _mkwhat () const throw() override;
+    string _mkwhat () const override;
+
+    virtual DyLibError* clone () const override;
 
 private:
     uv_lib_t* lib;
 };
 
-struct RequestError   : CodeError    { using CodeError::CodeError; };
-struct LoopError      : CodeError    { using CodeError::CodeError; };
-struct HandleError    : CodeError    { using CodeError::CodeError; };
-struct OperationError : CodeError    { using CodeError::CodeError; };
-struct ResolveError   : CodeError    { using CodeError::CodeError; };
-struct WorkError      : CodeError    { using CodeError::CodeError; };
-struct ThreadError    : RequestError { using RequestError::RequestError; };
-struct AsyncError     : HandleError  { using HandleError::HandleError; };
-struct CheckError     : HandleError  { using HandleError::HandleError; };
-struct FSEventError   : HandleError  { using HandleError::HandleError; };
-struct FSPollError    : HandleError  { using HandleError::HandleError; };
-struct FSRequestError : HandleError  { using HandleError::HandleError; };
-struct PollError      : HandleError  { using HandleError::HandleError; };
-struct ProcessError   : HandleError  { using HandleError::HandleError; };
-struct SignalError    : HandleError  { using HandleError::HandleError; };
-struct TimerError     : HandleError  { using HandleError::HandleError; };
-struct UDPError       : HandleError  { using HandleError::HandleError; };
-struct StreamError    : HandleError  { using HandleError::HandleError; };
-struct PipeError      : StreamError  { using StreamError::StreamError; };
-struct TCPError       : StreamError  { using StreamError::StreamError; };
-struct TTYError       : StreamError  { using StreamError::StreamError; };
+struct SSLError : CodeError {
+    SSLError (int ssl_code);
+    SSLError (int ssl_code, unsigned long openssl_code);
 
-struct SSLError : StreamError {
-    SSLError (int ssl_code) throw();
+    int ssl_code     () const;
+    int openssl_code () const;
 
-    int ssl_code     () const throw();
-    int openssl_code () const throw();
+    string name () const override;
 
-    string name () const throw() override;
+    int library  () const;
+    int function () const;
+    int reason   () const;
 
-    int library  () const throw();
-    int function () const throw();
-    int reason   () const throw();
+    string library_str  () const;
+    string function_str () const;
+    string reason_str   () const;
 
-    string library_str  () const throw();
-    string function_str () const throw();
-    string reason_str   () const throw();
+    string str () const override;
 
-    string str () const throw() override;
+    virtual SSLError* clone () const override;
 
 private:
     int           _ssl_code;

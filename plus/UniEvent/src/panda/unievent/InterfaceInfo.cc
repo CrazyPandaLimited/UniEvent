@@ -6,7 +6,7 @@ using namespace panda::unievent;
 void InterfaceInfo::refresh () {
     _II_FREE_;
     int err = uv_interface_addresses(&addresses, &cnt);
-    if (err) throw OperationError(err);
+    if (err) throw CodeError(err);
 }
 
 InterfaceInfo::~InterfaceInfo () {

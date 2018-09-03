@@ -7,7 +7,7 @@ class RWLock {
 public:
     RWLock () {
         int err = uv_rwlock_init(&handle);
-        if (err) throw ThreadError(err);
+        if (err) throw CodeError(err);
     }
 
     virtual void rdlock    ();

@@ -15,7 +15,7 @@ void CommandCloseReinit::run    () { handle->close_reinit(true); }
 void CommandConnect::cancel () {
     tcp->retain(); //
     req->retain(); // because no 'connect' ever called
-    tcp->call_on_connect(StreamError(ERRNO_ECANCELED), req, false);
+    tcp->call_on_connect(CodeError(ERRNO_ECANCELED), req, false);
 }
 
 CommandConnect::~CommandConnect () {
@@ -35,7 +35,7 @@ void CommandConnectPipe::run () {
 void CommandConnectPipe::cancel () {
     pipe->retain(); //
     req->retain(); // because no 'connect' ever called
-    pipe->call_on_connect(StreamError(ERRNO_ECANCELED), req, false);
+    pipe->call_on_connect(CodeError(ERRNO_ECANCELED), req, false);
 }
 
 CommandConnectPipe::~CommandConnectPipe () {
@@ -57,7 +57,7 @@ void CommandWrite::run () {
 void CommandWrite::cancel () {
     stream->retain(); // because no 'write' ever called
     req->retain();    //
-    stream->call_on_write(StreamError(ERRNO_ECANCELED), req);
+    stream->call_on_write(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandWrite::~CommandWrite () {
@@ -71,7 +71,7 @@ void CommandShutdown::run () {
 void CommandShutdown::cancel () {
     stream->retain();
     req->retain();
-    stream->call_on_shutdown(StreamError(ERRNO_ECANCELED), req, false);
+    stream->call_on_shutdown(CodeError(ERRNO_ECANCELED), req, false);
 }
 
 CommandShutdown::~CommandShutdown () {

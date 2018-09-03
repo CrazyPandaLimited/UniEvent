@@ -22,7 +22,7 @@ void Loop::_init_default_loop () {
 Loop::Loop () : closed(false) {
     _uvloop = &_uvloop_body;
     int err = uv_loop_init(_uvloop);
-    if (err) throw LoopError(err);
+    if (err) throw CodeError(err);
     _uvloop->data = this;
 }
 
@@ -50,7 +50,7 @@ void Loop::walk (walk_fn cb) {
 
 void Loop::close () {
     int err = uv_loop_close(_uvloop);
-    if (err) throw LoopError(err);
+    if (err) throw CodeError(err);
     closed = true;
     if (is_default()) {
         _default_loop = nullptr;
@@ -65,7 +65,7 @@ void Loop::close () {
 void Loop::handle_fork () {
     int err = uv_loop_fork(_uvloop);
     if (err) {
-        throw LoopError(err);
+        throw CodeError(err);
     }
 }
 

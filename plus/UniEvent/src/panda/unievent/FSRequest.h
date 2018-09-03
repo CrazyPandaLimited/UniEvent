@@ -46,12 +46,12 @@ public:
         EXCL = UV_FS_COPYFILE_EXCL
     };
 
-    typedef function<void(FSRequest*, const RequestError&)>                    fn;
-    typedef function<void(FSRequest*, const RequestError&, file_t)>            open_fn;
-    typedef function<void(FSRequest*, const RequestError&, stat_t)>            stat_fn;
-    typedef function<void(FSRequest*, const RequestError&, const string&)>     read_fn;
-    typedef function<void(FSRequest*, const RequestError&, const DirEntries&)> scandir_fn;
-    typedef function<void(FSRequest*, const RequestError&, size_t)>            sendfile_fn;
+    typedef function<void(FSRequest*, const CodeError&)>                    fn;
+    typedef function<void(FSRequest*, const CodeError&, file_t)>            open_fn;
+    typedef function<void(FSRequest*, const CodeError&, stat_t)>            stat_fn;
+    typedef function<void(FSRequest*, const CodeError&, const string&)>     read_fn;
+    typedef function<void(FSRequest*, const CodeError&, const DirEntries&)> scandir_fn;
+    typedef function<void(FSRequest*, const CodeError&, size_t)>            sendfile_fn;
 
     // sync static methods
     static file_t     open     (string_view path, int flags, int mode);

@@ -12,7 +12,7 @@ public:
 
     Check (Loop* loop = Loop::default_loop()) {
         int err = uv_check_init(_pex_(loop), &uvh);
-        if (err) throw CheckError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 

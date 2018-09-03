@@ -38,18 +38,18 @@ struct Socks : public virtual Refcnt {
         }
 
         if (login.length() > 0xFF) {
-            throw Error("Bad login length");
+            throw CodeError("Bad login length");
         }
 
         if (passw.length() > 0xFF) {
-            throw Error("Bad password length");
+            throw CodeError("Bad password length");
         }
 
         if (host)
             _EDEBUG("Socks: host:%.*s port:%u login:%.*s passw:%.*s, socks_resolve:%s", (int)host.length(), host.data(), port, (int)login.length(),
                     login.data(), (int)passw.length(), passw.data(), socks_resolve ? "yes" : "no");
     } catch (...) {
-        throw Error(string("Can't initialize Socks, url: ") + uri.to_string());
+        throw CodeError(string("Can't initialize Socks, url: ") + uri.to_string());
     }
 
     bool configured() const { return (bool)host; }

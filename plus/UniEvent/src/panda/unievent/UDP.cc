@@ -21,7 +21,7 @@ void UDP::uvx_on_receive (uv_udp_t* handle, ssize_t nread, const uv_buf_t* uvbuf
 
     if (!nread && !addr) return; // nothing to read
 
-    UDPError err(nread < 0 ? nread : 0);
+    CodeError err(nread < 0 ? nread : 0);
     buf.length(nread > 0 ? nread : 0); // set real buf len
     h->call_on_receive(buf, addr, flags, err);
 }
@@ -29,18 +29,18 @@ void UDP::uvx_on_receive (uv_udp_t* handle, ssize_t nread, const uv_buf_t* uvbuf
 void UDP::uvx_on_send (uv_udp_send_t* uvreq, int status) {
     SendRequest* r = rcast<SendRequest*>(uvreq);
     UDP* h = hcast<UDP*>(uvreq->handle);
-    UDPError err(status < 0 ? status : 0);
+    CodeError err(status < 0 ? status : 0);
     h->call_on_send(err, r);
 }
 
 void UDP::open (sock_t socket) {
     int err = uv_udp_open(&uvh, socket);
-    if (err) throw UDPError(err);
+    if (err) throw CodeError(err);
 }
 
 void UDP::bind (const sockaddr* sa, unsigned flags) {
     int err = uv_udp_bind(&uvh, sa, flags);
-    if (err) throw UDPError(err);
+    if (err) throw CodeError(err);
 }
 
 void UDP::bind (string_view host, string_view service, const addrinfo* hints, unsigned flags) {
@@ -56,7 +56,7 @@ void UDP::bind (string_view host, string_view service, const addrinfo* hints, un
 
     addrinfo* res;
     int syserr = getaddrinfo(host_cstr, service_cstr, hints, &res);
-    if (syserr) throw TCPError(_err_gai2uv(syserr));
+    if (syserr) throw CodeError(_err_gai2uv(syserr));
 
     try { bind(res->ai_addr, flags); }
     catch (...) {
@@ -69,12 +69,12 @@ void UDP::bind (string_view host, string_view service, const addrinfo* hints, un
 void UDP::recv_start (receive_fn callback) {
     if (callback) receive_event.add(callback);
     int err = uv_udp_recv_start(&uvh, Handle::uvx_on_buf_alloc, uvx_on_receive);
-    if (err) throw UDPError(err);
+    if (err) throw CodeError(err);
 }
 
 void UDP::recv_stop () {
     int err = uv_udp_recv_stop(&uvh);
-    if (err) throw UDPError(err);
+    if (err) throw CodeError(err);
 }
 
 void UDP::send (SendRequest* req, const sockaddr* sa) {
@@ -94,7 +94,7 @@ void UDP::send (SendRequest* req, const sockaddr* sa) {
     int err = uv_udp_send(_pex_(req), &uvh, uvbufs, nbufs, sa, uvx_on_send);
     if (err) {
         req->release();
-        throw UDPError(err);
+        throw CodeError(err);
     }
     retain();
 }
@@ -103,15 +103,15 @@ void UDP::reset () { close_reinit(); }
 
 void UDP::on_handle_reinit () {
     int err = uv_udp_init(uvh.loop, &uvh);
-    if (err) throw UDPError(err);
+    if (err) throw CodeError(err);
     Handle::on_handle_reinit();
 }
 
-void UDP::on_receive (const string& buf, const sockaddr* addr, unsigned flags, const UDPError& err) {
+void UDP::on_receive (const string& buf, const sockaddr* addr, unsigned flags, const CodeError& err) {
     if (receive_event.has_listeners()) receive_event(this, buf, addr, flags, err);
     else throw ImplRequiredError("UDP::on_receive");
 }
 
-void UDP::on_send (const UDPError& err, SendRequest* r) {
+void UDP::on_send (const CodeError& err, SendRequest* r) {
     r->event(this, err, r);
 }

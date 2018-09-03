@@ -14,7 +14,7 @@ void Work::uvx_on_after_work (uv_work_t* req, int) {
 
 void Work::queue () {
     int err = uv_queue_work(uvr.loop, &uvr, uvx_on_work, uvx_on_after_work);
-    if (err) throw WorkError(err);
+    if (err) throw CodeError(err);
 }
 
 void Work::on_work () {

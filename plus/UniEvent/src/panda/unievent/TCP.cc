@@ -97,7 +97,7 @@ TCP::TCP(Loop* loop) {
     _EDEBUGTHIS("ctor");
     int err = uv_tcp_init(_pex_(loop), &uvh);
     if (err)
-        throw TCPError(err);
+        throw CodeError(err);
     _init(&uvh);
 /* SOCKS
     static iptr<Socks> socks = getenv_proxy();
@@ -111,7 +111,7 @@ TCP::TCP(Loop* loop, unsigned int flags) {
     _EDEBUGTHIS("ctor");
     int err = uv_tcp_init_ex(_pex_(loop), &uvh, flags);
     if (err)
-        throw TCPError(err);
+        throw CodeError(err);
     _init(&uvh);
 /* SOCKS
     static iptr<Socks> socks = getenv_proxy();
@@ -124,13 +124,13 @@ TCP::TCP(Loop* loop, unsigned int flags) {
 void TCP::open(sock_t socket) {
     int err = uv_tcp_open(&uvh, socket);
     if (err)
-        throw TCPError(err);
+        throw CodeError(err);
 }
 
 void TCP::bind(const sockaddr* sa, unsigned int flags) {
     int err = uv_tcp_bind(&uvh, sa, flags);
     if (err)
-        throw TCPError(err);
+        throw CodeError(err);
 }
 
 void TCP::bind(std::string_view host, std::string_view service, const addrinfo* hints) {
@@ -143,7 +143,7 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
     addrinfo* res;
     int       syserr = getaddrinfo(host_cstr, service_cstr, hints, &res);
     if (syserr)
-        throw TCPError(_err_gai2uv(syserr));
+        throw CodeError(_err_gai2uv(syserr));
 
     try {
         bind(res->ai_addr);
@@ -183,7 +183,7 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
     bool                                      found;
     std::tie(address_pos, found) = resolver->find(host, service, hints);
     if (found) {
-        callback(address_pos->second->next(), ResolveError(0), true);
+        callback(address_pos->second->next(), CodeError(0), true);
         return false;
     }
 
@@ -194,7 +194,7 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
     }
 
     try {
-        resolve_request = resolver->resolve_async(loop(), host, service, hints, [=](addrinfo* res, const ResolveError& err, bool) {
+        resolve_request = resolver->resolve_async(loop(), host, service, hints, [=](addrinfo* res, const CodeError& err, bool) {
             if (err) {
                 callback(nullptr, err, false);
                 return;
@@ -204,12 +204,12 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
                 // unlock for a moment, h->connect will lock it again, otherwise it would
                 // enqueue and wait for nothing
                 this->async_unlock_noresume();
-                callback(res, ResolveError(0), false);
-            } catch (const TCPError& err) {
+                callback(res, CodeError(0), false);
+            } catch (const CodeError& err) {
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, ResolveError(err.code()), false);
+                callback(nullptr, CodeError(err.code()), false);
             }
             // h->connect called retain() again
             this->release();
@@ -236,7 +236,7 @@ bool TCP::resolve_with_regular_resolver(const string& host, const string& servic
     resolver->retain();
 
     try {
-        resolver->resolve(host, service, hints, [=](addrinfo* res, const ResolveError& err, bool) {
+        resolver->resolve(host, service, hints, [=](addrinfo* res, const CodeError& err, bool) {
             _EDEBUGTHIS("resolve wrapped callback");
             resolver->release();
 
@@ -248,13 +248,13 @@ bool TCP::resolve_with_regular_resolver(const string& host, const string& servic
             try {
                 // unlock for a moment, h->connect will lock it again, otherwise it would enqueue and wait for nothing
                 this->async_unlock_noresume();
-                callback(res, ResolveError(0), false);
+                callback(res, CodeError(0), false);
                 Resolver::free(res);
-            } catch (const TCPError& err) {
+            } catch (const CodeError& err) {
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, ResolveError(err.code()), false);
+                callback(nullptr, CodeError(err.code()), false);
                 Resolver::free(res);
             }
             // h->connect called retain() again
@@ -296,13 +296,13 @@ void TCP::connect(const string& host, const string& service, const addrinfo* hin
         } else {
             _EDEBUGTHIS("proxying failed");
             connect_request->release();
-            throw TCPError(ERRNO_SOCKS);
+            throw CodeError(ERRNO_SOCKS);
         }
     }
 */
     try {
         if (!resolve(host, service, hints,
-                     [=](addrinfo* res, const ResolveError& err, bool) {
+                     [=](addrinfo* res, const CodeError& err, bool) {
                          _EDEBUG("resolve callback");
                          if (err) {
                              Stream::uvx_on_connect(_pex_(connect_request), (int)err.code());
@@ -353,7 +353,7 @@ void TCP::connect(const sockaddr* sa, ConnectRequest* connect_request) {
         } else {
             _EDEBUGTHIS("proxying failed");
             connect_request->release();
-            throw TCPError(ERRNO_SOCKS);
+            throw CodeError(ERRNO_SOCKS);
         }
     }
     */
@@ -399,7 +399,7 @@ void TCP::use_socks(SocksSP socks) { socks_proxy = iptr<socks::SocksProxy>(new s
 void TCP::on_handle_reinit() {
     int err = uv_tcp_init(uvh.loop, &uvh);
     if (err)
-        throw TCPError(err);
+        throw CodeError(err);
     Stream::on_handle_reinit();
 }
 
@@ -452,7 +452,7 @@ TCP::ConnectBuilder::~ConnectBuilder() noexcept(false) {
         connect_request_->set_timer(Timer::once(timeout_,
                                                 [tcp_capture, connect_request_capture](Timer* t) {
                                                     _EDEBUG("connect timed out %p %p %u", t, tcp_capture, connect_request_capture->refcnt());
-                                                    StreamError err(UV_ETIMEDOUT);
+                                                    CodeError err(UV_ETIMEDOUT);
                                                     connect_request_capture->error = err;
                                                     connect_request_capture->release_timer();
                                                     tcp_capture->cancel_connect();

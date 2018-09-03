@@ -9,7 +9,7 @@ void FSEvent::uvx_on_fs_event (uv_fs_event_t* handle, const char* filename, int 
 void FSEvent::start (const char* path, int flags, fs_event_fn callback) {
     if (callback) fs_event.add(callback);
     int err = uv_fs_event_start(&uvh, uvx_on_fs_event, path, flags);
-    if (err) throw FSEventError(err);
+    if (err) throw CodeError(err);
 }
 
 void FSEvent::stop () {

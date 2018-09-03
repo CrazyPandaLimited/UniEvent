@@ -11,7 +11,7 @@ using namespace panda::unievent;
 #define PE_FS_CALL_SYNC(call_code, get_result_code)             \
     PE_FS_CALL_SYNC_NOERR({                                     \
         call_code                                               \
-        if (_uvr.result < 0) throw FSRequestError(_uvr.result); \
+        if (_uvr.result < 0) throw CodeError(_uvr.result); \
         get_result_code                                         \
     })
 
@@ -256,7 +256,7 @@ bool FSRequest::access (string_view path, int mode) {
                 ret = false;
                 break;
             default:
-                throw RequestError(_uvr.result);
+                throw CodeError(_uvr.result);
         }
     });
     return ret;
@@ -276,7 +276,7 @@ string FSRequest::mkdtemp (string_view path) {
 
 void FSRequest::uvx_on_open_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     if (!err) req->_file = req->_uvr.result;
     req->set_complete();
     req->_open_callback(req, err, req->_file);
@@ -292,7 +292,7 @@ void FSRequest::open (string_view path, int flags, int mode, open_fn callback) {
 
 void FSRequest::uvx_on_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     req->set_complete();
     req->_callback(req, err);
     req->release();
@@ -306,7 +306,7 @@ void FSRequest::close (fn callback) {
 
 void FSRequest::uvx_on_stat_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     stat_t val;
     if (!err) val = req->_uvr.statbuf;
     req->set_complete();
@@ -414,7 +414,7 @@ void FSRequest::rmdir (string_view path, fn callback) {
 
 void FSRequest::uvx_on_scandir_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     DirEntries ret;
     if (!err) {
         size_t nent = (size_t)req->_uvr.result;
@@ -446,7 +446,7 @@ void FSRequest::rename (string_view path, string_view new_path, fn callback) {
 
 void FSRequest::uvx_on_sendfile_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     size_t ret = 0;
     if (!err) ret = (size_t)req->_uvr.result;
     req->set_complete();
@@ -478,7 +478,7 @@ void FSRequest::symlink (string_view path, string_view new_path, SymlinkFlags fl
 
 void FSRequest::uvx_on_readlink_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     string ret;
     if (!err) ret.assign((const char*)req->_uvr.ptr, (size_t)req->_uvr.result); // _uvr.ptr is not null-terminated
     req->set_complete();
@@ -495,7 +495,7 @@ void FSRequest::readlink (string_view path, read_fn callback) {
 
 void FSRequest::uvx_on_realpath_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     string ret;
     if (!err) ret.assign((const char*)req->_uvr.ptr); // _uvr.ptr is null-terminated
     req->set_complete();
@@ -520,7 +520,7 @@ void FSRequest::copyfile (string_view path, string_view new_path, CopyFileFlags 
 
 void FSRequest::uvx_on_read_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    RequestError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     if (!err) req->_read_buf.length((size_t)req->_uvr.result);
     req->set_complete();
     req->_read_callback(req, err, req->_read_buf);

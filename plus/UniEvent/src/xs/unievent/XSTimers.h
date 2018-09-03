@@ -23,7 +23,7 @@ public:
 //    virtual void stop () { uv_timer_stop(&uvh); }
 //
 //    virtual void again () {
-//        if (uv_timer_again(&uvh)) throw TimerError(uvh.loop);
+//        if (uv_timer_again(&uvh)) throw CodeError(uvh.loop);
 //    }
 //
 //    virtual uint64_t repeat () const          { return uv_timer_get_repeat(&uvh); }

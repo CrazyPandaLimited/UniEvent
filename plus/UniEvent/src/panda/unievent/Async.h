@@ -13,7 +13,7 @@ public:
         async_callback =  callback;
         _init(&uvh);
         int err = uv_async_init(_pex_(loop), &uvh, uvx_on_async);
-        if (err) throw AsyncError(err);
+        if (err) throw CodeError(err);
     }
 
     virtual void send ();

@@ -14,53 +14,57 @@ cmp_ok(
   ERRNO_ENETUNREACH + ERRNO_ENFILE + ERRNO_ENOBUFS + ERRNO_ENODEV + ERRNO_ENOENT + ERRNO_ENOMEM + ERRNO_ENONET + ERRNO_ENOPROTOOPT +
   ERRNO_ENOSPC + ERRNO_ENOSYS + ERRNO_ENOTCONN + ERRNO_ENOTDIR + ERRNO_ENOTEMPTY + ERRNO_ENOTSOCK + ERRNO_ENOTSUP + ERRNO_EPERM +
   ERRNO_EPIPE + ERRNO_EPROTO + ERRNO_EPROTONOSUPPORT + ERRNO_EPROTOTYPE + ERRNO_ERANGE + ERRNO_EROFS + ERRNO_ESHUTDOWN + ERRNO_ESPIPE +
-  ERRNO_ESRCH + ERRNO_ETIMEDOUT + ERRNO_ETXTBSY + ERRNO_EXDEV + ERRNO_UNKNOWN + ERRNO_EOF + ERRNO_ENXIO + ERRNO_EMLINK,
+  ERRNO_ESRCH + ERRNO_ETIMEDOUT + ERRNO_ETXTBSY + ERRNO_EXDEV + ERRNO_UNKNOWN + ERRNO_EOF + ERRNO_ENXIO + ERRNO_EMLINK + ERRNO_SSL,
   '<', 0, "constants exist",
 );
 
-my ($e);
+subtest "Error" => sub {
+    my $e = new_ok "UniEvent::Error" => ["message"];
+    is $e->what, "message";
+    is $e, $e->what;
+    my $c = $e->clone;
+    isa_ok $c, ref($e);
+    is $c, $e, "clone ok";
+};
 
-$e = new UniEvent::Error({what => "what", mess => "mess"});
-is($e->what, "what");
-like($e->to_string, qr/what/);
-like($e->to_string, qr/mess/);
-like($e->to_string, qr/Error/);
-is($e.'', $e->to_string);
+subtest "ImplRequiredError" => sub {
+    my $e = new_ok "UniEvent::ImplRequiredError" => ["message"];
+    like $e->what, qr/message/;
+    my $c = $e->clone;
+    isa_ok $c, ref($e);
+    is $c, $e, "clone ok";
+};
 
-isa_ok('UniEvent::RequestError', 'UniEvent::Error');
-isa_ok('UniEvent::CodeError', 'UniEvent::Error');
+subtest "CodeError" => sub {
+    my $e = new_ok "UniEvent::CodeError" => [ERRNO_EACCES];
+    is $e->code, ERRNO_EACCES, "code ok";
+    ok $e->what, "what present";
+    is $e->name, "EACCES", "name ok";
+    ok $e->str, "str present";
+    my $c = $e->clone;
+    isa_ok $c, ref($e);
+    is $c, $e, "clone ok";
+};
 
-$e = new UniEvent::CodeError({what => 'what123', mess => 'mess', code => 777, name => 'name', str => 'str'});
-is($e->what, 'what123');
-is($e->code, 777);
-is($e->name, 'name');
-is($e->str, 'str');
-is($e.'', $e->to_string);
-like($e.'', qr/what123/);
-like($e.'', qr/mess/);
-unlike($e.'', qr/777/);
-unlike($e.'', qr/name/);
-like($e.'', qr/CodeError/);
-
-isa_ok('UniEvent::LoopError',      'UniEvent::CodeError');
-isa_ok('UniEvent::HandleError',    'UniEvent::CodeError');
-isa_ok('UniEvent::OperationError', 'UniEvent::CodeError');
-isa_ok('UniEvent::AsyncError',     'UniEvent::HandleError');
-isa_ok('UniEvent::CheckError',     'UniEvent::HandleError');
-isa_ok('UniEvent::FSEventError',   'UniEvent::HandleError');
-isa_ok('UniEvent::FSPollError',    'UniEvent::HandleError');
-isa_ok('UniEvent::FSRequestError', 'UniEvent::HandleError');
-isa_ok('UniEvent::PollError',      'UniEvent::HandleError');
-isa_ok('UniEvent::ProcessError',   'UniEvent::HandleError');
-isa_ok('UniEvent::SignalError',    'UniEvent::HandleError');
-isa_ok('UniEvent::TimerError',     'UniEvent::HandleError');
-isa_ok('UniEvent::UDPError',       'UniEvent::HandleError');
-isa_ok('UniEvent::StreamError',    'UniEvent::HandleError');
-isa_ok('UniEvent::PipeError',      'UniEvent::StreamError');
-isa_ok('UniEvent::TCPError',       'UniEvent::StreamError');
-isa_ok('UniEvent::TTYError',       'UniEvent::StreamError');
-isa_ok('UniEvent::SSLError',       'UniEvent::StreamError');
-isa_ok('UniEvent::ResolveError',   'UniEvent::CodeError');
-isa_ok('UniEvent::WorkError',      'UniEvent::CodeError');
+subtest "SSLError" => sub {
+    my $ssl_code = 1;
+    my $e = new_ok "UniEvent::SSLError" => [$ssl_code];
+    is $e->code, ERRNO_SSL, "code ok";
+    ok $e->what, "what present";
+    is $e->name, "SSL", "name ok";
+    ok $e->str, "str present";
+    is $e->ssl_code, $ssl_code, "ssl code";
+    $e->openssl_code;
+    $e->library;
+    $e->function;
+    $e->reason;
+    $e->library_str;
+    $e->function_str;
+    $e->reason_str;
+    $e->str;
+    my $c = $e->clone;
+    isa_ok $c, ref($e);
+    is $c, $e, "clone ok";
+};
 
 done_testing();

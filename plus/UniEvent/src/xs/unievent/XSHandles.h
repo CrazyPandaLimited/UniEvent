@@ -69,7 +69,7 @@ struct XSFSPoll : FSPoll, XSHandle {
     bool       stat_as_hash;
     XSFSPoll (Loop* loop) : FSPoll(loop), fs_poll_xscb(aTHX), stat_as_hash(false) {}
 protected:
-    void on_fs_poll (const stat_t* prev, const stat_t* curr, const FSPollError& err) override;
+    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) override;
 };
 
 
@@ -94,12 +94,12 @@ struct XSStream : virtual Stream, XSHandle {
                   connect_xscb(aTHX) {}
 
 protected:
-    void on_connection     (const StreamError& err) override;
-    void on_ssl_connection (const StreamError& err) override;
-    void on_connect        (const StreamError& err, ConnectRequest* req) override;
-    void on_read           (const string& buf, const StreamError& err) override;
-    void on_write          (const StreamError& err, WriteRequest* req) override;
-    void on_shutdown       (const StreamError& err, ShutdownRequest* req) override;
+    void on_connection     (const CodeError& err) override;
+    void on_ssl_connection (const CodeError& err) override;
+    void on_connect        (const CodeError& err, ConnectRequest* req) override;
+    void on_read           (const string& buf, const CodeError& err) override;
+    void on_write          (const CodeError& err, WriteRequest* req) override;
+    void on_shutdown       (const CodeError& err, ShutdownRequest* req) override;
     void on_eof            () override;
 };
 
@@ -173,8 +173,8 @@ struct XSUDP : UDP, XSHandle {
     }
     
 protected:
-    void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const UDPError& err) override;
-    void on_send    (const UDPError& err, SendRequest* req) override;
+    void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError& err) override;
+    void on_send    (const CodeError& err, SendRequest* req) override;
 
 private:
     static const int XUF_REUSEADDR = UF_LAST << 1;

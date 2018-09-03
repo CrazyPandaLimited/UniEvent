@@ -9,7 +9,7 @@ using std::string_view;
 
 class UDP : public virtual Handle, public AllocatedObject<UDP> {
 public:
-    using receive_fptr = void(UDP* handle, const string& buf, const sockaddr* addr, unsigned flags, const UDPError& err);
+    using receive_fptr = void(UDP* handle, const string& buf, const sockaddr* addr, unsigned flags, const CodeError& err);
     using receive_fn = function<receive_fptr>;
 
     using send_fptr = SendRequest::send_fptr;
@@ -30,13 +30,13 @@ public:
 
     UDP (Loop* loop = Loop::default_loop()) {
         int err = uv_udp_init(_pex_(loop), &uvh);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
     
     UDP (Loop* loop, unsigned int flags) {
         int err = uv_udp_init_ex(_pex_(loop), &uvh, flags);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 
@@ -59,41 +59,41 @@ public:
 
     void getsockname (struct sockaddr* name, int* namelen) {
         int err = uv_udp_getsockname(&uvh, name, namelen);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
     void udp_membership (string_view multicast_addr, string_view interface_addr, membership_t membership) {
         PEXS_NULL_TERMINATE(multicast_addr, multicast_addr_cstr);
         PEXS_NULL_TERMINATE(interface_addr, interface_addr_cstr);
         int err = uv_udp_set_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, static_cast<uv_membership>(membership));
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
     void udp_multicast_loop (bool on) {
         int err = uv_udp_set_multicast_loop(&uvh, on);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
     void udp_multicast_ttl (int ttl) {
         int err = uv_udp_set_multicast_ttl(&uvh, ttl);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
     void udp_broadcast (bool on) {
         int err = uv_udp_set_broadcast(&uvh, on);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
     void udp_ttl (int ttl) {
         int err = uv_udp_set_ttl(&uvh, ttl);
-        if (err) throw UDPError(err);
+        if (err) throw CodeError(err);
     }
 
-    void call_on_receive (const string& buf, const sockaddr* sa, unsigned flags, const UDPError& err) {
+    void call_on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError& err) {
         on_receive(buf, sa, flags, err);
     }
 
-    void call_on_send (const UDPError& err, SendRequest* req) {
+    void call_on_send (const CodeError& err, SendRequest* req) {
         on_send(err, req);
         req->release();
         release();
@@ -104,8 +104,8 @@ protected:
     
     void on_handle_reinit () override;
 
-    virtual void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const UDPError& err);
-    virtual void on_send    (const UDPError& err, SendRequest* req);
+    virtual void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError& err);
+    virtual void on_send    (const CodeError& err, SendRequest* req);
 
 private:
     uv_udp_t uvh;

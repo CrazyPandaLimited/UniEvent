@@ -13,10 +13,10 @@ public:
 
     virtual void accept        (Stream* client);
     virtual void write         (WriteRequest* req);
-    virtual void on_connect    (const StreamError& err, ConnectRequest* req);
-    virtual void on_write      (const StreamError& err, WriteRequest* req);
-    virtual void on_read       (const string& buf, const StreamError& err);
-    virtual void on_shutdown   (const StreamError& err, ShutdownRequest* req);
+    virtual void on_connect    (const CodeError& err, ConnectRequest* req);
+    virtual void on_write      (const CodeError& err, WriteRequest* req);
+    virtual void on_read       (const string& buf, const CodeError& err);
+    virtual void on_shutdown   (const CodeError& err, ShutdownRequest* req);
     virtual void on_eof        ();
     virtual void reset         ();
     virtual bool is_secure     ();
@@ -45,19 +45,19 @@ protected:
         _prev ? _prev->write(req) : handle->do_write(req);
     }
 
-    void next_on_connect (const StreamError& err, ConnectRequest* req) {
+    void next_on_connect (const CodeError& err, ConnectRequest* req) {
         _next ? _next->on_connect(err, req) : handle->call_on_connect(err, req, err.code() != ERRNO_ECANCELED);
     }
 
-    void next_on_write (const StreamError& err, WriteRequest* req) {
+    void next_on_write (const CodeError& err, WriteRequest* req) {
         _next ? _next->on_write(err, req) : handle->call_on_write(err, req);
     }
 
-    void next_on_read (const string& buf, const StreamError& err) {
+    void next_on_read (const string& buf, const CodeError& err) {
         _next ? _next->on_read(buf, err) : handle->call_on_read(buf, err);
     }
 
-    StreamError temp_read_start    () { return handle->_read_start(); }
+    CodeError temp_read_start    () { return handle->_read_start(); }
     void        restore_read_start () { if (!(handle->flags & Stream::SF_WANTREAD)) handle->read_stop(); }
 
     void connecting (bool val) { handle->connecting(val); }

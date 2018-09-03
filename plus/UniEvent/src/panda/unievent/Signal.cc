@@ -56,18 +56,18 @@ void Signal::uvx_on_signal (uv_signal_t* handle, int signum) {
 void Signal::start (int signum, signal_fn callback) {
     if (callback) signal_event.add(callback);
     int err = uv_signal_start(&uvh, uvx_on_signal, signum);
-    if (err) throw SignalError(err);
+    if (err) throw CodeError(err);
 }
 
 void Signal::start_once (int signum, signal_fn callback) {
     if (callback) signal_event.add(callback);
     int err = uv_signal_start_oneshot(&uvh, uvx_on_signal, signum);
-    if (err) throw SignalError(err);
+    if (err) throw CodeError(err);
 }
 
 void Signal::stop () {
     int err = uv_signal_stop(&uvh);
-    if (err) throw SignalError(err);
+    if (err) throw CodeError(err);
 }
 
 void Signal::reset () { stop(); }

@@ -6,7 +6,7 @@ using namespace panda::unievent;
 void CPUInfo::refresh () {
     _CI_FREE_;
     int err = uv_cpu_info(&cpu_infos, &cnt);
-    if (err) throw OperationError(err);
+    if (err) throw CodeError(err);
 }
 
 CPUInfo::~CPUInfo () {

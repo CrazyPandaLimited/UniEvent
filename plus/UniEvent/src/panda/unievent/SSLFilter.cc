@@ -68,7 +68,7 @@ SSLFilter::~SSLFilter () {
     SSL_free(ssl);
 }
 
-void SSLFilter::on_connect (const StreamError& err, ConnectRequest* req) {
+void SSLFilter::on_connect (const CodeError& err, ConnectRequest* req) {
     _EDEBUG("ERR=%d WHAT=%s", err.code(), err.what());
 
     if (started) reset();
@@ -136,7 +136,7 @@ int SSLFilter::negotiate () {
 //// renegotiate DOES NOT WORK - SSL_is_init_finshed returns true, SSL_renegotiate_pending becomes false after first SSL_do_handshake
 //void SSLFilter::renegotiate () {
 //    printf("SSLFilter::renegotiate\n");
-//    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw StreamError(ERRNO_EINVAL);
+//    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw CodeError(ERRNO_EINVAL);
 //    SSL_set_verify(ssl, SSL_VERIFY_PEER, nullptr);
 //    printf("SSL_get_secure_renegotiation_support=%li\n", SSL_get_secure_renegotiation_support(ssl));
 //    int ssl_state = SSL_renegotiate(ssl);
@@ -150,7 +150,7 @@ int SSLFilter::negotiate () {
 //    negotiate();
 //}
 
-void SSLFilter::negotiation_finished (const StreamError& err) {
+void SSLFilter::negotiation_finished (const CodeError& err) {
     _EDEBUG("[%s] err=%s", PROFILE_STR, err.what());
 
     if (err && !handle->connecting()) return; // if not connecting then it's ongoing packets for already failed handshake, just ignore them
@@ -167,7 +167,7 @@ void SSLFilter::negotiation_finished (const StreamError& err) {
     }
 }
 
-void SSLFilter::on_read (const string& encbuf, const StreamError& err) {
+void SSLFilter::on_read (const string& encbuf, const CodeError& err) {
     _EDEBUG("[%s], got %lu bytes", PROFILE_STR, encbuf.length());
     if (!handle->connecting() && !handle->connected()) {
         _EDEBUG("[%s], on_read strange state: neither connecting nor connected, possibly server is not configured", PROFILE_STR);
@@ -251,7 +251,7 @@ void SSLFilter::write (WriteRequest* req) {
     next_write(sslreq);
 }
 
-void SSLFilter::on_write (const StreamError& err, WriteRequest* req) {
+void SSLFilter::on_write (const CodeError& err, WriteRequest* req) {
     SSLWriteRequest* sslreq = static_cast<SSLWriteRequest*>(req);
     _EDEBUG("[%s] regular=%d ERR=%s", PROFILE_STR, sslreq->src ? 1 : 0, err.what());
     if (sslreq->src) { // regular's on_write

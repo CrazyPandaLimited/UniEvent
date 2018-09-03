@@ -7,7 +7,7 @@ class Semaphore {
 public:
     Semaphore (unsigned int value) {
         int err = uv_sem_init(&handle, value);
-        if (err) throw ThreadError(err);
+        if (err) throw CodeError(err);
     }
 
     virtual void post    ();

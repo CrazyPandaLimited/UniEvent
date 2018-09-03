@@ -12,12 +12,12 @@ void Thread::uvx_on_create (void* arg) {
 void Thread::create (void* arg) {
     ctx.arg = arg;
     int err = uv_thread_create(&handle, uvx_on_create, &ctx);
-    if (err) throw ThreadError(err);
+    if (err) throw CodeError(err);
 }
 
 void Thread::join () {
     int err = uv_thread_join(&handle);
-    if (err) throw ThreadError(err);
+    if (err) throw CodeError(err);
 }
 
 void Thread::on_create (void* arg) {

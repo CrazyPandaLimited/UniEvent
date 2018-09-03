@@ -7,7 +7,7 @@ class Passwd {
 public:
     Passwd () {
         int err = uv_os_get_passwd(&data);
-        if (err) throw OperationError(err);
+        if (err) throw CodeError(err);
     }
     
     const char* username () const { return data.username; }

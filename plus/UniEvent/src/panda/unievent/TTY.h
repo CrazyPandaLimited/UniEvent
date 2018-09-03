@@ -14,7 +14,7 @@ public:
 
     TTY (file_t fd, bool readable = false, Loop* loop = Loop::default_loop()) : fd(fd) {
         int err = uv_tty_init(_pex_(loop), &uvh, fd, readable);
-        if (err) throw TTYError(err);
+        if (err) throw CodeError(err);
         _init(&uvh);
     }
 

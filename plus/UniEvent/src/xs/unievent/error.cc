@@ -9,9 +9,11 @@ using xs::Simple;
 static const std::string cpp_errns  = "panda::unievent::";
 static const std::string perl_errns = "UniEvent::";
 
-static Stash get_perl_class_for_err (const char* mangled_name) {
+const CodeError xs::unievent::code_error_def;
+
+Stash xs::unievent::get_perl_class_for_err (const Error& err) {
     int status;
-    char* cpp_class_name = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
+    char* cpp_class_name = abi::__cxa_demangle(typeid(err).name(), nullptr, nullptr, &status);
     if (status != 0) throw "[UniEvent] !critical! abi::__cxa_demangle error";
     if (strstr(cpp_class_name, cpp_errns.c_str()) != cpp_class_name) throw "[UniEvent] strange exception caught";
     std::string stash_name(perl_errns);
@@ -26,7 +28,7 @@ Scalar xs::unievent::error_sv (const Error& err, bool with_mess) {
     const CodeError* cerr = panda::dyn_cast<const CodeError*>(&err);
     if (cerr && !*cerr) return Scalar::undef;
 
-    auto stash = get_perl_class_for_err(typeid(err).name());
+    auto stash = get_perl_class_for_err(err);
 
     auto args = Hash::create();
     args["what"] = Simple(err.what());

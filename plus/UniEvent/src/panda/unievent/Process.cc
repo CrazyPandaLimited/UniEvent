@@ -11,12 +11,12 @@ void Process::spawn (ProcessOptions* options, exit_fn callback) {
     uv_process_options_t* uvopts = _pex_(options);
     uvopts->exit_cb = uvx_on_exit;
     int err = uv_spawn(uvh.loop, &uvh, uvopts);
-    if (err) throw ProcessError(err);
+    if (err) throw CodeError(err);
 }
 
 void Process::kill (int signum) {
     int err = uv_process_kill(&uvh, signum);
-    if (err) throw ProcessError(err);
+    if (err) throw CodeError(err);
 }
 
 void Process::reset () {
@@ -25,17 +25,17 @@ void Process::reset () {
 
 void Process::kill (int pid, int signum) {
     int err = uv_kill(pid, signum);
-    if (err) throw ProcessError(err);
+    if (err) throw CodeError(err);
 }
 
 void Process::get_title (char* buffer, size_t size) {
     int err = uv_get_process_title(buffer, size);
-    if (err) throw ProcessError(err);
+    if (err) throw CodeError(err);
 }
 
 void Process::set_title (const char* title) {
     int err = uv_set_process_title(title);
-    if (err) throw ProcessError(err);
+    if (err) throw CodeError(err);
 }
 
 void Process::on_exit (int64_t exit_status, int term_signal) {

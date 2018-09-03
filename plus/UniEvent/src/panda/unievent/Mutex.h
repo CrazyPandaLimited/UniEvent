@@ -7,7 +7,7 @@ class Mutex {
 public:
     Mutex (bool recursive = false) {
         int err = recursive ? uv_mutex_init_recursive(&handle) : uv_mutex_init(&handle);
-        if (err) throw ThreadError(err);
+        if (err) throw CodeError(err);
     }
 
     void lock    () { uv_mutex_lock(&handle); }

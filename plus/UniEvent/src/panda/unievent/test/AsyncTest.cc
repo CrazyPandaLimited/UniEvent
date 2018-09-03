@@ -82,7 +82,7 @@ std::string AsyncTest::generate_report() {
 string AsyncTest::destroy_loop() {
     try {
         loop = nullptr;
-    } catch (LoopError& e) {
+    } catch (panda::unievent::Error& e) {
         // we have a problem with loop, destructor will throw anyway and we do not want it
         // to prevent destructor from call
         loop->retain(); // yes it is memory leak, but test will fail anyway

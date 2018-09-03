@@ -10,7 +10,7 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
     ConnectRequest* r = rcast<ConnectRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
     _EDEBUG("[%p] uvx_on_connect", h);
-    StreamError err(status < 0 ? status : 0);
+    CodeError err(status < 0 ? status : 0);
     if (!err && (h->flags & SF_WANTREAD)) err = h->_read_start();
     bool unlock = err.code() != ERRNO_ECANCELED;
     h->filter_list.head ? h->filter_list.head->on_connect(err, r) : h->call_on_connect(err, r, unlock);
@@ -18,14 +18,14 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
 
 void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
     Stream* h = hcast<Stream*>(stream);
-    StreamError err(status < 0 ? status : 0);
+    CodeError err(status < 0 ? status : 0);
     h->call_on_connection(err);
 }
 
 void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
     Stream* h = hcast<Stream*>(stream);
 
-    StreamError err(nread < 0 ? nread : 0);
+    CodeError err(nread < 0 ? nread : 0);
     if (err.code() == ERRNO_EOF) {
         h->flags &= ~SF_CONNECTED;
         for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_eof();
@@ -48,7 +48,7 @@ void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uv
 void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
     WriteRequest* r = rcast<WriteRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
-    StreamError err(status < 0 ? status : 0);
+    CodeError err(status < 0 ? status : 0);
     h->filter_list.head ? h->filter_list.head->on_write(err, r) : h->call_on_write(err, r);
 }
 
@@ -56,7 +56,7 @@ void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
     ShutdownRequest* r = rcast<ShutdownRequest*>(uvreq);
     assert(!uv_is_closing(reinterpret_cast<uv_handle_t *>(uvreq->handle)));
     Stream* h = hcast<Stream*>(uvreq->handle);
-    StreamError err(status < 0 ? status : 0);
+    CodeError err(status < 0 ? status : 0);
     for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_shutdown(err, r);
     h->call_on_shutdown(err, r);
 }
@@ -64,12 +64,12 @@ void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
 void Stream::listen (int backlog, connection_fn callback) {
     if (callback) connection_event.add(callback);
     int err = uv_listen(uvsp(), backlog, uvx_on_connection);
-    if (err) throw StreamError(err);
+    if (err) throw CodeError(err);
 }
 
 void Stream::accept (Stream* client) {
     int uverr = uv_accept(uvsp(), client->uvsp());
-    if (uverr) throw StreamError(uverr);
+    if (uverr) throw CodeError(uverr);
     client->flags |= SF_CONNECTED;
     for (StreamFilter* f = filter_list.head; f; f = f->next()) f->accept(client);
     if (client->flags & SF_WANTREAD) client->read_start();
@@ -82,15 +82,15 @@ void Stream::read_start (read_fn callback) {
     if (err) throw err;
 }
 
-StreamError Stream::_read_start () {
-    if (flags & SF_READING) return StreamError(); // uv_read_start has already been called
+CodeError Stream::_read_start () {
+    if (flags & SF_READING) return CodeError(); // uv_read_start has already been called
     os_fd_t fd;
     int fderr = uv_fileno(uvhp, &fd);
-    if (fderr) return StreamError();
+    if (fderr) return CodeError();
     int uverr = uv_read_start(uvsp(), Handle::uvx_on_buf_alloc, uvx_on_read);
-    if (uverr) return StreamError(uverr);
+    if (uverr) return CodeError(uverr);
     flags |= SF_READING;
-    return StreamError();
+    return CodeError();
 }
 
 void Stream::read_stop () {
@@ -208,7 +208,7 @@ bool Stream::is_secure () const {
     return false;
 }
 
-void Stream::call_on_connect (const StreamError& err, ConnectRequest* req, bool unlock) {
+void Stream::call_on_connect (const CodeError& err, ConnectRequest* req, bool unlock) {
     flags &= ~SF_CONNECTING;
     if (!err) flags |= SF_CONNECTED;
     req->release_timer();
@@ -272,28 +272,28 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
     }
 }
 
-void Stream::on_connection (const StreamError& err) {
+void Stream::on_connection (const CodeError& err) {
     if (connection_event.has_listeners()) connection_event(this, err);
     else throw ImplRequiredError("Stream::on_connection");
 }
 
-void Stream::on_ssl_connection (const StreamError& err) {
+void Stream::on_ssl_connection (const CodeError& err) {
     ssl_connection_event(this, err);
 }
 
-void Stream::on_connect (const StreamError& err, ConnectRequest* req) {
+void Stream::on_connect (const CodeError& err, ConnectRequest* req) {
     connect_event(this, err, req);
 }
 
-void Stream::on_read (const string& buf, const StreamError& err) {
+void Stream::on_read (const string& buf, const CodeError& err) {
     if (read_event.has_listeners()) read_event(this, buf, err);
 }
 
-void Stream::on_write (const StreamError& err, WriteRequest* req) {
+void Stream::on_write (const CodeError& err, WriteRequest* req) {
     write_event(this, err, req);
 }
 
-void Stream::on_shutdown (const StreamError& err, ShutdownRequest* req) {
+void Stream::on_shutdown (const CodeError& err, ShutdownRequest* req) {
     shutdown_event(this, err, req);
 }
 
