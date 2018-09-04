@@ -13,7 +13,7 @@ namespace panda { namespace unievent {
 class TCP;
 class Resolver : public CancelableRequest, public AllocatedObject<Resolver, true> {
 public:
-    using resolve_fptr = void(Resolver* req, addrinfo* res, const CodeError& err);
+    using resolve_fptr = void(Resolver* req, addrinfo* res, const CodeError* err);
     using resolve_fn = function<resolve_fptr>;
     
     CallbackDispatcher<resolve_fptr> resolve_event_compat;
@@ -29,12 +29,12 @@ public:
     virtual void resolve (std::string_view node, std::string_view service = std::string_view(), 
             const addrinfo* hints = nullptr, ResolveFunction callback = nullptr); 
 
-    static void free(addrinfo* ai);
+    static void free (addrinfo* ai);
 
-    void call_on_resolve(addrinfo* res, const CodeError& err);
+    void call_on_resolve (addrinfo* res, const CodeError* err);
 
 protected:
-    virtual void on_resolve (addrinfo* res, const CodeError& err);
+    virtual void on_resolve (addrinfo* res, const CodeError* err);
 
 private:
     static void uvx_on_resolve (uv_getaddrinfo_t* req, int status, addrinfo* res);

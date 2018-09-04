@@ -17,3 +17,5 @@ sub connect {
       return $res;
     });
 }
+
+1;

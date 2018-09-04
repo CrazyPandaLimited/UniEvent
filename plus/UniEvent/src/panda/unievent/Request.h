@@ -51,7 +51,7 @@ protected:
 
 class ConnectRequest : public Request, public AllocatedObject<ConnectRequest, true> {
 public:
-    using connect_fptr = void(Stream* handle, const CodeError& err, ConnectRequest* req);
+    using connect_fptr = void(Stream* handle, const CodeError* err, ConnectRequest* req);
     using connect_fn = function<connect_fptr>;
 
     CallbackDispatcher<connect_fptr> event;
@@ -83,7 +83,7 @@ using ConnectRequestSP = iptr<ConnectRequest>;
 
 class ShutdownRequest : public Request, public AllocatedObject<ShutdownRequest, true> {
 public:
-    using shutdown_fptr = void(Stream* handle, const CodeError& err, ShutdownRequest* req);
+    using shutdown_fptr = void(Stream* handle, const CodeError* err, ShutdownRequest* req);
     using shutdown_fn = function<shutdown_fptr>;
 
     CallbackDispatcher<shutdown_fptr> event;
@@ -122,7 +122,7 @@ public:
 class WriteRequest : public BufferRequest, public AllocatedObject<WriteRequest, true> {
     uv_write_t uvr;
 public:
-    using write_fptr = void(Stream* handle, const CodeError& err, WriteRequest* req);
+    using write_fptr = void(Stream* handle, const CodeError* err, WriteRequest* req);
     using write_fn = function<write_fptr>;
 
     CallbackDispatcher<write_fptr> event;
@@ -159,7 +159,7 @@ public:
 class SendRequest : public BufferRequest, public AllocatedObject<SendRequest, true> {
     uv_udp_send_t uvr;
 public:
-    using send_fptr = void(UDP* handle, const CodeError& err, SendRequest* req);
+    using send_fptr = void(UDP* handle, const CodeError* err, SendRequest* req);
     using send_fn = function<send_fptr>;
 
     CallbackDispatcher<send_fptr> event;

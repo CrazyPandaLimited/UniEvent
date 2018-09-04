@@ -68,13 +68,13 @@ SSLFilter::~SSLFilter () {
     SSL_free(ssl);
 }
 
-void SSLFilter::on_connect (const CodeError& err, ConnectRequest* req) {
-    _EDEBUG("ERR=%d WHAT=%s", err.code(), err.what());
+void SSLFilter::on_connect (const CodeError* err, ConnectRequest* req) {
+    if (err) _EDEBUG("ERR=%s", err->what());
 
     if (started) reset();
     if (err) return next_on_connect(err, req);
     auto read_err = temp_read_start();
-    if (read_err) return next_on_connect(read_err, req);
+    if (read_err) return next_on_connect(&read_err, req);
     connect_request = req;
     start_ssl_connection(Profile::CLIENT);
 }
@@ -121,7 +121,8 @@ int SSLFilter::negotiate () {
         _EDEBUG("[%s] code=%d", PROFILE_STR, code);
         if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
             SSLBio::steal_buf(read_bio); // avoid clearing by BIO
-            negotiation_finished(SSLError(code));
+            SSLError err(code);
+            negotiation_finished(&err);
             return 0;
         }
     }
@@ -150,8 +151,8 @@ int SSLFilter::negotiate () {
 //    negotiate();
 //}
 
-void SSLFilter::negotiation_finished (const CodeError& err) {
-    _EDEBUG("[%s] err=%s", PROFILE_STR, err.what());
+void SSLFilter::negotiation_finished (const CodeError* err) {
+    if (err) _EDEBUG("[%s] err=%s", PROFILE_STR, err->what());
 
     if (err && !handle->connecting()) return; // if not connecting then it's ongoing packets for already failed handshake, just ignore them
     restore_read_start(); // stop reading if handle don't want to
@@ -167,12 +168,11 @@ void SSLFilter::negotiation_finished (const CodeError& err) {
     }
 }
 
-void SSLFilter::on_read (const string& encbuf, const CodeError& err) {
+void SSLFilter::on_read (const string& encbuf, const CodeError* err) {
     _EDEBUG("[%s], got %lu bytes", PROFILE_STR, encbuf.length());
     if (!handle->connecting() && !handle->connected()) {
         _EDEBUG("[%s], on_read strange state: neither connecting nor connected, possibly server is not configured", PROFILE_STR);
     }
-
 
     bool connecting = !SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl);
     if (err) {
@@ -189,7 +189,7 @@ void SSLFilter::on_read (const string& encbuf, const CodeError& err) {
         return;
     }
     
-    while(1) {
+    while (1) {
         string decbuf = handle->buf_alloc(pending);
         int ret = SSL_read(ssl, decbuf.buf(), pending);
 
@@ -207,9 +207,7 @@ void SSLFilter::on_read (const string& encbuf, const CodeError& err) {
 
             _EDEBUG("SSLFilter::on_read[%s], errno=%d, err=%d", PROFILE_STR, ssl_code, ERR_GET_LIB(ERR_peek_last_error()));
             
-            if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) { 
-                return; 
-            }
+            if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) return;
 
             string wbuf = SSLBio::steal_buf(write_bio);
             if (wbuf) { // renegotiation
@@ -218,7 +216,8 @@ void SSLFilter::on_read (const string& encbuf, const CodeError& err) {
                 req->bufs.push_back(wbuf);
                 next_write(req);
             }
-            next_on_read(string(), SSLError(ssl_code));
+            SSLError ssl_err(ssl_code);
+            next_on_read(string(), &ssl_err);
             return;
         }
     }
@@ -251,9 +250,9 @@ void SSLFilter::write (WriteRequest* req) {
     next_write(sslreq);
 }
 
-void SSLFilter::on_write (const CodeError& err, WriteRequest* req) {
+void SSLFilter::on_write (const CodeError* err, WriteRequest* req) {
     SSLWriteRequest* sslreq = static_cast<SSLWriteRequest*>(req);
-    _EDEBUG("[%s] regular=%d ERR=%s", PROFILE_STR, sslreq->src ? 1 : 0, err.what());
+    _EDEBUG("[%s] regular=%d ERR=%s", PROFILE_STR, sslreq->src ? 1 : 0, err ? err->what() : "");
     if (sslreq->src) { // regular's on_write
         next_on_write(err, sslreq->src);
     } else { // negotiation's on_write

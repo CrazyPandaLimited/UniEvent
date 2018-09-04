@@ -276,10 +276,12 @@ string FSRequest::mkdtemp (string_view path) {
 
 void FSRequest::uvx_on_open_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
-    if (!err) req->_file = req->_uvr.result;
+    int status = 0;
+    if (req->_uvr.result >= 0) req->_file = req->_uvr.result;
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_open_callback(req, err, req->_file);
+    req->_open_callback(req, &err, req->_file);
     req->release();
 }
 
@@ -294,7 +296,7 @@ void FSRequest::uvx_on_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
     CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     req->set_complete();
-    req->_callback(req, err);
+    req->_callback(req, &err);
     req->release();
 }
 
@@ -306,11 +308,13 @@ void FSRequest::close (fn callback) {
 
 void FSRequest::uvx_on_stat_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     stat_t val;
-    if (!err) val = req->_uvr.statbuf;
+    int status = 0;
+    if (req->_uvr.result >= 0) val = req->_uvr.statbuf;
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_stat_callback(req, err, val);
+    req->_stat_callback(req, &err, val);
     req->release();
 }
 
@@ -414,9 +418,9 @@ void FSRequest::rmdir (string_view path, fn callback) {
 
 void FSRequest::uvx_on_scandir_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    int status = 0;
     DirEntries ret;
-    if (!err) {
+    if (req->_uvr.result >= 0) {
         size_t nent = (size_t)req->_uvr.result;
         if (nent) {
             ret.reserve(nent);
@@ -424,8 +428,10 @@ void FSRequest::uvx_on_scandir_complete (uv_fs_t* uvreq) {
             for (size_t i = 0; i < nent; ++i) ret.emplace(ret.cend(), string(uv_entries[i]->name), (DirEntry::Type)uv_entries[i]->type);
         }
     }
+    else status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_scandir_callback(req, err, ret);
+    req->_scandir_callback(req, &err, ret);
     req->release();
 }
 
@@ -446,11 +452,13 @@ void FSRequest::rename (string_view path, string_view new_path, fn callback) {
 
 void FSRequest::uvx_on_sendfile_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    int status = 0;
     size_t ret = 0;
-    if (!err) ret = (size_t)req->_uvr.result;
+    if (req->_uvr.result >= 0) ret = (size_t)req->_uvr.result;
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_sendfile_callback(req, err, ret);
+    req->_sendfile_callback(req, &err, ret);
     req->release();
 }
 
@@ -478,11 +486,13 @@ void FSRequest::symlink (string_view path, string_view new_path, SymlinkFlags fl
 
 void FSRequest::uvx_on_readlink_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    int status = 0;
     string ret;
-    if (!err) ret.assign((const char*)req->_uvr.ptr, (size_t)req->_uvr.result); // _uvr.ptr is not null-terminated
+    if (req->_uvr.result >= 0) ret.assign((const char*)req->_uvr.ptr, (size_t)req->_uvr.result); // _uvr.ptr is not null-terminated
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, err, ret);
+    req->_read_callback(req, &err, ret);
     req->release();
 }
 
@@ -495,11 +505,13 @@ void FSRequest::readlink (string_view path, read_fn callback) {
 
 void FSRequest::uvx_on_realpath_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
+    int status = 0;
     string ret;
-    if (!err) ret.assign((const char*)req->_uvr.ptr); // _uvr.ptr is null-terminated
+    if (req->_uvr.result >= 0) ret.assign((const char*)req->_uvr.ptr); // _uvr.ptr is null-terminated
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, err, ret);
+    req->_read_callback(req, &err, ret);
     req->release();
 }
 
@@ -520,10 +532,12 @@ void FSRequest::copyfile (string_view path, string_view new_path, CopyFileFlags 
 
 void FSRequest::uvx_on_read_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
-    CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
-    if (!err) req->_read_buf.length((size_t)req->_uvr.result);
+    int status = 0;
+    if (req->_uvr.result >= 0) req->_read_buf.length((size_t)req->_uvr.result);
+    else                       status = req->_uvr.result;
+    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, err, req->_read_buf);
+    req->_read_callback(req, &err, req->_read_buf);
     req->_read_buf.clear();
     req->release();
 }

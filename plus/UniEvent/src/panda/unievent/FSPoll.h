@@ -5,7 +5,7 @@ namespace panda { namespace unievent {
 
 class FSPoll : public virtual Handle {
 public:
-    using fs_poll_fptr = void(FSPoll* handle, const stat_t* prev, const stat_t* curr, const CodeError& err);
+    using fs_poll_fptr = void(FSPoll* handle, const stat_t* prev, const stat_t* curr, const CodeError* err);
     using fs_poll_fn = function<fs_poll_fptr>;
 
     CallbackDispatcher<fs_poll_fptr> fs_poll_event;
@@ -42,10 +42,10 @@ public:
         return str;
     }
 
-    void call_on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) { on_fs_poll(prev, curr, err); }
+    void call_on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) { on_fs_poll(prev, curr, err); }
 
 protected:
-    virtual void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err);
+    virtual void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err);
 
 private:
     uv_fs_poll_t uvh;

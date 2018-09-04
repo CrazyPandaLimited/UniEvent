@@ -19,9 +19,9 @@ $t->start(0.001);
 ########### FILE TRACKING
 
 # FSEvent doesn't track non-existant files
-ok(!eval {$fse->start(var 'file'); 1}, "exception when tries to handle non-existant file");
+dies_ok { $fse->start(var 'file') } "exception when tries to handle non-existant file";
 $err = $@;
-isa_ok($err, 'UniEvent::FSEventError');
+isa_ok($err, 'UniEvent::CodeError');
 is($err->code, ERRNO_ENOENT, "error code is correct");
 
 create_file('file')->();

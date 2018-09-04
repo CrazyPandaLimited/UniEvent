@@ -41,6 +41,8 @@ struct CodeError : Error {
     explicit
     operator bool() const { return _code != 0; }
 
+    const CodeError* operator& () const { return _code ? this : nullptr; }
+
 protected:
     errno_t _code;
     string _mkwhat () const override;

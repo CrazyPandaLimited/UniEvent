@@ -13,7 +13,7 @@ public:
     XSCallback resolve_xscb;
     XSResolver (Loop* loop = Loop::default_loop()) : Resolver(loop), resolve_xscb(aTHX) {}
 protected:
-    virtual void on_resolve (struct addrinfo* res, const CodeError& err);
+    virtual void on_resolve (struct addrinfo* res, const CodeError* err);
 };
 
 // The following classes are not visible from perl, XS wrappers are just needed for holding perl callback
@@ -24,7 +24,7 @@ struct XSConnectRequest : ConnectRequest {
         xscb.set(callback);
     }
 private:
-    static void _cb (Stream* handle, const CodeError& err, ConnectRequest* req);
+    static void _cb (Stream* handle, const CodeError* err, ConnectRequest* req);
 };
 
 
@@ -34,7 +34,7 @@ struct XSShutdownRequest : ShutdownRequest {
         xscb.set(callback);
     }
 private:
-    static void _cb (Stream* handle, const CodeError& err, ShutdownRequest* req);
+    static void _cb (Stream* handle, const CodeError* err, ShutdownRequest* req);
 };
 
 
@@ -44,7 +44,7 @@ struct XSWriteRequest : WriteRequest {
         xscb.set(callback);
     }
 private:
-    static void _cb (Stream* handle, const CodeError& err, WriteRequest* req);
+    static void _cb (Stream* handle, const CodeError* err, WriteRequest* req);
 };
 
 
@@ -54,7 +54,7 @@ struct XSSendRequest : SendRequest {
         xscb.set(callback);
     }
 private:
-    static void _cb (UDP* handle, const CodeError& err, SendRequest* req);
+    static void _cb (UDP* handle, const CodeError* err, SendRequest* req);
 };
 
 

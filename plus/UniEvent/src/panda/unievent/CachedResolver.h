@@ -155,7 +155,7 @@ struct CachedResolver;
 class ResolveRequest : public CancelableRequest, public AllocatedObject<ResolveRequest, true> {
 public:
     // XXX this API with Resolver as first argument here for backward compatibility, remove this when the time is right
-    using resolve_fptr = void(CachedResolver* req, addrinfo* res, const CodeError& err, bool from_cache);
+    using resolve_fptr = void(CachedResolver* req, addrinfo* res, const CodeError* err, bool from_cache);
     using resolve_fn   = function<resolve_fptr>;
 
     CallbackDispatcher<resolve_fptr> event_compat;
@@ -183,7 +183,7 @@ private:
 using ResolveRequestSP = iptr<ResolveRequest>;
 
 struct CachedResolver : virtual Refcnt {
-    using resolve_fptr = void(CachedResolver* resolver, addrinfo* res, const CodeError& err, bool from_cache);
+    using resolve_fptr = void(CachedResolver* resolver, addrinfo* res, const CodeError* err, bool from_cache);
     using resolve_fn = function<resolve_fptr>;
 
     typedef std::unordered_map<cached_resolver::Key, cached_resolver::Value, cached_resolver::Hash> CacheType;
@@ -229,7 +229,7 @@ struct CachedResolver : virtual Refcnt {
         bool found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found && cb) {
-            cb(address_pos->second->head, CodeError(0), true);
+            cb(address_pos->second->head, nullptr, true);
             return nullptr;
         }
 
@@ -243,7 +243,7 @@ struct CachedResolver : virtual Refcnt {
         bool found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found && cb) {
-            cb(this, address_pos->second->head, CodeError(0), true);
+            cb(this, address_pos->second->head, nullptr, true);
             return nullptr;
         }
 

@@ -85,10 +85,10 @@ $loop = new UniEvent::Loop;
 $h = new UniEvent::Prepare($loop);
 $h->start(sub {});
 $loop->run_nowait;
-ok(!eval { $loop->close; 1}, 'Non-empty loop dies on close');
+dies_ok { $loop->close } 'Non-empty loop dies on close';
 $err = $@;
 ok($err, 'error exists');
-is(ref $err, 'UniEvent::LoopError', 'error is an object');
+is(ref $err, 'UniEvent::CodeError', 'error is an object');
 is($err->name, 'EBUSY', 'error is EBUSY');
 is($err->code, ERRNO_EBUSY, 'error code is correct');
 

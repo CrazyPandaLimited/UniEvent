@@ -87,7 +87,7 @@ sub cb {
     return sub {
         my ($h, $prev, $curr, $err) = @_;
         if ($err_code) {
-            isa_ok($err, 'UniEvent::FSPollError', "fspoll callback error correct ($test_name)");
+            isa_ok($err, 'UniEvent::CodeError', "fspoll callback error correct ($test_name)");
             is($err->code, $err_code, "fspoll callback error code correct ($test_name)") if $err;
         } else {
             ok(!$err, "fspoll callback without error ($test_name)");

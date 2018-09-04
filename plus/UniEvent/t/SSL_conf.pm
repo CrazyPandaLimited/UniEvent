@@ -11,3 +11,5 @@ sub client {
 sub server {
   return (SSL_cert_file => serv_cert, SSL_key_file => 'cppTests/key.pem');
 }
+
+1;

@@ -10,28 +10,33 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
     ConnectRequest* r = rcast<ConnectRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
     _EDEBUG("[%p] uvx_on_connect", h);
-    CodeError err(status < 0 ? status : 0);
+    CodeError err(status);
     if (!err && (h->flags & SF_WANTREAD)) err = h->_read_start();
     bool unlock = err.code() != ERRNO_ECANCELED;
-    h->filter_list.head ? h->filter_list.head->on_connect(err, r) : h->call_on_connect(err, r, unlock);
+    h->filter_list.head ? h->filter_list.head->on_connect(&err, r) : h->call_on_connect(&err, r, unlock);
 }
 
 void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
     Stream* h = hcast<Stream*>(stream);
-    CodeError err(status < 0 ? status : 0);
-    h->call_on_connection(err);
+    CodeError err(status);
+    h->call_on_connection(&err);
 }
 
 void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
     Stream* h = hcast<Stream*>(stream);
 
-    CodeError err(nread < 0 ? nread : 0);
-    if (err.code() == ERRNO_EOF) {
+    int status = 0;
+    if (nread < 0) {
+        status = nread;
+        nread = 0;
+    }
+
+    if (status == ERRNO_EOF) {
         h->flags &= ~SF_CONNECTED;
         for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_eof();
         h->call_on_eof();
-        nread = 0;
     }
+
     string buf;
     if (uvbuf->base) { // in some cases of eof it may be no buffer
         string* buf_ptr = (string*)(uvbuf->base + uvbuf->len);
@@ -41,24 +46,25 @@ void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uv
 
     if (nread == 0) return; // UV just wants to release the buf
 
-    buf.length(nread > 0 ? nread : 0); // set real buf len
-    h->filter_list.head ? h->filter_list.head->on_read(buf, err) : h->call_on_read(buf, err);
+    CodeError err(status);
+    buf.length(nread); // set real buf len
+    h->filter_list.head ? h->filter_list.head->on_read(buf, &err) : h->call_on_read(buf, &err);
 }
 
 void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
     WriteRequest* r = rcast<WriteRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
-    CodeError err(status < 0 ? status : 0);
-    h->filter_list.head ? h->filter_list.head->on_write(err, r) : h->call_on_write(err, r);
+    CodeError err(status);
+    h->filter_list.head ? h->filter_list.head->on_write(&err, r) : h->call_on_write(&err, r);
 }
 
 void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
     ShutdownRequest* r = rcast<ShutdownRequest*>(uvreq);
     assert(!uv_is_closing(reinterpret_cast<uv_handle_t *>(uvreq->handle)));
     Stream* h = hcast<Stream*>(uvreq->handle);
-    CodeError err(status < 0 ? status : 0);
-    for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_shutdown(err, r);
-    h->call_on_shutdown(err, r);
+    CodeError err(status);
+    for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_shutdown(&err, r);
+    h->call_on_shutdown(&err, r);
 }
 
 void Stream::listen (int backlog, connection_fn callback) {
@@ -126,7 +132,8 @@ void Stream::do_write (WriteRequest* req) {
 
     if (err) {
         Prepare::call_soon([=] {
-            call_on_write(err, req);
+            CodeError(err);
+            call_on_write(&err, req);
         }, loop());
     }
 }
@@ -143,7 +150,8 @@ void Stream::shutdown (ShutdownRequest* req) {
     int err = uv_shutdown(_pex_(req), uvsp(), uvx_on_shutdown);
     if (err) {
         Prepare::call_soon([=] {
-            on_shutdown(err, req);
+            CodeError(err);
+            on_shutdown(&err, req);
             req->release();
         }, loop());
         return;
@@ -208,7 +216,7 @@ bool Stream::is_secure () const {
     return false;
 }
 
-void Stream::call_on_connect (const CodeError& err, ConnectRequest* req, bool unlock) {
+void Stream::call_on_connect (const CodeError* err, ConnectRequest* req, bool unlock) {
     flags &= ~SF_CONNECTING;
     if (!err) flags |= SF_CONNECTED;
     req->release_timer();
@@ -272,28 +280,28 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
     }
 }
 
-void Stream::on_connection (const CodeError& err) {
+void Stream::on_connection (const CodeError* err) {
     if (connection_event.has_listeners()) connection_event(this, err);
     else throw ImplRequiredError("Stream::on_connection");
 }
 
-void Stream::on_ssl_connection (const CodeError& err) {
+void Stream::on_ssl_connection (const CodeError* err) {
     ssl_connection_event(this, err);
 }
 
-void Stream::on_connect (const CodeError& err, ConnectRequest* req) {
+void Stream::on_connect (const CodeError* err, ConnectRequest* req) {
     connect_event(this, err, req);
 }
 
-void Stream::on_read (const string& buf, const CodeError& err) {
+void Stream::on_read (const string& buf, const CodeError* err) {
     if (read_event.has_listeners()) read_event(this, buf, err);
 }
 
-void Stream::on_write (const CodeError& err, WriteRequest* req) {
+void Stream::on_write (const CodeError* err, WriteRequest* req) {
     write_event(this, err, req);
 }
 
-void Stream::on_shutdown (const CodeError& err, ShutdownRequest* req) {
+void Stream::on_shutdown (const CodeError* err, ShutdownRequest* req) {
     shutdown_event(this, err, req);
 }
 

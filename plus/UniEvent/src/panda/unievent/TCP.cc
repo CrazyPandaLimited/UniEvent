@@ -155,7 +155,7 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
 }
 
 // @returns true if async is needed
-bool TCP::resolve(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback, bool use_cached_resolver) {
+bool TCP::resolve (const string& host, const string& service, const addrinfo* hints, ResolveFunction callback, bool use_cached_resolver) {
     _EDEBUGTHIS("resolve %.*s:%.*s", (int)host.length(), host.data(), (int)service.length(), service.data());
 
     if (use_cached_resolver) {
@@ -177,13 +177,13 @@ bool TCP::resolve(const string& host, const string& service, const addrinfo* hin
 }
 
 // @returns true if async is needed
-bool TCP::resolve_with_cached_resolver(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback) {
+bool TCP::resolve_with_cached_resolver (const string& host, const string& service, const addrinfo* hints, ResolveFunction callback) {
     CachedResolver*                           resolver = get_thread_local_cached_resolver();
     CachedResolver::CacheType::const_iterator address_pos;
     bool                                      found;
     std::tie(address_pos, found) = resolver->find(host, service, hints);
     if (found) {
-        callback(address_pos->second->next(), CodeError(0), true);
+        callback(address_pos->second->next(), nullptr, true);
         return false;
     }
 
@@ -194,7 +194,7 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
     }
 
     try {
-        resolve_request = resolver->resolve_async(loop(), host, service, hints, [=](addrinfo* res, const CodeError& err, bool) {
+        resolve_request = resolver->resolve_async(loop(), host, service, hints, [=](addrinfo* res, const CodeError* err, bool) {
             if (err) {
                 callback(nullptr, err, false);
                 return;
@@ -204,12 +204,12 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
                 // unlock for a moment, h->connect will lock it again, otherwise it would
                 // enqueue and wait for nothing
                 this->async_unlock_noresume();
-                callback(res, CodeError(0), false);
+                callback(res, nullptr, false);
             } catch (const CodeError& err) {
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, CodeError(err.code()), false);
+                callback(nullptr, &err, false);
             }
             // h->connect called retain() again
             this->release();
@@ -223,7 +223,7 @@ bool TCP::resolve_with_cached_resolver(const string& host, const string& service
 }
 
 // @returns true if async is needed
-bool TCP::resolve_with_regular_resolver(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback) {
+bool TCP::resolve_with_regular_resolver (const string& host, const string& service, const addrinfo* hints, ResolveFunction callback) {
     if (async_locked()) {
         _EDEBUGTHIS("locked, queuing");
         asyncq_push(new CommandResolveHost(this, host, service, hints, callback, false));
@@ -236,7 +236,7 @@ bool TCP::resolve_with_regular_resolver(const string& host, const string& servic
     resolver->retain();
 
     try {
-        resolver->resolve(host, service, hints, [=](addrinfo* res, const CodeError& err, bool) {
+        resolver->resolve(host, service, hints, [=](addrinfo* res, const CodeError* err, bool) {
             _EDEBUGTHIS("resolve wrapped callback");
             resolver->release();
 
@@ -248,13 +248,13 @@ bool TCP::resolve_with_regular_resolver(const string& host, const string& servic
             try {
                 // unlock for a moment, h->connect will lock it again, otherwise it would enqueue and wait for nothing
                 this->async_unlock_noresume();
-                callback(res, CodeError(0), false);
+                callback(res, nullptr, false);
                 Resolver::free(res);
             } catch (const CodeError& err) {
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, CodeError(err.code()), false);
+                callback(nullptr, &err, false);
                 Resolver::free(res);
             }
             // h->connect called retain() again
@@ -269,7 +269,7 @@ bool TCP::resolve_with_regular_resolver(const string& host, const string& servic
     }
 }
 
-void TCP::connect(const string& host, const string& service, const addrinfo* hints, ConnectRequest* connect_request, bool use_cached_resolver) {
+void TCP::connect (const string& host, const string& service, const addrinfo* hints, ConnectRequest* connect_request, bool use_cached_resolver) {
     _EDEBUGTHIS("connect to %.*s:%.*s", (int)host.length(), host.data(), (int)service.length(), service.data());
 
     if (!connect_request) {
@@ -302,10 +302,10 @@ void TCP::connect(const string& host, const string& service, const addrinfo* hin
 */
     try {
         if (!resolve(host, service, hints,
-                     [=](addrinfo* res, const CodeError& err, bool) {
+                     [=](addrinfo* res, const CodeError* err, bool) {
                          _EDEBUG("resolve callback");
                          if (err) {
-                             Stream::uvx_on_connect(_pex_(connect_request), (int)err.code());
+                             Stream::uvx_on_connect(_pex_(connect_request), (int)err->code());
                              return;
                          }
                          connect(res->ai_addr, connect_request);
@@ -326,12 +326,10 @@ void TCP::connect(const string& host, const string& service, const addrinfo* hin
     flags |= SF_CONNECTING;
 }
 
-void TCP::connect(const sockaddr* sa, ConnectRequest* connect_request) {
+void TCP::connect (const sockaddr* sa, ConnectRequest* connect_request) {
     _EDEBUGTHIS("connect to sock:%p, connect_request:%p", sa, connect_request);
 
-    if (!connect_request) {
-        connect_request = new ConnectRequest();
-    }
+    if (!connect_request) connect_request = new ConnectRequest();
 
     _pex_(connect_request)->handle = _pex_(this);
 
@@ -365,26 +363,23 @@ void TCP::connect(const sockaddr* sa, ConnectRequest* connect_request) {
 
     int err = uv_tcp_connect(_pex_(connect_request), &uvh, sa, Stream::uvx_on_connect);
     if (err) {
-        call_on_connect(err, connect_request);
+        CodeError err(err);
+        call_on_connect(&err, connect_request);
         return;
     }
 }
 
-void TCP::reconnect(const sockaddr* sa, ConnectRequest* connect_request) {
+void TCP::reconnect (const sockaddr* sa, ConnectRequest* connect_request) {
     disconnect();
-    if (!connect_request) {
-        connect_request = new ConnectRequest();
-    }
+    if (!connect_request) connect_request = new ConnectRequest();
 
     connect_request->is_reconnect = true;
     connect(sa, connect_request);
 }
 
-void TCP::reconnect(const string& host, const string& service, const addrinfo* hints, ConnectRequest* connect_request, bool use_cached_resolver) {
+void TCP::reconnect (const string& host, const string& service, const addrinfo* hints, ConnectRequest* connect_request, bool use_cached_resolver) {
     disconnect();
-    if (!connect_request) {
-        connect_request = new ConnectRequest();
-    }
+    if (!connect_request) connect_request = new ConnectRequest();
 
     connect_request->is_reconnect = true;
     connect(host, service, hints, connect_request, use_cached_resolver);
@@ -396,14 +391,13 @@ void TCP::use_socks(std::string_view host, uint16_t port, std::string_view login
 
 void TCP::use_socks(SocksSP socks) { socks_proxy = iptr<socks::SocksProxy>(new socks::SocksProxy(this, socks)); }
 */
-void TCP::on_handle_reinit() {
+void TCP::on_handle_reinit () {
     int err = uv_tcp_init(uvh.loop, &uvh);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
     Stream::on_handle_reinit();
 }
 
-void TCP::close_reinit(bool keep_asyncq) {
+void TCP::close_reinit (bool keep_asyncq) {
     _EDEBUGTHIS("close_reinit, keep_async: %d", keep_asyncq);
     if (!keep_asyncq && resolver) {
         resolver->cancel();

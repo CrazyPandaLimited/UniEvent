@@ -21,16 +21,22 @@ void UDP::uvx_on_receive (uv_udp_t* handle, ssize_t nread, const uv_buf_t* uvbuf
 
     if (!nread && !addr) return; // nothing to read
 
-    CodeError err(nread < 0 ? nread : 0);
-    buf.length(nread > 0 ? nread : 0); // set real buf len
-    h->call_on_receive(buf, addr, flags, err);
+    int status = 0;
+    if (nread < 0) {
+        status = nread;
+        nread = 0;
+    }
+
+    CodeError err(status);
+    buf.length(nread); // set real buf len
+    h->call_on_receive(buf, addr, flags, &err);
 }
 
 void UDP::uvx_on_send (uv_udp_send_t* uvreq, int status) {
     SendRequest* r = rcast<SendRequest*>(uvreq);
     UDP* h = hcast<UDP*>(uvreq->handle);
-    CodeError err(status < 0 ? status : 0);
-    h->call_on_send(err, r);
+    CodeError err(status);
+    h->call_on_send(&err, r);
 }
 
 void UDP::open (sock_t socket) {
@@ -107,11 +113,11 @@ void UDP::on_handle_reinit () {
     Handle::on_handle_reinit();
 }
 
-void UDP::on_receive (const string& buf, const sockaddr* addr, unsigned flags, const CodeError& err) {
+void UDP::on_receive (const string& buf, const sockaddr* addr, unsigned flags, const CodeError* err) {
     if (receive_event.has_listeners()) receive_event(this, buf, addr, flags, err);
     else throw ImplRequiredError("UDP::on_receive");
 }
 
-void UDP::on_send (const CodeError& err, SendRequest* r) {
+void UDP::on_send (const CodeError* err, SendRequest* r) {
     r->event(this, err, r);
 }

@@ -5,7 +5,7 @@
 
 namespace panda { namespace unievent {
 
-using ResolveFunctionPlain = void(addrinfo* res, const CodeError& err, bool from_cache);
+using ResolveFunctionPlain = void(addrinfo* res, const CodeError* err, bool from_cache);
 using ResolveFunction      = function<ResolveFunctionPlain>;
 
 }} // namespace panda::event

@@ -9,7 +9,7 @@ using std::string_view;
 
 class UDP : public virtual Handle, public AllocatedObject<UDP> {
 public:
-    using receive_fptr = void(UDP* handle, const string& buf, const sockaddr* addr, unsigned flags, const CodeError& err);
+    using receive_fptr = void(UDP* handle, const string& buf, const sockaddr* addr, unsigned flags, const CodeError* err);
     using receive_fn = function<receive_fptr>;
 
     using send_fptr = SendRequest::send_fptr;
@@ -89,11 +89,11 @@ public:
         if (err) throw CodeError(err);
     }
 
-    void call_on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError& err) {
+    void call_on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
         on_receive(buf, sa, flags, err);
     }
 
-    void call_on_send (const CodeError& err, SendRequest* req) {
+    void call_on_send (const CodeError* err, SendRequest* req) {
         on_send(err, req);
         req->release();
         release();
@@ -104,8 +104,8 @@ protected:
     
     void on_handle_reinit () override;
 
-    virtual void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError& err);
-    virtual void on_send    (const CodeError& err, SendRequest* req);
+    virtual void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError* err);
+    virtual void on_send    (const CodeError* err, SendRequest* req);
 
 private:
     uv_udp_t uvh;
