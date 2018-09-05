@@ -91,13 +91,12 @@ in_port_t find_free_port() {
     }
 }
 
-TCP::~TCP() { _ETRACETHIS("dtor"); }
+TCP::~TCP () { _ETRACETHIS("dtor"); }
 
-TCP::TCP(Loop* loop) {
+TCP::TCP (Loop* loop) {
     _EDEBUGTHIS("ctor");
     int err = uv_tcp_init(_pex_(loop), &uvh);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
     _init(&uvh);
 /* SOCKS
     static iptr<Socks> socks = getenv_proxy();
@@ -107,11 +106,10 @@ TCP::TCP(Loop* loop) {
 */
 }
 
-TCP::TCP(Loop* loop, unsigned int flags) {
+TCP::TCP (Loop* loop, unsigned int flags) {
     _EDEBUGTHIS("ctor");
     int err = uv_tcp_init_ex(_pex_(loop), &uvh, flags);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
     _init(&uvh);
 /* SOCKS
     static iptr<Socks> socks = getenv_proxy();
@@ -121,19 +119,17 @@ TCP::TCP(Loop* loop, unsigned int flags) {
 */
 }
 
-void TCP::open(sock_t socket) {
+void TCP::open (sock_t socket) {
     int err = uv_tcp_open(&uvh, socket);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
 }
 
-void TCP::bind(const sockaddr* sa, unsigned int flags) {
+void TCP::bind (const sockaddr* sa, unsigned int flags) {
     int err = uv_tcp_bind(&uvh, sa, flags);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
 }
 
-void TCP::bind(std::string_view host, std::string_view service, const addrinfo* hints) {
+void TCP::bind (std::string_view host, std::string_view service, const addrinfo* hints) {
     if (!hints)
         hints = &defhints;
 
@@ -142,8 +138,7 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
 
     addrinfo* res;
     int       syserr = getaddrinfo(host_cstr, service_cstr, hints, &res);
-    if (syserr)
-        throw CodeError(_err_gai2uv(syserr));
+    if (syserr) throw CodeError(_err_gai2uv(syserr));
 
     try {
         bind(res->ai_addr);
@@ -209,7 +204,7 @@ bool TCP::resolve_with_cached_resolver (const string& host, const string& servic
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, &err, false);
+                callback(nullptr, err, false);
             }
             // h->connect called retain() again
             this->release();
@@ -254,7 +249,7 @@ bool TCP::resolve_with_regular_resolver (const string& host, const string& servi
                 // sync error while connecting - no other ways but call as async
                 // connect did not lock it again
                 this->async_lock();
-                callback(nullptr, &err, false);
+                callback(nullptr, err, false);
                 Resolver::free(res);
             }
             // h->connect called retain() again
@@ -362,11 +357,7 @@ void TCP::connect (const sockaddr* sa, ConnectRequest* connect_request) {
     retain();
 
     int err = uv_tcp_connect(_pex_(connect_request), &uvh, sa, Stream::uvx_on_connect);
-    if (err) {
-        CodeError err(err);
-        call_on_connect(&err, connect_request);
-        return;
-    }
+    if (err) return call_on_connect(CodeError(err), connect_request);
 }
 
 void TCP::reconnect (const sockaddr* sa, ConnectRequest* connect_request) {
@@ -446,8 +437,7 @@ TCP::ConnectBuilder::~ConnectBuilder() noexcept(false) {
         connect_request_->set_timer(Timer::once(timeout_,
                                                 [tcp_capture, connect_request_capture](Timer* t) {
                                                     _EDEBUG("connect timed out %p %p %u", t, tcp_capture, connect_request_capture->refcnt());
-                                                    CodeError err(UV_ETIMEDOUT);
-                                                    connect_request_capture->error = err;
+                                                    connect_request_capture->error = CodeError(UV_ETIMEDOUT);
                                                     connect_request_capture->release_timer();
                                                     tcp_capture->cancel_connect();
                                                 },

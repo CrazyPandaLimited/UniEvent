@@ -3,8 +3,7 @@ using namespace panda::unievent;
 
 void FSPoll::uvx_on_fs_poll (uv_fs_poll_t* handle, int errcode, const stat_t* prev, const stat_t* curr) {
     FSPoll* h = hcast<FSPoll*>(handle);
-    CodeError err(errcode);
-    h->call_on_fs_poll(prev, curr, &err);
+    h->call_on_fs_poll(prev, curr, CodeError(errcode));
 }
 
 void FSPoll::on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) {

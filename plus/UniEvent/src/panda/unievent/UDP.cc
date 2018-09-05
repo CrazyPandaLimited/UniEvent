@@ -27,16 +27,14 @@ void UDP::uvx_on_receive (uv_udp_t* handle, ssize_t nread, const uv_buf_t* uvbuf
         nread = 0;
     }
 
-    CodeError err(status);
     buf.length(nread); // set real buf len
-    h->call_on_receive(buf, addr, flags, &err);
+    h->call_on_receive(buf, addr, flags, CodeError(status));
 }
 
 void UDP::uvx_on_send (uv_udp_send_t* uvreq, int status) {
     SendRequest* r = rcast<SendRequest*>(uvreq);
     UDP* h = hcast<UDP*>(uvreq->handle);
-    CodeError err(status);
-    h->call_on_send(&err, r);
+    h->call_on_send(CodeError(status), r);
 }
 
 void UDP::open (sock_t socket) {

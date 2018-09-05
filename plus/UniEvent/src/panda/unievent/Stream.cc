@@ -13,13 +13,12 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
     CodeError err(status);
     if (!err && (h->flags & SF_WANTREAD)) err = h->_read_start();
     bool unlock = err.code() != ERRNO_ECANCELED;
-    h->filter_list.head ? h->filter_list.head->on_connect(&err, r) : h->call_on_connect(&err, r, unlock);
+    h->filter_list.head ? h->filter_list.head->on_connect(err, r) : h->call_on_connect(err, r, unlock);
 }
 
 void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
     Stream* h = hcast<Stream*>(stream);
-    CodeError err(status);
-    h->call_on_connection(&err);
+    h->call_on_connection(CodeError(status));
 }
 
 void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
@@ -48,14 +47,14 @@ void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uv
 
     CodeError err(status);
     buf.length(nread); // set real buf len
-    h->filter_list.head ? h->filter_list.head->on_read(buf, &err) : h->call_on_read(buf, &err);
+    h->filter_list.head ? h->filter_list.head->on_read(buf, err) : h->call_on_read(buf, err);
 }
 
 void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
     WriteRequest* r = rcast<WriteRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
     CodeError err(status);
-    h->filter_list.head ? h->filter_list.head->on_write(&err, r) : h->call_on_write(&err, r);
+    h->filter_list.head ? h->filter_list.head->on_write(err, r) : h->call_on_write(err, r);
 }
 
 void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
@@ -63,8 +62,8 @@ void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
     assert(!uv_is_closing(reinterpret_cast<uv_handle_t *>(uvreq->handle)));
     Stream* h = hcast<Stream*>(uvreq->handle);
     CodeError err(status);
-    for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_shutdown(&err, r);
-    h->call_on_shutdown(&err, r);
+    for (StreamFilter* f = h->filter_list.head; f; f = f->next()) f->on_shutdown(err, r);
+    h->call_on_shutdown(err, r);
 }
 
 void Stream::listen (int backlog, connection_fn callback) {
@@ -129,13 +128,9 @@ void Stream::do_write (WriteRequest* req) {
     }
 
     int err = uv_write(_pex_(req), uvsp(), uvbufs, nbufs, uvx_on_write);
-
-    if (err) {
-        Prepare::call_soon([=] {
-            CodeError(err);
-            call_on_write(&err, req);
-        }, loop());
-    }
+    if (err) Prepare::call_soon([=] {
+        call_on_write(CodeError(err), req);
+    }, loop());
 }
 
 void Stream::shutdown (ShutdownRequest* req) {
@@ -150,8 +145,7 @@ void Stream::shutdown (ShutdownRequest* req) {
     int err = uv_shutdown(_pex_(req), uvsp(), uvx_on_shutdown);
     if (err) {
         Prepare::call_soon([=] {
-            CodeError(err);
-            on_shutdown(&err, req);
+            on_shutdown(CodeError(err), req);
             req->release();
         }, loop());
         return;

@@ -66,9 +66,9 @@ void CachedResolver::uvx_on_resolve (uv_getaddrinfo_t* req, int status, addrinfo
     CodeError err(status);
     bool die = false;
     if (resolve_request->event.has_listeners())
-        resolve_request->event(res, &err, false);
+        resolve_request->event(res, err, false);
     else if (resolve_request->event_compat.has_listeners())
-        resolve_request->event_compat(resolver, res, &err, false);
+        resolve_request->event_compat(resolver, res, err, false);
     else
         die = true;
 

@@ -74,7 +74,7 @@ void SSLFilter::on_connect (const CodeError* err, ConnectRequest* req) {
     if (started) reset();
     if (err) return next_on_connect(err, req);
     auto read_err = temp_read_start();
-    if (read_err) return next_on_connect(&read_err, req);
+    if (read_err) return next_on_connect(read_err, req);
     connect_request = req;
     start_ssl_connection(Profile::CLIENT);
 }
@@ -121,8 +121,7 @@ int SSLFilter::negotiate () {
         _EDEBUG("[%s] code=%d", PROFILE_STR, code);
         if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
             SSLBio::steal_buf(read_bio); // avoid clearing by BIO
-            SSLError err(code);
-            negotiation_finished(&err);
+            negotiation_finished(SSLError(code));
             return 0;
         }
     }
@@ -216,8 +215,7 @@ void SSLFilter::on_read (const string& encbuf, const CodeError* err) {
                 req->bufs.push_back(wbuf);
                 next_write(req);
             }
-            SSLError ssl_err(ssl_code);
-            next_on_read(string(), &ssl_err);
+            next_on_read(string(), SSLError(ssl_code));
             return;
         }
     }
@@ -239,10 +237,7 @@ void SSLFilter::write (WriteRequest* req) {
             continue;
         }
         int res = SSL_write(ssl, req->bufs[i].data(), req->bufs[i].length());
-        if (res <= 0) {
-            // TODO: handle renegotiation status
-            throw SSLError(SSL_get_error(ssl, res));
-        }
+        if (res <= 0) throw SSLError(SSL_get_error(ssl, res)); // TODO: handle renegotiation status
         string buf = SSLBio::steal_buf(write_bio);
         sslreq->bufs.push_back(buf);
     }

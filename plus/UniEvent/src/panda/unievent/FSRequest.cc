@@ -279,9 +279,8 @@ void FSRequest::uvx_on_open_complete (uv_fs_t* uvreq) {
     int status = 0;
     if (req->_uvr.result >= 0) req->_file = req->_uvr.result;
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_open_callback(req, &err, req->_file);
+    req->_open_callback(req, CodeError(status), req->_file);
     req->release();
 }
 
@@ -296,7 +295,7 @@ void FSRequest::uvx_on_complete (uv_fs_t* uvreq) {
     auto req = rcast<FSRequest*>(uvreq);
     CodeError err(req->_uvr.result > 0 ? 0 : req->_uvr.result);
     req->set_complete();
-    req->_callback(req, &err);
+    req->_callback(req, err);
     req->release();
 }
 
@@ -312,9 +311,8 @@ void FSRequest::uvx_on_stat_complete (uv_fs_t* uvreq) {
     int status = 0;
     if (req->_uvr.result >= 0) val = req->_uvr.statbuf;
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_stat_callback(req, &err, val);
+    req->_stat_callback(req, CodeError(status), val);
     req->release();
 }
 
@@ -429,9 +427,8 @@ void FSRequest::uvx_on_scandir_complete (uv_fs_t* uvreq) {
         }
     }
     else status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_scandir_callback(req, &err, ret);
+    req->_scandir_callback(req, CodeError(status), ret);
     req->release();
 }
 
@@ -456,9 +453,8 @@ void FSRequest::uvx_on_sendfile_complete (uv_fs_t* uvreq) {
     size_t ret = 0;
     if (req->_uvr.result >= 0) ret = (size_t)req->_uvr.result;
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_sendfile_callback(req, &err, ret);
+    req->_sendfile_callback(req, CodeError(status), ret);
     req->release();
 }
 
@@ -490,9 +486,8 @@ void FSRequest::uvx_on_readlink_complete (uv_fs_t* uvreq) {
     string ret;
     if (req->_uvr.result >= 0) ret.assign((const char*)req->_uvr.ptr, (size_t)req->_uvr.result); // _uvr.ptr is not null-terminated
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, &err, ret);
+    req->_read_callback(req, CodeError(status), ret);
     req->release();
 }
 
@@ -509,9 +504,8 @@ void FSRequest::uvx_on_realpath_complete (uv_fs_t* uvreq) {
     string ret;
     if (req->_uvr.result >= 0) ret.assign((const char*)req->_uvr.ptr); // _uvr.ptr is null-terminated
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, &err, ret);
+    req->_read_callback(req, CodeError(status), ret);
     req->release();
 }
 
@@ -535,9 +529,8 @@ void FSRequest::uvx_on_read_complete (uv_fs_t* uvreq) {
     int status = 0;
     if (req->_uvr.result >= 0) req->_read_buf.length((size_t)req->_uvr.result);
     else                       status = req->_uvr.result;
-    CodeError err(status);
     req->set_complete();
-    req->_read_callback(req, &err, req->_read_buf);
+    req->_read_callback(req, CodeError(status), req->_read_buf);
     req->_read_buf.clear();
     req->release();
 }
