@@ -1,10 +1,12 @@
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/SSLFilter.h>
-#include <panda/unievent/Timer.h>
+#include "Stream.h"
 #include <chrono>
-#include <panda/unievent/Prepare.h>
+#include "Timer.h"
+#include "Prepare.h"
+#include "StreamFilter.h"
+#include "ssl/SSLFilter.h"
+
 using namespace panda::unievent;
+using ssl::SSLFilter;
 
 void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
     ConnectRequest* r = rcast<ConnectRequest*>(uvreq);
@@ -287,7 +289,7 @@ void Stream::on_connect (const CodeError* err, ConnectRequest* req) {
     connect_event(this, err, req);
 }
 
-void Stream::on_read (const string& buf, const CodeError* err) {
+void Stream::on_read (string& buf, const CodeError* err) {
     if (read_event.has_listeners()) read_event(this, buf, err);
 }
 

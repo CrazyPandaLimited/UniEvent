@@ -97,7 +97,7 @@ protected:
     void on_connection     (const CodeError* err) override;
     void on_ssl_connection (const CodeError* err) override;
     void on_connect        (const CodeError* err, ConnectRequest* req) override;
-    void on_read           (const string& buf, const CodeError* err) override;
+    void on_read           (string& buf, const CodeError* err) override;
     void on_write          (const CodeError* err, WriteRequest* req) override;
     void on_shutdown       (const CodeError* err, ShutdownRequest* req) override;
     void on_eof            () override;
@@ -173,7 +173,7 @@ struct XSUDP : UDP, XSHandle {
     }
     
 protected:
-    void on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) override;
+    void on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) override;
     void on_send    (const CodeError* err, SendRequest* req) override;
 
 private:

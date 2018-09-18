@@ -1,20 +1,18 @@
 #include "SSLFilter.h"
 #include <vector>
-
 #include <openssl/err.h>
 #include <openssl/dh.h>
 #include <openssl/conf.h>
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
-
-#include "Stream.h"
 #include "SSLBio.h"
-#include "Debug.h"
-
+#include "../Stream.h"
+#include "../Debug.h"
 
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
 using namespace panda::unievent;
+using namespace panda::unievent::ssl;
 
 const char* SSLFilter::TYPE = "SSL";
 bool        SSLFilter::openSSL_inited = SSLFilter::init_openSSL_lib();
@@ -167,7 +165,7 @@ void SSLFilter::negotiation_finished (const CodeError* err) {
     }
 }
 
-void SSLFilter::on_read (const string& encbuf, const CodeError* err) {
+void SSLFilter::on_read (string& encbuf, const CodeError* err) {
     _EDEBUG("[%s], got %lu bytes", PROFILE_STR, encbuf.length());
     if (!handle->connecting() && !handle->connected()) {
         _EDEBUG("[%s], on_read strange state: neither connecting nor connected, possibly server is not configured", PROFILE_STR);
@@ -215,7 +213,7 @@ void SSLFilter::on_read (const string& encbuf, const CodeError* err) {
                 req->bufs.push_back(wbuf);
                 next_write(req);
             }
-            next_on_read(string(), SSLError(ssl_code));
+            next_on_read(decbuf, SSLError(ssl_code));
             return;
         }
     }
