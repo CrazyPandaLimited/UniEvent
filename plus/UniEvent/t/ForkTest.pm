@@ -35,11 +35,11 @@ sub start_fork_test {
 			}
 			$cl->write("data");
 		});
-		
+
 		$cl->eof_callback(sub {
 			$loop->stop();
 		});
-		
+
 		$server->accept($cl);
 	});
 
@@ -52,9 +52,9 @@ sub start_fork_test {
 		unless ($pid) {
 			$proc = "child";
 			$loop->handle_fork();
-			
+
 			$server->reset();
-			
+
 			my $client = UniEvent::TCP->new();
 			$client->tcp_nodelay(1);
 			$client->connect_callback(sub {
@@ -85,11 +85,14 @@ sub start_fork_test {
 	$timer_d->start(0, 0.01);
 
 	$loop->run();
-	
+
 	if ($pid) {
 		waitpid($pid, 0);
-		done_testing(2);
+		done_testing(2) if ($test_target eq "master");
 	}
+    else {
+        done_testing(2) if ($test_target eq "child");
+    }
 }
 
 1;
