@@ -1,12 +1,9 @@
 #pragma once
-
 #include <queue>
-
 #include <openssl/ssl.h>
+#include "../StreamFilter.h"
 
-#include "StreamFilter.h"
-
-namespace panda { namespace unievent {
+namespace panda { namespace unievent { namespace ssl {
 
 class SSLFilter : public StreamFilter, public AllocatedObject<SSLFilter, true> {
 public:
@@ -19,7 +16,7 @@ public:
     void on_connect (const CodeError*, ConnectRequest*) override;
     void write      (WriteRequest*) override;
     void on_write   (const CodeError* err, WriteRequest* req) override;
-    void on_read    (const string&, const CodeError*) override;
+    void on_read    (string&, const CodeError*) override;
     void reset      () override;
     bool is_secure  () override;
 
@@ -51,4 +48,4 @@ private:
     static void on_regular_write   (Stream*, const CodeError*, WriteRequest*);
 };
 
-}}
+}}}

@@ -16,7 +16,7 @@ class Stream : public virtual Handle {
 public:
     using connection_fptr     = void(Stream* handle, const CodeError* err);
     using ssl_connection_fptr = void(Stream* handle, const CodeError* err);
-    using read_fptr           = void(Stream* handle, const string& buf, const CodeError* err);
+    using read_fptr           = void(Stream* handle, string& buf, const CodeError* err);
     using eof_fptr            = void(Stream* handle);
 
     using connect_fptr  = ConnectRequest::connect_fptr;
@@ -75,10 +75,10 @@ public:
     SSL* get_ssl    () const;
     bool is_secure  () const;
 
-    void call_on_connection     (const CodeError* err)                    { on_connection(err); }
-    void call_on_ssl_connection (const CodeError* err)                    { on_ssl_connection(err); }
-    void call_on_read           (const string& buf, const CodeError* err) { on_read(buf, err); }
-    void call_on_eof            ()                                        { on_eof(); }
+    void call_on_connection     (const CodeError* err)              { on_connection(err); }
+    void call_on_ssl_connection (const CodeError* err)              { on_ssl_connection(err); }
+    void call_on_read           (string& buf, const CodeError* err) { on_read(buf, err); }
+    void call_on_eof            ()                                  { on_eof(); }
 
     void call_on_connect (const CodeError* err, ConnectRequest* req, bool unlock = true);
     void cancel_connect  ();
@@ -140,7 +140,7 @@ protected:
     virtual void on_connection     (const CodeError* err);
     virtual void on_ssl_connection (const CodeError* err);
     virtual void on_connect        (const CodeError* err, ConnectRequest* req);
-    virtual void on_read           (const string& buf, const CodeError* err);
+    virtual void on_read           (string& buf, const CodeError* err);
     virtual void on_write          (const CodeError* err, WriteRequest* req);
     virtual void on_shutdown       (const CodeError* err, ShutdownRequest* req);
     virtual void on_eof            ();

@@ -62,9 +62,12 @@ void Handle::close_delete () {
 }
 
 void Handle::close_reinit (bool keep_asyncq) {
-    if (!keep_asyncq && in_user_callback) {
-        if (!asyncq_empty()) _asyncq_cancel(); // do not lock and unlock here
-        keep_asyncq = true;
+    if (!keep_asyncq) {
+        flags = (flags & HF_BUSY) ? HF_BUSY : 0;
+        if (in_user_callback) {
+            if (!asyncq_empty()) _asyncq_cancel(); // do not lock and unlock here
+            keep_asyncq = true;
+        }
     }
     if (keep_asyncq) {
         if (async_locked()) {
