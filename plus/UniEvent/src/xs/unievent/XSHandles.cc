@@ -123,7 +123,7 @@ void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {
     if (!connect_xscb.call(obj, evname_on_connect, { xs::out(err) })) Stream::on_connect(err, req);
 }
 
-void XSStream::on_read (const string& buf, const CodeError* err) {
+void XSStream::on_read (string& buf, const CodeError* err) {
     //fprintf(stderr, "XSStream::on_read\n");
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!read_xscb.call(obj, evname_on_read, {
@@ -150,7 +150,7 @@ void XSStream::on_eof () {
     if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
 }
 
-void XSUDP::on_receive (const string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
+void XSUDP::on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
     auto obj = xs::out<UDP*>(aTHX_ this);
     if (!receive_xscb.call(obj, evname_on_receive, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),

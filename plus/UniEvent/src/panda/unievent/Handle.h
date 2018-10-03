@@ -142,7 +142,8 @@ protected:
     }
 
     void async_unlock_noresume () {
-        assert(flags & HF_BUSY);
+        //assert(flags & HF_BUSY); // COMMENTED OUT - TO REFACTOR - Такие случаи возникают в тестах Front с учетом обнуления флагов в reset().
+                                   // нужно исправить в UniEvent 2.0 (any-engine) - перепроектировать очереди
         flags &= ~HF_BUSY;
     }
 

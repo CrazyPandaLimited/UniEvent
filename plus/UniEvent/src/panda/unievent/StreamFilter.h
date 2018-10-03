@@ -15,7 +15,7 @@ public:
     virtual void write         (WriteRequest* req);
     virtual void on_connect    (const CodeError* err, ConnectRequest* req);
     virtual void on_write      (const CodeError* err, WriteRequest* req);
-    virtual void on_read       (const string& buf, const CodeError* err);
+    virtual void on_read       (string& buf, const CodeError* err);
     virtual void on_shutdown   (const CodeError* err, ShutdownRequest* req);
     virtual void on_eof        ();
     virtual void reset         ();
@@ -53,7 +53,7 @@ protected:
         _next ? _next->on_write(err, req) : handle->call_on_write(err, req);
     }
 
-    void next_on_read (const string& buf, const CodeError* err) {
+    void next_on_read (string& buf, const CodeError* err) {
         _next ? _next->on_read(buf, err) : handle->call_on_read(buf, err);
     }
 

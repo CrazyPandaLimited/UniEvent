@@ -1,7 +1,6 @@
 #include "SSLBio.h"
-#include "Debug.h"
 
-using namespace panda::unievent;
+using namespace panda::unievent::ssl;
 typedef SSLBio::membuf_t membuf_t;
 
 static int bio_new (BIO* bio) {

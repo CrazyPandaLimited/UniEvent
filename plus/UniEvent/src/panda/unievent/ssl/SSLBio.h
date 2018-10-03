@@ -1,13 +1,12 @@
 #pragma once
-
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
+#include "../Debug.h"
+#include "../Handle.h"
 
-#include "Debug.h"
-#include "Handle.h"
+namespace panda { namespace unievent { namespace ssl {
 
-
-namespace panda { namespace unievent {
+using panda::string;
 
 #ifdef LIBRESSL_VERSION_NUMBER
 #  define _PATCH_BIO 1
@@ -88,4 +87,4 @@ private:
     #endif
 };
 
-}}
+}}}
