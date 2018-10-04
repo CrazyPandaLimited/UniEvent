@@ -15,6 +15,20 @@ AsyncTest::~AsyncTest() noexcept(false) {
     timer.reset();
     loop->run_nowait(); // wait for all events trigered
     loop->run_nowait(); // in case of async close
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait(); 
+    loop->run_nowait();
+    loop->walk([](Handle* h){
+         _EDEBUG("%d %p %d", h->type(), h, h->refcnt());
+    }); 
     if (!broken_state && !happened_as_expected()) {
         throw Error("Test exits in bad state", *this);
     }

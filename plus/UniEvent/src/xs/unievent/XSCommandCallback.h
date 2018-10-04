@@ -10,7 +10,7 @@ public:
     XSCallback xscb;
     SV* handle_rv;
 
-    XSCommandCallback (pTHX_ SV* handle_rv) : CommandCallback(nullptr), xscb(aTHX), handle_rv(handle_rv) {
+    XSCommandCallback (pTHX_ SV* handle_rv) : CommandCallback(nullptr), handle_rv(handle_rv) {
         SvREFCNT_inc_simple_void_NN(handle_rv);
     }
 

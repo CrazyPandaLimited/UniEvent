@@ -19,7 +19,7 @@ $cl->connect('localhost', $port, 1, $hints, sub {
     ok !$err;
     fail $err if $err;
     note "first connected";
-}, 1);
+});
 $cl->write('1');
 $cl->disconnect();
 $cl->connect('localhost', $port, 1, $hints, sub {
@@ -28,7 +28,7 @@ $cl->connect('localhost', $port, 1, $hints, sub {
     fail $err if $err;
     note "second connected";
 	$loop->stop();
-}, 1);
+});
 $loop->update_time();
 $loop->run();
 

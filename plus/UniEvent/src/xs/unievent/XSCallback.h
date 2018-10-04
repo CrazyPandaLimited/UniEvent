@@ -3,12 +3,10 @@
 
 namespace xs { namespace unievent {
 
-class XSCallback {
-    mTHX;
-public:
+struct XSCallback {
     CV* callback;
 
-    XSCallback (pTHX) : mTHXa(aTHX) callback(nullptr) {}
+    XSCallback () : callback(nullptr) {}
 
     void set  (SV* callback_rv);
     SV*  get  ();

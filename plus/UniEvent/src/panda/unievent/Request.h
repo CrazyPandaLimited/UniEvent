@@ -35,7 +35,7 @@ public:
     
     bool canceled () const { return canceled_; }
     
-    void cancel() {
+    virtual void cancel() {
         _EDEBUGTHIS("cancel");
         if (!canceled_) {
             canceled_ = true;
@@ -56,15 +56,17 @@ public:
 
     CallbackDispatcher<connect_fptr> event;
     bool is_reconnect;
-    CodeError error;
+    //CodeError error;
 
-    ConnectRequest (connect_fn callback = nullptr, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
-        _ETRACETHIS("ctor");
-        if (callback) event.add(callback);
+    ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
+        _EDEBUGTHIS("callback %p %d", callback, (bool)callback);
+        if (callback) { 
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
-    ~ConnectRequest();
+    virtual ~ConnectRequest();
 
     void set_timer(Timer* timer); 
 
@@ -89,7 +91,9 @@ public:
     CallbackDispatcher<shutdown_fptr> event;
 
     ShutdownRequest (shutdown_fn callback = {}) {
-        event.add(callback);
+        if (callback) { 
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
@@ -128,28 +132,34 @@ public:
     CallbackDispatcher<write_fptr> event;
 
     WriteRequest (write_fn callback = {}) {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
-    WriteRequest (const string& data, write_fn callback = {}) : BufferRequest(data) {
-         event.add(callback);
+    WriteRequest (const string& data, write_fn callback = {}) : BufferRequest(data)  {
+        if (callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
     template <class It>
     WriteRequest (It begin, It end, write_fn callback = {}) : BufferRequest(begin, end) {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
     Handle* handle () const { return static_cast<Handle*>(uvr.handle->data); }
 
     virtual ~WriteRequest () {
-        _ETRACETHIS("dtor");
+        _EDTOR();
     }
     friend uv_write_t* _pex_ (WriteRequest*);
     friend class Stream;
@@ -165,22 +175,24 @@ public:
     CallbackDispatcher<send_fptr> event;
 
     SendRequest (send_fn callback = {}) : BufferRequest() {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
-    SendRequest (const string& data, send_fn callback = {})
-        : BufferRequest(data)
-    {
-        event.add(callback);
+    SendRequest (const string& data, send_fn callback = {}) : BufferRequest(data) {
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
     template <class It>
-    SendRequest (It begin, It end, send_fn callback = {})
-        : BufferRequest(begin, end)
-    {
-        event.add(callback);
+    SendRequest (It begin, It end, send_fn callback = {}) : BufferRequest(begin, end) {
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
@@ -194,5 +206,4 @@ inline uv_connect_t*  _pex_(ConnectRequest* req) { return &req->uvr; }
 inline uv_shutdown_t* _pex_(ShutdownRequest* req) { return &req->uvr; }
 inline uv_write_t*    _pex_(WriteRequest* req) { return &req->uvr; }
 inline uv_udp_send_t* _pex_(SendRequest* req) { return &req->uvr; }
-
 }}
