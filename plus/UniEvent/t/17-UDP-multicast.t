@@ -12,7 +12,7 @@ use IPC::Open2;
 
 use constant ADDR_N => 2**8;
 
-my $base_addr = $ENV{'PANDA_EVENT_TEST_MULTICAST_BASE_ADDR'};
+my $base_addr = $ENV{'UNIEVENT_TEST_MULTICAST_BASE_ADDR'};
 
 my @primes = (
     2, 3, 5, 7, 11, 13, 17, 19
@@ -37,7 +37,7 @@ sub gen_msgs {
 
 plan skip_all => "Tests are not implemented";
 # unless ($base_addr) {
-#     plan skip_all => "Not intended to run unless explicitly requested by user through defining PANDA_EVENT_TEST_MULTICAST_BASE_ADDR";
+#     plan skip_all => "Not intended to run unless explicitly requested by user through defining UNIEVENT_TEST_MULTICAST_BASE_ADDR";
 # }
 
 my $l = UniEvent::Loop->default_loop;

@@ -9,7 +9,7 @@
 
 
 // see https://www.gnu.org/software/libc/manual/html_node/Backtraces.html
-void print_trace() {
+inline void print_trace() {
     void *array[10];
     size_t size;
     char **strings;

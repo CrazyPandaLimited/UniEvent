@@ -4,22 +4,22 @@ namespace xs { namespace unievent {
 
 static thread_local Stash _perl_handle_classes[HTYPE_MAX+1];
 
-static const auto evname_on_prepare        = Simple::shared("on_prepare");
-static const auto evname_on_check          = Simple::shared("on_check");
-static const auto evname_on_idle           = Simple::shared("on_idle");
-static const auto evname_on_timer          = Simple::shared("on_timer");
-static const auto evname_on_fs_event       = Simple::shared("on_fs_event");
-static const auto evname_on_fs_poll        = Simple::shared("on_fs_poll");
-static const auto evname_on_signal         = Simple::shared("on_signal");
-static const auto evname_on_connection     = Simple::shared("on_connection");
-static const auto evname_on_ssl_connection = Simple::shared("on_ssl_connection");
-static const auto evname_on_read           = Simple::shared("on_read");
-static const auto evname_on_write          = Simple::shared("on_write");
-static const auto evname_on_shutdown       = Simple::shared("on_shutdown");
-static const auto evname_on_eof            = Simple::shared("on_eof");
-static const auto evname_on_connect        = Simple::shared("on_connect");
-static const auto evname_on_receive        = Simple::shared("on_receive");
-static const auto evname_on_send	       = Simple::shared("on_send");
+static const auto evname_on_prepare           = Simple::shared("on_prepare");
+static const auto evname_on_check             = Simple::shared("on_check");
+static const auto evname_on_idle              = Simple::shared("on_idle");
+static const auto evname_on_timer             = Simple::shared("on_timer");
+static const auto evname_on_fs_event          = Simple::shared("on_fs_event");
+static const auto evname_on_fs_poll           = Simple::shared("on_fs_poll");
+static const auto evname_on_signal            = Simple::shared("on_signal");
+static const auto evname_on_connection        = Simple::shared("on_connection");
+static const auto evname_on_read              = Simple::shared("on_read");
+static const auto evname_on_write             = Simple::shared("on_write");
+static const auto evname_on_shutdown          = Simple::shared("on_shutdown");
+static const auto evname_on_eof               = Simple::shared("on_eof");
+static const auto evname_on_connect           = Simple::shared("on_connect");
+static const auto evname_on_receive           = Simple::shared("on_receive");
+static const auto evname_on_send	          = Simple::shared("on_send");
+static const auto evname_on_create_connection = Simple::shared("on_create_connection");
 
 Ref stat2avr (const stat_t* stat) {
     return Ref::create(Array::create({
@@ -101,30 +101,25 @@ void XSFSPoll::on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeErr
 }
 
 void XSSignal::on_signal (int signum) {
+    _EDEBUGTHIS();
     auto obj = xs::out<Signal*>(aTHX_ this);
     if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 }
 
-void XSStream::on_connection (const CodeError* err) {
-    //fprintf(stderr, "XSStream::on_connection\n");
+void XSStream::on_connection (Stream* stream, const CodeError* err) {
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
-    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(err) })) Stream::on_connection(err);
-}
-
-void XSStream::on_ssl_connection (const CodeError* err) {
-    //fprintf(stderr, "XSStream::on_ssl_connection\n");
-    auto obj = xs::out<Stream*>(aTHX_ this);
-    if (!ssl_connection_xscb.call(obj, evname_on_ssl_connection, { xs::out(err) })) Stream::on_ssl_connection(err);
+    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream), xs::out(err) })) Stream::on_connection(stream, err);
 }
 
 void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {
-    //fprintf(stderr, "XSStream::on_connect\n");
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!connect_xscb.call(obj, evname_on_connect, { xs::out(err) })) Stream::on_connect(err, req);
 }
 
 void XSStream::on_read (string& buf, const CodeError* err) {
-    //fprintf(stderr, "XSStream::on_read\n");
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!read_xscb.call(obj, evname_on_read, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
@@ -133,19 +128,19 @@ void XSStream::on_read (string& buf, const CodeError* err) {
 }
 
 void XSStream::on_write (const CodeError* err, WriteRequest* req) {
-    //fprintf(stderr, "XSStream::on_write\n");
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!write_xscb.call(obj, evname_on_write, { xs::out(err) })) Stream::on_write(err, req);
 }
 
 void XSStream::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-    //fprintf(stderr, "XSStream::on_shutdown err=%d\n", err.code());
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!shutdown_xscb.call(obj, evname_on_shutdown, { xs::out(err) })) Stream::on_shutdown(err, req);
 }
 
 void XSStream::on_eof () {
-    //fprintf(stderr, "XSStream::on_eof\n");
+    _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
     if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
 }

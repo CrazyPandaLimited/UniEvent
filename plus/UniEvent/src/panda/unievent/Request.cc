@@ -6,7 +6,6 @@
 namespace panda { namespace unievent {
 
 ConnectRequest::~ConnectRequest() {
-    _ETRACETHIS("dtor %p", &uvr);
     release_timer();
 }
 

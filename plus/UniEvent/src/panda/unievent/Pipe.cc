@@ -31,7 +31,7 @@ void Pipe::connect (const string& name, ConnectRequest* req) {
     PEXS_NULL_TERMINATE(name, name_str);
     uv_pipe_connect(_pex_(req), &uvh, name_str, Stream::uvx_on_connect);
 
-    flags |= SF_CONNECTING;
+    set_connecting();
     async_lock();
     retain();
 }

@@ -69,7 +69,6 @@ struct SSLError : CodeError {
     int openssl_code () const;
 
     string name () const override;
-
     int library  () const;
     int function () const;
     int reason   () const;

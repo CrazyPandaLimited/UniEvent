@@ -1,36 +1,63 @@
 #pragma once
-#include <xs/unievent/inc.h>
 #include <xs/unievent/error.h>
 #include <xs/unievent/XSCallback.h>
+#include <panda/unievent/Request.h>
+#include <panda/unievent/TCP.h>
 
 namespace xs { namespace unievent {
 
 using xs::my_perl;
 using namespace panda::unievent;
 
-struct XSResolver : Resolver {
-public:
-    XSCallback resolve_xscb;
-    XSResolver (Loop* loop = Loop::default_loop()) : Resolver(loop), resolve_xscb(aTHX) {}
-protected:
-    virtual void on_resolve (struct addrinfo* res, const CodeError* err);
-};
-
 // The following classes are not visible from perl, XS wrappers are just needed for holding perl callback
 
-struct XSConnectRequest : ConnectRequest {
+class XSConnectRequest : public ConnectRequest {
+public:
     XSCallback xscb;
-    XSConnectRequest (pTHX_ SV* callback) : ConnectRequest(callback ? _cb : nullptr), xscb(aTHX) {
+    XSConnectRequest (pTHX_ SV* callback) : ConnectRequest(callback ? _cb : connect_fn(nullptr)) {
         xscb.set(callback);
     }
 private:
     static void _cb (Stream* handle, const CodeError* err, ConnectRequest* req);
 };
 
-
-struct XSShutdownRequest : ShutdownRequest {
+class XSTCPConnectRequest : public TCPConnectRequest {
+public:
     XSCallback xscb;
-    XSShutdownRequest (pTHX_ SV* callback) : ShutdownRequest(callback ? _cb : nullptr), xscb(aTHX) {
+
+    XSTCPConnectRequest(bool            reconnect,
+                        const sockaddr* sa,
+                        const string&   host,
+                        const string&   service,
+                        const addrinfo* hints,
+                        uint64_t        timeout,
+                        SV*      xs_callback,
+                        const SocksSP& socks)
+            : TCPConnectRequest(reconnect, sa, host, service, hints, timeout, xs_callback ? _cb : connect_fn(nullptr), socks) {
+        xscb.set(xs_callback);
+    }
+
+    class Builder : public BasicBuilder<Builder> {
+    public:
+        Builder& callback(SV* xs_callback) { xs_callback_ = xs_callback; return *this; }
+
+        XSTCPConnectRequest* build() {
+            return new XSTCPConnectRequest(reconnect_, sa_, host_, service_, hints_, timeout_, xs_callback_, socks_);
+        }
+
+    private:
+        SV* xs_callback_ = nullptr;
+    };
+
+private:
+    static void _cb (Stream* handle, const CodeError* err, ConnectRequest* req);
+};
+
+
+class XSShutdownRequest : public ShutdownRequest {
+public:
+    XSCallback xscb;
+    XSShutdownRequest (pTHX_ SV* callback) : ShutdownRequest(callback ? _cb : shutdown_fn(nullptr)) {
         xscb.set(callback);
     }
 private:
@@ -38,9 +65,10 @@ private:
 };
 
 
-struct XSWriteRequest : WriteRequest {
+class XSWriteRequest : public WriteRequest {
+public:
     XSCallback xscb;
-    XSWriteRequest (pTHX_ SV* callback) : WriteRequest(callback ? _cb : nullptr), xscb(aTHX) {
+    XSWriteRequest (pTHX_ SV* callback) : WriteRequest(callback ? _cb : write_fn(nullptr)) {
         xscb.set(callback);
     }
 private:
@@ -48,9 +76,10 @@ private:
 };
 
 
-struct XSSendRequest : SendRequest {
+class XSSendRequest : public SendRequest {
+public:
     XSCallback xscb;
-    XSSendRequest (pTHX_ SV* callback) : SendRequest(callback ? _cb : nullptr), xscb(aTHX) {
+    XSSendRequest (pTHX_ SV* callback) : SendRequest(callback ? _cb : send_fn(nullptr)) {
         xscb.set(callback);
     }
 private:
@@ -59,16 +88,3 @@ private:
 
 
 }}
-
-namespace xs {
-
-template <class TYPE>
-struct Typemap<panda::unievent::Request*, TYPE> : TypemapObject<panda::unievent::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
-    std::string package () const { return "UniEvent::Request"; }
-};
-
-template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : Typemap<panda::unievent::Request*, TYPE> {
-    std::string package () const { return "UniEvent::Resolver"; }
-};
-
-}

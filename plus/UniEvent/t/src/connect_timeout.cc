@@ -1,37 +1,27 @@
 #include <catch.hpp>
-#include <panda/unievent/test/AsyncTest.h>
 
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/TCP.h>
-#include <panda/string.h>
 #include <chrono>
 #include <thread>
 
-#include "test.h"
+#include <panda/unievent/test/AsyncTest.h>
+#include <panda/unievent/Debug.h>
+#include <panda/unievent/Timer.h>
+#include <panda/unievent/TCP.h>
+#include <panda/string.h>
 
-using namespace panda::unievent;
-using test::AsyncTest;
-using test::sp;
+#include "utils.h"
 
-static TCPSP make_server(in_port_t port, Loop* loop) {
-    TCPSP server = new TCP(loop);
-    server->bind("localhost", panda::to_string(port));
-    server->listen(1, [](Stream* serv, const StreamError&) {
-        TCPSP client = new TCP(serv->loop());
-        serv->accept(client);
-    });
-    return server;
-}
+using namespace panda;
+using namespace unievent;
+using namespace test;
 
-#ifdef TEST_CONNECT_TIMEOUT
-
-TEST_CASE("connect to nowhere", "[timeout]") {
+TEST_CASE("connect to nowhere", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(50000, {"connected", "reset"});
 
     auto port = find_free_port();
     size_t counter = 0;
 
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop);
     TimerSP timer = new Timer(test.loop);
     timer->timer_event.add([&](Timer*) {
         test.loop->stop();
@@ -40,51 +30,54 @@ TEST_CASE("connect to nowhere", "[timeout]") {
     client->connect().to("localhost", panda::to_string(port));
     client->write("123");
 
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(err);
         switch (counter) {
         case 0:
+            _EDEBUG("0");
             test.happens("connected");
             counter++;
             client->connect().to("localhost", panda::to_string(port));
             client->write("123");
             break;
         case 1:
+            _EDEBUG("1");
             test.happens("reset");
             counter++;
             client->reset();
             client->connect().to("localhost", panda::to_string(port));
             break;
         default:
+            _EDEBUG("default %d", client->refcnt());
             timer->once(100); // 100ms for close_reinit
             break;
         }
     });
     test.run();
+    _EDEBUG("END %d", client->refcnt());
 }
 
-TEST_CASE("connect no timeout with real connection", "[timeout]") {
+TEST_CASE("connect no timeout with real connection", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(250, {"connected"});
 
     auto port = find_free_port();
     TCPSP server = make_server(port, test.loop);
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop);
     
     client->connect("localhost", panda::to_string(port));
 
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(!err);
     });
     test.await(client->connect_event, "connected");
     REQUIRE(test.await_not(client->connect_event, 110));
 }
 
-TEST_CASE("connect timeout with real connection", "[timeout]") {
+TEST_CASE("connect timeout with real connection", "[panda-event][timeout][socks][ssll]") {
     AsyncTest test(250, {"connected1", "connected2"});
 
     auto port = find_free_port();
     TCPSP server = make_server(port, test.loop);
-    TCPSP client = new TCP(test.loop);
     
     bool cached_resolver;
     SECTION("ordinary resolver") {
@@ -94,12 +87,13 @@ TEST_CASE("connect timeout with real connection", "[timeout]") {
         cached_resolver = true;
     }
     
+    TCPSP client = make_client(test.loop, cached_resolver);
+    
     client->connect()
                 .to("localhost", panda::to_string(port))
-                .cached_resolver(cached_resolver)
                 .timeout(100);
 
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(!err);
     });
 
@@ -109,7 +103,6 @@ TEST_CASE("connect timeout with real connection", "[timeout]") {
 
     client->connect()
                 .to("localhost", panda::to_string(port))
-                .cached_resolver(cached_resolver)
                 .timeout(100);
 
     test.await(client->connect_event, "connected2");
@@ -117,7 +110,7 @@ TEST_CASE("connect timeout with real connection", "[timeout]") {
     REQUIRE(test.await_not(client->connect_event, 110));
 }
 
-TEST_CASE("connect timeout with real canceled connection", "[timeout]") {
+TEST_CASE("connect timeout with real canceled connection", "[panda-event][timeout][socks][ssl]") {
     int connected = 0;
     int errors = 0;
     int successes = 0;
@@ -134,22 +127,22 @@ TEST_CASE("connect timeout with real canceled connection", "[timeout]") {
 
     for (int i = 0; i < tries; ++i) {
         _EDEBUG("----------------- first %d, %d -----------------", i, cached_resolver);
-        AsyncTest test(250, {"connected1", "connected2"});
+        AsyncTest test(1000, {"connected1", "connected2"});
 
         TCPSP server = make_server(port, test.loop);
-        TCPSP client = new TCP(test.loop);
+        TCPSP client = make_client(test.loop, cached_resolver);
 
         client->connect()
             .to("localhost", panda::to_string(port))
-            .cached_resolver(cached_resolver)
             .timeout(1);
 
         bool success;
         client->connect_event.add(
-            [&](Stream*, const StreamError& err, ConnectRequest*) {
-                success = err.code() == 0;
+            [&](Stream*, const CodeError* err, ConnectRequest*) {
+                _EDEBUG("----------------- connect event");
+                success = !err;
                 ++connected;
-                err.code() ? ++errors : ++successes;
+                err ? ++errors : ++successes;
             });
 
         test.await(client->connect_event, "connected1");
@@ -158,12 +151,13 @@ TEST_CASE("connect timeout with real canceled connection", "[timeout]") {
 
         client->connect()
             .to("localhost", panda::to_string(port))
-            .cached_resolver(cached_resolver)
             .timeout(1000);
 
         test.await(client->connect_event, "connected2");
 
-        REQUIRE(success);
+        if(!success) {
+            FAIL("call failed");
+        }
 
         clear_resolver_cache();
     }
@@ -192,7 +186,7 @@ TEST_CASE("connect timeout with real canceled connection", "[timeout]") {
         //.timeout(100);
 
     //size_t counter = 10;
-    //client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    //client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         //CHECK(err);
         //while (true) {
             //try {
@@ -213,7 +207,7 @@ TEST_CASE("connect timeout with real canceled connection", "[timeout]") {
 //}
 
 
-TEST_CASE("connect timeout with black hole", "[timeout]") {
+TEST_CASE("connect timeout with black hole", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(150, {"connected called"});
     
     bool cached_resolver;
@@ -224,20 +218,19 @@ TEST_CASE("connect timeout with black hole", "[timeout]") {
         cached_resolver = true;
     }
 
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop, cached_resolver);
     client->connect()
         .to("google.com", "81")  // black hole
-        .cached_resolver(cached_resolver)
         .timeout(100);
 
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.whats() != "");
+        REQUIRE(err->whats() != "");
     });
     test.await(client->connect_event, "connected called");
 }
 
-TEST_CASE("connect timeout clean queue", "[timeout]") {
+TEST_CASE("connect timeout clean queue", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(250, {"connected called"});
     bool cached_resolver;
     SECTION("ordinary resolver") {
@@ -247,33 +240,32 @@ TEST_CASE("connect timeout clean queue", "[timeout]") {
         cached_resolver = true;
     }
 
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop, cached_resolver);
     client->connect()
         .to("google.com", "81")  // black hole
-        .cached_resolver(cached_resolver)
         .timeout(100);
 
     client->write("123");
 
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.whats() != "");
+        REQUIRE(err->whats() != "");
     });
     test.await(client->connect_event, "connected called");
     REQUIRE(test.await_not(client->write_event, 100));
 }
 
-TEST_CASE("connect timeout with black hole in roll", "[timeout]") {
+TEST_CASE("connect timeout with black hole in roll", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(1000, {"done"});
 
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop);
     client->connect().to("google.com", "81") // black hole
                      .timeout(50);
 
     size_t counter = 5;
-    client->connect_event.add([&](Stream*, const StreamError& err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         CHECK(err);
-        REQUIRE(err.whats() != "");
+        REQUIRE(err->whats() != "");
         if (--counter > 0) {
             client->connect().to("google.com", "81") // black hole
                              .timeout(50);
@@ -290,7 +282,7 @@ TEST_CASE("connect timeout with black hole in roll", "[timeout]") {
     test.happens("done");
 }
 
-TEST_CASE("regression on not cancelled timer in second (sync) connect", "[timeout]") {
+TEST_CASE("regression on not cancelled timer in second (sync) connect", "[panda-event][timeout][socks][ssl]") {
     auto port = find_free_port();
     bool cached_resolver;
     SECTION("ordinary resolver") {
@@ -302,17 +294,16 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[timeou
 
     AsyncTest test(250, {"not_connected1", "not_connected2"});
 
-    TCPSP client = new TCP(test.loop);
+    TCPSP client = make_client(test.loop, cached_resolver);
 
     client->connect().to("localhost", panda::to_string(port))
-            .cached_resolver(cached_resolver)
             .timeout(100);
 
     bool failed = false;
     bool called = false;
     client->connect_event.add(
-        [&](Stream*, const StreamError& err, ConnectRequest*) {
-            failed = err.code() != 0;
+        [&](Stream*, const CodeError* err, ConnectRequest*) {
+            failed = err;
             called = true;
         });
 
@@ -326,7 +317,6 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[timeou
     failed = false;
 
     client->connect().to("localhost", panda::to_string(port))
-        .cached_resolver(cached_resolver)
         .timeout(100);
 
     test.await(client->connect_event, "not_connected2");
@@ -334,5 +324,3 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[timeou
     REQUIRE(called);
     REQUIRE(failed);
 }
-
-#endif

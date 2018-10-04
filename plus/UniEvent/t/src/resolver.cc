@@ -3,10 +3,10 @@
 #include <chrono>
 #include <thread>
 #include <sstream>
+#include <set>
 
 #include <panda/unievent/test/AsyncTest.h>
 
-#include <panda/unievent/CachedResolver.h>
 #include <panda/unievent/Resolver.h>
 #include <panda/unievent/Timer.h>
 #include <panda/unievent/TCP.h>
@@ -14,220 +14,194 @@
 #include <panda/refcnt.h>
 #include <panda/log.h>
 
-#include "test.h"
-
-
 using namespace panda;
-
-#ifdef TEST_RESOLVER
-
-//#define _DEBUG 1
-
-#ifdef _DEBUG
-#define _DBG(x) do { std::cerr << "[test-resolver]" << x << std::endl; } while (0)
-#else
-#define _DBG(x)
-#endif
+using namespace unievent;
 
 std::string dump(addrinfo* ai) {
     std::stringstream ss;
     for(auto current = ai; current; current = current->ai_next) {
-        ss << unievent::to_string(current) << "\n";
+        ss << to_string(current) << "\n";
     }
     return ss.str();
 }
 
-TEST_CASE("simple resolver", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved"});
-    iptr<unievent::Resolver> resolver(new unievent::Resolver(test.loop));
-    resolver->resolve("localhost",
-            "80",
+TEST_CASE("basic resolver", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved"});
+    ResolverSP resolver{new Resolver};
+    ResolveRequestSP request = resolver->resolve(test.loop, 
+            "localhost",
+            "",
             nullptr,
-            [&](addrinfo*, const unievent::ResolveError& err, bool){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
-    test.await(resolver->resolve_event, "resolved");
+    test.await(request->event, "resolved");
 }
 
-TEST_CASE("cached resolver", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved"});
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver);
-    unievent::ResolveRequestSP request1 = resolver->resolve(test.loop,
+TEST_CASE("cached resolver", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved"});
+    CachedResolverSP resolver{new CachedResolver};
+    // it is not in cache, async call
+    ResolveRequestSP request1 = resolver->resolve(test.loop,
             "localhost",
-            "80",
+            "",
             nullptr,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
             });
 
     test.await(request1->event, "resolved");
 
     bool called = false;
-    unievent::ResolveRequestSP request2 = resolver->resolve(test.loop,
+    // in cache, so the call is sync
+    ResolveRequestSP request2 = resolver->resolve(test.loop,
             "localhost",
-            "80",
+            "",
             nullptr,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(from_cache);
                 called = true;
             });
 
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, same hints", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved"});
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver);
+TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved"});
+    CachedResolverSP resolver(new CachedResolver);
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_socktype = SOCK_STREAM;
 
     addrinfo* addrinfo1;
-    unievent::ResolveRequestSP request1 = resolver->resolve(test.loop,
+    ResolveRequestSP request1 = resolver->resolve(test.loop,
             "localhost",
             "80",
             &hints,
-            [&](addrinfo* ai, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
-                addrinfo1 = ai;
+                addrinfo1 = address->head;
             });
 
     test.await(request1->event, "resolved");
 
-    _DBG(dump(addrinfo1));
-
     bool called = false;
-    unievent::ResolveRequestSP request2 = resolver->resolve(test.loop,
+    ResolveRequestSP request2 = resolver->resolve(test.loop,
             "localhost",
             "80",
             &hints,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(from_cache);
                 called = true;
             });
 
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, with hints and without hints", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved1", "resolved2"});
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver);
+TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved1", "resolved2"});
+    CachedResolverSP resolver(new CachedResolver);
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
 
-    unievent::ResolveRequestSP request1 = resolver->resolve(test.loop,
+    ResolveRequestSP request1 = resolver->resolve(test.loop,
             "localhost",
             "80",
             &hints,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
             });
 
     test.await(request1->event, "resolved1");
 
-    unievent::ResolveRequestSP request2 = resolver->resolve(test.loop,
+    ResolveRequestSP request2 = resolver->resolve(test.loop,
             "localhost",
             "80",
             nullptr,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
             });
 
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved1", "resolved2"});
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver);
+TEST_CASE("cached resolver, with hints and with different hints", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved1", "resolved2"});
+    CachedResolverSP resolver(new CachedResolver);
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
 
-    unievent::ResolveRequestSP request1 = resolver->resolve(test.loop,
+    ResolveRequestSP request1 = resolver->resolve(test.loop,
             "localhost",
             "80",
             &hints,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
             });
 
     test.await(request1->event, "resolved1");
 
     hints.ai_family = AF_INET6;
-    unievent::ResolveRequestSP request2 = resolver->resolve(test.loop,
+    ResolveRequestSP request2 = resolver->resolve(test.loop,
             "localhost",
             "80",
             &hints,
-            [&](addrinfo*, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
             });
 
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("standalone cached resolver", "[resolver]") {
-    unievent::test::AsyncTest test(500, {"resolved"});
+TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
+    test::AsyncTest test(500, {"resolved"});
 
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver);
+    CachedResolverSP resolver(new CachedResolver);
 
     addrinfo* addrinfo1;
-    unievent::ResolveRequestSP request1 = resolver->resolve(test.loop,
+    ResolveRequestSP request1 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
             nullptr,
-            [&](addrinfo* ai, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(!from_cache);
-                CHECK(ai);
-                addrinfo1 = ai;
+                CHECK(address->head);
+                addrinfo1 = address->head;
             });
 
     test.await(request1->event, "resolved");
 
-    string addr1 = unievent::to_string(addrinfo1);
+    string addr1 = to_string(addrinfo1);
 
     bool called = false;
     addrinfo* addrinfo2;
-    unievent::ResolveRequestSP request2 = resolver->resolve(test.loop,
+    ResolveRequestSP request2 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
             nullptr,
-            [&](addrinfo* ai, const unievent::ResolveError& err, bool from_cache){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
-                CHECK(from_cache);
-                CHECK(ai);
-                addrinfo2 = ai;
+                CHECK(address->head);
+                addrinfo2 = address->head;
                 called = true;
             });
 
     REQUIRE(called);
 
-    string addr2 = unievent::to_string(addrinfo2);
+    string addr2 = to_string(addrinfo2);
 
     // cached or not - the result is the same
     // will rotate for tcp connection only
     REQUIRE(addr1 == addr2);
-
-    _DBG("ADDR " << addr1 << " " << addr2);
-    
-    _DBG("ADDR1 ***\n" << dump(addrinfo1));
-    _DBG("ADDR2 ***\n" << dump(addrinfo2));
 }
 
-TEST_CASE("rotator", "[resolver]") {
+TEST_CASE("rotator", "[panda-event][resolver]") {
     int size = 10;
     addrinfo ai[size];
     for(auto i=0;i<size;++i) {
@@ -237,29 +211,30 @@ TEST_CASE("rotator", "[resolver]") {
         }
     }
 
-    iptr<unievent::cached_resolver::AddressRotator> address_rotator(new unievent::cached_resolver::AddressRotator(ai));
-    addrinfo* next1 = address_rotator->next();
-    addrinfo* next2 = address_rotator->next();
+    AddressRotatorSP address_rotator(new AddressRotator(ai));
 
     std::set<addrinfo*> result;
-    for(auto i=0;i<size*2;++i) {
+    for(auto i=0;i<size;++i) {
         result.insert(address_rotator->next());
     }
+    
+    // prevent from freeing stack allocated addrinfo 
+    address_rotator->detach();
 
     REQUIRE(result.size() == size);
 }
 
-TEST_CASE("cached resolver limit", "[resolver]") {
+TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
     size_t LIMIT = 2;
-    iptr<unievent::Loop> loop(new unievent::Loop);
-    iptr<unievent::CachedResolver> resolver(new unievent::CachedResolver(500, LIMIT));
+    LoopSP loop(new Loop);
+    CachedResolverSP resolver(new CachedResolver(500, LIMIT));
 
     bool called = false;
-    panda::iptr<panda::unievent::ResolveRequest> request = resolver->resolve(loop.get(),
+    ResolveRequestSP request = resolver->resolve(loop.get(),
             "localhost",
             "80",
             nullptr,
-            [&](addrinfo*, const panda::unievent::ResolveError&, bool){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 
@@ -274,7 +249,7 @@ TEST_CASE("cached resolver limit", "[resolver]") {
             "google.com",
             "80",
             nullptr,
-            [&](addrinfo*, const panda::unievent::ResolveError&, bool){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 
@@ -288,7 +263,7 @@ TEST_CASE("cached resolver limit", "[resolver]") {
             "yandex.ru",
             "80",
             nullptr,
-            [&](addrinfo*, const panda::unievent::ResolveError&, bool){
+            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 
@@ -297,5 +272,3 @@ TEST_CASE("cached resolver limit", "[resolver]") {
     REQUIRE(called);
     REQUIRE(resolver->cache_size() == 1);
 }
-
-#endif

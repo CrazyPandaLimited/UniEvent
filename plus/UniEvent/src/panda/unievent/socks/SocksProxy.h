@@ -2,18 +2,18 @@
 /*
 #include <cstdint>
 
-#include <panda/event/Request.h>
-#include <panda/event/Socks.h>
+#include <panda/unievent/Request.h>
+#include <panda/unievent/Socks.h>
 #include <panda/lib/memory.h>
 #include <panda/refcnt.h>
 
-namespace panda { namespace event {
+namespace panda { namespace unievent {
 class ResolveRequest;
 class ConnectRequest;
 class TCP;
 }} // namespace panda::event
 
-namespace panda { namespace event { namespace socks {
+namespace panda { namespace unievent { namespace socks {
 
 class SocksRequest;
 class SocksConnectRequest;
@@ -112,7 +112,7 @@ class SocksConnectRequest : public Request, public AllocatedObject<ConnectReques
     friend uv_connect_t* _pex_(SocksConnectRequest*);
 
 public:
-    using connect_fptr = void(TCP* handle, const StreamError& err, SocksConnectRequest* req);
+    using connect_fptr = void(TCP* handle, const CodeError* err, SocksConnectRequest* req);
     using connect_fn   = function<connect_fptr>;
 
     ~SocksConnectRequest();
@@ -132,7 +132,7 @@ class SocksWriteRequest : public Request {
     friend uv_write_t* _pex_(SocksWriteRequest*);
 
 public:
-    using write_fptr = void(TCP* handle, const StreamError& err, SocksWriteRequest* req);
+    using write_fptr = void(TCP* handle, const CodeError* err, SocksWriteRequest* req);
     using write_fn   = function<write_fptr>;
 
     ~SocksWriteRequest() { _EDEBUGTHIS("dtor"); }
