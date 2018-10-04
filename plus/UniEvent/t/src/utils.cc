@@ -11,7 +11,7 @@
 using namespace panda;
 using namespace unievent;
 
-static SSL_CTX* get_ssl_ctx() {
+SSL_CTX* get_ssl_ctx() {
     static SSL_CTX* ctx = nullptr;
     if (ctx) {
         return ctx;
@@ -114,9 +114,16 @@ TCPSP make_client(Loop* loop, bool cached_resolver) {
     if(TEST_SSL) {
         client->use_ssl();
     }
+    
     if(TEST_SOCKS) {
         client->use_socks(getenv_proxy());
     }
+    
+    if(TEST_BUF) {
+        client->set_recv_buffer_size(1); 
+        client->set_send_buffer_size(1); 
+    }
+
     return client;
 }
 

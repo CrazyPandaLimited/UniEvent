@@ -54,6 +54,9 @@ public:
         getpeername(str.buf(), (size_t)-1);
         return str;
     }
+    
+    using Handle::set_recv_buffer_size;
+    using Handle::set_send_buffer_size;
 
     ~Pipe () override { printf("~pipe\n"); }
 

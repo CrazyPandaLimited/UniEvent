@@ -166,6 +166,14 @@ protected:
         }
         if (!asyncq.head) asyncq.tail = nullptr;
     }
+   
+    void set_recv_buffer_size(int value) {
+        uv_recv_buffer_size(uvhp, &value);
+    }
+    
+    void set_send_buffer_size(int value) {
+        uv_send_buffer_size(uvhp, &value);
+    }
 
     // private dtor prevents creating Handles on the stack / statically / etc.
     virtual ~Handle ();

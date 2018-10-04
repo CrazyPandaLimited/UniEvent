@@ -130,6 +130,9 @@ public:
     	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw CodeError(-errno);
     }
 #endif
+    
+    using Handle::set_recv_buffer_size;
+    using Handle::set_send_buffer_size;
 
     string dump() const {
         string sockname_str, peername_str;

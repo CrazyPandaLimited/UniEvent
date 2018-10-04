@@ -49,6 +49,9 @@ TEST_CASE("socks chain", "[panda-event][tcp][ssl][socks]") {
     });
 
     TCPSP server = make_basic_server(port, test.loop);
+    if(TEST_SSL) {
+        server->use_ssl(get_ssl_ctx());
+    }
     server->connection_event.add([&test](Stream*, Stream* connection, const CodeError* err) {
         REQUIRE_FALSE(err);
         test.happens("ping");
@@ -57,6 +60,9 @@ TEST_CASE("socks chain", "[panda-event][tcp][ssl][socks]") {
     });
 
     TCPSP client = new TCP(test.loop);
+    if(TEST_SSL) {
+        client->use_ssl();
+    }
     for(auto&& proxy : proxies) {
         client->push_behind_filter(new socks::SocksFilter(client, new Socks("localhost", proxy.port)));
     }

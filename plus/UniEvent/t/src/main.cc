@@ -8,12 +8,14 @@
 
 bool TEST_SSL;
 bool TEST_SOCKS;
+bool TEST_BUF;
 
 bool _run_cpp_tests_impl_(panda::string arg) {
     signal(SIGPIPE, SIG_IGN);
     
     TEST_SSL = (bool)std::getenv("UNIEVENT_TEST_SSL");
     TEST_SOCKS = (bool)std::getenv("UNIEVENT_TEST_SOCKS");
+    TEST_BUF = (bool)std::getenv("UNIEVENT_TEST_BUF");
 
     arg.append(1, '\0');
 

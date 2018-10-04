@@ -98,6 +98,9 @@ public:
         req->release();
         release();
     }
+    
+    using Handle::set_recv_buffer_size;
+    using Handle::set_send_buffer_size;
 
 protected:
     static const int UF_LAST = HF_LAST;
