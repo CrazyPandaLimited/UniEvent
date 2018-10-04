@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_RUNNER
-#define CATCH_CONFIG_DEFAULT_REPORTER "tap"
+#define CATCH_CONFIG_DEFAULT_REPORTER "perl"
 #include <catch.hpp>
-#include <catch_reporter_tap.hpp>
+#include <catch_reporter_perl.hpp>
 
 #include <panda/string.h>
 #include <panda/unievent/Debug.h>
