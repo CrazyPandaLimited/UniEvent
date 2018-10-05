@@ -5,6 +5,7 @@ use UniEvent;
 use UniEvent::Loop;
 use UniEvent::Error;
 use UniEvent::TCP;
+use Test2::IPC;
 use Test::More;
 use Scalar::Util qw/weaken/;
 use Socket qw(PF_INET SOMAXCONN SOCK_STREAM INADDR_ANY sockaddr_in inet_aton);
@@ -83,11 +84,10 @@ sub start_fork_test {
     $timer_d->start(0, 0.01);
 
 	$loop->run();
-	
-	if ($pid) {
-		waitpid($pid, 0);
-		done_testing(2);
-	}
+    
+    exit unless $pid;
+    waitpid($pid, 0);
+    done_testing();
 }
 
 1;
