@@ -1,16 +1,4 @@
-#include <catch.hpp>
-#include <panda/unievent/test/AsyncTest.h>
-
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/TCP.h>
-#include <panda/string.h>
-#include <chrono>
-
-#include "utils.h"
-
-using namespace panda;
-using namespace unievent;
-using namespace test;
+#include "lib/test.h"
 
 TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {"error"});

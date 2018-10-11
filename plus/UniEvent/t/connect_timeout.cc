@@ -1,19 +1,5 @@
-#include <catch.hpp>
-
-#include <chrono>
+#include "lib/test.h"
 #include <thread>
-
-#include <panda/unievent/test/AsyncTest.h>
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/TCP.h>
-#include <panda/string.h>
-
-#include "utils.h"
-
-using namespace panda;
-using namespace unievent;
-using namespace test;
 
 TEST_CASE("connect to nowhere", "[panda-event][timeout][socks][ssl]") {
     AsyncTest test(50000, {"connected", "reset"});

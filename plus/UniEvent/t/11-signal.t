@@ -1,6 +1,6 @@
 use 5.012;
 use warnings;
-use lib 't'; use PETest;
+use lib 't/lib'; use MyTest;
 use UniEvent::Signal qw/:const signame/;
 
 my ($l, $s, $t, $err, $lastsignum);

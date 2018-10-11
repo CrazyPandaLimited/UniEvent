@@ -1,16 +1,4 @@
-#include <catch.hpp>
-#include <panda/unievent/test/AsyncTest.h>
-
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/TCP.h>
-#include <panda/string.h>
-#include <chrono>
-
-#include "utils.h"
-
-using namespace panda;
-using namespace unievent;
-using namespace test;
+#include "lib/test.h"
 
 TEST_CASE("bad socks server", "[panda-event][tcp][ssl][socks]") {
     AsyncTest test(2000, {});

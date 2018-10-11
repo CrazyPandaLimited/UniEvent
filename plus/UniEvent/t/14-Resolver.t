@@ -1,12 +1,6 @@
 use strict;
-use lib 't';
-use PETest;
-use Test::More;
-use UniEvent::TCP;
-use UniEvent::Resolver;
-use UniEvent;
-use Socket;
-use Data::Dumper;
+use lib 't/lib';
+use MyTest;
 
 my $l = UniEvent::Loop->default_loop();
 

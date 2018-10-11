@@ -1,21 +1,7 @@
-#include <catch.hpp>
-
-#include <chrono>
+#include "lib/test.h"
 #include <thread>
 #include <sstream>
 #include <set>
-
-#include <panda/unievent/test/AsyncTest.h>
-
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/TCP.h>
-#include <panda/string.h>
-#include <panda/refcnt.h>
-#include <panda/log.h>
-
-using namespace panda;
-using namespace unievent;
 
 std::string dump(addrinfo* ai) {
     std::stringstream ss;

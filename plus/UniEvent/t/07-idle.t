@@ -1,6 +1,6 @@
 use 5.012;
 use warnings;
-use lib 't'; use PETest;
+use lib 't/lib'; use MyTest;
 
 my ($l, $idle, $i, $j, $t, $low_loaded_cnt, $high_loaded_cnt);
 

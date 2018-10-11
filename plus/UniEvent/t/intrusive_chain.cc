@@ -1,5 +1,4 @@
 #include <catch.hpp>
-
 #include <algorithm>
 #include <iostream>
 #include <ostream>
@@ -37,7 +36,7 @@ template <typename T> bool check_references(const std::vector<T>& holder) {
 
 std::ostream& operator<<(std::ostream& out, const Node& node) { return out << node.value; }
 
-TEST_CASE("push back", "[panda-event][intrusive_chain]") {
+TEST_CASE("push back", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.push_back(new Node(10));
     chain.push_back(new Node(11));
@@ -45,7 +44,7 @@ TEST_CASE("push back", "[panda-event][intrusive_chain]") {
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("push front", "[panda-event][intrusive_chain]") {
+TEST_CASE("push front", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.push_front(new Node(12));
     chain.push_front(new Node(11));
@@ -53,14 +52,14 @@ TEST_CASE("push front", "[panda-event][intrusive_chain]") {
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("insert on empty list", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert on empty list", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     auto pos = chain.insert(chain.begin(), new Node(10));
     REQUIRE(pos == chain.begin());
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10}));
 }
 
-TEST_CASE("insert as first element", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert as first element", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.begin(), new Node(12));
     chain.insert(chain.begin(), new Node(11));
@@ -68,7 +67,7 @@ TEST_CASE("insert as first element", "[panda-event][intrusive_chain]") {
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("insert as last element", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert as last element", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), new Node(10));
     chain.insert(chain.end(), new Node(11));
@@ -76,7 +75,7 @@ TEST_CASE("insert as last element", "[panda-event][intrusive_chain]") {
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("insert as middle element", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert as middle element", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.begin(), holder[0]);
@@ -88,7 +87,7 @@ TEST_CASE("insert as middle element", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("insert pop mixed 1", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert pop mixed 1", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), holder[0]);
@@ -101,7 +100,7 @@ TEST_CASE("insert pop mixed 1", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("insert pop mixed 2", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert pop mixed 2", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), holder[0]);
@@ -114,7 +113,7 @@ TEST_CASE("insert pop mixed 2", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("insert pop mixed 3", "[panda-event][intrusive_chain]") {
+TEST_CASE("insert pop mixed 3", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3), new Node(4), new Node(5), new Node(6)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), holder[0]);
@@ -134,13 +133,13 @@ TEST_CASE("insert pop mixed 3", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("pop back", "[panda-event][intrusive_chain]") {
+TEST_CASE("pop back", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10), new Node(11), new Node(12)};
     chain.pop_back();
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11}));
 }
 
-TEST_CASE("pop back too many elements", "[panda-event][intrusive_chain]") {
+TEST_CASE("pop back too many elements", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -152,31 +151,31 @@ TEST_CASE("pop back too many elements", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("pop back on empty chain", "[panda-event][intrusive_chain]") {
+TEST_CASE("pop back on empty chain", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.pop_back();
     REQUIRE(chain.empty());
 }
 
-TEST_CASE("pop front", "[panda-event][intrusive_chain]") {
+TEST_CASE("pop front", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10), new Node(11), new Node(12)};
     chain.pop_front();
     REQUIRE((to_vector<int>(chain) == std::vector<int>{11, 12}));
 }
 
-TEST_CASE("pop front on empty chain", "[panda-event][intrusive_chain]") {
+TEST_CASE("pop front on empty chain", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.pop_front();
     REQUIRE(chain.empty());
 }
 
-TEST_CASE("clear on empty chain", "[panda-event][intrusive_chain]") {
+TEST_CASE("clear on empty chain", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain;
     chain.clear();
     REQUIRE(chain.empty());
 }
 
-TEST_CASE("clear one element chain", "[panda-event][intrusive_chain]") {
+TEST_CASE("clear one element chain", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -185,7 +184,7 @@ TEST_CASE("clear one element chain", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("clear more than one element chain", "[panda-event][intrusive_chain]") {
+TEST_CASE("clear more than one element chain", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -194,27 +193,27 @@ TEST_CASE("clear more than one element chain", "[panda-event][intrusive_chain]")
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("initializer list", "[panda-event][intrusive_chain]") {
+TEST_CASE("initializer list", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10), new Node(11), new Node(12)};
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("prev from the end", "[panda-event][intrusive_chain]") {
+TEST_CASE("prev from the end", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10)};
     REQUIRE((*std::prev(chain.end()))->value == 10);
 }
 
-TEST_CASE("begin", "[panda-event][intrusive_chain]") {
+TEST_CASE("begin", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10)};
     REQUIRE((*chain.begin())->value == 10);
 }
 
-TEST_CASE("next", "[panda-event][intrusive_chain]") {
+TEST_CASE("next", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain = {new Node(10), new Node(11), new Node(12)};
     REQUIRE((*std::next(chain.begin()))->value == 11);
 }
 
-TEST_CASE("clone", "[panda-event][intrusive_chain]") {
+TEST_CASE("clone", "[intrusive_chain]") {
     IntrusiveChain<NodeSP> chain1 = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain2;
 
@@ -244,7 +243,7 @@ TEST_CASE("clone", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder2));
 }
 
-TEST_CASE("find element", "[panda-event][intrusive_chain]") {
+TEST_CASE("find element", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -252,7 +251,7 @@ TEST_CASE("find element", "[panda-event][intrusive_chain]") {
     REQUIRE(pos != chain.end());
 }
 
-TEST_CASE("erase middle element", "[panda-event][intrusive_chain]") {
+TEST_CASE("erase middle element", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -263,7 +262,7 @@ TEST_CASE("erase middle element", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("erase elements with begin", "[panda-event][intrusive_chain]") {
+TEST_CASE("erase elements with begin", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -273,7 +272,7 @@ TEST_CASE("erase elements with begin", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("erase elements with end", "[panda-event][intrusive_chain]") {
+TEST_CASE("erase elements with end", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -283,7 +282,7 @@ TEST_CASE("erase elements with end", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("erase all insert all", "[panda-event][intrusive_chain]") {
+TEST_CASE("erase all insert all", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2)};
     IntrusiveChain<NodeSP> chain;
     std::copy(holder.begin(), holder.end(), std::back_inserter(chain));
@@ -297,7 +296,7 @@ TEST_CASE("erase all insert all", "[panda-event][intrusive_chain]") {
     REQUIRE((to_vector<int>(chain) == std::vector<int>{10, 11, 12}));
 }
 
-TEST_CASE("erase insert", "[panda-event][intrusive_chain]") {
+TEST_CASE("erase insert", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(11), new Node(12)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), holder[0]);
@@ -314,7 +313,7 @@ TEST_CASE("erase insert", "[panda-event][intrusive_chain]") {
     REQUIRE(check_references(holder));
 }
 
-TEST_CASE("replace element", "[panda-event][intrusive_chain]") {
+TEST_CASE("replace element", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3), new Node(99)};
     IntrusiveChain<NodeSP> chain;
     chain.insert(chain.end(), holder[0]);

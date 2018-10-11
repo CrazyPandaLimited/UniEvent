@@ -1,7 +1,6 @@
 use 5.012;
-use lib 't';
-use PETest;
-use Test::More;
+use lib 't/lib';
+use MyTest;
 use CommonStream;
 use Net::SSLeay;
 

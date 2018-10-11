@@ -1,4 +1,4 @@
-package PETest;
+package MyTest;
 use 5.012;
 use warnings;
 use UniEvent;
@@ -6,6 +6,8 @@ use Test::More;
 use Test::Deep;
 use Test::Exception;
 use File::Path qw/make_path remove_tree/;
+
+XS::Loader::load_tests('MyTest');
 
 my $rdir = 't/var';
 my $have_time_hires = eval "require Time::HiRes; 1;";

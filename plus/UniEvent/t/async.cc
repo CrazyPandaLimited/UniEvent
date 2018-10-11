@@ -1,9 +1,4 @@
-#include <catch.hpp>
-#include <panda/unievent/test/AsyncTest.h>
-
-using namespace panda;
-using namespace unievent;
-using namespace test;
+#include "lib/test.h"
 
 TEST_CASE("async simple", "[panda-event][async]") {
     bool called = false;
