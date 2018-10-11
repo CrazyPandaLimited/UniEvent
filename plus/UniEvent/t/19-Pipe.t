@@ -1,16 +1,12 @@
 use strict;
 use warnings;
-use lib 't'; use PETest;
-use UniEvent::Error;
-use UniEvent::Pipe;
-use Test::More;
+use lib 't/lib'; use MyTest;
 
-package main;
+use constant PIPE_PATH => MyTest::var 'pipe';
 
 my $l = UniEvent::Loop->default_loop;
 
 my $acceptor = new UniEvent::Pipe;
-use constant PIPE_PATH => PETest::var 'pipe';
 $acceptor->bind(PIPE_PATH);
 $acceptor->listen();
 my $p = new UniEvent::Prepare;

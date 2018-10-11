@@ -2,8 +2,6 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Error;
-use UniEvent::UDP;
-use Test::More;
 use Binder;
 use Scalar::Util qw/weaken/;
 use Socket qw(PF_INET IPPROTO_UDP SOMAXCONN SOCK_DGRAM inet_aton);
