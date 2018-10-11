@@ -1,0 +1,4 @@
+use 5.012;
+use lib 't/lib';
+use MyTest;
+use CPP::catch '[intrusive_chain]';
