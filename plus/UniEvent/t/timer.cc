@@ -14,7 +14,7 @@ static int64_t get_time() {
 
 #define REQUIRE_ELAPSED(T0, EXPECTED) do{auto diff = get_time() - T0; REQUIRE(diff >= EXPECTED); REQUIRE((diff / EXPECTED) < 1.6);} while(0)
 
-TEST_CASE("Timer static once", "[panda-event][timer]") {
+TEST_CASE("Timer static once", "[timer]") {
     AsyncTest test(200, {"timer"});
     int timeout = 30;
     auto t0 = get_time();
@@ -25,7 +25,7 @@ TEST_CASE("Timer static once", "[panda-event][timer]") {
     test.await(timer->timer_event);
 }
 
-TEST_CASE("Timer static repeat", "[panda-event][timer]") {
+TEST_CASE("Timer static repeat", "[timer]") {
     AsyncTest test(200, {"timer", "timer", "timer"});
     int timeout = 30;
     auto t0 = get_time();
