@@ -12,6 +12,7 @@ use IO::Socket::INET;
 
 use lib 't/lib';
 use SocksTest;
+use SanityChecker;
 
 XS::Loader::load_tests();
 

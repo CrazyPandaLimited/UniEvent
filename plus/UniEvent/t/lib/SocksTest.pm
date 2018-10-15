@@ -2,7 +2,7 @@ package SocksTest;
 use 5.020;
 use warnings;
 
-use Test::More;
+#use Test::More;
 use UniEvent;
 use IO::Select;
 use IO::Socket::Socks;
