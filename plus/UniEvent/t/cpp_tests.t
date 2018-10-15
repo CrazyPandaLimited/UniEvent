@@ -1,8 +1,10 @@
 use 5.012;
 use warnings;
+
 use UniEvent;
+use CPP::catch;
+use XS::Loader;
 
-use lib 't/lib';
-use SanityChecker;
+XS::Loader::load_tests();
 
-UniEvent::_run_cpp_tests_($ENV{CPP_TEST} || '[panda-event]');
+catch_run($ENV{CPP_TEST} || '[panda-event]');

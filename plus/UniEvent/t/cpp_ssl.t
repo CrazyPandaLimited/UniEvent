@@ -1,9 +1,12 @@
 use 5.012;
 use warnings;
-use UniEvent;
 
-use lib 't/lib';
-use SanityChecker;
+use UniEvent;
+use CPP::catch;
+use XS::Loader;
+
+XS::Loader::load_tests();
 
 $ENV{"UNIEVENT_TEST_SSL"} = 1;
-UniEvent::_run_cpp_tests_('[panda-event][ssl]');
+
+catch_run("[panda-event][ssl]");
