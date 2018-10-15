@@ -200,9 +200,9 @@ private:
 };
 
 struct XSPipe : Pipe, XSStream {
-    XSPipe (Loop* loop = Loop::default_loop()) : Pipe(loop) {
+    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {
         connection_factory = [=](){
-            PipeSP ret = make_backref<XSPipe>(loop);
+            PipeSP ret = make_backref<XSPipe>(ipc, loop);
             xs::out<Pipe*>(ret.get());
             return ret;
         };
