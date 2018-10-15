@@ -9,7 +9,7 @@ use File::Path qw/make_path remove_tree/;
 
 XS::Loader::load_tests('MyTest');
 
-my $rdir = 't/var';
+my $rdir = "t/var/$$";
 my $have_time_hires = eval "require Time::HiRes; 1;";
 my $last_time_mark;
 my %used_mtimes;

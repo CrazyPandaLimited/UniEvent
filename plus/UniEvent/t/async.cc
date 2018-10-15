@@ -1,6 +1,6 @@
 #include "lib/test.h"
 
-TEST_CASE("async simple", "[panda-event][async]") {
+TEST_CASE("async simple", "[async]") {
     bool called = false;
     AsyncTest test(200, {"timer"});
 
@@ -12,7 +12,7 @@ TEST_CASE("async simple", "[panda-event][async]") {
     REQUIRE(std::get<0>(res) == timer.get());
 }
 
-TEST_CASE("async dispatcher", "[panda-event][async]") {
+TEST_CASE("async dispatcher", "[async]") {
     bool called = false;
     AsyncTest test(200, {"dispatched"});
 
@@ -28,7 +28,7 @@ TEST_CASE("async dispatcher", "[panda-event][async]") {
 }
 
 
-TEST_CASE("async multi", "[panda-event][async]") {
+TEST_CASE("async multi", "[async]") {
     int called = 0;
     AsyncTest test(200, {});
 
@@ -47,7 +47,7 @@ TEST_CASE("async multi", "[panda-event][async]") {
     REQUIRE(called == 2);
 }
 
-TEST_CASE("call_soon", "[panda-event][async]") {
+TEST_CASE("call_soon", "[async]") {
     AsyncTest test(200, {"call"});
     size_t count = 0;
     Prepare::call_soon([&]() {

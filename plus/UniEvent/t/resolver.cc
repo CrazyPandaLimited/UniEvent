@@ -11,7 +11,7 @@ std::string dump(addrinfo* ai) {
     return ss.str();
 }
 
-TEST_CASE("basic resolver", "[panda-event][resolver]") {
+TEST_CASE("basic resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     ResolverSP resolver{new Resolver};
     ResolveRequestSP request = resolver->resolve(test.loop, 
@@ -25,7 +25,7 @@ TEST_CASE("basic resolver", "[panda-event][resolver]") {
     test.await(request->event, "resolved");
 }
 
-TEST_CASE("cached resolver", "[panda-event][resolver]") {
+TEST_CASE("cached resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     CachedResolverSP resolver{new CachedResolver};
     // it is not in cache, async call
@@ -53,7 +53,7 @@ TEST_CASE("cached resolver", "[panda-event][resolver]") {
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, same hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     CachedResolverSP resolver(new CachedResolver);
 
@@ -86,7 +86,7 @@ TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, with hints and without hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
     CachedResolverSP resolver(new CachedResolver);
 
@@ -115,7 +115,7 @@ TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolv
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("cached resolver, with hints and with different hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
     CachedResolverSP resolver(new CachedResolver);
 
@@ -145,7 +145,7 @@ TEST_CASE("cached resolver, with hints and with different hints", "[panda-event]
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
+TEST_CASE("standalone cached resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
 
     CachedResolverSP resolver(new CachedResolver);
@@ -187,7 +187,7 @@ TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
     REQUIRE(addr1 == addr2);
 }
 
-TEST_CASE("rotator", "[panda-event][resolver]") {
+TEST_CASE("rotator", "[resolver]") {
     int size = 10;
     addrinfo ai[size];
     for(auto i=0;i<size;++i) {
@@ -210,7 +210,7 @@ TEST_CASE("rotator", "[panda-event][resolver]") {
     REQUIRE(result.size() == size);
 }
 
-TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
+TEST_CASE("cached resolver limit", "[resolver]") {
     size_t LIMIT = 2;
     LoopSP loop(new Loop);
     CachedResolverSP resolver(new CachedResolver(500, LIMIT));
