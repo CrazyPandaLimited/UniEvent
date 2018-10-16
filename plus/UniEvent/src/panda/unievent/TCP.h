@@ -203,7 +203,7 @@ protected:
         }
     }
 
-private:
+public:
     template <class Derived> 
     struct BasicBuilder {
 
@@ -259,7 +259,7 @@ private:
         SocksSP         socks_{};
     };
 
-public:
+
     ~TCPConnectRequest() { _EDTOR(); }
 
     Handle* handle() { return static_cast<Handle*>(uvr_.handle->data); }
