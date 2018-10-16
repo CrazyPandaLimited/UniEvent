@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class Mutex {
-public:
+struct Mutex {
     Mutex (bool recursive = false) {
         int err = recursive ? uv_mutex_init_recursive(&handle) : uv_mutex_init(&handle);
         if (err) throw CodeError(err);

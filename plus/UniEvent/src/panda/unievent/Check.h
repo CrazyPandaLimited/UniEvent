@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class Check : public virtual Handle {
-public:
+struct Check : virtual Handle {
     using check_fptr = void(Check*);
     using check_fn = panda::function<check_fptr>;
 

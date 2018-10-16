@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class Barrier {
-public:
+struct Barrier {
     Barrier (unsigned int count) {
         int err = uv_barrier_init(&handle, count);
         if (err) throw CodeError(err);

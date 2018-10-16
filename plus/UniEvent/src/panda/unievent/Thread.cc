@@ -1,4 +1,4 @@
-#include <panda/unievent/Thread.h>
+#include "Thread.h"
 using namespace panda::unievent;
 
 thread_local thread_t Thread::_thread_self = 0;

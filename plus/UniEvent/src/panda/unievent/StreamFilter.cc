@@ -1,6 +1,6 @@
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/TCP.h>
+#include "TCP.h"
+#include "Stream.h"
+#include "StreamFilter.h"
 
 namespace panda { namespace unievent {
 

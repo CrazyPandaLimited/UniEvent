@@ -1,14 +1,13 @@
 #pragma once
+#include "Handle.h"
+#include "Request.h"
 #include <panda/string_view.h>
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/Request.h>
 
 namespace panda { namespace unievent {
 
 using std::string_view;
 
-class UDP : public virtual Handle, public AllocatedObject<UDP> {
-public:
+struct UDP : virtual Handle, AllocatedObject<UDP> {
     using receive_fptr = void(UDP* handle, string& buf, const sockaddr* addr, unsigned flags, const CodeError* err);
     using receive_fn = function<receive_fptr>;
 

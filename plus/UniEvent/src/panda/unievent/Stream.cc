@@ -1,12 +1,11 @@
-
 #include <chrono>
 #include <algorithm>
 
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/ssl/SSLFilter.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/Prepare.h>
+#include "Timer.h"
+#include "Stream.h"
+#include "Prepare.h"
+#include "StreamFilter.h"
+#include "ssl/SSLFilter.h"
 
 namespace panda { namespace unievent {
 

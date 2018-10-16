@@ -1,5 +1,5 @@
-#include <xs/unievent/XSCallback.h>
-#include <xs/compat.h>
+#include "XSCallback.h"
+#include "../compat.h"
 using namespace xs::unievent;
 using xs::my_perl;
 

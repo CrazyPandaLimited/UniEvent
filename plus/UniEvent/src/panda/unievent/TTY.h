@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Stream.h>
+#include "Stream.h"
 
 namespace panda { namespace unievent {
 
-class TTY : public virtual Stream {
-public:
+struct TTY : virtual Stream {
     struct WinSize {
         int width;
         int height;

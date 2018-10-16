@@ -1,8 +1,6 @@
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/TCP.h>
-#include <panda/unievent/ssl/SSLFilter.h>
-#include <panda/unievent/Prepare.h>
-#include <panda/unievent/socks/SocksFilter.h>
+#include "TCP.h"
+#include "Prepare.h"
+#include "ssl/SSLFilter.h"
 
 namespace panda { namespace unievent {
 

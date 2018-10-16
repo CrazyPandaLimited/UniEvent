@@ -1,10 +1,10 @@
 #pragma once
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/ProcessOptions.h>
+#include "Handle.h"
+#include "ProcessOptions.h"
 
 namespace panda { namespace unievent {
 
-class Process : public virtual Handle {
+struct Process : virtual Handle {
     using exit_fptr = void(Process* handle, int64_t exit_status, int term_signal);
     using exit_fn = function<exit_fptr>;
     

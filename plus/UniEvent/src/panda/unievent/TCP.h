@@ -1,13 +1,12 @@
 #pragma once
+#include "Timer.h"
+#include "Socks.h"
+#include "Stream.h"
+#include "Resolver.h"
+#include "ResolveFunction.h"
+#include "socks/SocksFilter.h"
 
 #include <ostream>
-
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/ResolveFunction.h>
-#include <panda/unievent/Socks.h>
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/socks/SocksFilter.h>
 #include <panda/string.h>
 #include <panda/string_view.h>
 
@@ -57,12 +56,9 @@ struct addrinfo_deleter {
 
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
-class ConnectRequest;
-class TCPConnectRequest;
-class TCPConnectAutoBuilder;
-class ResolveRequest;
-class TCP : public virtual Stream, public AllocatedObject<TCP> {
-public:
+struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder; struct ResolveRequest;
+
+struct TCP : virtual Stream, AllocatedObject<TCP> {
     ~TCP();
 
     TCP(Loop* loop = Loop::default_loop(), bool cached_resolver = use_cached_resolver_by_default);
@@ -175,35 +171,7 @@ private:
 
 using TCPSP = iptr<TCP>;
 
-class TCPConnectRequest : public ConnectRequest {
-    friend std::ostream& operator<<(std::ostream& os, const ConnectRequest& cr);
-
-protected:
-    TCPConnectRequest(bool            reconnect,
-                      const sockaddr* sa,
-                      const string&   host,
-                      const string&   service,
-                      const addrinfo* hints,
-                      uint64_t        timeout,
-                      connect_fn      callback,
-                      const SocksSP&  socks)
-            : ConnectRequest(callback, reconnect)
-            , host_(host)
-            , service_(service)
-            , timeout_(timeout)
-            , socks_(socks) {
-        _ECTOR();
-        if (sa) {
-            memcpy((char*)&addr_, (char*)(sa), sizeof(sa));
-            resolved_ = true;
-        } 
-
-        if (hints) {
-            hints_ = *hints;
-        }
-    }
-
-public:
+struct TCPConnectRequest : ConnectRequest {
     template <class Derived> 
     struct BasicBuilder {
 
@@ -276,7 +244,35 @@ public:
     uint64_t         timeout_{0};
     SocksSP          socks_{};
 
+protected:
+    TCPConnectRequest(bool            reconnect,
+                      const sockaddr* sa,
+                      const string&   host,
+                      const string&   service,
+                      const addrinfo* hints,
+                      uint64_t        timeout,
+                      connect_fn      callback,
+                      const SocksSP&  socks)
+            : ConnectRequest(callback, reconnect)
+            , host_(host)
+            , service_(service)
+            , timeout_(timeout)
+            , socks_(socks)
+    {
+        _ECTOR();
+        if (sa) {
+            memcpy((char*)&addr_, (char*)(sa), sizeof(sa));
+            resolved_ = true;
+        }
+
+        if (hints) {
+            hints_ = *hints;
+        }
+    }
+
 private:
+    friend std::ostream& operator<<(std::ostream& os, const ConnectRequest& cr);
+
     uv_connect_t uvr_;
 };
 
@@ -291,8 +287,7 @@ std::ostream& operator<<(std::ostream& os, const TCPConnectRequest& r) {
 
 using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 
-class TCPConnectAutoBuilder : public TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
-public:
+struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
     ~TCPConnectAutoBuilder() { tcp_->connect(this->build()); }
     TCPConnectAutoBuilder(TCP* tcp) : tcp_(tcp) {}
 

@@ -1,7 +1,7 @@
 #pragma once
-#include <xs/unievent/inc.h>
-#include <xs/unievent/error.h>
-#include <xs/unievent/XSCallback.h>
+#include "inc.h"
+#include "error.h"
+#include "XSCallback.h"
 
 #define PEVXS__CB_ACCESSOR(name)                        \
     private:                                            \

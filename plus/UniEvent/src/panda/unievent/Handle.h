@@ -1,13 +1,12 @@
 #pragma once
-
-#include <cstdint>
+#include "Loop.h"
+#include "global.h"
+#include "Debug.h"
+#include "Command.h"
+#include "test/Trace.h"
 #include <bitset>
+#include <cstdint>
 #include <panda/CallbackDispatcher.h>
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/global.h>
-#include <panda/unievent/Command.h>
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/test/Trace.h>
 
 namespace panda { namespace unievent {
 
@@ -22,8 +21,7 @@ typedef enum {
     HTYPE_MAX  = UV_HANDLE_TYPE_MAX
 } handle_type;
 
-class Handle : public virtual Refcnt {
-public:
+struct Handle : virtual Refcnt {
     typedef panda::function<string(Handle* h, size_t cap)> buf_alloc_fn;
 
     buf_alloc_fn buf_alloc_event;
@@ -94,8 +92,8 @@ public:
 
     static handle_type guess_type (file_t file);
 
-    friend class CommandCloseDelete;
-    friend class CommandCloseReinit;
+    friend struct CommandCloseDelete;
+    friend struct CommandCloseReinit;
 
 protected:
     uv_handle_t* uvhp;

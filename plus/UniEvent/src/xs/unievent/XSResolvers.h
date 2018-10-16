@@ -1,9 +1,9 @@
 #pragma once
+#include "error.h"
+#include "XSCallback.h"
+#include <panda/unievent/TCP.h>
 #include <panda/unievent/Request.h>
 #include <panda/unievent/Resolver.h>
-#include <panda/unievent/TCP.h>
-#include <xs/unievent/XSCallback.h>
-#include <xs/unievent/error.h>
 
 namespace xs { namespace unievent {
 

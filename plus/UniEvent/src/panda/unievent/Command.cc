@@ -1,6 +1,6 @@
-#include <panda/unievent/Command.h>
-#include <panda/unievent/TCP.h>
-#include <panda/unievent/Pipe.h>
+#include "Command.h"
+#include "TCP.h"
+#include "Pipe.h"
 
 using namespace panda::unievent;
 

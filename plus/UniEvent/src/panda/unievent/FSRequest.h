@@ -1,15 +1,14 @@
 #pragma once
-#include <panda/unievent/Loop.h>
+#include "Loop.h"
+#include "Request.h"
 #include <panda/string_view.h>
-#include <panda/unievent/Request.h>
 
 namespace panda { namespace unievent {
 
 using panda::string;
 using std::string_view;
 
-class DirEntry {
-public:
+struct DirEntry {
     enum class Type {
         UNKNOWN = UV_DIRENT_UNKNOWN,
         FILE    = UV_DIRENT_FILE,
@@ -33,10 +32,9 @@ private:
 
 typedef std::vector<DirEntry> DirEntries;
 
-class FSRequest : public CancelableRequest, public AllocatedObject<FSRequest, true> {
+struct FSRequest : CancelableRequest, AllocatedObject<FSRequest, true> {
     enum class State {READY, BUSY, COMPLETE};
 
-public:
     enum class SymlinkFlags {
         DIR      = UV_FS_SYMLINK_DIR,
         JUNCTION = UV_FS_SYMLINK_JUNCTION

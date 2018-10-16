@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class Passwd {
-public:
+struct Passwd {
     Passwd () {
         int err = uv_os_get_passwd(&data);
         if (err) throw CodeError(err);
