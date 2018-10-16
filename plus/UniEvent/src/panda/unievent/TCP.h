@@ -300,6 +300,6 @@ private:
     TCP* tcp_;
 };
 
-in_port_t find_free_port();
+uint16_t find_free_port();
 
 }}

@@ -19,7 +19,7 @@ addrinfo init_default_hints() {
 
 uint16_t getenv_free_port() {
     const char*      env     = getenv("UNIEVENT_FREE_PORT");
-    static in_port_t env_int = env ? atoi(env) : 0;
+    static uint16_t env_int = env ? atoi(env) : 0;
     return env_int;
 }
 

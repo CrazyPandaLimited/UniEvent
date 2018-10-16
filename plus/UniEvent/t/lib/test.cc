@@ -37,14 +37,14 @@ static iptr<Socks> getenv_proxy () {
     return socks;
 }
 
-TCPSP make_basic_server (in_port_t port, Loop* loop) {
+TCPSP make_basic_server (uint16_t port, Loop* loop) {
     TCPSP server = new TCP(loop);
     server->bind("localhost", panda::to_string(port));
     server->listen(1);
     return server;
 }
 
-TCPSP make_socks_server (in_port_t port, iptr<Loop> loop) {
+TCPSP make_socks_server (uint16_t port, iptr<Loop> loop) {
     TCPSP server = new TCP(loop);
     server->bind("localhost", panda::to_string(port));
     server->listen(1);
@@ -98,7 +98,7 @@ TCPSP make_socks_server (in_port_t port, iptr<Loop> loop) {
     return server;
 }
 
-TCPSP make_server (in_port_t port, Loop* loop) {
+TCPSP make_server (uint16_t port, Loop* loop) {
     TCPSP server = new TCP(loop);
     server->bind("localhost", panda::to_string(port));
     if (TEST_SSL) {

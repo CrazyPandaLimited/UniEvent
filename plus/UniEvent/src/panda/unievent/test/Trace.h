@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(__GNUG__)
+#if defined(__linux__)
 
 #include <cstdio>
 #include <cstdlib>

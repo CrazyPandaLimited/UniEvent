@@ -2,8 +2,8 @@
 
 TEST_CASE("bad socks server", "[panda-event][tcp][ssl][socks]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
-    in_port_t proxy_port = find_free_port();
+    uint16_t port = find_free_port();
+    uint16_t proxy_port = find_free_port();
     TCPSP client = new TCP(test.loop);
     client->use_ssl();
     client->use_socks("localhost", proxy_port);
@@ -27,7 +27,7 @@ TEST_CASE("bad socks server", "[panda-event][tcp][ssl][socks]") {
 
 TEST_CASE("socks chain", "[panda-event][tcp][ssl][socks]") {
     AsyncTest test(2000, {"ping", "pong"});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     struct Proxy { TCPSP server; uint16_t port; };
     size_t proxies_count = 5;
     std::vector<Proxy> proxies;
