@@ -145,11 +145,11 @@ void XSStream::on_eof () {
     if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
 }
 
-void XSUDP::on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
+void XSUDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
     auto obj = xs::out<UDP*>(aTHX_ this);
     if (!receive_xscb.call(obj, evname_on_receive, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-        xs::out(const_cast<sockaddr*>(sa)),
+        xs::out(&sa),
         Simple(flags),
         xs::out(err)
     })) UDP::on_receive(buf, sa, flags, err);

@@ -10,7 +10,7 @@ using std::string_view;
 using panda::net::SockAddr;
 
 struct UDP : virtual Handle, AllocatedObject<UDP> {
-    using receive_fptr = void(UDP* handle, string& buf, const sockaddr* addr, unsigned flags, const CodeError* err);
+    using receive_fptr = void(UDP* handle, string& buf, const SockAddr& addr, unsigned flags, const CodeError* err);
     using receive_fn = function<receive_fptr>;
 
     using send_fptr = SendRequest::send_fptr;
@@ -90,7 +90,7 @@ struct UDP : virtual Handle, AllocatedObject<UDP> {
         if (err) throw CodeError(err);
     }
 
-    void call_on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
+    void call_on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
         on_receive(buf, sa, flags, err);
     }
 
@@ -108,7 +108,7 @@ protected:
     
     void on_handle_reinit () override;
 
-    virtual void on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err);
+    virtual void on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err);
     virtual void on_send    (const CodeError* err, SendRequest* req);
 
 private:

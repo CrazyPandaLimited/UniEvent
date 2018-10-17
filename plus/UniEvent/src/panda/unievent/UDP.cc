@@ -106,8 +106,8 @@ void UDP::on_handle_reinit () {
     Handle::on_handle_reinit();
 }
 
-void UDP::on_receive (string& buf, const sockaddr* addr, unsigned flags, const CodeError* err) {
-    if (receive_event.has_listeners()) receive_event(this, buf, addr, flags, err);
+void UDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
+    if (receive_event.has_listeners()) receive_event(this, buf, sa, flags, err);
     else throw ImplRequiredError("UDP::on_receive");
 }
 
