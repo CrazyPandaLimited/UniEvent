@@ -141,7 +141,7 @@ struct XSUDP : UDP, XSHandle {
         flags |= XUF_DONTRECV;
     }
     
-    void bind (const sockaddr* sa, unsigned flags = 0) override {
+    void bind (const SockAddr& sa, unsigned flags = 0) override {
         UDP::bind(sa, flags | get_bind_flags());
     }
     

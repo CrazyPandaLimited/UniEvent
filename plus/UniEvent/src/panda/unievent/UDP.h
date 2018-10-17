@@ -2,10 +2,12 @@
 #include "Handle.h"
 #include "Request.h"
 #include <panda/string_view.h>
+#include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent {
 
 using std::string_view;
+using panda::net::SockAddr;
 
 struct UDP : virtual Handle, AllocatedObject<UDP> {
     using receive_fptr = void(UDP* handle, string& buf, const sockaddr* addr, unsigned flags, const CodeError* err);
@@ -40,7 +42,7 @@ struct UDP : virtual Handle, AllocatedObject<UDP> {
     }
 
     virtual void open       (sock_t socket);
-    virtual void bind       (const sockaddr* sa, unsigned flags = 0);
+    virtual void bind       (const SockAddr&, unsigned flags = 0);
     virtual void bind       (string_view host, string_view service, const addrinfo* hints = &defhints, unsigned flags = 0);
     virtual void recv_start (receive_fn callback = nullptr);
     virtual void recv_stop  ();
