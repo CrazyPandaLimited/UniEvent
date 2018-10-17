@@ -1,11 +1,11 @@
 #pragma once
-
 #include <cstdint>
 
 #include <panda/unievent/Request.h>
 #include <panda/unievent/Socks.h>
 #include <panda/unievent/StreamFilter.h>
 #include <panda/lib/memory.h>
+#include <panda/net/sockaddr.h>
 #include <panda/refcnt.h>
 
 namespace panda { namespace unievent {
@@ -16,6 +16,8 @@ namespace panda { namespace unievent {
 }}
 
 namespace panda { namespace unievent { namespace socks {
+
+using panda::net::SockAddr;
 
 class SocksFilter;
 using SocksFilterSP = iptr<SocksFilter>;
@@ -74,13 +76,12 @@ private:
     void init_parser();
 
 private:
-    SocksSP          socks_;
-    State            state_;
-    string           host_;
-    uint16_t         port_;
-    bool             resolved_;
-    addrinfo         hints_;
-    sockaddr_storage addr_;
+    SocksSP  socks_;
+    State    state_;
+    string   host_;
+    uint16_t port_;
+    addrinfo hints_;
+    SockAddr sa_;
 
     TCPConnectRequest*      connect_request_;
     iptr<TCPConnectRequest> socks_connect_request_;
@@ -127,16 +128,16 @@ public:
         bufs.push_back(string("\x05\x01\x00\x03") + (char)host.length() + host + string((char*)&nport, 2));
     }
 
-    SocksCommandConnectRequest(write_fn callback, const sockaddr* sa) : WriteRequest(callback) {
+    SocksCommandConnectRequest(write_fn callback, const SockAddr& sa) : WriteRequest(callback) {
         _EDEBUGTHIS("ctor");
-        if (sa->sa_family == AF_INET) {
-            sockaddr_in* src   = (sockaddr_in*)sa;
-            uint16_t     nport = src->sin_port;
-            bufs.push_back(string("\x05\x01\x00\x01") + string((char*)&src->sin_addr, 4) + string((char*)&nport, 2));
-        } else if (sa->sa_family == AF_INET6) {
-            sockaddr_in6* src   = (sockaddr_in6*)sa;
-            uint16_t      nport = src->sin6_port;
-            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)&src->sin6_addr, 16) + string((char*)&nport, 2));
+        if (sa.is_inet4()) {
+            auto& sa4 = sa.inet4();
+            auto nport = htons(sa4.port());
+            bufs.push_back(string("\x05\x01\x00\x01") + string_view((char*)sa4.addr(), 4) + string_view((char*)&nport, 2));
+        } else if (sa.is_inet6()) {
+            auto& sa6 = sa.inet6();
+            auto nport = htons(sa6.port());
+            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)sa6.addr(), 16) + string((char*)&nport, 2));
         } else {
             throw Error("Unknown address family");
         }

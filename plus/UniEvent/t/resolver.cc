@@ -6,7 +6,7 @@
 std::string dump(addrinfo* ai) {
     std::stringstream ss;
     for(auto current = ai; current; current = current->ai_next) {
-        ss << to_string(current) << "\n";
+        ss << SockAddr(ai->ai_addr) << "\n";
     }
     return ss.str();
 }
@@ -150,7 +150,7 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
 
     CachedResolverSP resolver(new CachedResolver);
 
-    addrinfo* addrinfo1;
+    SockAddr addr1;
     ResolveRequestSP request1 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
@@ -158,15 +158,13 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
             [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
-                addrinfo1 = address->head;
+                addr1 = address->head->ai_addr;
             });
 
     test.await(request1->event, "resolved");
 
-    string addr1 = to_string(addrinfo1);
-
     bool called = false;
-    addrinfo* addrinfo2;
+    SockAddr addr2;
     ResolveRequestSP request2 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
@@ -174,13 +172,11 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
             [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
-                addrinfo2 = address->head;
+                addr2 = address->head->ai_addr;
                 called = true;
             });
 
     REQUIRE(called);
-
-    string addr2 = to_string(addrinfo2);
 
     // cached or not - the result is the same
     // will rotate for tcp connection only

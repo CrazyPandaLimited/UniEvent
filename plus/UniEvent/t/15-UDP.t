@@ -106,7 +106,7 @@ my $sender = sub {
        ($small_prime, $big_prime) = @{$creds{$magic}};
     }
     my $receiver = $udp_by_num{$small_prime};
-    my $recv_sa = $receiver->getsockname();
+    my $recv_sa = $receiver->get_sockaddr();
     $udp_by_num{$big_prime}->send($magic, $recv_sa);
 };
 

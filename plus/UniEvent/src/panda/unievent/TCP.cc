@@ -21,23 +21,11 @@ uint16_t getenv_free_port() {
     return env_int;
 }
 
-// get port, IPv4 or IPv6:
-uint16_t get_in_port(sockaddr* sa) {
-    if (sa->sa_family == AF_INET) {
-        return (((sockaddr_in*)sa)->sin_port);
-    }
-    return (((sockaddr_in6*)sa)->sin6_port);
-}
-
 uint16_t any_free_port(Loop* loop) {
     iptr<TCP> test = new TCP(loop);
     test->bind("localhost", "0");
-    int              namelen = sizeof(sockaddr_storage);
-    sockaddr_storage sas;
-    memset(&sas, 0, sizeof(sas));
-    sockaddr* res = (sockaddr*)&sas;
-    test->getsockname(res, &namelen);
-    uint16_t port = get_in_port(res);
+    auto sa = test->get_sockaddr();
+    auto port = sa.is_inet4() ? sa.inet4().port() : sa.inet6().port();
     test.reset();
     loop->run_nowait();
     if (port > 1024) {
@@ -114,10 +102,9 @@ void TCP::open(sock_t socket) {
         throw CodeError(err);
 }
 
-void TCP::bind(const sockaddr* sa, unsigned int flags) {
-    int err = uv_tcp_bind(&uvh, sa, flags);
-    if (err)
-        throw CodeError(err);
+void TCP::bind(const SockAddr& sa, unsigned int flags) {
+    int err = uv_tcp_bind(&uvh, sa.get(), flags);
+    if (err) throw CodeError(err);
 }
 
 void TCP::bind(std::string_view host, std::string_view service, const addrinfo* hints) {
@@ -142,7 +129,7 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
 }
 
 void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
-    if (!tcp_connect_request->resolved_) {
+    if (!tcp_connect_request->sa_) {
         _EDEBUGTHIS("connect_internal, resolving %p", tcp_connect_request);
         try {
             resolve_request =
@@ -155,9 +142,7 @@ void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
                                           return;
                                       }
 
-                                      tcp_connect_request->resolved_ = true;
-
-                                      memcpy((char*)&tcp_connect_request->addr_, (char*)(address->head->ai_addr), sizeof(address->head->ai_addr));
+                                      tcp_connect_request->sa_ = address->head->ai_addr;
 
                                       connect_internal(tcp_connect_request);
                                   });
@@ -168,12 +153,7 @@ void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
         }
     }
     
-    #if EVENT_LIB_DEBUG > 0
-    string addr = to_string((sockaddr*)&(tcp_connect_request->addr_));
-    _EDEBUGTHIS("connect_internal %p to: %.*s", tcp_connect_request, (int)addr.length(), addr.data());
-    #endif
-
-    int err = uv_tcp_connect(_pex_(tcp_connect_request), &uvh, (sockaddr*)&(tcp_connect_request->addr_), Stream::uvx_on_connect);
+    int err = uv_tcp_connect(_pex_(tcp_connect_request), &uvh, tcp_connect_request->sa_.get(), Stream::uvx_on_connect);
     if (err) {
         Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(err), tcp_connect_request); }, loop());
         return;
@@ -221,7 +201,7 @@ void TCP::connect(const string& host, const string& service, uint64_t timeout, c
     connect().to(host, service, hints).timeout(timeout);
 }
 
-void TCP::connect(const sockaddr* sa, uint64_t timeout) {
+void TCP::connect(const SockAddr& sa, uint64_t timeout) {
     _EDEBUGTHIS("connect to sock:%p", sa);
     connect().to(sa).timeout(timeout);
 }
@@ -231,7 +211,7 @@ void TCP::reconnect(TCPConnectRequest* tcp_connect_request) {
     connect(tcp_connect_request);
 }
 
-void TCP::reconnect(const sockaddr* sa, uint64_t timeout) {
+void TCP::reconnect(const SockAddr& sa, uint64_t timeout) {
     connect().to(sa).timeout(timeout).reconnect(true);
 }
 
@@ -289,6 +269,15 @@ void TCP::_close() {
     }
 
     Stream::_close();
+}
+
+std::ostream& operator<< (std::ostream& os, const TCP& tcp) {
+    return os << "local:" << tcp.get_sockaddr() << " peer:" << tcp.get_peer_sockaddr() << " connected:" << (tcp.connected() ? "yes" : "no");
+}
+
+std::ostream& operator<< (std::ostream& os, const TCPConnectRequest& r) {
+    if (r.sa_) return os << r.sa_;
+    else       return os << r.host_ << ':' << r.service_;
 }
 
 }} // namespace panda::event

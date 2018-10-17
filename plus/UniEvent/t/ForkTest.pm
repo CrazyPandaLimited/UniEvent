@@ -21,9 +21,9 @@ sub start_fork_test {
     my $cl;
     my $pid;
     $server->tcp_nodelay(1);
-    my $serverSocket = sockaddr_in (0, inet_aton("0.0.0.0"));
-    $server->bind($serverSocket);
-    $serverSocket = $server->getsockname;
+    my $sa = Net::SockAddr::Inet4->new("0.0.0.0", 0);
+    $server->bind($sa);
+    $sa = $server->get_sockaddr;
     $server->connection_callback(sub {
         my ($srv, $cl, $err) = @_;
         #diag "server connection $server $srv $cl";
@@ -78,7 +78,7 @@ sub start_fork_test {
                 });
                 $client->shutdown();
             });
-            $client->connect($serverSocket);
+            $client->connect($sa);
         }
     });
     $timer_d->start(0, 0.01);

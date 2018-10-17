@@ -36,22 +36,22 @@ sub test_self_pleasing_1 {
     $tcp->weak(0);
     $tcp->connection_callback(sub {
         ($srv, $client, $err) = @_;
-        # diag "connected";
+         #diag "connected";
 
         $client->write($mag_tok, sub {
-            # diag 'write finished';
+             #diag 'write finished';
             $client->shutdown();
-            # diag 'shutdown does not croak';
+             #diag 'shutdown does not croak';
         });
         
         $client->read_start(sub {
             my ($h, $str, $err) = @_;
-            # diag "initiator read: $str";
+             #diag "initiator read: $str";
             $initiator_recvd .= $str;
         });
         
         $client->eof_callback(sub {
-            # diag "client disconnected";
+             #diag "client disconnected";
             $_[0]->loop->stop();
         });
         $tcp->weak(1);
@@ -65,16 +65,16 @@ sub test_self_pleasing_1 {
         
         $echo->read_start(sub {
             my ($h, $str, $err) = @_;
-            # diag "read : $str";
+             #diag "read : $str";
             $h->write($str, sub {
-                # diag "write";
+                 #diag "write";
             });
             $echo_recvd .= $str;
             return 1;
         });
         
         $echo->eof_callback(sub {
-            # diag "server disconnected";
+             #diag "server disconnected";
             $ok = $echo_recvd eq $mag_tok;
             $_[0]->shutdown();
         });
@@ -82,13 +82,13 @@ sub test_self_pleasing_1 {
         $echo->connect_callback(sub {
         	my (undef, $err) = @_;
             if ($err) {
-                # diag "err: $err";
+                 diag "err: $err";
             } else {
-                # diag "connected : client"
+                 #diag "connected : client"
             }
         });
        
-        # diag "echo connect"; 
+         #diag "echo connect"; 
         $echo->connect('127.0.0.1', $port);
     });
     

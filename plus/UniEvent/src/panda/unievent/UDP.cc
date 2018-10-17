@@ -76,7 +76,7 @@ void UDP::recv_stop () {
     if (err) throw CodeError(err);
 }
 
-void UDP::send (SendRequest* req, const sockaddr* sa) {
+void UDP::send (SendRequest* req, const SockAddr& sa) {
     assert(req);
     req->retain();
     req->event.add(send_event);
@@ -90,7 +90,7 @@ void UDP::send (SendRequest* req, const sockaddr* sa) {
         ++ptr;
     }
 
-    int err = uv_udp_send(_pex_(req), &uvh, uvbufs, nbufs, sa, uvx_on_send);
+    int err = uv_udp_send(_pex_(req), &uvh, uvbufs, nbufs, sa.get(), uvx_on_send);
     if (err) {
         req->release();
         throw CodeError(err);

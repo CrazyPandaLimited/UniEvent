@@ -40,7 +40,7 @@ sub regular_bind {
     my $port;
     my $sub = make_binder(
 	sub {
-	    $_[0]->bind(UniEvent::inet_ptos('127.0.0.1', $_[1]));
+	    $_[0]->bind(Net::SockAddr::Inet4->new('127.0.0.1', $_[1]));
 	},
 	\$port);
     run_now($tcp, $sub);

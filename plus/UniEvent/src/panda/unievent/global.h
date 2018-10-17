@@ -28,52 +28,6 @@ inline bool inet_looks_like_ipv6 (const char* src) {
     return false;
 }
 
-inline void inet_pton (const char* src, in_addr* dst) {
-    int err = uv_inet_pton(AF_INET, src, dst);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_pton (const char* src, in6_addr* dst) {
-    int err = uv_inet_pton(AF_INET6, src, dst);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_ntop (in_addr* src, char* dst, size_t size) {
-    int err = uv_inet_ntop(AF_INET, src, dst, size);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_ntop (in6_addr* src, char* dst, size_t size) {
-    int err = uv_inet_ntop(AF_INET6, src, dst, size);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_ptos (const char* ip, int port, sockaddr_in* sa)  {
-    int err = uv_ip4_addr(ip, port, sa);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_ptos (const char* ip, int port, sockaddr_in6* sa) {
-    int err = uv_ip6_addr(ip, port, sa);
-    if (err) throw CodeError(err);
-}
-
-inline void inet_stop (struct sockaddr_in* src, char* dst, size_t size, uint16_t* port = nullptr)  {
-    int err = uv_ip4_name(src, dst, size);
-    if (err) throw CodeError(err);
-    if (port) *port = ntohs(src->sin_port);
-}
-
-inline void inet_stop (struct sockaddr_in6* src, char* dst, size_t size, uint16_t* port = nullptr)  {
-    int err = uv_ip6_name(src, dst, size);
-    if (err) throw CodeError(err);
-    if (port) *port = ntohs(src->sin6_port);
-}
-
-inline void inet_stop (struct sockaddr* src, char* dst, size_t size) {
-    src->sa_family == PF_INET6 ? inet_stop((struct sockaddr_in6*)src, dst, size) : inet_stop((struct sockaddr_in*)src, dst, size);
-}
-
 inline void exepath (char* buffer, size_t* size) throw(CodeError) {
     if (uv_exepath(buffer, size)) throw CodeError(UV_UNKNOWN);
 }

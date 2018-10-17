@@ -24,7 +24,7 @@ struct XSTCPConnectRequest : TCPConnectRequest {
     XSCallback xscb;
 
     XSTCPConnectRequest(bool            reconnect,
-                        const sockaddr* sa,
+                        const SockAddr& sa,
                         const string&   host,
                         const string&   service,
                         const addrinfo* hints,

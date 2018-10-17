@@ -125,7 +125,7 @@ struct XSTCP : TCP, XSStream {
         if (service_or_callback && !SvROK(service_or_callback)) {
             return Builder().to(xs::in<string>(host_or_sa), xs::in<string>(service_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {
-            return Builder().to(xs::in<sockaddr*>(host_or_sa)).timeout(timeout).reconnect(reconnect);
+            return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
         }
     }
 
