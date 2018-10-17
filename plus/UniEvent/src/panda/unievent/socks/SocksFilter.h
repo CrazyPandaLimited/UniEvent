@@ -128,10 +128,10 @@ struct SocksCommandConnectRequest : public WriteRequest {
         _EDEBUGTHIS("ctor");
         if (sa.is_inet4()) {
             auto& sa4 = sa.inet4();
-            bufs.push_back(string("\x05\x01\x00\x01") + string_view((char*)sa4.addr(), 4) + string_view((char*)&sa4.get()->sin_port, 2));
+            bufs.push_back(string("\x05\x01\x00\x01") + string_view((char*)&sa4.addr(), 4) + string_view((char*)&sa4.get()->sin_port, 2));
         } else if (sa.is_inet6()) {
             auto& sa6 = sa.inet6();
-            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)sa6.addr(), 16) + string((char*)&sa6.get()->sin6_port, 2));
+            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)&sa6.addr(), 16) + string((char*)&sa6.get()->sin6_port, 2));
         } else {
             throw Error("Unknown address family");
         }
