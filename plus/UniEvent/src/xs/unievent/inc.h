@@ -1,6 +1,7 @@
 #pragma once
 #include <xs.h>
 #include <panda/unievent.h>
+#include <xs/net/sockaddr.h>
 
 namespace xs {
 

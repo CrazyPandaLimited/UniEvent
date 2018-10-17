@@ -1,6 +1,6 @@
-#include <panda/unievent/Command.h>
-#include <panda/unievent/TCP.h>
-#include <panda/unievent/Pipe.h>
+#include "Command.h"
+#include "TCP.h"
+#include "Pipe.h"
 
 using namespace panda::unievent;
 
@@ -11,22 +11,22 @@ void CommandCloseDelete::run    () { handle->close_delete(); }
 void CommandCloseReinit::cancel () {}
 void CommandCloseReinit::run    () { handle->close_reinit(true); }
 
+CommandConnect::CommandConnect(TCP* tcp, TCPConnectRequest* tcp_connect_request) : tcp(tcp), tcp_connect_request(tcp_connect_request) {
+    type = Type::CONNECT;
+    tcp_connect_request->retain();
+}
 
-void CommandConnect::cancel () {
+void CommandConnect::cancel() {
     tcp->retain(); //
-    req->retain(); // because no 'connect' ever called
-    tcp->call_on_connect(CodeError(ERRNO_ECANCELED), req, false);
+    tcp_connect_request->retain(); // because no 'connect' ever called
+    tcp->get_front_filter()->on_connect(CodeError(ERRNO_ECANCELED), tcp_connect_request);
 }
 
-CommandConnect::~CommandConnect () {
-    req->release();
-}
+void CommandConnect::run() { tcp->connect(tcp_connect_request); }
 
-void CommandResolveHost::cancel() {}
+bool CommandConnect::is_reconnect() const { return tcp_connect_request->is_reconnect; }
 
-void CommandResolveHost::run() {
-    stream_->resolve(host_, service_, has_hints_ ? &hints_ : nullptr, callback_, use_cached_resolver_);
-}
+CommandConnect::~CommandConnect() { tcp_connect_request->release(); }
 
 void CommandConnectPipe::run () {
     pipe->connect(_name, req);
@@ -35,19 +35,11 @@ void CommandConnectPipe::run () {
 void CommandConnectPipe::cancel () {
     pipe->retain(); //
     req->retain(); // because no 'connect' ever called
-    pipe->call_on_connect(CodeError(ERRNO_ECANCELED), req, false);
+    pipe->get_front_filter()->on_connect(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandConnectPipe::~CommandConnectPipe () {
     req->release();
-}
-
-void CommandConnectSockaddr::run () {
-    tcp->connect((sockaddr*)&sa4, req);
-}
-
-void CommandConnectHost::run () {
-    tcp->connect(host, service, has_hints ? &hints : nullptr, req, use_cached_resolver);
 }
 
 void CommandWrite::run () {
@@ -57,7 +49,7 @@ void CommandWrite::run () {
 void CommandWrite::cancel () {
     stream->retain(); // because no 'write' ever called
     req->retain();    //
-    stream->call_on_write(CodeError(ERRNO_ECANCELED), req);
+    stream->get_front_filter()->on_write(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandWrite::~CommandWrite () {
@@ -71,7 +63,7 @@ void CommandShutdown::run () {
 void CommandShutdown::cancel () {
     stream->retain();
     req->retain();
-    stream->call_on_shutdown(CodeError(ERRNO_ECANCELED), req, false);
+    stream->get_front_filter()->on_shutdown(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandShutdown::~CommandShutdown () {

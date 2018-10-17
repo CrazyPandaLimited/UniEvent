@@ -46,15 +46,18 @@ public:
         return timer_once(timeout, loop, std::forward<F>(f));
     }
 
+    template <class T> static inline T _await_copy (T arg) { return arg; }
+    static inline CodeError _await_copy (const CodeError* err) { return err ? *err : CodeError(); }
+
     template <typename Ret, typename... Args, typename Dispatcher = CallbackDispatcher<Ret(Args...)>>
-    std::tuple<typename std::remove_cv<typename std::remove_reference<Args>::type>::type...>
+    std::tuple<decltype(_await_copy(std::declval<Args>()))...>
     await(CallbackDispatcher<Ret(Args...)>& dispatcher, string event = "") {
         using Callback = typename Dispatcher::Callback;
-        std::tuple<typename std::remove_cv<typename std::remove_reference<Args>::type>::type...> result;
+        std::tuple<decltype(_await_copy(std::declval<Args>()))...> result;
         Callback wrapper = [&](typename Dispatcher::Event& e, Args... args) {
             loop->stop();
             e.dispatcher.remove(wrapper);
-            result = std::make_tuple(args...);
+            result = std::make_tuple(_await_copy(args)...);
             happens(event);
             e.next(args...);
         };
@@ -65,14 +68,14 @@ public:
     }
 
     template <typename... Args>
-    std::tuple<typename std::remove_cv<typename std::remove_reference<Args>::type>::type...>
+    std::tuple<decltype(_await_copy(std::declval<Args>()))...>
     await(panda::function<void(Args...)>& cb, string event = "") {
         using Function = panda::function<void(Args...)>;
-        std::tuple<typename std::remove_cv<typename std::remove_reference<Args>::type>::type...> result;
+        std::tuple<decltype(_await_copy(std::declval<Args>()))...> result;
         Function prev = cb;
         Function wrapper = [&](Args... args) -> void {
             loop->stop();
-            result = std::make_tuple(args...);
+            result = std::make_tuple(_await_copy(args)...);
             happens(event);
             if (prev) {
                 return prev(args...);

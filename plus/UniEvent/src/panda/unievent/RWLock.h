@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class RWLock {
-public:
+struct RWLock {
     RWLock () {
         int err = uv_rwlock_init(&handle);
         if (err) throw CodeError(err);

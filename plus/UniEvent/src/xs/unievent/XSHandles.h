@@ -1,7 +1,7 @@
 #pragma once
-#include <xs/unievent/inc.h>
-#include <xs/unievent/error.h>
-#include <xs/unievent/XSCallback.h>
+#include "inc.h"
+#include "error.h"
+#include "XSCallback.h"
 
 #define PEVXS__CB_ACCESSOR(name)                        \
     private:                                            \
@@ -26,7 +26,7 @@ protected:
 
 struct XSPrepare : Prepare, XSHandle {
     XSCallback prepare_xscb;
-    XSPrepare (Loop* loop) : Prepare(loop), prepare_xscb(aTHX)  {}
+    XSPrepare (Loop* loop) : Prepare(loop) {}
 protected:
     void on_prepare () override;
 };
@@ -34,7 +34,7 @@ protected:
 
 struct XSCheck : Check, XSHandle {
     XSCallback check_xscb;
-    XSCheck (Loop* loop) : Check(loop), check_xscb(aTHX) {}
+    XSCheck (Loop* loop) : Check(loop) {}
 protected:
     void on_check () override;
 };
@@ -42,7 +42,7 @@ protected:
 
 struct XSIdle : Idle, XSHandle {
     XSCallback idle_xscb;
-    XSIdle (Loop* loop) : Idle(loop), idle_xscb(aTHX) {}
+    XSIdle (Loop* loop) : Idle(loop) {}
 protected:
     void on_idle () override;
 };
@@ -50,7 +50,7 @@ protected:
 
 struct XSTimer : Timer, XSHandle {
     XSCallback timer_xscb;
-    XSTimer (Loop* loop) : Timer(loop), timer_xscb(aTHX) {}
+    XSTimer (Loop* loop) : Timer(loop) {}
 protected:
     void on_timer () override;
 };
@@ -58,7 +58,7 @@ protected:
 
 struct XSFSEvent : FSEvent, XSHandle {
     XSCallback fs_event_xscb;
-    XSFSEvent (Loop* loop) : FSEvent(loop), fs_event_xscb(aTHX) {}
+    XSFSEvent (Loop* loop) : FSEvent(loop) {}
 protected:
     void on_fs_event (const char* filename, int events) override;
 };
@@ -67,7 +67,7 @@ protected:
 struct XSFSPoll : FSPoll, XSHandle {
     XSCallback fs_poll_xscb;
     bool       stat_as_hash;
-    XSFSPoll (Loop* loop) : FSPoll(loop), fs_poll_xscb(aTHX), stat_as_hash(false) {}
+    XSFSPoll (Loop* loop) : FSPoll(loop), stat_as_hash(false) {}
 protected:
     void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) override;
 };
@@ -75,7 +75,7 @@ protected:
 
 struct XSSignal : Signal, XSHandle {
     XSCallback signal_xscb;
-    XSSignal (Loop* loop) : Signal(loop), signal_xscb(aTHX) {}
+    XSSignal (Loop* loop) : Signal(loop) {}
 protected:
     void on_signal (int signum) override;
 };
@@ -83,28 +83,32 @@ protected:
 
 struct XSStream : virtual Stream, XSHandle {
     XSCallback connection_xscb;
-    XSCallback ssl_connection_xscb;
     XSCallback read_xscb;
     XSCallback write_xscb;
     XSCallback shutdown_xscb;
     XSCallback eof_xscb;
     XSCallback connect_xscb;
+    XSCallback create_connection_xscb;
 
-    XSStream () : connection_xscb(aTHX), ssl_connection_xscb(aTHX), read_xscb(aTHX), write_xscb(aTHX), shutdown_xscb(aTHX), eof_xscb(aTHX),
-                  connect_xscb(aTHX) {}
+    XSStream () {}
 
 protected:
-    void on_connection     (const CodeError* err) override;
-    void on_ssl_connection (const CodeError* err) override;
-    void on_connect        (const CodeError* err, ConnectRequest* req) override;
-    void on_read           (string& buf, const CodeError* err) override;
-    void on_write          (const CodeError* err, WriteRequest* req) override;
-    void on_shutdown       (const CodeError* err, ShutdownRequest* req) override;
-    void on_eof            () override;
+    void on_connection (Stream*, const CodeError*) override;
+    void on_connect    (const CodeError*, ConnectRequest*) override;
+    void on_read       (string&, const CodeError*) override;
+    void on_write      (const CodeError*, WriteRequest*) override;
+    void on_shutdown   (const CodeError*, ShutdownRequest*) override;
+    void on_eof        () override;
 };
 
 struct XSTCP : TCP, XSStream {
-    XSTCP (Loop* loop = Loop::default_loop()) : TCP(loop) {}
+    XSTCP (Loop* loop = Loop::default_loop()) : TCP(loop) {
+        connection_factory = [=](){
+            TCPSP ret = make_backref<XSTCP>(loop);
+            xs::out<TCP*>(ret.get());
+            return ret;
+        };
+    }
 
     void open (const Sv& sv) {
         if (!sv.is_ref()) return open((sock_t)SvUV(sv));
@@ -116,6 +120,14 @@ struct XSTCP : TCP, XSStream {
         io_sv.reset();
         TCP::open(sock);
     }
+    template<class Builder>
+    static Builder construct_connect(SV* host_or_sa, SV* service_or_callback, float timeout, addrinfo* hints, bool reconnect) {
+        if (service_or_callback && !SvROK(service_or_callback)) {
+            return Builder().to(xs::in<string>(host_or_sa), xs::in<string>(service_or_callback), hints).timeout(timeout).reconnect(reconnect);
+        } else {
+            return Builder().to(xs::in<sockaddr*>(host_or_sa)).timeout(timeout).reconnect(reconnect);
+        }
+    }
 
 private:
     Sv io_sv;
@@ -125,11 +137,11 @@ struct XSUDP : UDP, XSHandle {
     XSCallback receive_xscb;
     XSCallback send_xscb;
 
-    XSUDP (Loop * loop = Loop::default_loop()) : UDP(loop), receive_xscb(aTHX), send_xscb(aTHX) {
+    XSUDP (Loop * loop = Loop::default_loop()) : UDP(loop) {
         flags |= XUF_DONTRECV;
     }
     
-    void bind (const sockaddr* sa, unsigned flags = 0) override {
+    void bind (const SockAddr& sa, unsigned flags = 0) override {
         UDP::bind(sa, flags | get_bind_flags());
     }
     
@@ -173,7 +185,7 @@ struct XSUDP : UDP, XSHandle {
     }
     
 protected:
-    void on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) override;
+    void on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) override;
     void on_send    (const CodeError* err, SendRequest* req) override;
 
 private:
@@ -188,7 +200,13 @@ private:
 };
 
 struct XSPipe : Pipe, XSStream {
-    XSPipe (Loop* loop = Loop::default_loop()) : Pipe(loop) {}
+    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {
+        connection_factory = [=](){
+            PipeSP ret = make_backref<XSPipe>(ipc, loop);
+            xs::out<Pipe*>(ret.get());
+            return ret;
+        };
+    }
 
     void open (const Sv& sv) {
         if (!sv.is_ref()) return open((sock_t)SvUV(sv));
@@ -228,9 +246,7 @@ template <class TYPE> struct Typemap <panda::unievent::Loop*, TYPE> : TypemapObj
     panda::string package () { return "UniEvent::Loop"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
-    panda::string package () { return "UniEvent::Handle"; }
-};
+template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
 template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
     panda::string package () { return "UniEvent::Prepare"; }

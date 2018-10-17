@@ -1,7 +1,6 @@
 use 5.012;
-use lib 't';
-use PETest;
-use Test::More;
+use lib 't/lib';
+use MyTest;
 use CommonStream;
 use Net::SSLeay;
 
@@ -29,32 +28,35 @@ sub test_self_pleasing_1 {
     my ($tcp, $mag_tok) = @_;
     my $initiator_recvd, my $echo_recvd;
     my $echo = new UniEvent::TCP;
-    my $initiator = new UniEvent::TCP;
     my $p = new UniEvent::Prepare;
-    
-    $initiator->ssl_connection_callback(sub {
-        #diag 'SSL connected : server';
-        $_[0]->write($mag_tok, sub {
-            #diag 'Write finished';
-            $_[0]->shutdown();
-            #diag 'Shutdown does not croak';
+   
+    my $client; 
+    my $srv;
+    my $err;
+    $tcp->weak(0);
+    $tcp->connection_callback(sub {
+        ($srv, $client, $err) = @_;
+        # diag "connected";
+
+        $client->write($mag_tok, sub {
+            # diag 'write finished';
+            $client->shutdown();
+            # diag 'shutdown does not croak';
         });
+        
+        $client->read_start(sub {
+            my ($h, $str, $err) = @_;
+            # diag "initiator read: $str";
+            $initiator_recvd .= $str;
+        });
+        
+        $client->eof_callback(sub {
+            # diag "client disconnected";
+            $_[0]->loop->stop();
+        });
+        $tcp->weak(1);
     });
-    
-    $initiator->read_start(sub {
-        my ($h, $str, $err) = @_;
-        #diag "INITIATOR read: $str";
-        $initiator_recvd .= $str;
-    });
-    
-    $initiator->eof_callback(sub {
-        #diag "client disconnected";
-        $_[0]->loop->stop();
-    });
-    
-    CommonStream::to_listener($tcp, $initiator, sub {
-        #diag 'ACCEPTED';
-    });
+        
     
     $p->start(sub {
         $_[0]->stop();
@@ -63,16 +65,16 @@ sub test_self_pleasing_1 {
         
         $echo->read_start(sub {
             my ($h, $str, $err) = @_;
-            #diag "Read : $str";
+            # diag "read : $str";
             $h->write($str, sub {
-                #diag "George said to put this here!";
+                # diag "write";
             });
             $echo_recvd .= $str;
             return 1;
         });
         
         $echo->eof_callback(sub {
-            #diag "server disconnected";
+            # diag "server disconnected";
             $ok = $echo_recvd eq $mag_tok;
             $_[0]->shutdown();
         });
@@ -80,12 +82,13 @@ sub test_self_pleasing_1 {
         $echo->connect_callback(sub {
         	my (undef, $err) = @_;
             if ($err) {
-                diag "ERR: $err";
+                # diag "err: $err";
             } else {
-                #diag "Connected : client"
+                # diag "connected : client"
             }
         });
-        
+       
+        # diag "echo connect"; 
         $echo->connect('127.0.0.1', $port);
     });
     
@@ -100,7 +103,7 @@ sub test_self_pleasing_2 {
     my $echo = new UniEvent::TCP;
     my $initiator = new UniEvent::TCP;
     my $p = new UniEvent::Prepare;
-    $initiator->ssl_connection_callback(
+    $initiator->connection_callback(
         sub {
             # diag 'Connected : server';
         }

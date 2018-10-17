@@ -86,12 +86,12 @@ sub to_listener {
     $tcp->connection_callback(
 	sub {
 	    eval {
-            #diag 'Got connection!!! HOORAY!!! :-)';
-			my ($h, $err) = @_;
-			die "Some error ($err) in accepting socket" if $err;
-			$h->accept($client);
-			$on_accept->($client);
-			$h->weak(1);
+                # diag 'Got connection!!! HOORAY!!! :-)';
+		my ($srv, $cl, $err) = @_;
+		die "Some error ($err) in accepting socket" if $err;
+		#$h->accept($client);
+		#$on_accept->($client);
+		$srv->weak(1);
 	    }
 	});
 }

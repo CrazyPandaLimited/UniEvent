@@ -1,4 +1,4 @@
-#include <panda/unievent/UDP.h>
+#include "UDP.h"
 using namespace panda::unievent;
 
 static addrinfo _init_defhints () {
@@ -42,21 +42,16 @@ void UDP::open (sock_t socket) {
     if (err) throw CodeError(err);
 }
 
-void UDP::bind (const sockaddr* sa, unsigned flags) {
-    int err = uv_udp_bind(&uvh, sa, flags);
+void UDP::bind (const SockAddr& sa, unsigned flags) {
+    int err = uv_udp_bind(&uvh, sa.get(), flags);
     if (err) throw CodeError(err);
 }
 
 void UDP::bind (string_view host, string_view service, const addrinfo* hints, unsigned flags) {
     if (!hints) hints = &defhints;
 
-    char host_cstr[host.length()+1];
-    std::memcpy(host_cstr, host.data(), host.length());
-    host_cstr[host.length()] = 0;
-
-    char service_cstr[service.length()+1];
-    std::memcpy(service_cstr, service.data(), service.length());
-    service_cstr[service.length()] = 0;
+    PEXS_NULL_TERMINATE(host, host_cstr);
+    PEXS_NULL_TERMINATE(service, service_cstr);
 
     addrinfo* res;
     int syserr = getaddrinfo(host_cstr, service_cstr, hints, &res);
@@ -111,8 +106,8 @@ void UDP::on_handle_reinit () {
     Handle::on_handle_reinit();
 }
 
-void UDP::on_receive (string& buf, const sockaddr* addr, unsigned flags, const CodeError* err) {
-    if (receive_event.has_listeners()) receive_event(this, buf, addr, flags, err);
+void UDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
+    if (receive_event.has_listeners()) receive_event(this, buf, sa, flags, err);
     else throw ImplRequiredError("UDP::on_receive");
 }
 

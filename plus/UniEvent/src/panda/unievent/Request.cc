@@ -1,12 +1,11 @@
-#include <panda/unievent/Request.h>
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/Timer.h>
+#include "Timer.h"
+#include "Debug.h"
+#include "Handle.h"
+#include "Request.h"
 
 namespace panda { namespace unievent {
 
 ConnectRequest::~ConnectRequest() {
-    _ETRACETHIS("dtor %p", &uvr);
     release_timer();
 }
 

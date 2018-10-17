@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Stream.h>
+#include "Stream.h"
 
 namespace panda { namespace unievent {
 
-class TTY : public virtual Stream {
-public:
+struct TTY : virtual Stream {
     struct WinSize {
         int width;
         int height;
@@ -16,6 +15,7 @@ public:
         int err = uv_tty_init(_pex_(loop), &uvh, fd, readable);
         if (err) throw CodeError(err);
         _init(&uvh);
+        connection_factory = [=](){return new TTY(fd, readable, loop);};
     }
 
     virtual void    set_mode    (int mode);
@@ -23,10 +23,11 @@ public:
 
 protected:
     void on_handle_reinit () override;
+    
+    file_t   fd;
 
 private:
     uv_tty_t uvh;
-    file_t   fd;
 };
 
 }}

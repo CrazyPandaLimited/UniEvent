@@ -1,17 +1,6 @@
-#include <catch.hpp>
-#include <panda/unievent/test/AsyncTest.h>
+#include "lib/test.h"
 
-#include "test.h"
-
-using namespace panda::unievent;
-using test::AsyncTest;
-using test::sp;
-using panda::CallbackDispatcher;
-using panda::Ifunction;
-
-#ifdef TEST_ASYNC
-
-TEST_CASE("async simple") {
+TEST_CASE("async simple", "[async]") {
     bool called = false;
     AsyncTest test(200, {"timer"});
 
@@ -23,7 +12,7 @@ TEST_CASE("async simple") {
     REQUIRE(std::get<0>(res) == timer.get());
 }
 
-TEST_CASE("async CallbackDispatcher") {
+TEST_CASE("async dispatcher", "[async]") {
     bool called = false;
     AsyncTest test(200, {"dispatched"});
 
@@ -39,7 +28,7 @@ TEST_CASE("async CallbackDispatcher") {
 }
 
 
-TEST_CASE("async multi") {
+TEST_CASE("async multi", "[async]") {
     int called = 0;
     AsyncTest test(200, {});
 
@@ -58,5 +47,20 @@ TEST_CASE("async multi") {
     REQUIRE(called == 2);
 }
 
-#endif
-
+TEST_CASE("call_soon", "[async]") {
+    AsyncTest test(200, {"call"});
+    size_t count = 0;
+    Prepare::call_soon([&]() {
+        count++;
+        if (count >= 2) {
+            FAIL("called twice");
+        }
+        test.happens("call");
+        test.loop->stop();
+    }, test.loop);
+    test.run();
+    TimerSP timer = Timer::once(50, [&](Timer*){
+        test.loop->stop();
+    }, test.loop);
+    REQUIRE(count == 1);
+}

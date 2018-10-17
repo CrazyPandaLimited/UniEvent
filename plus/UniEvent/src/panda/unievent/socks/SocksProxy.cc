@@ -1,15 +1,15 @@
 #include "SocksProxy.h"
 /*
-#include <panda/event/CachedResolver.h>
-#include <panda/event/Debug.h>
-#include <panda/event/StreamFilter.h>
-#include <panda/event/TCP.h>
-#include <panda/event/Timer.h>
+#include <panda/unievent/CachedResolver.h>
+#include <panda/unievent/Debug.h>
+#include <panda/unievent/StreamFilter.h>
+#include <panda/unievent/TCP.h>
+#include <panda/unievent/Timer.h>
 #include <panda/string.h>
 
 #include <vector>
 
-namespace panda { namespace event { namespace socks {
+namespace panda { namespace unievent { namespace socks {
 
 namespace {
 #define MACHINE_DATA
@@ -309,7 +309,7 @@ void SocksProxy::do_resolve_proxy() {
 
 void SocksProxy::do_connect_proxy() {
     _EDEBUGTHIS("do_connect_proxy");
-    socks_connect_request_ = new SocksConnectRequest([=](TCP*, const StreamError& err, SocksConnectRequest*) {
+    socks_connect_request_ = new SocksConnectRequest([=](TCP*, const CodeError* err, SocksConnectRequest*) {
         _EDEBUGTHIS("connect callback, err: %d", err.code());
         if (this->state_ == State::canceled) {
             do_transition(State::error);
@@ -339,7 +339,7 @@ void SocksProxy::do_connect_proxy() {
 void SocksProxy::do_handshake() {
     _EDEBUGTHIS("do_handshake");
     SocksHandshakeRequest* socks_handshake_request = new SocksHandshakeRequest(
-        [=](TCP* handle, const StreamError& err, SocksWriteRequest*) {
+        [=](TCP* handle, const CodeError* err, SocksWriteRequest*) {
             _EDEBUGTHIS("handshake callback");
             if (this->state_ == State::canceled) {
                 do_transition(State::error);
@@ -368,7 +368,7 @@ void SocksProxy::do_handshake() {
 void SocksProxy::do_auth() {
     _EDEBUGTHIS("do_auth");
     SocksAuthRequest* socks_auth_request = new SocksAuthRequest(
-        [=](TCP* handle, const StreamError& err, SocksWriteRequest*) {
+        [=](TCP* handle, const CodeError* err, SocksWriteRequest*) {
             _EDEBUGTHIS("auth callback");
             if (this->state_ == State::canceled) {
                 do_transition(State::error);
@@ -430,7 +430,7 @@ void SocksProxy::do_connect() {
     SocksCommandConnectRequest* socks_command_connect_request;
     if (host_resolved_) {
         socks_command_connect_request = new SocksCommandConnectRequest(
-            [=](TCP* handle, const StreamError& err, SocksWriteRequest*) {
+            [=](TCP* handle, const CodeError* err, SocksWriteRequest*) {
                 _EDEBUGTHIS("command connect callback %d", err.code());
                 if (this->state_ == State::canceled) {
                     do_transition(State::error);
@@ -453,7 +453,7 @@ void SocksProxy::do_connect() {
             (sockaddr*)&addr_);
     } else {
         socks_command_connect_request = new SocksCommandConnectRequest(
-            [=](TCP* handle, const StreamError& err, SocksWriteRequest*) {
+            [=](TCP* handle, const CodeError* err, SocksWriteRequest*) {
                 _EDEBUGTHIS("command connect callback %d", err.code());
                 if (this->state_ == State::canceled) {
                     do_transition(State::error);

@@ -1,17 +1,20 @@
 #pragma once
+#include "Timer.h"
+#include "Socks.h"
+#include "Stream.h"
+#include "Resolver.h"
+#include "ResolveFunction.h"
+#include "socks/SocksFilter.h"
 
-#include <panda/unievent/CachedResolver.h>
-#include <panda/unievent/ResolveFunction.h>
-#include <panda/unievent/Socks.h>
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/socks/SocksProxy.h>
+#include <ostream>
 #include <panda/string.h>
 #include <panda/string_view.h>
 
 namespace panda { namespace unievent {
 
 constexpr bool use_cached_resolver_by_default = true; 
+
+uint16_t find_free_port();
 
 inline string to_string(const sockaddr* sa) {
     switch(sa->sa_family) {
@@ -53,58 +56,41 @@ struct addrinfo_deleter {
 
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
-class Resolver;
-class CachedResolver;
-class ConnectRequest;
-class ResolveRequest;
-class TCP : public virtual Stream, public AllocatedObject<TCP> {
-    /* SOCKS
-    friend socks::SocksProxy;
-    */
+struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder; struct ResolveRequest;
 
-public:
+struct TCP : virtual Stream, AllocatedObject<TCP> {
     ~TCP();
 
-    TCP (Loop* loop = Loop::default_loop());
-    
-    TCP (Loop* loop, unsigned int flags);
+    TCP(Loop* loop = Loop::default_loop(), bool cached_resolver = use_cached_resolver_by_default);
+
+    TCP(Loop* loop, unsigned int flags, bool cached_resolver = use_cached_resolver_by_default);
 
     virtual void open(sock_t socket);
+
     virtual void bind(const sockaddr* sa, unsigned int flags = 0);
+
     virtual void bind(std::string_view host, std::string_view service, const addrinfo* hints = &defhints);
 
-    virtual bool resolve(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback, bool use_cached_resolver);
+    virtual void connect(TCPConnectRequest* tcp_connect_request);
 
-    virtual void connect(const sockaddr* sa, ConnectRequest* connect_request = nullptr);
+    virtual void connect(const sockaddr* sa, uint64_t timeout = 0);
 
-    virtual void connect(
-        const string& host, const string& service,
-        const addrinfo* hints = nullptr,
-        ConnectRequest* connect_request = nullptr,
-        bool use_cached_resolver = use_cached_resolver_by_default);
+    virtual void connect(const string& host, const string& service, uint64_t timeout = 0, const addrinfo* hints = nullptr);
 
-    void connect(const sockaddr* sa, connect_fn callback) { 
-        return connect(sa, new ConnectRequest(callback)); 
-    }
+    virtual TCPConnectAutoBuilder connect(); 
 
-    virtual void reconnect(const sockaddr* sa, ConnectRequest* connect_request = nullptr);
+    virtual void reconnect(TCPConnectRequest* tcp_connect_request);
 
-    virtual void reconnect(
-        const string& host, const string& service,
-        const addrinfo* hints = nullptr,
-        ConnectRequest* connect_request = nullptr,
-        bool use_cached_resolver = use_cached_resolver_by_default);
-    /* SOCKS
+    virtual void reconnect(const sockaddr* sa, uint64_t timeout = 0);
+
+    virtual void reconnect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints = nullptr);
+
+    void connect_internal(TCPConnectRequest* connect_request);
+
+    using Stream::use_ssl;
+    void use_ssl(const SSL_METHOD* method = nullptr) override;
     void use_socks(std::string_view host, uint16_t port = 1080, std::string_view login = "", std::string_view passw = "", bool socks_resolve = true);
-
-    bool use_socks() const { return socks_proxy; }
-    */
-
-    struct ConnectBuilder;
-    ConnectBuilder connect() {return ConnectBuilder(this);}
-
-    struct ReconnectBuilder;
-    ReconnectBuilder reconnect() {return ReconnectBuilder(this);}
+    void use_socks(const SocksSP& socks);
 
     void tcp_nodelay (bool enable) {
         int err = uv_tcp_nodelay(&uvh, enable);
@@ -140,6 +126,9 @@ public:
     	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw CodeError(-errno);
     }
 #endif
+    
+    using Handle::set_recv_buffer_size;
+    using Handle::set_send_buffer_size;
 
     string dump() const {
         string sockname_str, peername_str;
@@ -165,79 +154,147 @@ public:
          
         return string("local:") + sockname_str + string(" peer:") + peername_str + string(" connected:") + (connected() ? "yes" : "no"); 
     }
-
-    struct ConnectBuilder {
-        friend TCP;
-
-        ConnectBuilder& to(const string& host, const string& service, const addrinfo* hints = nullptr) {
-            host_ = host;
-            service_ = service;
-            info_ = hints;
-            return *this;
-        }
-
-        ConnectBuilder& to(const sockaddr* sa) {sa_ = sa; return *this;}
-        ConnectBuilder& timeout(uint64_t timeout) {timeout_ = timeout; return *this;}
-        ConnectBuilder& request(ConnectRequestSP request) {connect_request_ = request; return *this;}
-        ConnectBuilder& cached_resolver(bool enabled) {cached_resolver_ = enabled; return *this;}
-        /* SOCKS
-        ConnectBuilder& socks(std::string_view host, uint16_t port = 1080, std::string_view login = "", std::string_view passw = "", bool socks_resolve = true) { socks_ = new Socks(string(host), port, string(login), string(passw), socks_resolve); return *this; }
-        ConnectBuilder& socks(SocksSP socks) {socks_ = socks; return *this;}
-        */
-
-        ~ConnectBuilder() noexcept(false);
-
-    private:
-        ConnectBuilder(TCP* tcp) : tcp_(tcp) {}
-        ConnectBuilder(const ConnectBuilder&) = default;
-        ConnectBuilder(ConnectBuilder&&) = default;
-
-        TCP* tcp_ = nullptr;
-        const sockaddr* sa_ = nullptr;
-        string host_ = "";
-        string service_ = "";
-        const addrinfo* info_ = nullptr;
-        uint64_t timeout_ = 0;
-        ConnectRequestSP connect_request_;
-        bool cached_resolver_ = use_cached_resolver_by_default;
-        /* SOCKS
-        SocksSP socks_;
-        */
-    };
-
-    struct ReconnectBuilder : ConnectBuilder {
-        friend TCP;
-
-        ~ReconnectBuilder() noexcept(false);
-    private:
-        ReconnectBuilder(TCP* tcp) : ConnectBuilder(tcp) {}
-        ReconnectBuilder(const ReconnectBuilder&) = default;
-        ReconnectBuilder(ReconnectBuilder&&) = default;
-    };
+   
+    AbstractResolverSP resolver;
 
 protected:
     void on_handle_reinit () override;
-    void close_reinit(bool keep_asyncq = false) override;
-    virtual void _close() override;
-    bool resolve_with_cached_resolver(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback);
-    bool resolve_with_regular_resolver(const string& host, const string& service, const addrinfo* hints, ResolveFunction callback);
-    /* SOCKS
-    void use_socks(SocksSP socks);
-    */
+    void _close() override;
+    void init(bool cached_resolver);
 
 private:
     uv_tcp_t uvh;
     static addrinfo defhints;
-    ResolverSP resolver;
     ResolveRequestSP resolve_request;
-    /* SOCKS
-    socks::SocksProxySP socks_proxy;
-    */
     TimerSP connect_timer;
 };
 
 using TCPSP = iptr<TCP>;
 
-in_port_t find_free_port();
+struct TCPConnectRequest : ConnectRequest {
+    template <class Derived> 
+    struct BasicBuilder {
+
+        BasicBuilder() { }
+
+        Derived& concrete() { return static_cast<Derived&>(*this); }
+
+        Derived& to(const string& host, const string& service, const addrinfo* hints = nullptr) {
+            host_    = host;
+            service_ = service;
+            hints_   = hints;
+            return concrete();
+        }
+        
+        Derived& to(const string& host, uint16_t port, const addrinfo* hints = nullptr) {
+            host_    = host;
+            service_ = panda::to_string(port);
+            hints_   = hints;
+            return concrete();
+        }
+
+        Derived& to(const sockaddr* sa) { sa_ = sa; return concrete(); }
+
+        Derived& timeout(uint64_t timeout) { timeout_ = timeout; return concrete(); }
+        
+        Derived&
+        socks(std::string_view host, uint16_t port = 1080, std::string_view login = "", std::string_view passw = "", bool socks_resolve = true) {
+            socks_ = new Socks(string(host), port, string(login), string(passw), socks_resolve);
+            return concrete();
+        }
+
+        Derived& socks(const SocksSP& socks) { socks_ = socks; return concrete(); }
+        
+        Derived& callback(connect_fn callback) { callback_ = callback; return concrete(); } 
+        
+        Derived& reconnect(bool reconnect) { reconnect_ = reconnect; return concrete(); }
+
+        TCPConnectRequest* build() {
+            return new TCPConnectRequest(reconnect_, sa_, host_, service_, hints_, timeout_, callback_, socks_);
+        }
+
+        BasicBuilder(const BasicBuilder&) = default;
+        BasicBuilder(BasicBuilder&&)      = default;
+
+    protected:
+        bool            reconnect_{false};
+        const sockaddr* sa_{};
+        string          host_{};
+        string          service_{};
+        const addrinfo* hints_{};
+        uint64_t        timeout_{0};
+        connect_fn      callback_{};
+        SocksSP         socks_{};
+    };
+
+
+    ~TCPConnectRequest() { _EDTOR(); }
+
+    Handle* handle() { return static_cast<Handle*>(uvr_.handle->data); }
+
+    struct Builder : BasicBuilder<Builder> {};
+
+    CallbackDispatcher<connect_fptr> event;
+
+    string           host_{};
+    string           service_{};
+    addrinfo         hints_{};
+    bool             resolved_{false};
+    sockaddr_storage addr_{};
+    uint64_t         timeout_{0};
+    SocksSP          socks_{};
+
+protected:
+    TCPConnectRequest(bool            reconnect,
+                      const sockaddr* sa,
+                      const string&   host,
+                      const string&   service,
+                      const addrinfo* hints,
+                      uint64_t        timeout,
+                      connect_fn      callback,
+                      const SocksSP&  socks)
+            : ConnectRequest(callback, reconnect)
+            , host_(host)
+            , service_(service)
+            , timeout_(timeout)
+            , socks_(socks)
+    {
+        _ECTOR();
+        if (sa) {
+            memcpy((char*)&addr_, (char*)(sa), sizeof(sa));
+            resolved_ = true;
+        }
+
+        if (hints) {
+            hints_ = *hints;
+        }
+    }
+
+private:
+    friend std::ostream& operator<<(std::ostream& os, const ConnectRequest& cr);
+
+    uv_connect_t uvr_;
+};
+
+inline
+std::ostream& operator<<(std::ostream& os, const TCPConnectRequest& r) {
+    if(r.resolved_) {
+        return os << r.host_ << ":" << r.service_;
+    } else {
+        return os << (sockaddr*)&r.addr_;
+    }
+}
+
+using TCPConnectRequestSP = iptr<TCPConnectRequest>;
+
+struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
+    ~TCPConnectAutoBuilder() { tcp_->connect(this->build()); }
+    TCPConnectAutoBuilder(TCP* tcp) : tcp_(tcp) {}
+
+private:
+    TCP* tcp_;
+};
+
+uint16_t find_free_port();
 
 }}

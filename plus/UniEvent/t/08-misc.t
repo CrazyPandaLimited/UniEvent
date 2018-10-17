@@ -1,6 +1,6 @@
 use 5.012;
 use warnings;
-use lib 't'; use PETest;
+use lib 't/lib'; use MyTest;
 use UniEvent qw/:const
     cpu_info resident_set_memory uptime free_memory total_memory hrtime interface_info get_rusage loadavg
     inet_pton inet_ntop inet_ptos inet_stop inet_sockaddr_info hostname

@@ -1,4 +1,4 @@
-#include <panda/unievent/Semaphore.h>
+#include "Semaphore.h"
 using namespace panda::unievent;
 
 void Semaphore::post () {

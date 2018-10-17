@@ -1,23 +1,19 @@
 #pragma once
+#include "inc.h"
+#include "Error.h"
+#include "Debug.h"
 #include <functional>
-#include <panda/refcnt.h>
-#include <panda/CallbackDispatcher.h>
-#include <panda/unievent/inc.h>
-#include <panda/lib/memory.h>
-#include <panda/unievent/Error.h>
-#include <panda/unievent/Debug.h>
 #include <panda/log.h>
+#include <panda/refcnt.h>
+#include <panda/lib/memory.h>
+#include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent {
 
 using panda::lib::AllocatedObject;
-class Handle;
-class UDP;
-class Stream;
-class Timer;
+struct Handle; struct UDP; struct Stream; struct Timer;
 
-class Request : public virtual Refcnt {
-public:
+struct Request : virtual Refcnt {
     Request () : uvrp(nullptr) {}
 
 protected:
@@ -29,13 +25,12 @@ protected:
     uv_req_t* uvrp;
 };
 
-class CancelableRequest : public Request {
-public:
+struct CancelableRequest : Request {
     CancelableRequest () : canceled_(false) {}
     
     bool canceled () const { return canceled_; }
     
-    void cancel() {
+    virtual void cancel() {
         _EDEBUGTHIS("cancel");
         if (!canceled_) {
             canceled_ = true;
@@ -49,22 +44,23 @@ protected:
     bool canceled_;
 };
 
-class ConnectRequest : public Request, public AllocatedObject<ConnectRequest, true> {
-public:
+struct ConnectRequest : Request, AllocatedObject<ConnectRequest, true> {
     using connect_fptr = void(Stream* handle, const CodeError* err, ConnectRequest* req);
     using connect_fn = function<connect_fptr>;
 
     CallbackDispatcher<connect_fptr> event;
     bool is_reconnect;
-    CodeError error;
+    //CodeError error;
 
-    ConnectRequest (connect_fn callback = nullptr, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
-        _ETRACETHIS("ctor");
-        if (callback) event.add(callback);
+    ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
+        _EDEBUGTHIS("callback %p %d", callback, (bool)callback);
+        if (callback) { 
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
-    ~ConnectRequest();
+    virtual ~ConnectRequest();
 
     void set_timer(Timer* timer); 
 
@@ -81,15 +77,16 @@ private:
 using ConnectRequestSP = iptr<ConnectRequest>;
 
 
-class ShutdownRequest : public Request, public AllocatedObject<ShutdownRequest, true> {
-public:
+struct ShutdownRequest : Request, AllocatedObject<ShutdownRequest, true> {
     using shutdown_fptr = void(Stream* handle, const CodeError* err, ShutdownRequest* req);
     using shutdown_fn = function<shutdown_fptr>;
 
     CallbackDispatcher<shutdown_fptr> event;
 
     ShutdownRequest (shutdown_fn callback = {}) {
-        event.add(callback);
+        if (callback) { 
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
@@ -100,9 +97,7 @@ private:
 };
 
 
-class BufferRequest : public Request {
-    static const uint32_t SMALL_BUF_CNT = 4;
-public:
+struct BufferRequest : Request {
     std::vector<string> bufs;
 
     BufferRequest () {}
@@ -119,68 +114,75 @@ public:
 };
 
 
-class WriteRequest : public BufferRequest, public AllocatedObject<WriteRequest, true> {
-    uv_write_t uvr;
-public:
+struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
     using write_fptr = void(Stream* handle, const CodeError* err, WriteRequest* req);
     using write_fn = function<write_fptr>;
 
     CallbackDispatcher<write_fptr> event;
 
     WriteRequest (write_fn callback = {}) {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
-    WriteRequest (const string& data, write_fn callback = {}) : BufferRequest(data) {
-         event.add(callback);
+    WriteRequest (const string& data, write_fn callback = {}) : BufferRequest(data)  {
+        if (callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
     template <class It>
     WriteRequest (It begin, It end, write_fn callback = {}) : BufferRequest(begin, end) {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
-        _ETRACETHIS("ctor");
+        _ECTOR();
     }
 
     Handle* handle () const { return static_cast<Handle*>(uvr.handle->data); }
 
     virtual ~WriteRequest () {
-        _ETRACETHIS("dtor");
+        _EDTOR();
     }
     friend uv_write_t* _pex_ (WriteRequest*);
     friend class Stream;
+
+private:
+    uv_write_t uvr;
 };
 
 
-class SendRequest : public BufferRequest, public AllocatedObject<SendRequest, true> {
-    uv_udp_send_t uvr;
-public:
+struct SendRequest : BufferRequest, AllocatedObject<SendRequest, true> {
     using send_fptr = void(UDP* handle, const CodeError* err, SendRequest* req);
     using send_fn = function<send_fptr>;
 
     CallbackDispatcher<send_fptr> event;
 
     SendRequest (send_fn callback = {}) : BufferRequest() {
-        event.add(callback);
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
-    SendRequest (const string& data, send_fn callback = {})
-        : BufferRequest(data)
-    {
-        event.add(callback);
+    SendRequest (const string& data, send_fn callback = {}) : BufferRequest(data) {
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
     template <class It>
-    SendRequest (It begin, It end, send_fn callback = {})
-        : BufferRequest(begin, end)
-    {
-        event.add(callback);
+    SendRequest (It begin, It end, send_fn callback = {}) : BufferRequest(begin, end) {
+        if(callback) {
+            event.add(callback);
+        }
         _init(&uvr);
     }
 
@@ -188,11 +190,15 @@ public:
 
     virtual ~SendRequest () {}
     friend uv_udp_send_t* _pex_ (SendRequest*);
+
+private:
+    uv_udp_send_t uvr;
+
 };
 
-inline uv_connect_t*  _pex_(ConnectRequest* req) { return &req->uvr; }
+inline uv_connect_t*  _pex_(ConnectRequest*  req) { return &req->uvr; }
 inline uv_shutdown_t* _pex_(ShutdownRequest* req) { return &req->uvr; }
-inline uv_write_t*    _pex_(WriteRequest* req) { return &req->uvr; }
-inline uv_udp_send_t* _pex_(SendRequest* req) { return &req->uvr; }
+inline uv_write_t*    _pex_(WriteRequest*    req) { return &req->uvr; }
+inline uv_udp_send_t* _pex_(SendRequest*     req) { return &req->uvr; }
 
 }}

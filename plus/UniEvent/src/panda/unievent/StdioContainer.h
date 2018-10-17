@@ -1,11 +1,10 @@
 #pragma once
-#include <panda/unievent/inc.h>
-#include <panda/unievent/Stream.h>
+#include "inc.h"
+#include "Stream.h"
 
 namespace panda { namespace unievent {
 
-class StdioContainer {
-public:
+struct StdioContainer {
     enum stdio_flags {
       FL_IGNORE         = UV_IGNORE,
       FL_CREATE_PIPE    = UV_CREATE_PIPE,

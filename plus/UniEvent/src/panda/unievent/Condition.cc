@@ -1,4 +1,4 @@
-#include <panda/unievent/Condition.h>
+#include "Condition.h"
 using namespace panda::unievent;
 
 void Condition::signal () {

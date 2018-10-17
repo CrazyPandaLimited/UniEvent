@@ -1,11 +1,10 @@
 #pragma once
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/Request.h>
+#include "Loop.h"
+#include "Request.h"
 
 namespace panda { namespace unievent {
 
-class Work : public Request, public AllocatedObject<Work> {
-public:
+struct Work : Request, AllocatedObject<Work> {
     typedef panda::function<void(Work*)> work_fn;
     typedef panda::function<void(Work*)> after_work_fn;
 

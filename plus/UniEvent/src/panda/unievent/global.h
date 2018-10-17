@@ -1,9 +1,7 @@
 #pragma once
-
+#include "inc.h"
+#include "Error.h"
 #include <panda/cast.h>
-#include <panda/unievent/inc.h>
-#include <panda/unievent/Error.h>
-
 
 namespace panda { namespace unievent {
 
@@ -123,7 +121,7 @@ inline uv_errno_t _err_gai2uv (int syscode) {
     return (uv_errno_t) uv__getaddrinfo_translate_error(syscode);
 }
 
-class Handle; class Request;
+struct Handle; struct Request;
 template <class T, class X> static T hcast (X* h) { return panda::dyn_cast<T>(static_cast<Handle*>(h->data)); }
 template <class T, class X> static T rcast (X* r) { return panda::dyn_cast<T>(static_cast<Request*>(r->data)); }
 

@@ -1,6 +1,8 @@
 use 5.012;
 use warnings;
-use lib 't'; use PETest;
+use lib 't/lib'; use MyTest;
+
+catch_run('[timer]');
 
 my ($l, $now, $t, $t2, $i, $j);
 

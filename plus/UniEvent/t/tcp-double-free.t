@@ -25,7 +25,7 @@ $cl->connect('google.com', 80, 0, undef, sub {
     }
 
     $cl->write('GET /gcm/send HTTP/1.0\r\n\r\n', sub { $_[0]->disconnect; });
-}, 1);
+});
 
 });
 

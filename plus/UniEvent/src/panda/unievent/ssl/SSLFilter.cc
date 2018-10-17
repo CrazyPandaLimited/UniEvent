@@ -1,18 +1,24 @@
 #include "SSLFilter.h"
+
 #include <vector>
+
 #include <openssl/err.h>
 #include <openssl/dh.h>
 #include <openssl/conf.h>
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
-#include "SSLBio.h"
+
+#include <panda/unievent/Prepare.h>
 #include "../Stream.h"
+#include "SSLBio.h"
 #include "../Debug.h"
+
 
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
-using namespace panda::unievent;
-using namespace panda::unievent::ssl;
+#define _ESSL(fmt, ...) do { if(EVENT_LIB_DEBUG >= 1) fprintf(stderr, "%s:%d:%s(): [%s] {%p} " fmt "\n", __FILE__, __LINE__, __func__, profile == Profile::CLIENT ? "client" : "server", this->handle, ##__VA_ARGS__); } while (0)
+
+namespace panda { namespace unievent { namespace ssl {
 
 const char* SSLFilter::TYPE = "SSL";
 bool        SSLFilter::openSSL_inited = SSLFilter::init_openSSL_lib();
@@ -20,19 +26,37 @@ bool        SSLFilter::openSSL_inited = SSLFilter::init_openSSL_lib();
 class SSLWriteRequest : public WriteRequest {
 public:
     WriteRequest* src;
-    SSLWriteRequest (WriteRequest* src) : WriteRequest(), src(src) {}
+    ~SSLWriteRequest(){ _EDTOR(); }
+    SSLWriteRequest (WriteRequest* src = nullptr) : WriteRequest(), src(src) { _ECTOR(); }
 };
 
-SSLFilter::SSLFilter (Stream* h, SSL_CTX* context) : StreamFilter(h), connect_request(nullptr), started(false) {
-    _type = TYPE;
+SSLFilter::~SSLFilter () {
+    _EDTOR();
+    SSL_free(ssl);
+}
+
+SSLFilter::SSLFilter(SSLFilter* parent_filter, Stream* stream, SSL_CTX* context)
+        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(parent_filter), state(State::initial), profile(Profile::UNKNOWN) {
+    _ECTOR();
     init(context);
 }
 
-SSLFilter::SSLFilter (Stream* h, const SSL_METHOD* method) : StreamFilter(h), connect_request(nullptr), started(false) {
-    _type = TYPE;
-    if (!method) method = SSLv23_client_method();
+SSLFilter::SSLFilter(Stream* stream, SSL_CTX* context)
+        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN) {
+    _ECTOR();
+    init(context);
+}
+
+SSLFilter::SSLFilter(Stream* stream, const SSL_METHOD* method)
+        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN) {
+    _ECTOR();
+    if (!method) {
+        method = SSLv23_client_method();
+        profile = Profile::CLIENT;
+    }
     SSL_CTX* context = SSL_CTX_new(method);
-    if (!context) throw SSLError(SSL_ERROR_SSL);
+    if (!context)
+        throw SSLError(SSL_ERROR_SSL);
     init(context);
     SSL_CTX_free(context); // it is refcounted, ssl keeps it if neded
 }
@@ -51,9 +75,13 @@ void SSLFilter::init (SSL_CTX* context) {
 }
 
 void SSLFilter::reset () {
-    if (!started) return;
+    _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
+    if (state == State::initial) {
+        return;
+    }
+
     ERR_clear_error();
-    started = false;
+    state = State::initial;
     // hard reset
     SSL* oldssl = ssl;
     init(SSL_get_SSL_CTX(ssl));
@@ -62,61 +90,85 @@ void SSLFilter::reset () {
     //if (!SSL_clear(ssl)) throw SSLError(SSL_ERROR_SSL);
 }
 
-SSLFilter::~SSLFilter () {
-    SSL_free(ssl);
-}
-
 void SSLFilter::on_connect (const CodeError* err, ConnectRequest* req) {
-    if (err) _EDEBUG("ERR=%s", err->what());
+    _ESSL("on_connect, ERR=%d WHAT=%s", err ? err->code() : 0, err ? err->what() : "");
+    //if (state == State::terminal) {
+        // we need this for ssl filters chaining
+        //NextFilter::on_connect(err, req);
+        //return;
+    //}
 
-    if (started) reset();
-    if (err) return next_on_connect(err, req);
+    reset();
+
+    if (err) {
+        NextFilter::on_connect(err, req);
+        return;
+    }
+
     auto read_err = temp_read_start();
-    if (read_err) return next_on_connect(read_err, req);
+    if (read_err) { 
+        NextFilter::on_connect(read_err, req); 
+        return;
+    }
+
     connect_request = req;
     start_ssl_connection(Profile::CLIENT);
 }
 
-void SSLFilter::accept (Stream* client) {
-    _EDEBUG();
+void SSLFilter::on_connection (Stream* stream, const CodeError* err) {
+    _ESSL("on_connection, stream: %p, err: %d", stream, err ? err->code() : 0);
+    if (err) {
+        NextFilter::on_connection(handle, err);
+        return;
+    }
 
-    client->async_lock();
-    SSLFilter* client_filter = new SSLFilter(client, SSL_get_SSL_CTX(ssl));
-    client->add_filter(client_filter);
-    // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
-    client_filter->connecting(true);
-    auto err = client_filter->temp_read_start();
-    if (err) throw err;
-    client_filter->start_ssl_connection(Profile::SERVER);
+    stream->async_lock();
+    SSLFilter* filter = new SSLFilter(this, stream, SSL_get_SSL_CTX(ssl));
+    stream->add_filter(filter);
+    auto uverr = filter->temp_read_start();
+    if (uverr) {
+        NextFilter::on_connection(handle, uverr);
+        return;
+    }
+
+    filter->start_ssl_connection(Profile::SERVER);
 }
 
 void SSLFilter::start_ssl_connection (Profile profile) {
-    _EDEBUG("%s", PROFILE_STR);
+    _ESSL();
 
     this->profile = profile;
-    if (profile == Profile::CLIENT) SSL_set_connect_state(ssl);
-    else                            SSL_set_accept_state(ssl);
-    started = true;
+    if (profile == Profile::CLIENT) {
+        SSL_set_connect_state(ssl);
+    } else {
+        SSL_set_accept_state(ssl);
+    }
+
     negotiate();
 }
 
 int SSLFilter::negotiate () {
     assert((!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl)) && handle->connecting());
+    
+    state = State::negotiating;
+    
     int ssl_state = SSL_do_handshake(ssl);
 
-    _EDEBUG("[%s] ssl_state=%d, renego pending %d", PROFILE_STR, ssl_state, SSL_renegotiate_pending(ssl));
+    _ESSL("ssl_state=%d, renego pending %d", ssl_state, SSL_renegotiate_pending(ssl));
 
     string write_buf = SSLBio::steal_buf(write_bio);
     if (write_buf) {
-        _EDEBUG("[%s] writing %d bytes", PROFILE_STR, (int)write_buf.length());
-        SSLWriteRequest* req = new SSLWriteRequest(nullptr);
+        _ESSL("writing %d bytes", (int)write_buf.length());
+        SSLWriteRequest* req = new SSLWriteRequest();
+        req->retain();
+        handle->attach(req);
         req->bufs.push_back(write_buf);
-        next_write(req);
+        NextFilter::write(req);
     }
 
     if (ssl_state <= 0) {
         int code = SSL_get_error(ssl, ssl_state);
-        _EDEBUG("[%s] code=%d", PROFILE_STR, code);
+        _ESSL("code=%d", code);
         if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
             SSLBio::steal_buf(read_bio); // avoid clearing by BIO
             negotiation_finished(SSLError(code));
@@ -134,7 +186,7 @@ int SSLFilter::negotiate () {
 //// renegotiate DOES NOT WORK - SSL_is_init_finshed returns true, SSL_renegotiate_pending becomes false after first SSL_do_handshake
 //void SSLFilter::renegotiate () {
 //    printf("SSLFilter::renegotiate\n");
-//    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw CodeError(ERRNO_EINVAL);
+//    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw StreamError(ERRNO_EINVAL);
 //    SSL_set_verify(ssl, SSL_VERIFY_PEER, nullptr);
 //    printf("SSL_get_secure_renegotiation_support=%li\n", SSL_get_secure_renegotiation_support(ssl));
 //    int ssl_state = SSL_renegotiate(ssl);
@@ -149,32 +201,51 @@ int SSLFilter::negotiate () {
 //}
 
 void SSLFilter::negotiation_finished (const CodeError* err) {
-    if (err) _EDEBUG("[%s] err=%s", PROFILE_STR, err->what());
+    _ESSL("connecting: %d err=%s", (int)handle->connecting(), err ? err->what() : "");
 
-    if (err && !handle->connecting()) return; // if not connecting then it's ongoing packets for already failed handshake, just ignore them
+    if(state == State::terminal || state == State::error) {
+        return;
+    }
+
+    if(err) {
+        state = State::error;
+    } else {
+        state = State::terminal;
+    }
+
     restore_read_start(); // stop reading if handle don't want to
     if (profile == Profile::CLIENT) {
-        next_on_connect(err, connect_request);
+        NextFilter::on_connect(err, connect_request);
         connect_request = nullptr;
     }
     else {
-        connecting(false);
-        if (!err) connected(true);
-        handle->call_on_ssl_connection(err);
+        parent_filter->NextFilter::on_connection(handle, err);
         handle->async_unlock();
     }
 }
 
 void SSLFilter::on_read (string& encbuf, const CodeError* err) {
-    _EDEBUG("[%s], got %lu bytes", PROFILE_STR, encbuf.length());
+    _ESSL("got %lu bytes, state: %d", encbuf.length(), (int)state);
+    if(state == State::error) {
+        NextFilter::on_read(encbuf, SSLError(SSL_ERROR_SSL));
+        return;
+    }
+
     if (!handle->connecting() && !handle->connected()) {
-        _EDEBUG("[%s], on_read strange state: neither connecting nor connected, possibly server is not configured", PROFILE_STR);
+        _ESSL("on_read strange state: neither connecting nor connected, possibly server is not configured");
     }
 
     bool connecting = !SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl);
     if (err) {
-        if (connecting) negotiation_finished(err);
-        else next_on_read(encbuf, err);
+        if (!handle->connecting()) { 
+            // if not connecting then it's ongoing packets for already failed handshake, just ignore them
+        }
+        else if (connecting) { 
+            negotiation_finished(err);
+        }
+        else {
+            NextFilter::on_read(encbuf, err);
+        }
         return;
     }
 
@@ -185,73 +256,112 @@ void SSLFilter::on_read (string& encbuf, const CodeError* err) {
         SSLBio::steal_buf(read_bio);
         return;
     }
-    
-    while (1) {
-        string decbuf = handle->buf_alloc(pending);
-        int ret = SSL_read(ssl, decbuf.buf(), pending);
 
-        _EDEBUG("[%s], sslret=%d pending=%d", PROFILE_STR, ret, pending);
-        
-        if (ret > 0) {
-            decbuf.length(ret);
-#ifdef EVENT_LIB_SSL_DUMP_ON_READ
-            _EDEBUG("[%s], data: %.*s", PROFILE_STR, (int)decbuf.length(), decbuf.data());
-#endif
-            next_on_read(decbuf, err);
-        }
-        else { 
-            int ssl_code = SSL_get_error(ssl, ret);
+    int ret;
+    string decbuf = handle->buf_alloc(pending);
+    while ((ret = read_ssl_buffer(decbuf, pending)) > 0) {
+        decbuf.length(ret);
+        NextFilter::on_read(decbuf, err);
+    }
 
-            _EDEBUG("SSLFilter::on_read[%s], errno=%d, err=%d", PROFILE_STR, ssl_code, ERR_GET_LIB(ERR_peek_last_error()));
-            
-            if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) return;
+    int ssl_code = SSL_get_error(ssl, ret);
+    _ESSL("errno=%d, err=%d", ssl_code, ERR_GET_LIB(ERR_peek_last_error()));
 
-            string wbuf = SSLBio::steal_buf(write_bio);
-            if (wbuf) { // renegotiation
-                _EDEBUG("[%s], write %lu", PROFILE_STR, wbuf.length());
-                SSLWriteRequest* req = new SSLWriteRequest(nullptr);
-                req->bufs.push_back(wbuf);
-                next_write(req);
-            }
-            next_on_read(decbuf, SSLError(ssl_code));
-            return;
-        }
+    if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) {
+        return;
+    }
+
+    if (ssl_code == SSL_ERROR_WANT_WRITE) { // renegotiation
+        string wbuf = SSLBio::steal_buf(write_bio);
+        _ESSL("write %lu", wbuf.length());
+        SSLWriteRequest* req = new SSLWriteRequest();
+        req->retain();
+        handle->attach(req);
+        req->bufs.push_back(wbuf);
+        NextFilter::write(req);
+    } else {
+        string s;
+        NextFilter::on_read(s, SSLError(ssl_code));
     }
 }
 
+int SSLFilter::read_ssl_buffer(string& decbuf, int pending) {
+    int ret = SSL_read(ssl, decbuf.buf(), pending);
+    _ESSL("sslret=%d pending=%d", ret, pending);
+    return ret;
+}
+
 void SSLFilter::write (WriteRequest* req) {
-    _EDEBUG("[%s]", PROFILE_STR);
+    if(state != State::terminal) {
+        NextFilter::on_write(SSLError(SSL_ERROR_SSL), req);
+        return;
+    }
 
-    assert(SSL_is_init_finished(ssl));
-    assert(!handle->connecting());
-
-    auto bufcnt = req->bufs.size();
     SSLWriteRequest* sslreq = new SSLWriteRequest(req);
     sslreq->retain();
-    sslreq->bufs.reserve(bufcnt);
+    handle->attach(sslreq);
+    
+    _ESSL("request: %p, sslrequest: %p", req, sslreq);
 
+    auto bufcnt = req->bufs.size();
+    sslreq->bufs.reserve(bufcnt);
     for (size_t i = 0; i < bufcnt; i++) {
         if (req->bufs[i].length() == 0) {
             continue;
         }
         int res = SSL_write(ssl, req->bufs[i].data(), req->bufs[i].length());
-        if (res <= 0) throw SSLError(SSL_get_error(ssl, res)); // TODO: handle renegotiation status
+        if (res <= 0) {
+            // TODO: handle renegotiation status
+            _ESSL("ssl failed");
+            NextFilter::on_write(SSLError(SSL_ERROR_SSL), req);
+            sslreq->release();
+            return;
+        }
         string buf = SSLBio::steal_buf(write_bio);
         sslreq->bufs.push_back(buf);
     }
 
-    next_write(sslreq);
+    NextFilter::write(sslreq);
 }
 
 void SSLFilter::on_write (const CodeError* err, WriteRequest* req) {
+    _ESSL("on_write state: %d", (int)state);
+
     SSLWriteRequest* sslreq = static_cast<SSLWriteRequest*>(req);
-    _EDEBUG("[%s] regular=%d ERR=%s", PROFILE_STR, sslreq->src ? 1 : 0, err ? err->what() : "");
-    if (sslreq->src) { // regular's on_write
-        next_on_write(err, sslreq->src);
-    } else { // negotiation's on_write
+    _ESSL("request=%p regular=%d ERR=%s", req, sslreq->src ? 1 : 0, err ? err->what() : "");
+    if (sslreq->src) { 
+        // regular on_write
+        NextFilter::on_write(err, sslreq->src);
+    } else { 
+        // negotiation on_write
         if (err) negotiation_finished(err);
     }
+
     sslreq->release();
+}
+
+void SSLFilter::on_reinit () {
+    _ESSL("on_reinit, state: %d, connecting: %d", (int)state, handle->connecting());
+    if (state == State::negotiating) {
+        negotiation_finished(CodeError(ERRNO_ECANCELED));
+    } else if (state == State::terminal) {
+        NextFilter::on_reinit();
+    }
+}
+
+void SSLFilter::on_eof() {
+    _ESSL("on_eof, state: %d", (int)state);
+    if(state == State::terminal) {
+        NextFilter::on_eof();
+    }
+    else if(state == State::negotiating) {
+        negotiation_finished(CodeError(ERRNO_EOF));
+    }
+}
+
+void SSLFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_request) {
+    _ESSL("on_shutdown, state: %d", (int)state);
+    NextFilter::on_shutdown(err, shutdown_request);
 }
 
 bool SSLFilter::is_secure () { return true; }
@@ -265,3 +375,4 @@ bool SSLFilter::init_openSSL_lib () {
     return true;
 }
 
+}}}

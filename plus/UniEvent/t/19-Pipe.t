@@ -1,16 +1,12 @@
 use strict;
 use warnings;
-use lib 't'; use PETest;
-use UniEvent::Error;
-use UniEvent::Pipe;
-use Test::More;
+use lib 't/lib'; use MyTest;
 
-package main;
+use constant PIPE_PATH => MyTest::var 'pipe';
 
 my $l = UniEvent::Loop->default_loop;
 
 my $acceptor = new UniEvent::Pipe;
-use constant PIPE_PATH => PETest::var 'pipe';
 $acceptor->bind(PIPE_PATH);
 $acceptor->listen();
 my $p = new UniEvent::Prepare;
@@ -21,27 +17,25 @@ TODO: {
 
 sub test_serv_read_shuffling {
     use Devel::Peek;
-    my $singletone_client;
+    my $client;
+    $acceptor->create_connection_callback(sub {
+        unless ($client) {
+            $client = new UniEvent::Pipe;
+        }
+        return $client;
+    });
     $acceptor->connection_callback(sub {
-	    my ($acceptor, $err) = @_;
-	    diag $err if $err;
-	    if (!$singletone_client) {
-    		my $client = new UniEvent::Pipe;
-            $singletone_client = $client;
-    		$acceptor->accept($client);
-            $client->read_start;
-    		$client->eof_callback(sub {
-    			#diag "EOF callback started";
-    			undef $singletone_client;
-    			$acceptor->weak(1);
-            });
-            $client->shutdown_callback(sub {
-            	#diag "server on_shutdown @_";
-            });
-    		#diag "Issuing shutdown() now!";
-    		$client->shutdown();
-	    }
-	});
+        my ($srv, undef, $err) = @_;
+        #diag "Connection";
+        $client->read_start;
+        $client->eof_callback(sub {
+            #diag "EOF callback started";
+            undef $client;
+            $acceptor->weak(1);
+        });
+        #diag "Issuing shutdown() now!";
+        $client->shutdown();
+    });
     $p->start(sub {
 	    my $cl = new UniEvent::Pipe;
 	    $cl->connect(PIPE_PATH);
@@ -53,7 +47,7 @@ sub test_serv_read_shuffling {
 	});
     $l->run();
     #diag "That's o'kay";
-    return !$singletone_client;
+    return !$client;
 }
 
 done_testing();

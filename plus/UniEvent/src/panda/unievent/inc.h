@@ -16,7 +16,8 @@ typedef enum {
 #undef PEV__ERRNO_GEN
   ERRNO_SSL = UV_ERRNO_MAX,
   ERRNO_SOCKS = UV_ERRNO_MAX+1,
-  ERRNO_MAX = UV_ERRNO_MAX+2
+  ERRNO_RESOLVE = UV_ERRNO_MAX+2,
+  ERRNO_MAX = UV_ERRNO_MAX+3
 } errno_t;
 
 typedef typename std::underlying_type<errno_t>::type errno_underlying_t;

@@ -1,9 +1,12 @@
 #pragma once
-#include <stdint.h>
+#include "Loop.h"
+#include "global.h"
+#include "Debug.h"
+#include "Command.h"
+#include "test/Trace.h"
+#include <bitset>
+#include <cstdint>
 #include <panda/CallbackDispatcher.h>
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/global.h>
-#include <panda/unievent/Command.h>
 
 namespace panda { namespace unievent {
 
@@ -18,8 +21,7 @@ typedef enum {
     HTYPE_MAX  = UV_HANDLE_TYPE_MAX
 } handle_type;
 
-class Handle : public virtual Refcnt {
-public:
+struct Handle : virtual Refcnt {
     typedef panda::function<string(Handle* h, size_t cap)> buf_alloc_fn;
 
     buf_alloc_fn buf_alloc_event;
@@ -64,8 +66,13 @@ public:
     bool async_locked  () const { return flags & HF_BUSY; }
     bool asyncq_empty  () const { return !asyncq.head; }
 
-    void async_lock   () { flags |= HF_BUSY; }
+    void async_lock   () { 
+        _EDEBUG("lock");
+        flags |= HF_BUSY; 
+    }
+
     void async_unlock () {
+        _EDEBUG("unlock");
         async_unlock_noresume();
         asyncq_resume();
     }
@@ -85,8 +92,8 @@ public:
 
     static handle_type guess_type (file_t file);
 
-    friend class CommandCloseDelete;
-    friend class CommandCloseReinit;
+    friend struct CommandCloseDelete;
+    friend struct CommandCloseReinit;
 
 protected:
     uv_handle_t* uvhp;
@@ -112,11 +119,12 @@ protected:
         CommandBase* tail;
     } asyncq;
 
-    static const int HF_WEAK = 0x01;
-    static const int HF_BUSY = 0x02;
-    static const int HF_LAST = HF_BUSY;
+    static const uint32_t HF_WEAK = 0x01;
+    static const uint32_t HF_BUSY = 0x02;
+    static const uint32_t HF_LAST = HF_BUSY;
 
     Handle () : flags(0), in_user_callback(false) {
+	_ECTOR();
         asyncq.head = asyncq.tail = nullptr;
     }
 
@@ -128,7 +136,6 @@ protected:
     virtual void on_handle_reinit ();
 
     virtual void close_reinit (bool keep_asyncq = false);
-    virtual void _close(); // ignores command queue, calls uv_close, beware using this
 
     void asyncq_cancel ();
     void _asyncq_cancel ();
@@ -157,6 +164,14 @@ protected:
         }
         if (!asyncq.head) asyncq.tail = nullptr;
     }
+   
+    void set_recv_buffer_size(int value) {
+        uv_recv_buffer_size(uvhp, &value);
+    }
+    
+    void set_send_buffer_size(int value) {
+        uv_send_buffer_size(uvhp, &value);
+    }
 
     // private dtor prevents creating Handles on the stack / statically / etc.
     virtual ~Handle ();
@@ -165,6 +180,8 @@ public:
     // clang restricts friendliness forwarding via derived classes as of example in 11.4
     // so making it public: https://bugs.llvm.org/show_bug.cgi?id=6840
     static void uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf);
+    
+    virtual void _close(); // ignores command queue, calls uv_close, beware using this
 
 private:
     void close_delete ();

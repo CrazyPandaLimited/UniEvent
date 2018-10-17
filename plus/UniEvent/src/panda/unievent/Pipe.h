@@ -1,16 +1,16 @@
 #pragma once
+#include "Stream.h"
 #include <panda/string_view.h>
-#include <panda/unievent/Stream.h>
 
 namespace panda { namespace unievent {
 
 using std::string_view;
 
-class Pipe : public virtual Stream {
-public:
+struct Pipe : virtual Stream {
     Pipe (bool ipc = false, Loop* loop = Loop::default_loop()) : ipc(ipc) {
         uv_pipe_init(_pex_(loop), &uvh, ipc);
         _init(&uvh);
+        connection_factory = [=](){return new Pipe(ipc, loop);};
     }
 
     virtual void open              (file_t file);
@@ -53,6 +53,9 @@ public:
         getpeername(str.buf(), (size_t)-1);
         return str;
     }
+    
+    using Handle::set_recv_buffer_size;
+    using Handle::set_send_buffer_size;
 
     ~Pipe () override { printf("~pipe\n"); }
 
@@ -63,5 +66,7 @@ private:
     uv_pipe_t uvh;
     bool      ipc;
 };
+
+using PipeSP = iptr<Pipe>;
 
 }}

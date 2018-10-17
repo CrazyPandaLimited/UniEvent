@@ -1,9 +1,9 @@
 #pragma once
+#include "inc.h"
 #include <stdexcept>
 #include <panda/lib.h>
 #include <panda/string.h>
 #include <panda/string_view.h>
-#include <panda/unievent/inc.h>
 
 namespace panda { namespace unievent {
 
@@ -69,7 +69,6 @@ struct SSLError : CodeError {
     int openssl_code () const;
 
     string name () const override;
-
     int library  () const;
     int function () const;
     int reason   () const;

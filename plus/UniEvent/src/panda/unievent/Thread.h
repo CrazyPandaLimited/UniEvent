@@ -1,14 +1,13 @@
 #pragma once
+#include "Error.h"
 #include <string.h>
 #include <panda/CallbackDispatcher.h>
-#include <panda/unievent/Error.h>
 
 namespace panda { namespace unievent {
 
 typedef uv_thread_t thread_t;
 
-class Thread {
-public:
+struct Thread {
     typedef panda::function <void(Thread* handle, void* arg)> entry_fn;
     
     entry_fn create_callback;

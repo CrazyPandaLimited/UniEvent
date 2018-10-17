@@ -1,4 +1,4 @@
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 using namespace panda::unievent;
 
 static const size_t MIN_ALLOC_SIZE = 1024;
@@ -25,11 +25,13 @@ void Handle::uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf
 
 void Handle::uvx_on_close_delete (uv_handle_t* handle) {
     Handle* h = static_cast<Handle*>(handle->data);
+    _EDEBUG("[%p] uvx_on_close_delete", h);
     delete h;
 }
 
 void Handle::uvx_on_close_reinit (uv_handle_t* handle) {
     Handle* h = static_cast<Handle*>(handle->data);
+    _EDEBUG("[%p] uvx_on_close_reinit", h);
     h->on_handle_reinit();
     h->async_unlock();
     h->release();
@@ -52,6 +54,7 @@ handle_type Handle::guess_type (file_t file) {
 }
 
 void Handle::close_delete () {
+    _EDEBUGTHIS("close_delete, locked: %d, type: %d", async_locked(), type());
     if (async_locked()) {
         asyncq_push(new CommandCloseDelete());
         return;
@@ -62,12 +65,10 @@ void Handle::close_delete () {
 }
 
 void Handle::close_reinit (bool keep_asyncq) {
-    if (!keep_asyncq) {
-        flags = (flags & HF_BUSY) ? HF_BUSY : 0;
-        if (in_user_callback) {
-            if (!asyncq_empty()) _asyncq_cancel(); // do not lock and unlock here
-            keep_asyncq = true;
-        }
+    _EDEBUGTHIS("close_reinit, keep_asyncq: %d, in_user_callback: %d, asyncq_empty(): %d ", keep_asyncq, in_user_callback, asyncq_empty());
+    if (!keep_asyncq && in_user_callback) {
+        if (!asyncq_empty()) _asyncq_cancel(); // do not lock and unlock here
+        keep_asyncq = true;
     }
     if (keep_asyncq) {
         if (async_locked()) {
@@ -104,7 +105,7 @@ void Handle::_asyncq_cancel() {
     }
 }
 
-Handle::~Handle() {}
+Handle::~Handle() { _EDTOR(); }
 
 string Handle::buf_alloc (size_t cap) {
     if (buf_alloc_event) return buf_alloc_event(this, cap);
@@ -113,5 +114,6 @@ string Handle::buf_alloc (size_t cap) {
 }
 
 void Handle::on_handle_reinit () {
+    _EDEBUGTHIS("on_handle_reinit");
     flags = (flags & HF_BUSY) ? HF_BUSY : 0;
 }
