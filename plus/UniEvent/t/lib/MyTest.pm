@@ -4,6 +4,7 @@ use warnings;
 use UniEvent;
 use Test::More;
 use Test::Deep;
+use Test2::IPC;
 use Test::Catch;
 use Test::Exception;
 use File::Path qw/make_path remove_tree/;
