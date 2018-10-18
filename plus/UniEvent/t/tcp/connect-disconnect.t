@@ -1,33 +1,31 @@
-use 5.020;
+use 5.012;
 use warnings;
-
-use Test::More;
-use UniEvent;
-use Socket;
+use lib 't/lib'; use MyTest;
+use Net::SockAddr;
 
 my $loop = UniEvent::Loop->default_loop;
-my $s = new UniEvent::TCP();
-$s->bind('localhost', 0);
-$s->listen();
+
+my $s = new UniEvent::TCP;
+$s->bind(SA_LOOPBACK_ANY);
+$s->listen;
 $s->connection_callback(sub {});
 my $sa = $s->get_sockaddr;
-my $cl = new UniEvent::TCP();
+
+my $cl = new UniEvent::TCP;
 $cl->connect($sa, sub {
     my ($handler, $err) = @_;
-    ok !$err;
     fail $err if $err;
-    note "first connected";
+    pass "first connected";
 });
 $cl->write('1');
 $cl->disconnect();
 $cl->connect($sa, sub {
     my ($handler, $err) = @_;
-    ok !$err;
     fail $err if $err;
-    note "second connected";
-	$loop->stop();
+    pass "second connected";
+	$loop->stop;
 });
-$loop->update_time();
-$loop->run();
+$loop->update_time;
+$loop->run;
 
-done_testing();
+done_testing(2);

@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use lib 't/lib'; use MyTest;
+use Net::SockAddr;
 
 my $loop = UniEvent::Loop::default_loop();
 
@@ -8,7 +9,7 @@ my $server = UniEvent::TCP->new();
 my $cl;
 my $pid;
 $server->tcp_nodelay(1);
-$server->bind(Net::SockAddr::Inet4->new("0.0.0.0", 0));
+$server->bind(SA_LOOPBACK_ANY);
 $server->listen(8);
 my $sa = $server->get_sockaddr;
 
@@ -66,4 +67,4 @@ $loop->run;
 
 exit unless $pid;
 waitpid($pid, 0);
-done_testing();
+done_testing(4);

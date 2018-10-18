@@ -1,4 +1,4 @@
-#include "lib/test.h"
+#include "../lib/test.h"
 
 TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {"error"});

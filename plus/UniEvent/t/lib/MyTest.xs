@@ -13,6 +13,8 @@
 MODULE = MyTest                PACKAGE = MyTest
 PROTOTYPES: DISABLE
 
+void core_dump () { abort(); }
+
 void TEST_SSL   (bool val) { TEST_SSL   = val; }
 
 void TEST_SOCKS (bool val) { TEST_SOCKS = val; }
