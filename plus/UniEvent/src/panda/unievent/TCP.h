@@ -159,7 +159,7 @@ public:
         return string("local:") + sockname_str + string(" peer:") + peername_str + string(" connected:") + (connected() ? "yes" : "no"); 
     }
    
-    AbstractResolverSP resolver;
+    ResolverSP resolver;
 
 protected:
     void on_handle_reinit () override;

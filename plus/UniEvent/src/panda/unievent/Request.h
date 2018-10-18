@@ -56,7 +56,6 @@ public:
 
     CallbackDispatcher<connect_fptr> event;
     bool is_reconnect;
-    //CodeError error;
 
     ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
         _EDEBUGTHIS("callback %p %d", callback, (bool)callback);

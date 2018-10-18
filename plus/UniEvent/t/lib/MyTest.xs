@@ -45,7 +45,7 @@ uint64_t test_dyn_cast (Handle*) {
 
 void _benchmark_regular_resolver () { 
     LoopSP loop(new Loop);
-    ResolverSP resolver(new Resolver);
+    ResolverSP resolver(new Resolver(loop));
    
     for (auto i=0; i<1000; i++) {
         bool called = false;                                                          
@@ -53,7 +53,7 @@ void _benchmark_regular_resolver () {
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+                [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                     called = true;
                 });
     }
@@ -63,7 +63,7 @@ void _benchmark_regular_resolver () {
 
 void _benchmark_cached_resolver () { 
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver);
+    CachedResolverSP resolver(new CachedResolver(loop));
    
     // cache first 
     bool called = false;                                                          
@@ -71,7 +71,7 @@ void _benchmark_cached_resolver () {
             "localhost", 
             "80", 
             nullptr, 
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
     
@@ -85,7 +85,7 @@ void _benchmark_cached_resolver () {
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+                [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                     called = true;
                 });
     }

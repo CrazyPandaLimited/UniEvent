@@ -132,7 +132,7 @@ TEST_CASE("connect timeout with real canceled connection", "[panda-event][timeou
             });
 
         test.await(client->connect_event, "connected1");
-        clear_resolver_cache();
+        clear_resolver_cache(test.loop);
         _EDEBUG("----------------- second -----------------");
 
         client->connect()
@@ -145,7 +145,7 @@ TEST_CASE("connect timeout with real canceled connection", "[panda-event][timeou
             FAIL("call failed");
         }
 
-        clear_resolver_cache();
+        clear_resolver_cache(test.loop);
     }
 
     REQUIRE(connected == tries * 2);
@@ -298,7 +298,7 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[panda-
     REQUIRE(called);
     REQUIRE(failed);
     
-    clear_resolver_cache();
+    clear_resolver_cache(test.loop);
     called = false;
     failed = false;
 

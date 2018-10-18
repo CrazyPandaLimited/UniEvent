@@ -13,12 +13,12 @@ std::string dump(addrinfo* ai) {
 
 TEST_CASE("basic resolver", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved"});
-    ResolverSP resolver{new Resolver};
+    ResolverSP resolver{new Resolver(test.loop)};
     ResolveRequestSP request = resolver->resolve(test.loop, 
-            "localhost",
+            "google.com",
             "",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -27,13 +27,13 @@ TEST_CASE("basic resolver", "[panda-event][resolver]") {
 
 TEST_CASE("cached resolver", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved"});
-    CachedResolverSP resolver{new CachedResolver};
+    CachedResolverSP resolver{new CachedResolver(test.loop)};
     // it is not in cache, async call
     ResolveRequestSP request1 = resolver->resolve(test.loop,
             "localhost",
             "",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -45,7 +45,7 @@ TEST_CASE("cached resolver", "[panda-event][resolver]") {
             "localhost",
             "",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
                 called = true;
             });
@@ -55,7 +55,7 @@ TEST_CASE("cached resolver", "[panda-event][resolver]") {
 
 TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved"});
-    CachedResolverSP resolver(new CachedResolver);
+    CachedResolverSP resolver(new CachedResolver(test.loop));
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -66,7 +66,7 @@ TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
             "localhost",
             "80",
             &hints,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 addrinfo1 = address->head;
             });
@@ -78,7 +78,7 @@ TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
             "localhost",
             "80",
             &hints,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
                 called = true;
             });
@@ -88,7 +88,7 @@ TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
 
 TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
-    CachedResolverSP resolver(new CachedResolver);
+    CachedResolverSP resolver(new CachedResolver(test.loop));
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -98,7 +98,7 @@ TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolv
             "localhost",
             "80",
             &hints,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -108,7 +108,7 @@ TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolv
             "localhost",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -117,7 +117,7 @@ TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolv
 
 TEST_CASE("cached resolver, with hints and with different hints", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
-    CachedResolverSP resolver(new CachedResolver);
+    CachedResolverSP resolver(new CachedResolver(test.loop));
 
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -127,7 +127,7 @@ TEST_CASE("cached resolver, with hints and with different hints", "[panda-event]
             "localhost",
             "80",
             &hints,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -138,7 +138,7 @@ TEST_CASE("cached resolver, with hints and with different hints", "[panda-event]
             "localhost",
             "80",
             &hints,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError* err){
                 REQUIRE(!err);
             });
 
@@ -148,14 +148,14 @@ TEST_CASE("cached resolver, with hints and with different hints", "[panda-event]
 TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
     test::AsyncTest test(500, {"resolved"});
 
-    CachedResolverSP resolver(new CachedResolver);
+    CachedResolverSP resolver(new CachedResolver(test.loop));
 
     addrinfo* addrinfo1;
     ResolveRequestSP request1 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
                 addrinfo1 = address->head;
@@ -171,7 +171,7 @@ TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
             "yandex.ru",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
                 addrinfo2 = address->head;
@@ -213,14 +213,14 @@ TEST_CASE("rotator", "[panda-event][resolver]") {
 TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
     size_t LIMIT = 2;
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(500, LIMIT));
+    CachedResolverSP resolver(new CachedResolver(loop, 500, LIMIT));
 
     bool called = false;
     ResolveRequestSP request = resolver->resolve(loop.get(),
             "localhost",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 
@@ -235,7 +235,7 @@ TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
             "google.com",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 
@@ -249,7 +249,7 @@ TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
             "yandex.ru",
             "80",
             nullptr,
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
                 called = true;
             });
 

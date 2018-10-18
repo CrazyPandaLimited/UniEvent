@@ -251,7 +251,7 @@ void SocksFilter::do_resolve() {
     _EDEBUGTHIS("do_resolve_host");
     TCP* tcp         = dyn_cast<TCP*>(handle);
     resolve_request_ = tcp->resolver->resolve(tcp->loop(), host_, panda::to_string(port_), nullptr,
-                                              [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
+                                              [=](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
                                                   _EDEBUGTHIS("resolved err:%d", err ? err->code() : 0);
                                                   if (err || this->state_ == State::canceled) {
                                                       do_error();

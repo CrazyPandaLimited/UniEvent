@@ -1,20 +1,26 @@
 #pragma once
 
+#include <map>
 #include <ctime>
 #include <cstdlib>
 #include <unordered_map>
 
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/Request.h>
-#include <panda/unievent/ResolveFunction.h>
-#include <panda/unievent/global.h>
+#include <ares.h>
+
 #include <panda/string_view.h>
+
+#include "Debug.h"
+#include "Loop.h"
+#include "Poll.h"
+#include "Handle.h"
+#include "Request.h"
+#include "ResolveFunction.h"
+#include "Timer.h"
+#include "global.h"
 
 namespace panda { namespace unievent {
 
-class AbstractResolver;
-using AbstractResolverSP = iptr<AbstractResolver>;
+constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
 class Resolver;
 using ResolverSP = iptr<Resolver>;
@@ -76,7 +82,7 @@ struct AddressRotator : BasicAddress {
     AddressRotator(AddressRotator& other) = delete; 
     AddressRotator& operator=(AddressRotator& other) = delete;
 
-    // rotate everything in cache
+    // rotate everything in cache (round robin, ignore RFC6724)
     addrinfo* next() {
         if (current->ai_next) {
             current = current->ai_next;
@@ -189,27 +195,32 @@ typedef iptr<CachedAddress> Value;
 
 } // namespace cached_resolver
 
-struct AbstractResolver : virtual Refcnt {
-    virtual ResolveRequestSP resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) = 0;
-    virtual void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) = 0;
-};
-
-struct Resolver : AbstractResolver {
-    ~Resolver() { _EDTOR(); }
-    Resolver() { _ECTOR(); }
-    ResolveRequestSP resolve(Loop*            loop,
-                             std::string_view node,
-                             std::string_view service  = std::string_view(),
-                             const addrinfo*  hints    = nullptr,
-                             ResolveFunction  callback = nullptr) override;
-    
+struct Resolver : virtual Refcnt {
+    ~Resolver();
+    Resolver(Loop* loop);
     Resolver(Resolver& other) = delete; 
     Resolver& operator=(Resolver& other) = delete;
 
+    virtual ResolveRequestSP resolve(Loop*            loop,
+                             std::string_view node,
+                             std::string_view service  = std::string_view(),
+                             const addrinfo*  hints    = nullptr,
+                             ResolveFunction  callback = nullptr);
+
 protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
+    virtual void on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err);
     
 private:
+    static void ares_resolve_cb(void *arg, int status,int timeouts, struct hostent *hostent);
+    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+    
+public:
+    Loop*        loop;
+    TimerSP      timer;
+    ares_channel channel;
+
+    using Requests = std::map<sock_t, ResolveRequestSP>;
+    Requests requests;
 };
 
 struct CachedResolver : Resolver {
@@ -217,7 +228,7 @@ struct CachedResolver : Resolver {
 
     ~CachedResolver();
 
-    CachedResolver(time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
+    CachedResolver(Loop* loop, time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
     
     CachedResolver(CachedResolver& other) = delete; 
     CachedResolver& operator=(CachedResolver& other) = delete;
@@ -239,7 +250,7 @@ struct CachedResolver : Resolver {
     void clear() { cache_.clear(); }
 
 protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
+    void on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
 
 private:
     bool expunge_cache() {
@@ -257,32 +268,44 @@ private:
     size_t             limit_;
 };
 
-struct Request;
-struct ConnectRequest;
-struct ResolveRequest : CancelableRequest, AllocatedObject<ResolveRequest, true> {
-public:
-    CallbackDispatcher<ResolveFunctionPlain> event;
-
+struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
+    ~ResolveRequest(); 
     ResolveRequest(ResolveFunction callback);
-    ~ResolveRequest() { _EDTOR(); }
+    
+    void cancel() {
+    }
 
-    void cancel() override;
+    bool active() const {
+        return active_;
+    }
+    
+    void activate(sock_t sock); 
+    
+    void close(); 
 
-public:
-    AbstractResolver*          resolver;
-    iptr<cached_resolver::Key> key;
+    sock_t                                   socket;
+    PollSP                                   poll;
+    CallbackDispatcher<ResolveFunctionPlain> event;
+    Resolver*                                resolver;
+    iptr<cached_resolver::Key>               key;
+    bool                                     async;
+
+private:
+    bool active_;
 };
 
-inline Resolver* get_global_basic_resolver() {
-    static ResolverSP resolver(new Resolver());
+bool operator<(const ResolveRequest& l, const ResolveRequest& r) { return l.socket < r.socket; }
+
+inline Resolver* get_thread_local_simple_resolver(Loop* loop) {
+    thread_local ResolverSP resolver(new Resolver(loop));
     return resolver.get();
 }
 
-inline CachedResolver* get_thread_local_cached_resolver() {
-    thread_local CachedResolverSP resolver(new CachedResolver());
+inline CachedResolver* get_thread_local_cached_resolver(Loop* loop) {
+    thread_local CachedResolverSP resolver(new CachedResolver(loop));
     return resolver.get();
 }
 
-inline void clear_resolver_cache() { get_thread_local_cached_resolver()->clear(); }
+inline void clear_resolver_cache(Loop* loop) { get_thread_local_cached_resolver(loop)->clear(); }
 
 }} // namespace panda::event

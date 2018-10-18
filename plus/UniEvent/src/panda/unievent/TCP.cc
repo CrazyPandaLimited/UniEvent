@@ -1,8 +1,9 @@
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/TCP.h>
-#include <panda/unievent/ssl/SSLFilter.h>
-#include <panda/unievent/Prepare.h>
-#include <panda/unievent/socks/SocksFilter.h>
+#include "TCP.h"
+
+#include "Resolver.h"
+#include "Prepare.h"
+#include "ssl/SSLFilter.h"
+#include "socks/SocksFilter.h"
 
 namespace panda { namespace unievent {
 
@@ -104,9 +105,9 @@ void TCP::init(bool cached_resolver) {
     connection_factory = [=](){return new TCP(loop(), cached_resolver);};
 
     if (cached_resolver) {
-        resolver = get_thread_local_cached_resolver();
+        resolver = get_thread_local_cached_resolver(loop());
     } else {
-        resolver = get_global_basic_resolver();
+        resolver = get_thread_local_simple_resolver(loop());
     }
 }
 
@@ -149,7 +150,7 @@ void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
         try {
             resolve_request =
                 resolver->resolve(loop(), tcp_connect_request->host_, tcp_connect_request->service_, &tcp_connect_request->hints_,
-                                  [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
+                                  [=](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
                                       _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
                                       if (err) {
                                           int errcode = err->code();

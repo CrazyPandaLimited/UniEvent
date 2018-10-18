@@ -6,6 +6,7 @@ namespace panda { namespace unievent {
 class Timer;
 using TimerSP = iptr<Timer>;
 
+// All the values are in milliseconds.
 class Timer : public virtual Handle, public AllocatedObject<Timer> {
 public:
     using timer_fptr = void(Timer* handle);

@@ -15,7 +15,7 @@ template <class T> struct BasicXSResolver : T {
     using T::T;
 
 protected:
-    void on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+    void on_resolve (ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
         auto salistref = Scalar::undef;
         if (!err) {
             auto salist = Array::create();
