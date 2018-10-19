@@ -6,9 +6,7 @@
 #include <openssl/conf.h>
 #include <openssl/engine.h>
 
-bool TEST_SSL;
-bool TEST_SOCKS;
-bool TEST_BUF;
+Variation variation;
 
 SSL_CTX* get_ssl_ctx() {
     static SSL_CTX* ctx = nullptr;
@@ -16,25 +14,10 @@ SSL_CTX* get_ssl_ctx() {
         return ctx;
     }
     ctx = SSL_CTX_new(SSLv23_server_method());
-    SSL_CTX_use_certificate_file(ctx, "./cert.pem", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, "./key.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_certificate_file(ctx, "t/cert/cert.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/key.pem", SSL_FILETYPE_PEM);
     SSL_CTX_check_private_key(ctx);
     return ctx;
-}
-
-bool parse_bool_parameter(const char* value) { return value && (strcmp(value, "1") == 0 || strcmp(value, "true")); }
-
-static iptr<Socks> getenv_proxy () {
-    // PANDA_EVENT_PROXY="socks5://[user:password@]proxyhost[:port]"
-    const char* env_proxy = getenv("UNIEVENT_PROXY");
-    // PANDA_EVENT_PROXY_RESOLVE="1"
-    const char* env_proxy_resolve = getenv("UNIEVENT_PROXY_RESOLVE");
-
-    static iptr<Socks> socks;
-    if (env_proxy) {
-        socks = new Socks(string(env_proxy), parse_bool_parameter(env_proxy_resolve));
-    }
-    return socks;
 }
 
 TCPSP make_basic_server (uint16_t port, Loop* loop) {
@@ -101,24 +84,18 @@ TCPSP make_socks_server (uint16_t port, iptr<Loop> loop) {
 TCPSP make_server (uint16_t port, Loop* loop) {
     TCPSP server = new TCP(loop);
     server->bind("localhost", panda::to_string(port));
-    if (TEST_SSL) {
-        server->use_ssl(get_ssl_ctx());
-    }
-    server->listen(1);
+    if (variation.ssl) server->use_ssl(get_ssl_ctx());
+    server->listen(10000);
     return server;
 }
 
 TCPSP make_client (Loop* loop, bool cached_resolver) {
     TCPSP client = new TCP(loop, cached_resolver);
-    if (TEST_SSL) {
-        client->use_ssl();
-    }
 
-    if (TEST_SOCKS) {
-        client->use_socks(getenv_proxy());
-    }
+    if (variation.ssl)   client->use_ssl();
+    if (variation.socks) client->use_socks(new Socks(variation.socks_url, variation.socks == 2));
 
-    if (TEST_BUF) {
+    if (variation.buf) {
         client->set_recv_buffer_size(1);
         client->set_send_buffer_size(1);
     }

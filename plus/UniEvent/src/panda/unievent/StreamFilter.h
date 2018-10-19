@@ -6,6 +6,7 @@
 namespace panda { namespace unievent {
 
 struct Stream;
+using StreamSP = iptr<Stream>;
 
 template <class T> struct BasicForwardFilter {
     virtual void connect(ConnectRequest* connect_request) {
@@ -23,7 +24,7 @@ private:
 };
 
 template <class T> struct BasicReverseFilter {
-    virtual void on_connection(Stream* stream, const CodeError* err) {
+    virtual void on_connection(StreamSP stream, const CodeError* err) {
         if (self().prev_)
             self().prev_->on_connection(stream, err);
     }
@@ -101,7 +102,7 @@ struct FrontStreamFilter : StreamFilter, AllocatedObject<FrontStreamFilter, true
 
     StreamFilterSP clone() const override { return StreamFilterSP(new FrontStreamFilter(handle)); };
 
-    void on_connection(Stream* stream, const CodeError* err) override;
+    void on_connection(StreamSP stream, const CodeError* err) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;
     void write(WriteRequest* write_request) override;
@@ -120,7 +121,7 @@ struct BackStreamFilter : StreamFilter, AllocatedObject<BackStreamFilter, true> 
 
     StreamFilterSP clone() const override { return StreamFilterSP(new BackStreamFilter(handle)); };
 
-    void on_connection(Stream* stream, const CodeError* err) override;
+    void on_connection(StreamSP stream, const CodeError* err) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;
     void write(WriteRequest* write_request) override;

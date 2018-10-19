@@ -106,10 +106,10 @@ void XSSignal::on_signal (int signum) {
     if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 }
 
-void XSStream::on_connection (Stream* stream, const CodeError* err) {
+void XSStream::on_connection (StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
-    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream), xs::out(err) })) Stream::on_connection(stream, err);
+    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream.get()), xs::out(err) })) Stream::on_connection(stream, err);
 }
 
 void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {

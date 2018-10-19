@@ -4,10 +4,10 @@ use MyTest;
 use Net::SockAddr;
 use Net::SSLeay;
 
-my $SERV_CERT = "t/cert.pem";
+my $SERV_CERT = "t/cert/cert.pem";
 my $serv_ctx = Net::SSLeay::CTX_new();
 Net::SSLeay::CTX_use_certificate_file($serv_ctx, $SERV_CERT, &Net::SSLeay::FILETYPE_PEM) or sslerr();
-Net::SSLeay::CTX_use_PrivateKey_file($serv_ctx, "t/key.pem", &Net::SSLeay::FILETYPE_PEM) or sslerr();
+Net::SSLeay::CTX_use_PrivateKey_file($serv_ctx, "t/cert/key.pem", &Net::SSLeay::FILETYPE_PEM) or sslerr();
 Net::SSLeay::CTX_check_private_key($serv_ctx) or sslerr();
 
 my $client_ctx = Net::SSLeay::CTX_new();

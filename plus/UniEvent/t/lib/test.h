@@ -9,15 +9,14 @@ using namespace panda;
 using namespace panda::unievent;
 using namespace panda::unievent::test;
 
-// Uncomment to run tests                                                                                                                                
-#define TEST_ASYNC 1 
-#define TEST_CONNECT_TIMEOUT 1
-#define TEST_RESOLVER 1
-#define TEST_TIMER 1
+struct Variation {
+    bool   ssl;
+    int    socks;
+    string socks_url;
+    bool   buf;
+};
 
-extern bool TEST_SSL;
-extern bool TEST_SOCKS;
-extern bool TEST_BUF;
+extern Variation variation;
 
 TCPSP make_basic_server (uint16_t port, Loop* loop);
 TCPSP make_socks_server (uint16_t port, LoopSP loop);

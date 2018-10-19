@@ -99,7 +99,7 @@ void Stream::accept () {
     accept(on_create_connection());
 }
 
-void Stream::accept (Stream* stream) {
+void Stream::accept (const StreamSP& stream) {
     _EDEBUGTHIS("accept %p", stream);
     stream->retain();
     // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
@@ -275,7 +275,7 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
     }
 }
 
-void Stream::on_connection (Stream* stream, const CodeError* err) {
+void Stream::on_connection (StreamSP stream, const CodeError* err) {
     connection_event(this, stream, err);
 }
 

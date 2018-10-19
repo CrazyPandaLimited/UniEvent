@@ -32,7 +32,7 @@ void SocksFilter::init_parser() {
     noauth = false;
 }
 
-void SocksFilter::on_connection(Stream* stream, const CodeError* err) {
+void SocksFilter::on_connection(StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS("on_connection");
     // socks is a client only filter, so disable for incoming connections
     state(State::terminal);

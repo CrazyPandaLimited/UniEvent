@@ -19,7 +19,7 @@ using StreamSP = iptr<Stream>;
 
 struct Stream : virtual Handle {
     using connection_factory_fptr = StreamSP();
-    using connection_fptr         = void(Stream* handle, Stream* client, const CodeError* err);
+    using connection_fptr         = void(Stream* handle, StreamSP client, const CodeError* err);
     using read_fptr               = void(Stream* handle, string& buf, const CodeError* err);
     using eof_fptr                = void(Stream* handle);
 
@@ -60,7 +60,7 @@ struct Stream : virtual Handle {
     virtual void read_stop  ();
 
     virtual void listen     (int backlog = 128, connection_fn callback = nullptr);
-    virtual void accept     (Stream* stream);
+    virtual void accept     (const StreamSP& stream);
     virtual void shutdown   (ShutdownRequest* req = nullptr);
     virtual void write      (WriteRequest* req);
     virtual void disconnect ();
@@ -124,7 +124,7 @@ struct Stream : virtual Handle {
      
     void do_write (WriteRequest* req);
 
-    virtual void     on_connection(Stream* stream, const CodeError* err);
+    virtual void     on_connection(StreamSP stream, const CodeError* err);
     virtual void     on_connect(const CodeError* err, ConnectRequest* req);
     virtual void     on_read(string& buf, const CodeError* err);
     virtual void     on_write(const CodeError* err, WriteRequest* req);

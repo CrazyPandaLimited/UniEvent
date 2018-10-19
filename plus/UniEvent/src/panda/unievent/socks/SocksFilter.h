@@ -57,7 +57,7 @@ private:
     void do_eof();
     void do_error(const CodeError* err = CodeError(ERRNO_SOCKS));
 
-    void on_connection(Stream*, const CodeError* err) override;
+    void on_connection(StreamSP, const CodeError* err) override;
     void write(WriteRequest* write_request) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;

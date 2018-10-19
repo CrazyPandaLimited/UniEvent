@@ -93,7 +93,7 @@ struct XSStream : virtual Stream, XSHandle {
     XSStream () {}
 
 protected:
-    void on_connection (Stream*, const CodeError*) override;
+    void on_connection (StreamSP, const CodeError*) override;
     void on_connect    (const CodeError*, ConnectRequest*) override;
     void on_read       (string&, const CodeError*) override;
     void on_write      (const CodeError*, WriteRequest*) override;

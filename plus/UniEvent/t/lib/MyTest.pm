@@ -32,7 +32,7 @@ sub import {
 
     my $caller = caller();
     foreach my $sym_name (qw/
-        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan
+        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan variate
         var create_file create_dir move change_file_mtime change_file unlink_file remove_dir subtest new_ok dies_ok catch_run
     /) {
         no strict 'refs';
@@ -53,6 +53,38 @@ sub check_mark {
     my $delta = Time::HiRes::time() - $last_time_mark;
     cmp_ok($delta, '>=', $min, $msg) if defined $min;
     cmp_ok($delta, '<=', $max, $msg) if defined $max;
+}
+
+sub variate {
+    my $sub = pop;
+    my @names = reverse @_ or return;
+    
+    state $valvars = {
+        ssl   => [0,1],
+        socks => [0,1],
+        buf   => [0,1],
+    };
+    my $has_socks = grep {$_ eq 'socks'} @names;
+    
+    my ($code, $end) = ('') x 2;
+    $code .= "foreach my \$${_}_val (\$valvars->{$_}->\@*) {\n" for @names;
+    $code .= "variate_$_(\$${_}_val);\n" for @names;
+    my $stname = 'variation '.join(', ', map {"$_=\$${_}_val"} @names);
+    $code .= qq#subtest "$stname" => \$sub;\n#;
+    $code .= "}" x @names;
+    
+    if ($has_socks) {
+        require SocksProxy;
+        $has_socks = SocksProxy::start(); # pid
+    }
+    
+    eval $code;
+    die $@ if $@;
+    
+    if ($has_socks) {
+        kill INT => $has_socks;
+        waitpid($has_socks, 0);
+    }
 }
 
 sub var ($) { return "$rdir/$_[0]" }
