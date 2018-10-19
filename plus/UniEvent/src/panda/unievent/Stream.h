@@ -1,13 +1,12 @@
 #pragma once
+#include "Handle.h"
+#include "Request.h"
+#include "StreamFilter.h"
+#include "IntrusiveChain.h"
 
 #include <new>
 #include <algorithm>
 #include <panda/lib/memory.h>
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/Request.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/IntrusiveChain.h>
-
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
@@ -15,16 +14,12 @@ struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
 
-class Stream;
+struct Stream;
 using StreamSP = iptr<Stream>;
 
-class Stream : public virtual Handle {
-    friend FrontStreamFilter;
-    friend BackStreamFilter;
-
-public:
+struct Stream : virtual Handle {
     using connection_factory_fptr = StreamSP();
-    using connection_fptr         = void(Stream* handle, Stream* client, const CodeError* err);
+    using connection_fptr         = void(Stream* handle, StreamSP client, const CodeError* err);
     using read_fptr               = void(Stream* handle, string& buf, const CodeError* err);
     using eof_fptr                = void(Stream* handle);
 
@@ -65,7 +60,7 @@ public:
     virtual void read_stop  ();
 
     virtual void listen     (int backlog = 128, connection_fn callback = nullptr);
-    virtual void accept     (Stream* stream);
+    virtual void accept     (const StreamSP& stream);
     virtual void shutdown   (ShutdownRequest* req = nullptr);
     virtual void write      (WriteRequest* req);
     virtual void disconnect ();
@@ -129,7 +124,7 @@ public:
      
     void do_write (WriteRequest* req);
 
-    virtual void     on_connection(Stream* stream, const CodeError* err);
+    virtual void     on_connection(StreamSP stream, const CodeError* err);
     virtual void     on_connect(const CodeError* err, ConnectRequest* req);
     virtual void     on_read(string& buf, const CodeError* err);
     virtual void     on_write(const CodeError* err, WriteRequest* req);
@@ -210,6 +205,9 @@ protected:
     IntrusiveChain<iptr<StreamFilter>> filters_;
 
 private:
+    friend FrontStreamFilter;
+    friend BackStreamFilter;
+
     uv_stream_t*       uvsp       ()       { return reinterpret_cast<uv_stream_t*>(uvhp); }
     const uv_stream_t* uvsp_const () const { return reinterpret_cast<const uv_stream_t*>(uvhp); }
 

@@ -22,22 +22,22 @@ namespace panda { namespace unievent {
 
 constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
-class Resolver;
+struct Resolver;
 using ResolverSP = iptr<Resolver>;
 
-class CachedResolver;
+struct CachedResolver;
 using CachedResolverSP = iptr<CachedResolver>;
 
-class ResolveRequest;
+struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
 
-class BasicAddress;
+struct BasicAddress;
 using BasicAddressSP = iptr<BasicAddress>;
 
-class AddressRotator;
+struct AddressRotator;
 using AddressRotatorSP = iptr<AddressRotator>;
 
-class CachedAddress;
+struct CachedAddress;
 using CachedAddressSP = iptr<CachedAddress>;
 
 struct BasicAddress : virtual Refcnt {
@@ -150,7 +150,7 @@ struct Hints {
 };
 
 struct Hash;
-class Key : public virtual Refcnt {
+struct Key : virtual Refcnt {
     friend Hash;
 
 public:
@@ -293,8 +293,6 @@ struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
 private:
     bool active_;
 };
-
-bool operator<(const ResolveRequest& l, const ResolveRequest& r) { return l.socket < r.socket; }
 
 inline Resolver* get_thread_local_simple_resolver(Loop* loop) {
     thread_local ResolverSP resolver(new Resolver(loop));

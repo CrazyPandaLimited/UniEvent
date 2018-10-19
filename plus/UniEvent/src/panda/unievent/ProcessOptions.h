@@ -1,14 +1,13 @@
 #pragma once
 #include <cstring>
-#include <panda/unievent/inc.h>
-#include <panda/unievent/StdioContainer.h>
+#include "inc.h"
+#include "StdioContainer.h"
 
 namespace panda { namespace unievent {
 
-class Process;
+struct Process;
 
-class ProcessOptions {
-public:
+struct ProcessOptions {
     enum process_flags {
       PROCESS_SETUID = UV_PROCESS_SETUID,
       PROCESS_SETGID = UV_PROCESS_SETGID,

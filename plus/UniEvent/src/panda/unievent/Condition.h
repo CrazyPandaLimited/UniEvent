@@ -1,11 +1,10 @@
 #pragma once
-#include <panda/unievent/Error.h>
-#include <panda/unievent/Mutex.h>
+#include "Error.h"
+#include "Mutex.h"
 
 namespace panda { namespace unievent {
 
-class Condition {
-public:
+struct Condition {
     Condition () {
         int err = uv_cond_init(&handle);
         if (err) throw CodeError(err);

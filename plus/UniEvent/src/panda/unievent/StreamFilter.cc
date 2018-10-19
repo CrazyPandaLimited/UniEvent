@@ -1,6 +1,6 @@
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/TCP.h>
+#include "TCP.h"
+#include "Stream.h"
+#include "StreamFilter.h"
 
 namespace panda { namespace unievent {
 
@@ -42,7 +42,7 @@ void BackStreamFilter::on_connect(const CodeError* err, ConnectRequest* request)
     NextFilter::on_connect(err, request);
 }
 
-void BackStreamFilter::on_connection(Stream* stream, const CodeError* err) {
+void BackStreamFilter::on_connection(StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS("on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
     NextFilter::on_connection(stream, err);
 }
@@ -126,7 +126,7 @@ void FrontStreamFilter::on_connect(const CodeError* err, ConnectRequest* connect
     NextFilter::on_connect(err, connect_request);
 }
 
-void FrontStreamFilter::on_connection(Stream* stream, const CodeError* err) {
+void FrontStreamFilter::on_connection(StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS("on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
     stream->set_connected(!err);
     {

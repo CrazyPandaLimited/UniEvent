@@ -1,7 +1,6 @@
-#include <xs/unievent/XSRequests.h>
-#include <xs/unievent/XSHandles.h>
+#include "XSHandles.h"
+#include "XSRequests.h"
 #include <panda/unievent/UDP.h>
-#include <panda/unievent/Stream.h>
 
 using xs::my_perl;
 using namespace xs::unievent;

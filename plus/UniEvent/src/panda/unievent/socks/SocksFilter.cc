@@ -32,7 +32,7 @@ void SocksFilter::init_parser() {
     noauth = false;
 }
 
-void SocksFilter::on_connection(Stream* stream, const CodeError* err) {
+void SocksFilter::on_connection(StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS("on_connection");
     // socks is a client only filter, so disable for incoming connections
     state(State::terminal);
@@ -48,9 +48,8 @@ void SocksFilter::connect(ConnectRequest* connect_request) {
 
     connect_request_ = static_cast<TCPConnectRequest*>(connect_request);
 
-    resolved_ = connect_request_->resolved_;
-    if (resolved_) {
-        memcpy(&addr_, &connect_request_->addr_, sizeof(connect_request_->addr_));
+    if (connect_request_->sa_) {
+        sa_ = connect_request_->sa_;
     } else {
         int port = stoi(connect_request_->service_);
         if (port <= 0 || port > 65535) {
@@ -89,7 +88,7 @@ void SocksFilter::on_connect(const CodeError* err, ConnectRequest* connect_reque
         return;
     }
 
-    if (socks_->socks_resolve || resolved_) {
+    if (socks_->socks_resolve || sa_) {
         // we have resolved the host or proxy will resolve it for us
         do_handshake();
     } else {
@@ -258,8 +257,7 @@ void SocksFilter::do_resolve() {
                                                       return;
                                                   }
 
-                                                  resolved_ = true;
-                                                  memcpy((char*)&addr_, (char*)(address->head->ai_addr), sizeof(address->head->ai_addr));
+                                                  sa_ = address->head->ai_addr;
                                                   do_handshake();
                                               });
 
@@ -269,7 +267,7 @@ void SocksFilter::do_resolve() {
 void SocksFilter::do_connect() {
     _EDEBUGTHIS("do_connect");
     SocksCommandConnectRequest* socks_command_connect_request;
-    if (resolved_) {
+    if (sa_) {
         socks_command_connect_request = new SocksCommandConnectRequest(
             [=](Stream*, const CodeError* err, WriteRequest*) {
                 _EDEBUGTHIS("command connect callback %d", err ? err->code() : 0);
@@ -280,7 +278,7 @@ void SocksFilter::do_connect() {
 
                 state(State::connect_reply);
             },
-            (sockaddr*)&addr_);
+            sa_);
     } else {
         socks_command_connect_request = new SocksCommandConnectRequest(
             [=](Stream*, const CodeError* err, WriteRequest*) {

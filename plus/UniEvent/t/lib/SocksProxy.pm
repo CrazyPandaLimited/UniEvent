@@ -1,11 +1,8 @@
-package SocksTest;
+package SocksProxy;
 use 5.020;
 use warnings;
-
-#use Test::More;
 use UniEvent;
 use IO::Select;
-use IO::Socket::Socks;
 use IO::Socket::Socks ':constants';
 
 sub set_server {
@@ -21,10 +18,7 @@ sub set_server {
         ReuseAddr       => 1,
     );
 
-    unless ($server) {
-        warn "ERROR: Can not bind to $host:$port";
-        exit(0);
-    }
+    die "ERROR: Can not bind to $host:$port" unless $server;
 
     return $server;
 }
@@ -79,43 +73,30 @@ sub set_client {
     #warn "closed";
 }
 
-sub socks_test {
+sub start {
     my (%args) = @_;
     my $host = $args{host} // "127.0.0.1";
     my $port = $args{port} // UniEvent::find_free_port();
     my $auth = $args{auth} // 1;
     my $user = $args{user} // "user";
     my $pass = $args{pass} // "pass";
-    my $resolve = $args{resolve} // 1;
+    
+    local $SIG{HUP} = sub { warn "EBANAROT" };
  
-    #print "$_ => $args{$_} " foreach (keys%args);
-    #print "\n";
-
     my $pid = fork();
-        die if not defined $pid;
-
-    unless($pid) {
-        my $server = set_server($host, $port, $auth, sub { return $_[0] eq $user && $_[1] eq $pass });
-        my $selector = IO::Select->new($server);
-
-        while (my $cc = $selector->can_read(2)) {
-            set_client($server);
-        }
-        #warn "exit";
-        exit(0);
+    if ($pid) {
+        MyTest::variate_socks_url($auth ? "socks5://$user:$pass\@$host:$port" : "socks5://$host:$port");
+        select undef, undef, undef, 0.05;
+        return $pid;
     }
-
-    if($auth) {
-        $ENV{"PANDA_EVENT_PROXY"} = "socks5://$user:$pass\@$host:$port";
-    } else {
-        $ENV{"PANDA_EVENT_PROXY"} = "socks5://$host:$port";
-    }
-
-    $ENV{"PANDA_EVENT_PROXY_RESOLVE"} = $resolve; 
-
-    sleep(1);
-
-    return $pid;
+    die "could not fork" unless defined $pid;
+    
+    alarm(0);
+    my $server = set_server($host, $port, $auth, sub { return $_[0] eq $user && $_[1] eq $pass });
+    my $selector = IO::Select->new($server);
+    
+    set_client($server) while 1;
+    exit(0);
 }
 
 1;

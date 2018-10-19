@@ -1,12 +1,11 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
 typedef uv_interface_address_t interface_address_t;
 
-class InterfaceInfo {
-public:
+struct InterfaceInfo {
     InterfaceInfo () : addresses(nullptr), cnt(0) {
         refresh();
     }

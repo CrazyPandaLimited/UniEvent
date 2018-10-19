@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class Poll : public virtual Handle {
-public:
+struct Poll : virtual Handle {
     using poll_fptr = void(Poll* handle, int events, const CodeError* err);
     using poll_fn = panda::function<poll_fptr>;
     

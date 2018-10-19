@@ -19,7 +19,7 @@ public:
     
     StreamFilterSP clone() const override { return StreamFilterSP(new SSLFilter(handle, SSL_get_SSL_CTX(ssl))); };
 
-    void on_connection (Stream*, const CodeError*) override;
+    void on_connection (StreamSP, const CodeError*) override;
     void on_connect    (const CodeError*, ConnectRequest*) override;
     void write         (WriteRequest*) override;
     void on_write      (const CodeError* err, WriteRequest* req) override;

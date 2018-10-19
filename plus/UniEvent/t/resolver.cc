@@ -6,12 +6,12 @@
 std::string dump(addrinfo* ai) {
     std::stringstream ss;
     for(auto current = ai; current; current = current->ai_next) {
-        ss << to_string(current) << "\n";
+        ss << SockAddr(ai->ai_addr) << "\n";
     }
     return ss.str();
 }
 
-TEST_CASE("basic resolver", "[panda-event][resolver]") {
+TEST_CASE("basic resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     ResolverSP resolver{new Resolver(test.loop)};
     ResolveRequestSP request = resolver->resolve(test.loop, 
@@ -25,7 +25,7 @@ TEST_CASE("basic resolver", "[panda-event][resolver]") {
     test.await(request->event, "resolved");
 }
 
-TEST_CASE("cached resolver", "[panda-event][resolver]") {
+TEST_CASE("cached resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     CachedResolverSP resolver{new CachedResolver(test.loop)};
     // it is not in cache, async call
@@ -53,7 +53,7 @@ TEST_CASE("cached resolver", "[panda-event][resolver]") {
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, same hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
     CachedResolverSP resolver(new CachedResolver(test.loop));
 
@@ -86,7 +86,7 @@ TEST_CASE("cached resolver, same hints", "[panda-event][resolver]") {
     REQUIRE(called);
 }
 
-TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, with hints and without hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
     CachedResolverSP resolver(new CachedResolver(test.loop));
 
@@ -115,7 +115,7 @@ TEST_CASE("cached resolver, with hints and without hints", "[panda-event][resolv
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("cached resolver, with hints and with different hints", "[panda-event][resolver]") {
+TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") {
     test::AsyncTest test(500, {"resolved1", "resolved2"});
     CachedResolverSP resolver(new CachedResolver(test.loop));
 
@@ -145,12 +145,12 @@ TEST_CASE("cached resolver, with hints and with different hints", "[panda-event]
     test.await(request2->event, "resolved2");
 }
 
-TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
+TEST_CASE("standalone cached resolver", "[resolver]") {
     test::AsyncTest test(500, {"resolved"});
 
     CachedResolverSP resolver(new CachedResolver(test.loop));
 
-    addrinfo* addrinfo1;
+    SockAddr addr1;
     ResolveRequestSP request1 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
@@ -158,15 +158,13 @@ TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
             [&](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
-                addrinfo1 = address->head;
+                addr1 = address->head->ai_addr;
             });
 
     test.await(request1->event, "resolved");
 
-    string addr1 = to_string(addrinfo1);
-
     bool called = false;
-    addrinfo* addrinfo2;
+    SockAddr addr2;
     ResolveRequestSP request2 = resolver->resolve(test.loop,
             "yandex.ru",
             "80",
@@ -174,20 +172,18 @@ TEST_CASE("standalone cached resolver", "[panda-event][resolver]") {
             [&](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err){
                 REQUIRE(!err);
                 CHECK(address->head);
-                addrinfo2 = address->head;
+                addr2 = address->head->ai_addr;
                 called = true;
             });
 
     REQUIRE(called);
-
-    string addr2 = to_string(addrinfo2);
 
     // cached or not - the result is the same
     // will rotate for tcp connection only
     REQUIRE(addr1 == addr2);
 }
 
-TEST_CASE("rotator", "[panda-event][resolver]") {
+TEST_CASE("rotator", "[resolver]") {
     int size = 10;
     addrinfo ai[size];
     for(auto i=0;i<size;++i) {
@@ -210,7 +206,7 @@ TEST_CASE("rotator", "[panda-event][resolver]") {
     REQUIRE(result.size() == size);
 }
 
-TEST_CASE("cached resolver limit", "[panda-event][resolver]") {
+TEST_CASE("cached resolver limit", "[resolver]") {
     size_t LIMIT = 2;
     LoopSP loop(new Loop);
     CachedResolverSP resolver(new CachedResolver(loop, 500, LIMIT));

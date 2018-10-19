@@ -1,4 +1,4 @@
-#include <panda/unievent/Barrier.h>
+#include "Barrier.h"
 using namespace panda::unievent;
 
 int Barrier::wait () { return uv_barrier_wait(&handle); }

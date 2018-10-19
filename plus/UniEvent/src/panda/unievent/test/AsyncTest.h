@@ -89,6 +89,21 @@ public:
         return result;
     }
 
+    template <typename Ret, typename... Args>
+    void await (const std::vector<CallbackDispatcher<Ret(Args...)>*>& v, string event = "") {
+        size_t cnt = v.size();
+
+        auto action = [&]() {
+            if (--cnt) return;
+            loop->stop();
+            happens(event);
+        };
+
+        for (auto d : v) wrap_dispatcher(*d, action);
+
+        run();
+    }
+
     template <typename... Dispatchers>
     void await_multi(Dispatchers&... dispatchers) {
         size_t counter = sizeof...(dispatchers);

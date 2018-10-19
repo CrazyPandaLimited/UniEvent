@@ -1,8 +1,8 @@
 #pragma once
-#include <xs/unievent/error.h>
-#include <xs/unievent/XSCallback.h>
-#include <panda/unievent/Request.h>
+#include "error.h"
+#include "XSCallback.h"
 #include <panda/unievent/TCP.h>
+#include <panda/unievent/Request.h>
 
 namespace xs { namespace unievent {
 
@@ -11,8 +11,7 @@ using namespace panda::unievent;
 
 // The following classes are not visible from perl, XS wrappers are just needed for holding perl callback
 
-class XSConnectRequest : public ConnectRequest {
-public:
+struct XSConnectRequest : ConnectRequest {
     XSCallback xscb;
     XSConnectRequest (pTHX_ SV* callback) : ConnectRequest(callback ? _cb : connect_fn(nullptr)) {
         xscb.set(callback);
@@ -21,12 +20,11 @@ private:
     static void _cb (Stream* handle, const CodeError* err, ConnectRequest* req);
 };
 
-class XSTCPConnectRequest : public TCPConnectRequest {
-public:
+struct XSTCPConnectRequest : TCPConnectRequest {
     XSCallback xscb;
 
     XSTCPConnectRequest(bool            reconnect,
-                        const sockaddr* sa,
+                        const SockAddr& sa,
                         const string&   host,
                         const string&   service,
                         const addrinfo* hints,
@@ -54,8 +52,7 @@ private:
 };
 
 
-class XSShutdownRequest : public ShutdownRequest {
-public:
+struct XSShutdownRequest : ShutdownRequest {
     XSCallback xscb;
     XSShutdownRequest (pTHX_ SV* callback) : ShutdownRequest(callback ? _cb : shutdown_fn(nullptr)) {
         xscb.set(callback);
@@ -65,8 +62,7 @@ private:
 };
 
 
-class XSWriteRequest : public WriteRequest {
-public:
+struct XSWriteRequest : WriteRequest {
     XSCallback xscb;
     XSWriteRequest (pTHX_ SV* callback) : WriteRequest(callback ? _cb : write_fn(nullptr)) {
         xscb.set(callback);
@@ -76,8 +72,7 @@ private:
 };
 
 
-class XSSendRequest : public SendRequest {
-public:
+struct XSSendRequest : SendRequest {
     XSCallback xscb;
     XSSendRequest (pTHX_ SV* callback) : SendRequest(callback ? _cb : send_fn(nullptr)) {
         xscb.set(callback);

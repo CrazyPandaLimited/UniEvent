@@ -1,12 +1,11 @@
-
 #include <chrono>
 #include <algorithm>
 
-#include <panda/unievent/Stream.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/ssl/SSLFilter.h>
-#include <panda/unievent/Timer.h>
-#include <panda/unievent/Prepare.h>
+#include "Timer.h"
+#include "Stream.h"
+#include "Prepare.h"
+#include "StreamFilter.h"
+#include "ssl/SSLFilter.h"
 
 namespace panda { namespace unievent {
 
@@ -100,7 +99,7 @@ void Stream::accept () {
     accept(on_create_connection());
 }
 
-void Stream::accept (Stream* stream) {
+void Stream::accept (const StreamSP& stream) {
     _EDEBUGTHIS("accept %p", stream);
     stream->retain();
     // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
@@ -276,7 +275,7 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
     }
 }
 
-void Stream::on_connection (Stream* stream, const CodeError* err) {
+void Stream::on_connection (StreamSP stream, const CodeError* err) {
     connection_event(this, stream, err);
 }
 

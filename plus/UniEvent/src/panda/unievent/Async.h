@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class Async : public virtual Handle {
-public:
+struct Async : virtual Handle {
     typedef function<void(Async* handle)> async_fn;
     
     async_fn async_callback;

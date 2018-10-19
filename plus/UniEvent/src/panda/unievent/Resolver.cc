@@ -30,7 +30,7 @@ Resolver::Resolver(Loop* loop) : loop(loop) {
 void Resolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
     Resolver* resolver = static_cast<Resolver*>(data);
     auto pos = resolver->requests.find(sock);
-    ResolveRequest* resolve_request = (pos == std::end(resolver->requests)) ? nullptr : *pos; 
+    ResolveRequest* resolve_request = (pos == std::end(resolver->requests)) ? nullptr : pos->second; 
     
     _EDEBUG("resolver:%p resolve_request:%p sock:%d read:%d write:%d", resolver, resolve_request, sock, read, write);
 

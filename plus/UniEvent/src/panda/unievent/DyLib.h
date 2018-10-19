@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class DyLib {
-public:
+struct DyLib {
     DyLib () : opened(false) {}
 
     virtual void  open (const char* filename);

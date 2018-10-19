@@ -1,12 +1,11 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
 typedef uv_cpu_info_t cpu_info_t;
 
-class CPUInfo {
-public:
+struct CPUInfo {
     CPUInfo () : cnt(0), cpu_infos(nullptr) { refresh(); }
 
     virtual void refresh ();

@@ -1,11 +1,10 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 #include <signal.h>
 
 namespace panda { namespace unievent {
 
-class Signal : public virtual Handle {
-public:
+struct Signal : virtual Handle {
     using signal_fptr = void(Signal* handle, int signum);
     using signal_fn = function<signal_fptr>;
     

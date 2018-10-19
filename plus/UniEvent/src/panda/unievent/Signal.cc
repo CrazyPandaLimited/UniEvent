@@ -1,4 +1,4 @@
-#include <panda/unievent/Signal.h>
+#include "Signal.h"
 using namespace panda::unievent;
 
 string Signal::_signames[NSIG];

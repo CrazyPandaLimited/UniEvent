@@ -1,4 +1,4 @@
-#include <xs/unievent/XSHandles.h>
+#include "XSHandles.h"
 
 namespace xs { namespace unievent {
 
@@ -106,10 +106,10 @@ void XSSignal::on_signal (int signum) {
     if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 }
 
-void XSStream::on_connection (Stream* stream, const CodeError* err) {
+void XSStream::on_connection (StreamSP stream, const CodeError* err) {
     _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(aTHX_ this);
-    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream), xs::out(err) })) Stream::on_connection(stream, err);
+    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream.get()), xs::out(err) })) Stream::on_connection(stream, err);
 }
 
 void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {
@@ -145,11 +145,11 @@ void XSStream::on_eof () {
     if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
 }
 
-void XSUDP::on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
+void XSUDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
     auto obj = xs::out<UDP*>(aTHX_ this);
     if (!receive_xscb.call(obj, evname_on_receive, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-        xs::out(const_cast<sockaddr*>(sa)),
+        xs::out(&sa),
         Simple(flags),
         xs::out(err)
     })) UDP::on_receive(buf, sa, flags, err);

@@ -1,15 +1,14 @@
 #pragma once
+#include "Error.h"
 #include <functional>
-#include <panda/CallbackDispatcher.h>
 #include <panda/refcnt.h>
-#include <panda/unievent/Error.h>
+#include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent {
 
-class Handle;
+struct Handle;
 
-class Loop : public virtual panda::Refcnt {
-public:
+struct Loop : virtual panda::Refcnt {
     using walk_fn = function<void(Handle* event)>;
 
     Loop ();

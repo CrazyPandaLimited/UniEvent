@@ -1,15 +1,14 @@
 #pragma once
-
-#include <panda/unievent/Error.h>
-#include <panda/unievent/IntrusiveChain.h>
-#include <panda/unievent/Request.h>
+#include "Error.h"
+#include "Request.h"
+#include "IntrusiveChain.h"
 
 namespace panda { namespace unievent {
 
-class Stream;
+struct Stream;
+using StreamSP = iptr<Stream>;
 
-template <class T> class BasicForwardFilter {
-public:
+template <class T> struct BasicForwardFilter {
     virtual void connect(ConnectRequest* connect_request) {
         if (self().next_)
             self().next_->connect(connect_request);
@@ -24,9 +23,8 @@ private:
     T& self() { return static_cast<T&>(*this); }
 };
 
-template <class T> class BasicReverseFilter {
-public:
-    virtual void on_connection(Stream* stream, const CodeError* err) {
+template <class T> struct BasicReverseFilter {
+    virtual void on_connection(StreamSP stream, const CodeError* err) {
         if (self().prev_)
             self().prev_->on_connection(stream, err);
     }
@@ -65,13 +63,11 @@ private:
     T& self() { return static_cast<T&>(*this); }
 };
 
-class StreamFilter : public BasicForwardFilter<StreamFilter>,
-                     public BasicReverseFilter<StreamFilter>,
-                     public virtual Refcnt,
-                     public IntrusiveChainNode<iptr<StreamFilter>> {
-    friend Stream;
-
-public:
+struct StreamFilter : BasicForwardFilter<StreamFilter>,
+                      BasicReverseFilter<StreamFilter>,
+                      virtual Refcnt,
+                      IntrusiveChainNode<iptr<StreamFilter>>
+{
     static const char* TYPE;
 
     virtual bool is_secure();
@@ -90,14 +86,15 @@ protected:
     void set_shutdown(bool success);
 
 protected:
+    friend Stream;
+
     Stream*     handle;
     const char* type_;
 };
 
 using StreamFilterSP = panda::iptr<StreamFilter>;
 
-class FrontStreamFilter : public StreamFilter, public AllocatedObject<FrontStreamFilter, true> {
-public:
+struct FrontStreamFilter : StreamFilter, AllocatedObject<FrontStreamFilter, true> {
     static const char* TYPE;
 
     virtual ~FrontStreamFilter();
@@ -105,7 +102,7 @@ public:
 
     StreamFilterSP clone() const override { return StreamFilterSP(new FrontStreamFilter(handle)); };
 
-    void on_connection(Stream* stream, const CodeError* err) override;
+    void on_connection(StreamSP stream, const CodeError* err) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;
     void write(WriteRequest* write_request) override;
@@ -116,8 +113,7 @@ public:
     void on_reinit() override;
 };
 
-class BackStreamFilter : public StreamFilter, public AllocatedObject<BackStreamFilter, true> {
-public:
+struct BackStreamFilter : StreamFilter, AllocatedObject<BackStreamFilter, true> {
     static const char* TYPE;
 
     virtual ~BackStreamFilter();
@@ -125,7 +121,7 @@ public:
 
     StreamFilterSP clone() const override { return StreamFilterSP(new BackStreamFilter(handle)); };
 
-    void on_connection(Stream* stream, const CodeError* err) override;
+    void on_connection(StreamSP stream, const CodeError* err) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;
     void write(WriteRequest* write_request) override;

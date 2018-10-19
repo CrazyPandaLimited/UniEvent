@@ -1,12 +1,11 @@
 #pragma once
 #include <xs.h>
-#include <xs/unievent/XSCallback.h>
+#include "XSCallback.h"
 #include <panda/unievent/Command.h>
 
 namespace xs { namespace unievent {
 
-class XSCommandCallback : public panda::unievent::CommandCallback {
-public:
+struct XSCommandCallback : panda::unievent::CommandCallback {
     XSCallback xscb;
     SV* handle_rv;
 

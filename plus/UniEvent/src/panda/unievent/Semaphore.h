@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Error.h>
+#include "Error.h"
 
 namespace panda { namespace unievent {
 
-class Semaphore {
-public:
+struct Semaphore {
     Semaphore (unsigned int value) {
         int err = uv_sem_init(&handle, value);
         if (err) throw CodeError(err);

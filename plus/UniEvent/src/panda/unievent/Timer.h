@@ -1,14 +1,14 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class Timer;
+struct Timer;
 using TimerSP = iptr<Timer>;
 
 // All the values are in milliseconds.
-class Timer : public virtual Handle, public AllocatedObject<Timer> {
-public:
+struct Timer : virtual Handle, AllocatedObject<Timer> {
     using timer_fptr = void(Timer* handle);
     using timer_fn = function<timer_fptr>;
     
@@ -31,8 +31,8 @@ public:
 
     void reset () override;
 
-    static TimerSP once(uint64_t initial, timer_fn cb,  Loop* loop = Loop::default_loop());
-    static TimerSP start(uint64_t repeat, timer_fn cb, Loop* loop = Loop::default_loop());
+    static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
+    static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
 
 protected:
     virtual void on_timer ();

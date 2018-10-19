@@ -1,8 +1,8 @@
-#include "lib/test.h"
+#include "../lib/test.h"
 
 TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {"error"});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
 //    TCPSP server = make_server(port, test.loop);
 
     TCPSP client = make_client(test.loop);
@@ -31,7 +31,7 @@ TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("write to closed socket", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {"error"});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server = make_server(port, test.loop);
 
     TCPSP client = make_client(test.loop);
@@ -72,8 +72,8 @@ TEST_CASE("write to closed socket", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("immediate disconnect", "[panda-event][tcp][ssl]") {
     AsyncTest test(500, {});
-    in_port_t port1 = find_free_port();
-    in_port_t port2 = find_free_port();
+    uint16_t port1 = find_free_port();
+    uint16_t port2 = find_free_port();
     TCPSP server1;
     TCPSP server2;
     SECTION ("no server") {
@@ -124,7 +124,7 @@ TEST_CASE("immediate disconnect", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("immediate client reset", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {"error"});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server;
     SECTION ("no server") {
     }
@@ -146,7 +146,7 @@ TEST_CASE("immediate client reset", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("immediate client write reset", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server = make_server(port, test.loop);
     TCPSP client = make_client(test.loop);
     
@@ -164,7 +164,7 @@ TEST_CASE("immediate client write reset", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("reset accepted connection", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server = make_server(port, test.loop);
     TCPSP client = make_client(test.loop);
     
@@ -181,7 +181,7 @@ TEST_CASE("reset accepted connection", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("try use server without certificate 1", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server = new TCP(test.loop);
     server->bind("localhost", panda::to_string(port));
     server->listen(1);
@@ -190,7 +190,7 @@ TEST_CASE("try use server without certificate 1", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("try use server without certificate 2", "[panda-event][tcp][ssl]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP server = new TCP(test.loop);
     server->bind("localhost", panda::to_string(port));
     server->use_ssl();
@@ -199,7 +199,7 @@ TEST_CASE("try use server without certificate 2", "[panda-event][tcp][ssl]") {
 
 TEST_CASE("server read", "[panda-event][tcp][ssl][socks]") {
     AsyncTest test(2000, {});
-    in_port_t port = find_free_port();
+    uint16_t port = find_free_port();
     TCPSP client = make_client(test.loop);
     TCPSP server = make_server(port, test.loop);
    
