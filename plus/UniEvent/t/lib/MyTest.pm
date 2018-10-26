@@ -11,6 +11,8 @@ use File::Path qw/make_path remove_tree/;
 
 XS::Loader::load_tests('MyTest');
 
+$SIG{PIPE} = 'IGNORE';
+
 my $rdir = "t/var/$$";
 my $have_time_hires = eval "require Time::HiRes; 1;";
 my $last_time_mark;
@@ -32,7 +34,7 @@ sub import {
 
     my $caller = caller();
     foreach my $sym_name (qw/
-        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan variate
+        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan variate variate_catch
         var create_file create_dir move change_file_mtime change_file unlink_file remove_dir subtest new_ok dies_ok catch_run
     /) {
         no strict 'refs';
@@ -85,6 +87,17 @@ sub variate {
         kill INT => $has_socks;
         waitpid($has_socks, 0);
     }
+}
+
+sub variate_catch {
+    my ($catch_name, @names) = @_;
+    variate(@names, sub {
+        my $add = '';
+        foreach my $name (@names) {
+            $add .= "[v-$name]" if MyTest->can("variate_$name")->();
+        }
+        catch_run($catch_name.$add);
+    });
 }
 
 sub var ($) { return "$rdir/$_[0]" }

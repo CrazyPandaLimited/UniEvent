@@ -17,8 +17,6 @@ using panda::net::SockAddr;
 
 constexpr bool use_cached_resolver_by_default = true;
 
-uint16_t find_free_port();
-
 struct addrinfo_deleter {
     void operator() (addrinfo* ptr) {
         if (ptr != nullptr) freeaddrinfo(ptr);
@@ -241,7 +239,5 @@ struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBui
 private:
     TCP* tcp_;
 };
-
-uint16_t find_free_port();
 
 }}

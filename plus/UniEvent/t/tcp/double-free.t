@@ -5,27 +5,39 @@ use Net::SockAddr;
 
 alarm(100);
 
-plan skip_all => 'set WITH_LEAKS=1 to enable' unless $ENV{WITH_LEAKS};
-
 my $loop = UniEvent::Loop->default_loop;
+my $srv = UniEvent::TCP->new($loop);
+$srv->bind("localhost", 0);
+$srv->listen(128);
+
+my $connected;
+$srv->connection_callback(sub {
+    my ($self, $cli, $err) = @_;
+    fail $err if $err;
+    $connected++;
+});
 
 my $counter = 0;
 
-my $t = UniEvent::Timer->new;
-$t->timer_callback(sub {
+my $t = UniEvent::Prepare->new;
+$t->prepare_callback(sub {
     my $cl = new UniEvent::TCP;
-    $cl->connect('google.com', 80, 0, undef, sub {
+    $cl->connect($srv->get_sockaddr, sub {
         my ($handler, $err) = @_;
         fail $err if $err;
-        return $t->stop if ++$counter == 1000;
+        if (++$counter == 1000) {
+            $t->stop;
+            $srv->reset;
+            return;
+        }
         $cl->write('GET /gcm/send HTTP/1.0\r\n\r\n', sub { $_[0]->disconnect; });
     });
 });
 
-$t->start(0.01);
+$t->start;
 
 $loop->run;
 
-pass();
+is($connected, 1000);
 
 done_testing();

@@ -20,22 +20,22 @@ SSL_CTX* get_ssl_ctx() {
     return ctx;
 }
 
-TCPSP make_basic_server (uint16_t port, Loop* loop) {
+TCPSP make_basic_server (Loop* loop, const SockAddr& sa) {
     TCPSP server = new TCP(loop);
-    server->bind("localhost", panda::to_string(port));
+    server->bind(sa);
     server->listen(1);
     return server;
 }
 
-TCPSP make_socks_server (uint16_t port, iptr<Loop> loop) {
+TCPSP make_socks_server (LoopSP loop, const SockAddr& sa) {
     TCPSP server = new TCP(loop);
-    server->bind("localhost", panda::to_string(port));
-    server->listen(1);
-    server->connection_event.add([port](Stream* server, iptr<Stream> stream, const CodeError* err) {
+    server->bind(sa);
+    server->listen(128);
+    server->connection_event.add([](Stream* server, StreamSP stream, const CodeError* err) {
         assert(!err);
         std::shared_ptr<int> state = std::make_shared<int>(0);
         TCPSP client = new TCP(server->loop());
-        read(stream, [client, state](iptr<Stream> stream, const string& buf, const CodeError* err) {
+        read(stream, [client, state](StreamSP stream, const string& buf, const CodeError* err) {
             _EDUMP(buf, (int)buf.length(), 100);
             assert(!err);
             switch (*state) {
@@ -81,9 +81,9 @@ TCPSP make_socks_server (uint16_t port, iptr<Loop> loop) {
     return server;
 }
 
-TCPSP make_server (uint16_t port, Loop* loop) {
+TCPSP make_server (Loop* loop, const SockAddr& sa) {
     TCPSP server = new TCP(loop);
-    server->bind("localhost", panda::to_string(port));
+    server->bind(sa);
     if (variation.ssl) server->use_ssl(get_ssl_ctx());
     server->listen(10000);
     return server;

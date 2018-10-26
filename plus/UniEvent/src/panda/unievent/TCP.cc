@@ -4,9 +4,7 @@
 
 namespace panda { namespace unievent {
 
-namespace {
-
-addrinfo init_default_hints() {
+static addrinfo init_default_hints() {
     addrinfo ret;
     memset(&ret, 0, sizeof(ret));
     ret.ai_family   = PF_UNSPEC;
@@ -15,53 +13,7 @@ addrinfo init_default_hints() {
     return ret;
 }
 
-uint16_t getenv_free_port() {
-    const char*      env     = getenv("UNIEVENT_FREE_PORT");
-    static uint16_t env_int = env ? atoi(env) : 0;
-    return env_int;
-}
-
-uint16_t any_free_port(Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    test->bind("localhost", "0");
-    auto sa = test->get_sockaddr();
-    auto port = sa.is_inet4() ? sa.inet4().port() : sa.inet6().port();
-    test.reset();
-    loop->run_nowait();
-    if (port > 1024) {
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
-
-bool check_if_free(uint16_t port, Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    try {
-        test->bind("localhost", panda::to_string(port));
-        test.reset();
-        loop->run_nowait();
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-} // namespace
-
 addrinfo TCP::defhints = init_default_hints();
-
-uint16_t find_free_port() {
-    thread_local iptr<Loop> loop(new Loop);
-    static uint16_t port = getenv_free_port();
-    if (port) {
-        while (!check_if_free(port++, loop)) {
-        }
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
 
 TCP::~TCP() { _EDTOR(); _EDEBUG("~TCP: %p", static_cast<Handle*>(this)); }
 

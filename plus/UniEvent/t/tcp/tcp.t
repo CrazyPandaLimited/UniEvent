@@ -3,7 +3,7 @@ use lib 't/lib';
 use MyTest;
 use Test::Catch;
 
-variate_catch('[tcp-connect-timeout]', qw/ssl socks/);
+variate_catch('[tcp]', qw/ssl socks buf/);
 
 done_testing();
  

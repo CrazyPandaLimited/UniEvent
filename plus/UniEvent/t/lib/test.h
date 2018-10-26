@@ -18,9 +18,9 @@ struct Variation {
 
 extern Variation variation;
 
-TCPSP make_basic_server (uint16_t port, Loop* loop);
-TCPSP make_socks_server (uint16_t port, LoopSP loop);
-TCPSP make_server       (uint16_t port, Loop* loop);
+TCPSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TCPSP make_socks_server (LoopSP loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TCPSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 TCPSP make_client       (Loop* loop, bool cached_resolver = true);
 
 SSL_CTX* get_ssl_ctx ();
