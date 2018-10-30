@@ -54,7 +54,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void reconnect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints = nullptr);
 
-    void connect_internal(TCPConnectRequest* connect_request);
+    void do_connect(TCPConnectRequest* connect_request);
 
     using Stream::use_ssl;
     void use_ssl(const SSL_METHOD* method = nullptr) override;

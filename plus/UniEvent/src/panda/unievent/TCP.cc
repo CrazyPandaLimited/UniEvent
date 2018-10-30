@@ -80,34 +80,30 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
     freeaddrinfo(res);
 }
 
-void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
-    if (!tcp_connect_request->sa_) {
-        _EDEBUGTHIS("connect_internal, resolving %p", tcp_connect_request);
+void TCP::do_connect(TCPConnectRequest* req) {
+    if (!req->sa_) {
+        _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolve_request =
-                resolver->resolve(loop(), tcp_connect_request->host_, tcp_connect_request->service_, &tcp_connect_request->hints_,
-                                  [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
-                                      _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                                      if (err) {
-                                          int errcode = err->code();
-                                          Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(errcode), tcp_connect_request); }, loop());
-                                          return;
-                                      }
-
-                                      tcp_connect_request->sa_ = address->head->ai_addr;
-
-                                      connect_internal(tcp_connect_request);
-                                  });
+            resolve_request = resolver->resolve(loop(), req->host_, req->service_, &req->hints_, [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
+                _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
+                if (err) {
+                    int errcode = err->code();
+                    Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
+                    return;
+                }
+                req->sa_ = address->head->ai_addr;
+                do_connect(req);
+            });
             return;
         } catch (...) {
-            Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(ERRNO_RESOLVE), tcp_connect_request); }, loop());
+            Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
             return;
         }
     }
     
-    int err = uv_tcp_connect(_pex_(tcp_connect_request), &uvh, tcp_connect_request->sa_.get(), Stream::uvx_on_connect);
+    int err = uv_tcp_connect(_pex_(req), &uvh, req->sa_.get(), Stream::uvx_on_connect);
     if (err) {
-        Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(err), tcp_connect_request); }, loop());
+        Prepare::call_soon([=] { filters_.on_connect(CodeError(err), req); }, loop());
         return;
     }
 }
@@ -145,7 +141,7 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
                                                     loop()));
     }
 
-    call_filters(&StreamFilter::connect, tcp_connect_request);    
+    filters_.connect(tcp_connect_request);
 }
 
 void TCP::connect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints) {
@@ -185,7 +181,7 @@ void TCP::use_ssl (const SSL_METHOD* method) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // insert right after default front filter if there are no other filters
-        filters_.insert(++filters_.begin(), new ssl::SSLFilter(this, method));
+        filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
     } else {
         // insert before socks as socks has its own auth encryption methods
         filters_.insert(pos, new ssl::SSLFilter(this, method));
@@ -200,7 +196,7 @@ void TCP::use_socks(const SocksSP& socks) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // always insert socks as last (before default back) filter
-        filters_.insert(--filters_.end(), new socks::SocksFilter(this, socks));
+        filters_.insert(filters_.end(), new socks::SocksFilter(this, socks));
     } else {
         filters_.insert(filters_.erase(pos), new socks::SocksFilter(this, socks));
     }

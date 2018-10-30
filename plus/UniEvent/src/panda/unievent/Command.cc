@@ -19,7 +19,7 @@ CommandConnect::CommandConnect(TCP* tcp, TCPConnectRequest* tcp_connect_request)
 void CommandConnect::cancel() {
     tcp->retain(); //
     tcp_connect_request->retain(); // because no 'connect' ever called
-    tcp->get_front_filter()->on_connect(CodeError(ERRNO_ECANCELED), tcp_connect_request);
+    tcp->do_on_connect(CodeError(ERRNO_ECANCELED), tcp_connect_request);
 }
 
 void CommandConnect::run() { tcp->connect(tcp_connect_request); }
@@ -35,7 +35,7 @@ void CommandConnectPipe::run () {
 void CommandConnectPipe::cancel () {
     pipe->retain(); //
     req->retain(); // because no 'connect' ever called
-    pipe->get_front_filter()->on_connect(CodeError(ERRNO_ECANCELED), req);
+    pipe->do_on_connect(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandConnectPipe::~CommandConnectPipe () {
@@ -49,7 +49,7 @@ void CommandWrite::run () {
 void CommandWrite::cancel () {
     stream->retain(); // because no 'write' ever called
     req->retain();    //
-    stream->get_front_filter()->on_write(CodeError(ERRNO_ECANCELED), req);
+    stream->do_on_write(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandWrite::~CommandWrite () {
@@ -63,7 +63,7 @@ void CommandShutdown::run () {
 void CommandShutdown::cancel () {
     stream->retain();
     req->retain();
-    stream->get_front_filter()->on_shutdown(CodeError(ERRNO_ECANCELED), req);
+    stream->do_on_shutdown(CodeError(ERRNO_ECANCELED), req);
 }
 
 CommandShutdown::~CommandShutdown () {

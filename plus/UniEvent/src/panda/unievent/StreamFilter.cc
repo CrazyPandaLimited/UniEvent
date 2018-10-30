@@ -4,189 +4,117 @@
 
 namespace panda { namespace unievent {
 
+void StreamFilters::connect (ConnectRequest* req) {
+    if (size()) front()->connect(req);
+    else        dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
+}
+
+void StreamFilters::on_connect (const CodeError* err, ConnectRequest* req) {
+    if (size()) back()->on_connect(err, req);
+    else        handle->do_on_connect(err, req);
+}
+
+void StreamFilters::on_connection (StreamSP stream, const CodeError* err) {
+    if (size()) back()->on_connection(stream, err);
+    else        handle->do_on_connection(stream, err);
+}
+
+void StreamFilters::write (WriteRequest* req) {
+    if (size()) front()->write(req);
+    else        handle->do_write(req);
+}
+
+void StreamFilters::on_write (const CodeError* err, WriteRequest* req) {
+    if (size()) back()->on_write(err, req);
+    else        handle->do_on_write(err, req);
+}
+
+void StreamFilters::on_read (string& buf, const CodeError* err) {
+    if (size()) back()->on_read(buf, err);
+    else        handle->do_on_read(buf, err);
+}
+
+void StreamFilters::on_shutdown (const CodeError* err, ShutdownRequest* req) {
+    if (size()) back()->on_shutdown(err, req);
+    else        handle->do_on_shutdown(err, req);
+
+}
+
+void StreamFilters::on_eof () {
+    if (size()) back()->on_eof();
+    else        handle->do_on_eof();
+}
+
 const char* StreamFilter::TYPE = "EMPTY";
 
-StreamFilter::~StreamFilter() {}
+StreamFilter::StreamFilter (Stream* h, const char* type = TYPE) : handle(h), type_(type) {}
 
-StreamFilter::StreamFilter(Stream* h, const char* type = TYPE) : handle(h), type_(type) {}
-
-void StreamFilter::set_connecting() { handle->set_connecting(); }
-
-void StreamFilter::set_connected(bool success) { handle->set_connected(success); }
-
-void StreamFilter::set_shutdown(bool success) { handle->set_shutdown(success); }
-
-bool StreamFilter::is_secure() { return false; }
-
-CodeError StreamFilter::temp_read_start() { return handle->_read_start(); }
-
-void StreamFilter::restore_read_start() {
-    if (!handle->wantread())
-        handle->read_stop();
+void StreamFilter::set_connecting () {
+    handle->set_connecting();
 }
 
-const char* BackStreamFilter::TYPE = "BACK";
-
-BackStreamFilter::~BackStreamFilter() {}
-
-BackStreamFilter::BackStreamFilter(Stream* stream) : StreamFilter(stream, TYPE) {}
-
-void BackStreamFilter::connect(ConnectRequest* request) {
-    _EDEBUGTHIS("connect");
-    dyn_cast<TCP*>(handle)->connect_internal(static_cast<TCPConnectRequest*>(request));
-    NextFilter::connect(request);
+void StreamFilter::set_connected (bool success) {
+    handle->set_connected(success);
 }
 
-void BackStreamFilter::on_connect(const CodeError* err, ConnectRequest* request) {
-    _EDEBUGTHIS("on_connect, err: %d", err ? err->code() : 0);
-    NextFilter::on_connect(err, request);
+void StreamFilter::set_shutdown (bool success) {
+    handle->set_shutdown(success);
 }
 
-void BackStreamFilter::on_connection(StreamSP stream, const CodeError* err) {
-    _EDEBUGTHIS("on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
-    NextFilter::on_connection(stream, err);
+bool StreamFilter::is_secure () {
+    return false;
 }
 
-void BackStreamFilter::on_read(string& buf, const CodeError* err) {
-    _EDEBUGTHIS("on_read, err: %d", err ? err->code() : 0);
-    NextFilter::on_read(buf, err);
+CodeError StreamFilter::temp_read_start () {
+    return handle->_read_start();
 }
 
-void BackStreamFilter::write(WriteRequest* request) {
-    _EDEBUGTHIS("write, handle: %p, request: %p", handle, request);
-    handle->do_write(request);
-    NextFilter::write(request);
+void StreamFilter::restore_read_start () {
+    if (!handle->wantread()) handle->read_stop();
 }
 
-void BackStreamFilter::on_write(const CodeError* err, WriteRequest* request) {
-    _EDEBUGTHIS("on_write, err: %d, stream: %p", err ? err->code() : 0, handle);
-    NextFilter::on_write(err, request);
+void StreamFilter::connect (ConnectRequest* req) {
+    if (next_) next_->connect(req);
+    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
 }
 
-void BackStreamFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_request) {
-    _EDEBUGTHIS("on_shutdown");
-    NextFilter::on_shutdown(err, shutdown_request);
+void StreamFilter::on_connect (const CodeError* err, ConnectRequest* req) {
+    if (prev_) prev_->on_connect(err, req);
+    else       handle->do_on_connect(err, req);
 }
 
-void BackStreamFilter::on_eof() {
-    _EDEBUGTHIS("on_eof");
-    NextFilter::on_eof();
+void StreamFilter::on_connection (StreamSP stream, const CodeError* err) {
+    if (prev_) prev_->on_connection(stream, err);
+    else       handle->do_on_connection(stream, err);
 }
 
-void BackStreamFilter::on_reinit() {
-    _EDEBUGTHIS("on_reinit");
-    bool wanted_read = handle->wantread();
-    handle->Handle::on_handle_reinit();
-    if (wanted_read) handle->set_wantread();
-    NextFilter::on_reinit();
+void StreamFilter::write (WriteRequest* req) {
+    if (next_) next_->write(req);
+    else       handle->do_write(req);
 }
 
-const char* FrontStreamFilter::TYPE = "FRONT";
-
-FrontStreamFilter::~FrontStreamFilter() {}
-
-FrontStreamFilter::FrontStreamFilter(Stream* stream) : StreamFilter(stream, TYPE) {}
-
-void FrontStreamFilter::connect(ConnectRequest* request) {
-    _EDEBUGTHIS("connect");
-    NextFilter::connect(request);
+void StreamFilter::on_write (const CodeError* err, WriteRequest* req) {
+    if (prev_) prev_->on_write(err, req);
+    else       handle->do_on_write(err, req);
 }
 
-void FrontStreamFilter::on_connect(const CodeError* err, ConnectRequest* connect_request) {
-    _EDEBUGTHIS("on_connect, err: %d, stream: %p, request: %p", err ? err->code() : 0, handle, connect_request);
-    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
-    handle->set_connected(!err);
-    connect_request->release_timer();
-    if (handle->asyncq_empty()) {
-        if (unlock)
-            handle->async_unlock_noresume();
-        {
-            auto guard = handle->lock_in_callback();
-            connect_request->event(handle, err, connect_request);
-            handle->on_connect(err, connect_request);
-        }
-        connect_request->release();
-    } else {
-        CommandBase* last_tail = handle->asyncq.tail;
-        {
-            auto guard = handle->lock_in_callback();
-            connect_request->event(handle, err, connect_request);
-            handle->on_connect(err, connect_request);
-        }
-        connect_request->release();
-        if (err) {
-            // remove writes, shutdowns, etc - till first disconnect - only if no reconnect
-            handle->asyncq_cancel_connect(last_tail); 
-        }
-        if (unlock) {
-            handle->async_unlock();
-        }
-    }
-    handle->release();
-    NextFilter::on_connect(err, connect_request);
+void StreamFilter::on_read (string& buf, const CodeError* err) {
+    if (prev_) prev_->on_read(buf, err);
+    else       handle->do_on_read(buf, err);
 }
 
-void FrontStreamFilter::on_connection(StreamSP stream, const CodeError* err) {
-    _EDEBUGTHIS("on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
-    stream->set_connected(!err);
-    {
-        auto guard = stream->lock_in_callback();
-        handle->on_connection(stream, err);
-    }
-    stream->release();
-    NextFilter::on_connection(stream, err);
+void StreamFilter::on_shutdown (const CodeError* err, ShutdownRequest* req) {
+    if (prev_) prev_->on_shutdown(err, req);
+    else       handle->do_on_shutdown(err, req);
 }
 
-void FrontStreamFilter::on_read(string& buf, const CodeError* err) {
-    _EDEBUGTHIS("on_read, err: %d", err ? err->code() : 0);
-    handle->on_read(buf, err);
-    NextFilter::on_read(buf, err);
+void StreamFilter::on_eof () {
+    if (prev_) prev_->on_eof();
+    else       handle->do_on_eof();
 }
 
-void FrontStreamFilter::write(WriteRequest* request) {
-    _EDEBUGTHIS("write, handle: %p, request: %p", handle, request);
-    NextFilter::write(request);
-}
-
-void FrontStreamFilter::on_write(const CodeError* err, WriteRequest* write_request) {
-    _EDEBUGTHIS("on_write, err: %d, handle: %p, request: %p", err ? err->code() : 0, handle, write_request);
-    {
-        auto guard = handle->lock_in_callback();
-        write_request->event(handle, err, write_request);
-        handle->on_write(err, write_request);
-    }
-    write_request->release();
-    handle->release();
-    NextFilter::on_write(err, write_request);
-}
-
-void FrontStreamFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_request) {
-    _EDEBUGTHIS("on_shutdown");
-    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
-    handle->set_shutdown(!err);
-    {
-        auto guard = handle->lock_in_callback();
-        shutdown_request->event(handle, err, shutdown_request);
-        handle->on_shutdown(err, shutdown_request);
-    }
-    shutdown_request->release();
-    if (unlock) {
-        handle->async_unlock();
-    }
-    handle->release();
-    NextFilter::on_shutdown(err, shutdown_request);
-}
-
-void FrontStreamFilter::on_eof() {
-    _EDEBUGTHIS("on_eof");
-    handle->set_connected(false);
-    handle->on_eof();
-    NextFilter::on_eof();
-}
-
-void FrontStreamFilter::on_reinit() {
-    _EDEBUGTHIS("on_reinit");
-    NextFilter::on_reinit();
+void StreamFilter::on_reinit () {
+    if (prev_) prev_->on_reinit();
 }
 
 }} // namespace panda::event

@@ -13,14 +13,8 @@ Stream::~Stream () {
     _EDTOR();
 }
 
-Stream::Stream () : front_filter_(this), back_filter_(this) {
+Stream::Stream () : filters_(this) {
     _ECTOR();
-    //XXX invent something better for stack iptrs 
-    front_filter_.retain();
-    back_filter_.retain();
-
-    filters_.push_front(&front_filter_);
-    filters_.push_back(&back_filter_);
 }
 
 void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
@@ -29,17 +23,51 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
     _EDEBUG("[%p] uvx_on_connect, req: %p", h, r);
     CodeError err(status);
     if (!err && (h->wantread())) err = h->_read_start();
-    h->call_filters(&StreamFilter::on_connect, err, r);    
+    h->filters_.on_connect(err, r);
+}
+
+void Stream::do_on_connect (const CodeError* err, ConnectRequest* connect_request) {
+    _EDEBUGTHIS("do_on_connect, err: %d, stream: %p, request: %p", err ? err->code() : 0, this, connect_request);
+    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
+    set_connected(!err);
+    connect_request->release_timer();
+    if (asyncq_empty()) {
+        if (unlock) async_unlock_noresume();
+        {
+            auto guard = lock_in_callback();
+            connect_request->event(this, err, connect_request);
+            on_connect(err, connect_request);
+        }
+        connect_request->release();
+    } else {
+        CommandBase* last_tail = asyncq.tail;
+        {
+            auto guard = lock_in_callback();
+            connect_request->event(this, err, connect_request);
+            on_connect(err, connect_request);
+        }
+        connect_request->release();
+        if (err) asyncq_cancel_connect(last_tail); // remove writes, shutdowns, etc - till first disconnect - only if no reconnect
+        if (unlock) async_unlock();
+    }
+    release();
 }
 
 void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
     Stream* h = hcast<Stream*>(stream);
     _EDEBUG("[%p] uvx_on_connection, err: %d", h, status);
-    if (status) { 
-        h->call_filters(&StreamFilter::on_connection, nullptr, CodeError(status));
-    } else {
-        h->accept();
+    if (status) h->filters_.on_connection(nullptr, CodeError(status));
+    else        h->accept();
+}
+
+void Stream::do_on_connection (StreamSP stream, const CodeError* err) {
+    _EDEBUGTHIS("do_on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
+    stream->set_connected(!err);
+    {
+        auto guard = stream->lock_in_callback();
+        on_connection(stream, err);
     }
+    stream->release();
 }
 
 void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
@@ -47,7 +75,7 @@ void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uv
     _EDEBUG("[%p] uvx_on_read, nread: %ld", h, nread);
     CodeError err(nread < 0 ? nread : 0);
     if (err.code() == ERRNO_EOF) {
-        h->call_filters(&StreamFilter::on_eof);
+        h->filters_.on_eof();
         nread = 0;
     }
 
@@ -65,14 +93,25 @@ void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uv
     }
 
     buf.length(nread > 0 ? nread : 0); // set real buf len
-    h->call_filters(&StreamFilter::on_read, buf, err);    
+    h->filters_.on_read(buf, err);
 }
 
 void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
     WriteRequest* r = rcast<WriteRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
     _EDEBUG("[%p] uvx_on_write, err: %d", h, status);
-    h->call_filters(&StreamFilter::on_write, CodeError(status), r);
+    h->filters_.on_write(CodeError(status), r);
+}
+
+void Stream::do_on_write (const CodeError* err, WriteRequest* write_request) {
+    _EDEBUGTHIS("on_write, err: %d, handle: %p, request: %p", err ? err->code() : 0, this, write_request);
+    {
+        auto guard = lock_in_callback();
+        write_request->event(this, err, write_request);
+        on_write(err, write_request);
+    }
+    write_request->release();
+    release();
 }
 
 void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
@@ -80,7 +119,21 @@ void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
     ShutdownRequest* r = rcast<ShutdownRequest*>(uvreq);
     Stream* h = hcast<Stream*>(uvreq->handle);
     _EDEBUG("[%p] uvx_on_shutdown, err: %d", h, status);
-    h->call_filters(&StreamFilter::on_shutdown, CodeError(status), r);
+    h->filters_.on_shutdown(CodeError(status), r);
+}
+
+void Stream::do_on_shutdown (const CodeError* err, ShutdownRequest* shutdown_request) {
+    _EDEBUGTHIS("on_shutdown");
+    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
+    set_shutdown(!err);
+    {
+        auto guard = lock_in_callback();
+        shutdown_request->event(this, err, shutdown_request);
+        on_shutdown(err, shutdown_request);
+    }
+    shutdown_request->release();
+    if (unlock) async_unlock();
+    release();
 }
 
 void Stream::listen (int backlog, connection_fn callback) {
@@ -105,7 +158,7 @@ void Stream::accept (const StreamSP& stream) {
     // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
     stream->set_connecting();
     int err = uv_accept(uvsp(), stream->uvsp());
-    call_filters(&StreamFilter::on_connection, stream, CodeError(err));
+    filters_.on_connection(stream, CodeError(err));
 }
 
 void Stream::read_start (read_fn callback) {
@@ -144,7 +197,7 @@ void Stream::write (WriteRequest* req) {
     req->retain();
     retain();
 
-    call_filters(&StreamFilter::write, req);    
+    filters_.write(req);
 }
 
 void Stream::do_write (WriteRequest* req) {
@@ -160,7 +213,7 @@ void Stream::do_write (WriteRequest* req) {
     int err = uv_write(_pex_(req), uvsp(), uvbufs, nbufs, uvx_on_write);
     if (err) {
         Prepare::call_soon([=] {
-            call_filters(&StreamFilter::on_write, CodeError(err), req);
+            filters_.on_write(CodeError(err), req);
         }, loop());
     }
 }
@@ -182,7 +235,7 @@ void Stream::shutdown (ShutdownRequest* req) {
     int err = uv_shutdown(_pex_(req), uvsp(), uvx_on_shutdown);
     if (err) {
         Prepare::call_soon([=] {
-            call_filters(&StreamFilter::on_shutdown, CodeError(err), req);
+            filters_.on_shutdown(CodeError(err), req);
         }, loop());
         return;
     }
@@ -193,7 +246,11 @@ void Stream::disconnect () { close_reinit(asyncq_empty() && connecting() ? false
 void Stream::reset      () { close_reinit(false); }
 
 void Stream::on_handle_reinit () {
-    call_filters(&StreamFilter::on_reinit);    
+    _EDEBUGTHIS("on_handle_reinit");
+    filters_.on_reinit();
+    bool wanted_read = wantread();
+    Handle::on_handle_reinit();
+    if (wanted_read) set_wantread();
 }
 
 void Stream::add_filter (StreamFilter* filter) {
@@ -206,7 +263,7 @@ void Stream::use_ssl (SSL_CTX* context) {
         return;
     }
 
-    filters_.insert(++filters_.begin(), new ssl::SSLFilter(this, context));
+    filters_.insert(filters_.begin(), new ssl::SSLFilter(this, context));
 }
 
 void Stream::use_ssl (const SSL_METHOD* method) {
@@ -218,7 +275,7 @@ void Stream::use_ssl (const SSL_METHOD* method) {
         throw Error("Programming error, use server certificate");
     }
 
-    filters_.insert(++filters_.begin(), new ssl::SSLFilter(this, method));
+    filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
 }
 
 SSL* Stream::get_ssl() const {
