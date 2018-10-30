@@ -1,11 +1,11 @@
 #pragma once
-
 #include <cstdint>
 
 #include <panda/unievent/Request.h>
 #include <panda/unievent/Socks.h>
 #include <panda/unievent/StreamFilter.h>
 #include <panda/lib/memory.h>
+#include <panda/net/sockaddr.h>
 #include <panda/refcnt.h>
 
 namespace panda { namespace unievent {
@@ -17,11 +17,12 @@ namespace panda { namespace unievent {
 
 namespace panda { namespace unievent { namespace socks {
 
-class SocksFilter;
+using panda::net::SockAddr;
+
+struct SocksFilter;
 using SocksFilterSP = iptr<SocksFilter>;
 
-class SocksFilter : public StreamFilter, public lib::AllocatedObject<SocksFilter, true> {
-public:
+struct SocksFilter : StreamFilter, lib::AllocatedObject<SocksFilter, true> {
     static const char* TYPE;
 
     enum class State {
@@ -56,7 +57,7 @@ private:
     void do_eof();
     void do_error(const CodeError* err = CodeError(ERRNO_SOCKS));
 
-    void on_connection(Stream*, const CodeError* err) override;
+    void on_connection(StreamSP, const CodeError* err) override;
     void write(WriteRequest* write_request) override;
     void connect(ConnectRequest* connect_request) override;
     void on_connect(const CodeError* err, ConnectRequest* connect_request) override;
@@ -74,13 +75,12 @@ private:
     void init_parser();
 
 private:
-    SocksSP          socks_;
-    State            state_;
-    string           host_;
-    uint16_t         port_;
-    bool             resolved_;
-    addrinfo         hints_;
-    sockaddr_storage addr_;
+    SocksSP  socks_;
+    State    state_;
+    string   host_;
+    uint16_t port_;
+    addrinfo hints_;
+    SockAddr sa_;
 
     TCPConnectRequest*      connect_request_;
     iptr<TCPConnectRequest> socks_connect_request_;
@@ -95,8 +95,7 @@ private:
     uint8_t rep;
 };
 
-class SocksHandshakeRequest : public WriteRequest {
-public:
+struct SocksHandshakeRequest : WriteRequest {
     ~SocksHandshakeRequest() {}
 
     SocksHandshakeRequest(write_fn callback, const SocksSP& socks) : WriteRequest(callback) {
@@ -108,8 +107,7 @@ public:
     }
 };
 
-class SocksAuthRequest : public WriteRequest {
-public:
+struct SocksAuthRequest : WriteRequest {
     ~SocksAuthRequest() {}
 
     SocksAuthRequest(write_fn callback, const SocksSP& socks) : WriteRequest(callback) {
@@ -117,8 +115,7 @@ public:
     }
 };
 
-class SocksCommandConnectRequest : public WriteRequest {
-public:
+struct SocksCommandConnectRequest : public WriteRequest {
     ~SocksCommandConnectRequest() {}
 
     SocksCommandConnectRequest(write_fn callback, const string& host, uint16_t port) : WriteRequest(callback) {
@@ -127,16 +124,14 @@ public:
         bufs.push_back(string("\x05\x01\x00\x03") + (char)host.length() + host + string((char*)&nport, 2));
     }
 
-    SocksCommandConnectRequest(write_fn callback, const sockaddr* sa) : WriteRequest(callback) {
+    SocksCommandConnectRequest(write_fn callback, const SockAddr& sa) : WriteRequest(callback) {
         _EDEBUGTHIS("ctor");
-        if (sa->sa_family == AF_INET) {
-            sockaddr_in* src   = (sockaddr_in*)sa;
-            uint16_t     nport = src->sin_port;
-            bufs.push_back(string("\x05\x01\x00\x01") + string((char*)&src->sin_addr, 4) + string((char*)&nport, 2));
-        } else if (sa->sa_family == AF_INET6) {
-            sockaddr_in6* src   = (sockaddr_in6*)sa;
-            uint16_t      nport = src->sin6_port;
-            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)&src->sin6_addr, 16) + string((char*)&nport, 2));
+        if (sa.is_inet4()) {
+            auto& sa4 = sa.inet4();
+            bufs.push_back(string("\x05\x01\x00\x01") + string_view((char*)&sa4.addr(), 4) + string_view((char*)&sa4.get()->sin_port, 2));
+        } else if (sa.is_inet6()) {
+            auto& sa6 = sa.inet6();
+            bufs.push_back(string("\x05\x01\x00\x04") + string((char*)&sa6.addr(), 16) + string((char*)&sa6.get()->sin6_port, 2));
         } else {
             throw Error("Unknown address family");
         }

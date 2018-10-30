@@ -1,16 +1,16 @@
 #pragma once
-#include <panda/unievent/Request.h>
-#include <panda/unievent/ResolveFunction.h>
+#include "Request.h"
+#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
 
-class Handle;
-class Stream;
-class TCP;
-class Pipe;
+struct Handle;
+struct Stream;
+struct TCP;
+struct TCPConnectRequest;
+struct Pipe;
 
-class CommandBase {
-public:
+struct CommandBase {
     enum class Type {UNKNOWN, CLOSE_DELETE, CLOSE_REINIT, CONNECT, CONNECT_PIPE, WRITE, SHUTDOWN, USER_CALLBACK};
     CommandBase* next;
     Type         type;
@@ -23,24 +23,20 @@ protected:
 };
 
 
-class CommandCloseDelete : public CommandBase, public AllocatedObject<CommandCloseDelete> {
-public:
+struct CommandCloseDelete : CommandBase, AllocatedObject<CommandCloseDelete> {
     CommandCloseDelete  () { type = Type::CLOSE_DELETE; }
     void cancel () override;
     void run    () override;
 };
 
 
-class CommandCloseReinit : public CommandBase, public AllocatedObject<CommandCloseReinit> {
-public:
+struct CommandCloseReinit : CommandBase, AllocatedObject<CommandCloseReinit> {
     CommandCloseReinit  () { type = Type::CLOSE_REINIT; }
     void cancel () override;
     void run    () override;
 };
 
-class TCPConnectRequest;
-class CommandConnect : public CommandBase {
-public:
+struct CommandConnect : CommandBase, AllocatedObject<CommandConnect> {
     CommandConnect (TCP* tcp, TCPConnectRequest* tcp_connect_request);
     void cancel () override;
     void run    () override;
@@ -54,8 +50,7 @@ protected:
 };
 
 
-class CommandConnectPipe : public CommandBase {
-public:
+struct CommandConnectPipe : CommandBase, AllocatedObject<CommandConnectPipe> {
     CommandConnectPipe (Pipe* pipe, const string& name, ConnectRequest* req) : pipe(pipe), req(req) {
         type = Type::CONNECT_PIPE;
         _name = name;
@@ -76,8 +71,7 @@ private:
 };
 
 
-class CommandWrite : public CommandBase, public AllocatedObject<CommandWrite> {
-public:
+struct CommandWrite : CommandBase, AllocatedObject<CommandWrite> {
     CommandWrite (Stream* stream, WriteRequest* req) : stream(stream), req(req) {
         type = Type::WRITE;
         req->retain();
@@ -94,8 +88,7 @@ private:
 };
 
 
-class CommandShutdown : public CommandBase, public AllocatedObject<CommandShutdown> {
-public:
+struct CommandShutdown : CommandBase, AllocatedObject<CommandShutdown> {
     CommandShutdown (Stream* stream, ShutdownRequest* req) : stream(stream), req(req) {
         type = Type::SHUTDOWN;
         req->retain();
@@ -112,8 +105,7 @@ private:
 };
 
 
-class CommandCallback : public CommandBase, public AllocatedObject<CommandCallback> {
-public:
+struct CommandCallback : CommandBase, AllocatedObject<CommandCallback> {
     typedef void (*command_cb) (Handle* handle);
 
     CommandCallback (command_cb cb) : cb(cb) {}

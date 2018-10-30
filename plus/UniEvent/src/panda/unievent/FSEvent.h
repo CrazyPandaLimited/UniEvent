@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class FSEvent : public virtual Handle {
-public:
+struct FSEvent : virtual Handle {
     using fs_event_fptr = void(FSEvent* handle, const char* filename, int events);
     using fs_event_fn = function<fs_event_fptr>;
     

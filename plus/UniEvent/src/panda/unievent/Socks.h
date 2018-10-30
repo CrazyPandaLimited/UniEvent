@@ -1,10 +1,10 @@
 #pragma once
+#include "Debug.h"
+#include "Error.h"
 #include <cstdint>
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/Error.h>
-#include <panda/lib/memory.h>
 #include <panda/string.h>
 #include <panda/uri/socks.h>
+#include <panda/lib/memory.h>
 
 namespace panda { namespace unievent {
 

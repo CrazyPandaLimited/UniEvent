@@ -1,13 +1,11 @@
 #pragma once
+#include "Handle.h"
+#include "Request.h"
+#include "StreamFilter.h"
 
 #include <new>
 #include <algorithm>
 #include <panda/lib/memory.h>
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/Request.h>
-#include <panda/unievent/StreamFilter.h>
-#include <panda/unievent/IntrusiveChain.h>
-
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
@@ -15,16 +13,12 @@ struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
 
-class Stream;
+struct Stream;
 using StreamSP = iptr<Stream>;
 
-class Stream : public virtual Handle {
-    friend FrontStreamFilter;
-    friend BackStreamFilter;
-
-public:
+struct Stream : virtual Handle {
     using connection_factory_fptr = StreamSP();
-    using connection_fptr         = void(Stream* handle, Stream* client, const CodeError* err);
+    using connection_fptr         = void(Stream* handle, StreamSP client, const CodeError* err);
     using read_fptr               = void(Stream* handle, string& buf, const CodeError* err);
     using eof_fptr                = void(Stream* handle);
 
@@ -65,7 +59,7 @@ public:
     virtual void read_stop  ();
 
     virtual void listen     (int backlog = 128, connection_fn callback = nullptr);
-    virtual void accept     (Stream* stream);
+    virtual void accept     (const StreamSP& stream);
     virtual void shutdown   (ShutdownRequest* req = nullptr);
     virtual void write      (WriteRequest* req);
     virtual void disconnect ();
@@ -79,57 +73,52 @@ public:
     template <class It>
     void write (It begin, It end, write_fn callback = nullptr) { write(new WriteRequest(begin, end, callback)); }
 
-    void attach(WriteRequest* request) {
+    void attach (WriteRequest* request) {
         // filters may hide initial request and replace it by it's own, so that initial request is never passed to uv_stream_write
         // and therefore won't have 'handle' property set which is required to be set before passed to 'do_on_write'
         _pex_(request)->handle = uvsp();
     }
     
-    void attach(ConnectRequest* request) {
+    void attach (ConnectRequest* request) {
         _pex_(request)->handle = uvsp();
     }
 
     void add_filter (StreamFilter* filter);
 
-    virtual void use_ssl    (SSL_CTX* context);
-    virtual void use_ssl    (const SSL_METHOD* method = nullptr);
-    SSL* get_ssl    () const;
-    bool is_secure  () const;
+    virtual void use_ssl  (SSL_CTX* context);
+    virtual void use_ssl  (const SSL_METHOD* method = nullptr);
+
+    SSL* get_ssl   () const;
+    bool is_secure () const;
     
-    template <typename F> IntrusiveChain<iptr<StreamFilter>>::const_iterator find_filter() const {
+    template <typename F> StreamFilters::const_iterator find_filter () const {
         return std::find_if(filters_.cbegin(), filters_.cend(),
-                                [](const iptr<StreamFilter>& filter) { return dyn_cast<F*>(filter.get()) != nullptr; });
+                                [](const StreamFilterSP& filter) { return dyn_cast<F*>(filter.get()) != nullptr; });
     }
 
-    template <typename F> iptr<F> get_filter() const {
+    template <typename F> iptr<F> get_filter () const {
         auto pos = find_filter<F>();
         return pos != filters_.cend() ? dyn_cast<F*>(pos->get()) : nullptr;
     }
 
-    StreamFilterSP get_front_filter() const {
-        return filters_.front();
-    }
-    
     // push after the front filter
-    void push_ahead_filter(const StreamFilterSP& filter) {
-        filters_.insert(++filters_.begin(), filter);
+    void push_ahead_filter (const StreamFilterSP& filter) {
+        filters_.insert(filters_.begin(), filter);
     }
 
     // push before the back filter
-    void push_behind_filter(const StreamFilterSP& filter) {
-        filters_.insert(--filters_.end(), filter);
+    void push_behind_filter (const StreamFilterSP& filter) {
+        filters_.insert(filters_.end(), filter);
     }
 
-    IntrusiveChain<iptr<StreamFilter>>& filters() {
-        return filters_;
-    }
+    StreamFilters& filters () { return filters_; }
     
     void _close () override;
-    void cancel_connect();
+    void cancel_connect ();
      
     void do_write (WriteRequest* req);
 
-    virtual void     on_connection(Stream* stream, const CodeError* err);
+    virtual void     on_connection(StreamSP stream, const CodeError* err);
     virtual void     on_connect(const CodeError* err, ConnectRequest* req);
     virtual void     on_read(string& buf, const CodeError* err);
     virtual void     on_write(const CodeError* err, WriteRequest* req);
@@ -137,20 +126,7 @@ public:
     virtual void     on_eof();
     virtual StreamSP on_create_connection();
 
-    template <class Ret, class... Args, class... ProvidedArgs> 
-    Ret call_filters(Ret (BasicForwardFilter<StreamFilter>::*method)(Args...), ProvidedArgs&&... args) {
-        _EDEBUGTHIS("calling %lu filters forward", filters_.size());
-        (filters_.front()->*method)(std::forward<ProvidedArgs>(args)...);
-    }
-    
-    template <class Ret, class... Args, class... ProvidedArgs> 
-    Ret call_filters(Ret (BasicReverseFilter<StreamFilter>::*method)(Args...), ProvidedArgs&&... args) {
-        _EDEBUGTHIS("calling %lu filters reverse", filters_.size());
-        (filters_.back()->*method)(std::forward<ProvidedArgs>(args)...);
-    }
-    
     friend uv_stream_t* _pex_ (Stream*);
-    friend class StreamFilter;
 
 protected:
     Stream(); 
@@ -205,17 +181,32 @@ protected:
 
     ~Stream ();
     
-    FrontStreamFilter front_filter_;
-    BackStreamFilter back_filter_;
-    IntrusiveChain<iptr<StreamFilter>> filters_;
+    StreamFilters filters_;
 
 private:
+    friend StreamFilter;
+    friend StreamFilters;
+    friend CommandWrite;
+    friend CommandShutdown;
+    friend CommandConnect;
+    friend CommandConnectPipe;
+
     uv_stream_t*       uvsp       ()       { return reinterpret_cast<uv_stream_t*>(uvhp); }
     const uv_stream_t* uvsp_const () const { return reinterpret_cast<const uv_stream_t*>(uvhp); }
 
     CodeError _read_start ();
 
     void asyncq_cancel_connect (CommandBase* last_tail);
+
+    void do_on_connect    (const CodeError*, ConnectRequest*);
+    void do_on_connection (StreamSP stream, const CodeError* err);
+    void do_on_read       (string& buf, const CodeError* err) { on_read(buf, err); }
+    void do_on_write      (const CodeError* err, WriteRequest* write_request);
+    void do_on_shutdown   (const CodeError* err, ShutdownRequest* shutdown_request);
+    void do_on_eof        () {
+        set_connected(false);
+        on_eof();
+    }
 
     static void uvx_on_connection (uv_stream_t* stream, int status);
     static void uvx_on_read       (uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);

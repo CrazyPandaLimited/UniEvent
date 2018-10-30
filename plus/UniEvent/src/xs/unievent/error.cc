@@ -1,4 +1,4 @@
-#include <xs/unievent/error.h>
+#include "error.h"
 #include <typeinfo>
 #include <cxxabi.h>
 using namespace panda::unievent;

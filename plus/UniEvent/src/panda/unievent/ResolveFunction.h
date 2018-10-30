@@ -1,13 +1,12 @@
 #pragma once
-
-#include <panda/unievent/Error.h>
+#include "Error.h"
 #include <panda/function.h>
 
 namespace panda { namespace unievent {
 
-class AbstractResolver;
-class ResolveRequest;
-class BasicAddress;
+struct AbstractResolver;
+struct ResolveRequest;
+struct BasicAddress;
 using ResolveFunctionPlain = void(AbstractResolver*, iptr<ResolveRequest>, iptr<BasicAddress> address, const CodeError* err);
 using ResolveFunction      = function<ResolveFunctionPlain>;
 

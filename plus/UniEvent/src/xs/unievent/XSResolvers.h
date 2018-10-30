@@ -1,9 +1,9 @@
 #pragma once
+#include "error.h"
+#include "XSCallback.h"
+#include <panda/unievent/TCP.h>
 #include <panda/unievent/Request.h>
 #include <panda/unievent/Resolver.h>
-#include <panda/unievent/TCP.h>
-#include <xs/unievent/XSCallback.h>
-#include <xs/unievent/error.h>
 
 namespace xs { namespace unievent {
 
@@ -20,9 +20,7 @@ protected:
         if (!err) {
             auto salist = Array::create();
             for (addrinfo* ai = address->head; ai; ai = ai->ai_next) {
-                sockaddr* sa = ai->ai_addr;
-                auto sastr = std::string_view((char*)sa, sa->sa_family == PF_INET6 ? sizeof(sockaddr_in6) : sizeof(sockaddr_in));
-                salist.push(Simple(sastr));
+                salist.push(xs::out<SockAddr>(ai->ai_addr));
             }
             salistref = Ref::create(salist);
         }

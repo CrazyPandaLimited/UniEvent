@@ -1,5 +1,5 @@
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/Debug.h>
+#include "Loop.h"
+#include "Debug.h"
 #include <thread>
 
 namespace panda { namespace unievent {

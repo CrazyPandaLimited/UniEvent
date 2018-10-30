@@ -1,15 +1,16 @@
 #pragma once
+#include "Handle.h"
+#include "Request.h"
 #include <panda/string_view.h>
-#include <panda/unievent/Handle.h>
-#include <panda/unievent/Request.h>
+#include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent {
 
 using std::string_view;
+using panda::net::SockAddr;
 
-class UDP : public virtual Handle, public AllocatedObject<UDP> {
-public:
-    using receive_fptr = void(UDP* handle, string& buf, const sockaddr* addr, unsigned flags, const CodeError* err);
+struct UDP : virtual Handle, AllocatedObject<UDP> {
+    using receive_fptr = void(UDP* handle, string& buf, const SockAddr& addr, unsigned flags, const CodeError* err);
     using receive_fn = function<receive_fptr>;
 
     using send_fptr = SendRequest::send_fptr;
@@ -41,25 +42,28 @@ public:
     }
 
     virtual void open       (sock_t socket);
-    virtual void bind       (const sockaddr* sa, unsigned flags = 0);
+    virtual void bind       (const SockAddr&, unsigned flags = 0);
     virtual void bind       (string_view host, string_view service, const addrinfo* hints = &defhints, unsigned flags = 0);
     virtual void recv_start (receive_fn callback = nullptr);
     virtual void recv_stop  ();
     virtual void reset      () override;
-    virtual void send       (SendRequest* req, const sockaddr* sa);
+    virtual void send       (SendRequest* req, const SockAddr& sa);
 
-    void send (const string& data, struct sockaddr* sa, send_fn callback = nullptr) {
+    void send (const string& data, const SockAddr& sa, send_fn callback = nullptr) {
         send(new SendRequest(data, callback), sa);
     }
 
     template <class It>
-    void send (It begin, It end, struct sockaddr* sa, send_fn callback = nullptr) {
+    void send (It begin, It end, const SockAddr& sa, send_fn callback = nullptr) {
         send(new SendRequest(begin, end, callback), sa);
     }
 
-    void getsockname (struct sockaddr* name, int* namelen) {
-        int err = uv_udp_getsockname(&uvh, name, namelen);
+    SockAddr get_sockaddr () const {
+        SockAddr ret;
+        int sz = sizeof(ret);
+        int err = uv_udp_getsockname(&uvh, ret.get(), &sz);
         if (err) throw CodeError(err);
+        return ret;
     }
 
     void udp_membership (string_view multicast_addr, string_view interface_addr, membership_t membership) {
@@ -89,7 +93,7 @@ public:
         if (err) throw CodeError(err);
     }
 
-    void call_on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) {
+    void call_on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
         on_receive(buf, sa, flags, err);
     }
 
@@ -107,7 +111,7 @@ protected:
     
     void on_handle_reinit () override;
 
-    virtual void on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err);
+    virtual void on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err);
     virtual void on_send    (const CodeError* err, SendRequest* req);
 
 private:

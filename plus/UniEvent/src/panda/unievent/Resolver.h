@@ -1,37 +1,36 @@
 #pragma once
-
 #include <ctime>
 #include <cstdlib>
 #include <unordered_map>
-
-#include <panda/unievent/Debug.h>
-#include <panda/unievent/Loop.h>
-#include <panda/unievent/Request.h>
-#include <panda/unievent/ResolveFunction.h>
-#include <panda/unievent/global.h>
 #include <panda/string_view.h>
+
+#include "Loop.h"
+#include "Debug.h"
+#include "global.h"
+#include "Request.h"
+#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
 
-class AbstractResolver;
+struct AbstractResolver;
 using AbstractResolverSP = iptr<AbstractResolver>;
 
-class Resolver;
+struct Resolver;
 using ResolverSP = iptr<Resolver>;
 
-class CachedResolver;
+struct CachedResolver;
 using CachedResolverSP = iptr<CachedResolver>;
 
-class ResolveRequest;
+struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
 
-class BasicAddress;
+struct BasicAddress;
 using BasicAddressSP = iptr<BasicAddress>;
 
-class AddressRotator;
+struct AddressRotator;
 using AddressRotatorSP = iptr<AddressRotator>;
 
-class CachedAddress;
+struct CachedAddress;
 using CachedAddressSP = iptr<CachedAddress>;
 
 struct BasicAddress : virtual Refcnt {
@@ -144,10 +143,7 @@ struct Hints {
 };
 
 struct Hash;
-class Key : public virtual Refcnt {
-    friend Hash;
-
-public:
+struct Key : virtual Refcnt {
     Key(const string& node, const string& service, const addrinfo* hints) : node_(node), service_(service) {
         if (hints) {
             hints_.ai_flags    = hints->ai_flags;
@@ -160,6 +156,8 @@ public:
     bool operator==(const Key& other) const { return node_ == other.node_ && service_ == other.service_ && hints_ == other.hints_; }
 
 private:
+    friend Hash;
+
     string node_;
     string service_;
     Hints  hints_;
@@ -208,8 +206,6 @@ struct Resolver : AbstractResolver {
 
 protected:
     void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
-    
-private:
 };
 
 struct CachedResolver : Resolver {
@@ -251,7 +247,6 @@ private:
         return false;
     }
 
-private:
     CacheType          cache_;
     time_t             expiration_time_;
     size_t             limit_;
@@ -260,7 +255,6 @@ private:
 struct Request;
 struct ConnectRequest;
 struct ResolveRequest : CancelableRequest, AllocatedObject<ResolveRequest, true> {
-public:
     CallbackDispatcher<ResolveFunctionPlain> event;
 
     ResolveRequest(ResolveFunction callback);
@@ -268,7 +262,6 @@ public:
 
     void cancel() override;
 
-public:
     AbstractResolver*          resolver;
     iptr<cached_resolver::Key> key;
 };

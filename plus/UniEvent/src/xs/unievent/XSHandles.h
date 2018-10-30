@@ -1,7 +1,7 @@
 #pragma once
-#include <xs/unievent/inc.h>
-#include <xs/unievent/error.h>
-#include <xs/unievent/XSCallback.h>
+#include "inc.h"
+#include "error.h"
+#include "XSCallback.h"
 
 #define PEVXS__CB_ACCESSOR(name)                        \
     private:                                            \
@@ -93,7 +93,7 @@ struct XSStream : virtual Stream, XSHandle {
     XSStream () {}
 
 protected:
-    void on_connection (Stream*, const CodeError*) override;
+    void on_connection (StreamSP, const CodeError*) override;
     void on_connect    (const CodeError*, ConnectRequest*) override;
     void on_read       (string&, const CodeError*) override;
     void on_write      (const CodeError*, WriteRequest*) override;
@@ -125,7 +125,7 @@ struct XSTCP : TCP, XSStream {
         if (service_or_callback && !SvROK(service_or_callback)) {
             return Builder().to(xs::in<string>(host_or_sa), xs::in<string>(service_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {
-            return Builder().to(xs::in<sockaddr*>(host_or_sa)).timeout(timeout).reconnect(reconnect);
+            return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
         }
     }
 
@@ -141,7 +141,7 @@ struct XSUDP : UDP, XSHandle {
         flags |= XUF_DONTRECV;
     }
     
-    void bind (const sockaddr* sa, unsigned flags = 0) override {
+    void bind (const SockAddr& sa, unsigned flags = 0) override {
         UDP::bind(sa, flags | get_bind_flags());
     }
     
@@ -185,7 +185,7 @@ struct XSUDP : UDP, XSHandle {
     }
     
 protected:
-    void on_receive (string& buf, const sockaddr* sa, unsigned flags, const CodeError* err) override;
+    void on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) override;
     void on_send    (const CodeError* err, SendRequest* req) override;
 
 private:
@@ -200,9 +200,9 @@ private:
 };
 
 struct XSPipe : Pipe, XSStream {
-    XSPipe (Loop* loop = Loop::default_loop()) : Pipe(loop) {
+    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {
         connection_factory = [=](){
-            PipeSP ret = make_backref<XSPipe>(loop);
+            PipeSP ret = make_backref<XSPipe>(ipc, loop);
             xs::out<Pipe*>(ret.get());
             return ret;
         };

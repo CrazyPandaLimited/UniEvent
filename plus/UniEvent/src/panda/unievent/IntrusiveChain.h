@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cassert>
 #include <algorithm>
 #include <cstddef>

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdio>
 
 // to use inside the library

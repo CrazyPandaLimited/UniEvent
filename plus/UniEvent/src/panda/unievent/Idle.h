@@ -1,10 +1,9 @@
 #pragma once
-#include <panda/unievent/Handle.h>
+#include "Handle.h"
 
 namespace panda { namespace unievent {
 
-class Idle : public virtual Handle {
-public:
+struct Idle : virtual Handle {
     using idle_fptr = void(Idle*);
     using idle_fn = function<idle_fptr>;
     

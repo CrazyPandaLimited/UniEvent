@@ -1,14 +1,10 @@
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/TCP.h>
-#include <panda/unievent/ssl/SSLFilter.h>
-#include <panda/unievent/Prepare.h>
-#include <panda/unievent/socks/SocksFilter.h>
+#include "TCP.h"
+#include "Prepare.h"
+#include "ssl/SSLFilter.h"
 
 namespace panda { namespace unievent {
 
-namespace {
-
-addrinfo init_default_hints() {
+static addrinfo init_default_hints() {
     addrinfo ret;
     memset(&ret, 0, sizeof(ret));
     ret.ai_family   = PF_UNSPEC;
@@ -17,65 +13,7 @@ addrinfo init_default_hints() {
     return ret;
 }
 
-uint16_t getenv_free_port() {
-    const char*      env     = getenv("UNIEVENT_FREE_PORT");
-    static in_port_t env_int = env ? atoi(env) : 0;
-    return env_int;
-}
-
-// get port, IPv4 or IPv6:
-uint16_t get_in_port(sockaddr* sa) {
-    if (sa->sa_family == AF_INET) {
-        return (((sockaddr_in*)sa)->sin_port);
-    }
-    return (((sockaddr_in6*)sa)->sin6_port);
-}
-
-uint16_t any_free_port(Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    test->bind("localhost", "0");
-    int              namelen = sizeof(sockaddr_storage);
-    sockaddr_storage sas;
-    memset(&sas, 0, sizeof(sas));
-    sockaddr* res = (sockaddr*)&sas;
-    test->getsockname(res, &namelen);
-    uint16_t port = get_in_port(res);
-    test.reset();
-    loop->run_nowait();
-    if (port > 1024) {
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
-
-bool check_if_free(uint16_t port, Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    try {
-        test->bind("localhost", panda::to_string(port));
-        test.reset();
-        loop->run_nowait();
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-} // namespace
-
 addrinfo TCP::defhints = init_default_hints();
-
-uint16_t find_free_port() {
-    thread_local iptr<Loop> loop(new Loop);
-    static uint16_t port = getenv_free_port();
-    if (port) {
-        while (!check_if_free(port++, loop)) {
-        }
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
 
 TCP::~TCP() { _EDTOR(); _EDEBUG("~TCP: %p", static_cast<Handle*>(this)); }
 
@@ -116,10 +54,9 @@ void TCP::open(sock_t socket) {
         throw CodeError(err);
 }
 
-void TCP::bind(const sockaddr* sa, unsigned int flags) {
-    int err = uv_tcp_bind(&uvh, sa, flags);
-    if (err)
-        throw CodeError(err);
+void TCP::bind(const SockAddr& sa, unsigned int flags) {
+    int err = uv_tcp_bind(&uvh, sa.get(), flags);
+    if (err) throw CodeError(err);
 }
 
 void TCP::bind(std::string_view host, std::string_view service, const addrinfo* hints) {
@@ -143,41 +80,30 @@ void TCP::bind(std::string_view host, std::string_view service, const addrinfo* 
     freeaddrinfo(res);
 }
 
-void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
-    if (!tcp_connect_request->resolved_) {
-        _EDEBUGTHIS("connect_internal, resolving %p", tcp_connect_request);
+void TCP::do_connect(TCPConnectRequest* req) {
+    if (!req->sa_) {
+        _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolve_request =
-                resolver->resolve(loop(), tcp_connect_request->host_, tcp_connect_request->service_, &tcp_connect_request->hints_,
-                                  [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
-                                      _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                                      if (err) {
-                                          int errcode = err->code();
-                                          Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(errcode), tcp_connect_request); }, loop());
-                                          return;
-                                      }
-
-                                      tcp_connect_request->resolved_ = true;
-
-                                      memcpy((char*)&tcp_connect_request->addr_, (char*)(address->head->ai_addr), sizeof(address->head->ai_addr));
-
-                                      connect_internal(tcp_connect_request);
-                                  });
+            resolve_request = resolver->resolve(loop(), req->host_, req->service_, &req->hints_, [=](AbstractResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
+                _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
+                if (err) {
+                    int errcode = err->code();
+                    Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
+                    return;
+                }
+                req->sa_ = address->head->ai_addr;
+                do_connect(req);
+            });
             return;
         } catch (...) {
-            Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(ERRNO_RESOLVE), tcp_connect_request); }, loop());
+            Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
             return;
         }
     }
     
-    #if EVENT_LIB_DEBUG > 0
-    string addr = to_string((sockaddr*)&(tcp_connect_request->addr_));
-    _EDEBUGTHIS("connect_internal %p to: %.*s", tcp_connect_request, (int)addr.length(), addr.data());
-    #endif
-
-    int err = uv_tcp_connect(_pex_(tcp_connect_request), &uvh, (sockaddr*)&(tcp_connect_request->addr_), Stream::uvx_on_connect);
+    int err = uv_tcp_connect(_pex_(req), &uvh, req->sa_.get(), Stream::uvx_on_connect);
     if (err) {
-        Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(err), tcp_connect_request); }, loop());
+        Prepare::call_soon([=] { filters_.on_connect(CodeError(err), req); }, loop());
         return;
     }
 }
@@ -215,7 +141,7 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
                                                     loop()));
     }
 
-    call_filters(&StreamFilter::connect, tcp_connect_request);    
+    filters_.connect(tcp_connect_request);
 }
 
 void TCP::connect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints) {
@@ -223,7 +149,7 @@ void TCP::connect(const string& host, const string& service, uint64_t timeout, c
     connect().to(host, service, hints).timeout(timeout);
 }
 
-void TCP::connect(const sockaddr* sa, uint64_t timeout) {
+void TCP::connect(const SockAddr& sa, uint64_t timeout) {
     _EDEBUGTHIS("connect to sock:%p", sa);
     connect().to(sa).timeout(timeout);
 }
@@ -233,7 +159,7 @@ void TCP::reconnect(TCPConnectRequest* tcp_connect_request) {
     connect(tcp_connect_request);
 }
 
-void TCP::reconnect(const sockaddr* sa, uint64_t timeout) {
+void TCP::reconnect(const SockAddr& sa, uint64_t timeout) {
     connect().to(sa).timeout(timeout).reconnect(true);
 }
 
@@ -255,7 +181,7 @@ void TCP::use_ssl (const SSL_METHOD* method) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // insert right after default front filter if there are no other filters
-        filters_.insert(++filters_.begin(), new ssl::SSLFilter(this, method));
+        filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
     } else {
         // insert before socks as socks has its own auth encryption methods
         filters_.insert(pos, new ssl::SSLFilter(this, method));
@@ -270,7 +196,7 @@ void TCP::use_socks(const SocksSP& socks) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // always insert socks as last (before default back) filter
-        filters_.insert(--filters_.end(), new socks::SocksFilter(this, socks));
+        filters_.insert(filters_.end(), new socks::SocksFilter(this, socks));
     } else {
         filters_.insert(filters_.erase(pos), new socks::SocksFilter(this, socks));
     }
@@ -291,6 +217,15 @@ void TCP::_close() {
     }
 
     Stream::_close();
+}
+
+std::ostream& operator<< (std::ostream& os, const TCP& tcp) {
+    return os << "local:" << tcp.get_sockaddr() << " peer:" << tcp.get_peer_sockaddr() << " connected:" << (tcp.connected() ? "yes" : "no");
+}
+
+std::ostream& operator<< (std::ostream& os, const TCPConnectRequest& r) {
+    if (r.sa_) return os << r.sa_;
+    else       return os << r.host_ << ':' << r.service_;
 }
 
 }} // namespace panda::event

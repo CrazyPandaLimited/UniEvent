@@ -1,5 +1,5 @@
-#include <panda/unievent/Work.h>
-#include <panda/unievent/global.h>
+#include "Work.h"
+#include "global.h"
 using namespace panda::unievent;
 
 void Work::uvx_on_work (uv_work_t* req) {

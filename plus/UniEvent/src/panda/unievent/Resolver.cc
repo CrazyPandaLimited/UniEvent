@@ -1,6 +1,6 @@
-#include <panda/unievent/Resolver.h>
-#include <panda/unievent/Prepare.h>
-#include <panda/unievent/Timer.h>
+#include "Timer.h"
+#include "Prepare.h"
+#include "Resolver.h"
 #include <functional>
 
 namespace panda { namespace unievent {

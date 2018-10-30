@@ -1,4 +1,4 @@
-#include <panda/unievent/Idle.h>
+#include "Idle.h"
 
 namespace panda { namespace unievent {
 

@@ -1,4 +1,4 @@
-#include <panda/unievent/InterfaceInfo.h>
+#include "InterfaceInfo.h"
 using namespace panda::unievent;
 
 #define _II_FREE_ if (cnt) { uv_free_interface_addresses(addresses, cnt); cnt = 0; addresses = nullptr; }
