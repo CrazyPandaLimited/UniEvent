@@ -77,7 +77,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     int connected = 0;
     int errors = 0;
     int successes = 0;
-    int tries = variation.ssl ? 100 : 2000;
+    int tries = getenv("TEST_FULL") ? (variation.ssl ? 200 : 4000) : (variation.ssl ? 50 : 100);
 
     AsyncTest test(50000, {"connected1", "connected2"});
     TCPSP server = make_server(test.loop);
