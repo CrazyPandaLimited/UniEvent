@@ -22,11 +22,11 @@ void _benchmark_regular_resolver () {
    
     for (auto i=0; i<1000; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), 
+        resolver->resolve( 
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+                [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                     called = true;
                 });
     }
@@ -38,27 +38,27 @@ void _benchmark_cached_resolver () {
     LoopSP loop(new Loop);
     CachedResolverSP resolver(new CachedResolver(loop));
    
-    // cache first 
+    // put it into cache first 
     bool called = false;                                                          
-    ResolveRequestSP request = resolver->resolve(loop.get(), 
+    resolver->resolve( 
             "localhost", 
             "80", 
             nullptr, 
-            [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+            [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                 called = true;
             });
     
     // will resolve and cache here, loop will exit as there are no pending requests 
     loop->run();
 
-    // resolve from cache 
+    // resolve gets address from cache 
     for(auto i=0; i<99999; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), 
+        resolver->resolve( 
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](ResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
+                [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                     called = true;
                 });
     }

@@ -15,7 +15,7 @@ Resolver::Resolver(Loop* loop) : loop(loop) {
     ares_options options;
     options.sock_state_cb      = ares_sockstate_cb;
     options.sock_state_cb_data = this;
-    int optmask                = ARES_OPT_SOCK_STATE_CB;
+    int optmask                = ARES_OPT_SOCK_STATE_CB | ARES_FLAG_NOALIASES;
     if (ares_init_options(&channel, &options, optmask) != ARES_SUCCESS) {
         throw CodeError(ERRNO_RESOLVE);
     }
@@ -28,30 +28,36 @@ Resolver::Resolver(Loop* loop) : loop(loop) {
 }
 
 void Resolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
-    Resolver* resolver = static_cast<Resolver*>(data);
-    auto pos = resolver->requests.find(sock);
-    ResolveRequest* resolve_request = (pos == std::end(resolver->requests)) ? nullptr : pos->second; 
+    ResolverSP resolver = static_cast<Resolver*>(data);
+    auto task_pos = resolver->tasks.find(sock);
+    AresTaskSP task = task_pos != std::end(resolver->tasks) ? task_pos->second : nullptr;
     
-    _EDEBUG("resolver:%p resolve_request:%p sock:%d read:%d write:%d", resolver, resolve_request, sock, read, write);
+    _EDEBUG("resolver:%p task:%p sock:%d read:%d write:%d", resolver, task.get(), sock, read, write);
 
     if (read || write) {
-        //if (!resolve_request->active()) {
-            //if (!resolver->timer->active()) {
-                //resolver->timer->start(DEFAULT_RESOLVE_TIMEOUT);
-            //}
-            //resolve_request->activate(sock);
-        //}
+        if (!task) {
+            if (!resolver->timer->active()) {
+                resolver->timer->start(DEFAULT_RESOLVE_TIMEOUT);
+            }
+            task = new AresTask(resolver->loop);
+            resolver->tasks.emplace(sock, task);
+        }
+
+        task->start(sock, (read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0), [=](Poll* handle, int events, const CodeError* err) {
+            resolver->timer->again();
+            ares_process_fd(resolver->channel, sock, sock);
+        });
     } else {
         // c-ares notifies us that the socket is closed
-        assert(resolve_request);
-        //resolve_request->close();
-        //if (--resolver->request_counter == 0) {
-            //resolver->timer->stop();
-        //}
+        assert(task && "No ares task");
+        resolver->tasks.erase(task_pos);
+        if (resolver->tasks.empty()) {
+            resolver->timer->stop();
+        }
     }
 }
 
-ResolveRequestSP Resolver::resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) {
+void Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback));
     resolve_request->key      = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), string(service), hints));
     resolve_request->resolver = this;
@@ -62,30 +68,23 @@ ResolveRequestSP Resolver::resolve(Loop* loop, std::string_view node, std::strin
     PEXS_NULL_TERMINATE(service, service_cstr);
 
     _EDEBUGTHIS("resolve resolve_request:%p {%s:%s}, loop:%p", resolve_request.get(), node_cstr, service_cstr, loop);
-    ares_gethostbyname(channel, node_cstr, AF_INET, ares_resolve_cb, 0);
+    ares_addrinfo h = hints->to<ares_addrinfo>();
+    ares_getaddrinfo(channel, node_cstr, service_cstr, &h, ares_resolve_cb, resolve_request.get());
     resolve_request->async = true;
-    return resolve_request;
 }
 
-void Resolver::ares_resolve_cb(void* arg, int status, int timeouts, hostent* he) {
+void Resolver::ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai) {
     ResolveRequest* resolve_request = static_cast<ResolveRequest*>(arg);
     Resolver*       resolver        = resolve_request->resolver;
 
     _EDEBUG("ares_resolve_cb {resolve_request:%p}{status:%d}", resolve_request, status);
 
-    CodeError      err;
-    BasicAddressSP addr;
-    if (status != ARES_SUCCESS) {
-        err = CodeError(ERRNO_RESOLVE);
+    CodeError  err;
+    AddrInfoSP addr;
+    if (status == ARES_SUCCESS) {
+        addr = new AddrInfo(ai);
     } else {
-        in_addr addr;
-        int     i = 0;
-        while (he->h_addr_list[i] != 0) {
-            addr.s_addr = *(u_long*)he->h_addr_list[i++];
-            printf("\tIPv4 Address #%d: %s\n", i, inet_ntoa(addr));
-        }
-
-        // addr = new BasicAddress(to_addrinfo(res));
+        err = CodeError(ERRNO_RESOLVE);
     }
 
     if (resolve_request->async) {
@@ -104,7 +103,7 @@ void Resolver::ares_resolve_cb(void* arg, int status, int timeouts, hostent* he)
     }
 }
 
-void Resolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+void Resolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}", resolve_request.get(), err ? err->code() : 0);
     resolve_request->event(resolver, resolve_request, address, err);
 }
@@ -116,7 +115,7 @@ CachedResolver::CachedResolver(Loop* loop, time_t expiration_time, size_t limit)
 }
 
 std::tuple<CachedResolver::CacheType::const_iterator, bool>
-CachedResolver::find(std::string_view node, std::string_view service, const addrinfo* hints) {
+CachedResolver::find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints) {
     iptr<cached_resolver::Key> key(new cached_resolver::Key(string(node), string(service), hints));
 
     _EDEBUG("looking in cache [%.*s] [%.*s] %zd", (int)node.length(), node.data(), (int)service.length(), service.data(), cache_.size());
@@ -136,8 +135,7 @@ CachedResolver::find(std::string_view node, std::string_view service, const addr
     return std::make_tuple<CacheType::const_iterator, bool>(address_pos, false);
 }
 
-ResolveRequestSP
-CachedResolver::resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) {
+void CachedResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
     _EDEBUGTHIS("resolve");
     CacheType::const_iterator address_pos;
     bool                      found;
@@ -146,14 +144,13 @@ CachedResolver::resolve(Loop* loop, std::string_view node, std::string_view serv
         if (callback) {
             ResolveRequestSP resolve_request;
             callback(this, resolve_request, address_pos->second, nullptr);
-            return resolve_request;
         }
     }
 
-    return Resolver::resolve(loop, node, service, hints, callback);
+    Resolver::resolve(node, service, hints, callback);
 }
 
-void CachedResolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+void CachedResolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}", resolve_request.get(), err ? err->code() : 0);
     if (!err) {
         expunge_cache();
@@ -162,21 +159,12 @@ void CachedResolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_re
     }
     resolve_request->event(resolver, resolve_request, address, err);
 }
+
 ResolveRequest::~ResolveRequest() { _EDTOR(); }
 
 ResolveRequest::ResolveRequest(ResolveFunction callback) : resolver(nullptr), key(nullptr), async(false) {
     _ECTOR();
     event.add(callback);
-}
-
-void ResolveRequest::activate(sock_t sock) {
-    poll    = PollSP(new Poll(-1, sock, resolver->loop));
-    active_ = true;
-}
-
-void ResolveRequest::close() {
-    active_ = false;
-    poll->stop();
 }
 
 }} // namespace panda::unievent

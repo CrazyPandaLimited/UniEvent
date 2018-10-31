@@ -7,19 +7,12 @@
 
 namespace panda { namespace unievent {
 
+AddrInfoHintsSP default_hints = AddrInfoHintsSP(new AddrInfoHints);
+
 namespace {
 
-addrinfo init_default_hints() {
-    addrinfo ret;
-    memset(&ret, 0, sizeof(ret));
-    ret.ai_family   = PF_UNSPEC;
-    ret.ai_socktype = SOCK_STREAM;
-    ret.ai_flags    = AI_PASSIVE;
-    return ret;
-}
-
 uint16_t getenv_free_port() {
-    const char*      env     = getenv("UNIEVENT_FREE_PORT");
+    const char*     env     = getenv("UNIEVENT_FREE_PORT");
     static uint16_t env_int = env ? atoi(env) : 0;
     return env_int;
 }
@@ -51,8 +44,6 @@ bool check_if_free(uint16_t port, Loop* loop) {
 }
 
 } // namespace
-
-addrinfo TCP::defhints = init_default_hints();
 
 uint16_t find_free_port() {
     thread_local iptr<Loop> loop(new Loop);
@@ -110,15 +101,13 @@ void TCP::bind(const SockAddr& sa, unsigned int flags) {
     if (err) throw CodeError(err);
 }
 
-void TCP::bind(std::string_view host, std::string_view service, const addrinfo* hints) {
-    if (!hints)
-        hints = &defhints;
-
+void TCP::bind(std::string_view host, std::string_view service, const AddrInfoHintsSP& hints) {
     PEXS_NULL_TERMINATE(host, host_cstr);
     PEXS_NULL_TERMINATE(service, service_cstr);
 
+    addrinfo h = hints->to<addrinfo>();
     addrinfo* res;
-    int       syserr = getaddrinfo(host_cstr, service_cstr, hints, &res);
+    int       syserr = getaddrinfo(host_cstr, service_cstr, &h, &res);
     if (syserr)
         throw CodeError(_err_gai2uv(syserr));
 
@@ -135,20 +124,20 @@ void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
     if (!tcp_connect_request->sa_) {
         _EDEBUGTHIS("connect_internal, resolving %p", tcp_connect_request);
         try {
-            resolve_request =
-                resolver->resolve(loop(), tcp_connect_request->host_, tcp_connect_request->service_, &tcp_connect_request->hints_,
-                                  [=](ResolverSP, ResolveRequestSP, BasicAddressSP address, const CodeError* err) {
-                                      _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                                      if (err) {
-                                          int errcode = err->code();
-                                          Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(errcode), tcp_connect_request); }, loop());
-                                          return;
-                                      }
+            resolver->resolve(tcp_connect_request->host_, tcp_connect_request->service_, tcp_connect_request->hints_,
+                              [=](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+                                  _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
+                                  if (err) {
+                                      int errcode = err->code();
+                                      Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(errcode), tcp_connect_request); },
+                                                         loop());
+                                      return;
+                                  }
 
-                                      tcp_connect_request->sa_ = address->head->ai_addr;
+                                  tcp_connect_request->sa_ = address->head->ai_addr;
 
-                                      connect_internal(tcp_connect_request);
-                                  });
+                                  connect_internal(tcp_connect_request);
+                              });
             return;
         } catch (...) {
             Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(ERRNO_RESOLVE), tcp_connect_request); }, loop());
@@ -199,7 +188,7 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
     call_filters(&StreamFilter::connect, tcp_connect_request);    
 }
 
-void TCP::connect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints) {
+void TCP::connect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints) {
     _EDEBUGTHIS("connect to %.*s:%.*s", (int)host.length(), host.data(), (int)service.length(), service.data());
     connect().to(host, service, hints).timeout(timeout);
 }
@@ -218,7 +207,7 @@ void TCP::reconnect(const SockAddr& sa, uint64_t timeout) {
     connect().to(sa).timeout(timeout).reconnect(true);
 }
 
-void TCP::reconnect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints) {
+void TCP::reconnect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints) {
     connect().to(host, service, hints).timeout(timeout).reconnect(true);
 }
 
@@ -265,12 +254,7 @@ void TCP::on_handle_reinit() {
 }
 
 void TCP::_close() {
-    _EDEBUGTHIS("close resolve_request:%p", resolve_request.get());
-
-    if (resolve_request) {
-        resolve_request->cancel();
-    }
-
+    _EDEBUGTHIS("close");
     Stream::_close();
 }
 

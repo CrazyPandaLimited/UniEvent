@@ -15,11 +15,11 @@ template <class T> struct BasicXSResolver : T {
     using T::T;
 
 protected:
-    void on_resolve (ResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+    void on_resolve (ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
         auto salistref = Scalar::undef;
         if (!err) {
             auto salist = Array::create();
-            for (addrinfo* ai = address->head; ai; ai = ai->ai_next) {
+            for (auto ai = address->head; ai; ai = ai->ai_next) {
                 salist.push(xs::out<SockAddr>(ai->ai_addr));
             }
             salistref = Ref::create(salist);

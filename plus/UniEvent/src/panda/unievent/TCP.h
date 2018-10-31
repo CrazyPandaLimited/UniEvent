@@ -16,7 +16,7 @@ namespace panda { namespace unievent {
 using panda::net::SockAddr;
 
 constexpr bool use_cached_resolver_by_default = true;
-
+    
 uint16_t find_free_port();
 
 struct addrinfo_deleter {
@@ -27,9 +27,11 @@ struct addrinfo_deleter {
 
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
-struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder; struct ResolveRequest;
+struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder;
 
 struct TCP : virtual Stream, AllocatedObject<TCP> {
+    friend TCPConnectRequest;
+
     ~TCP();
 
     TCP(Loop* loop = Loop::default_loop(), bool cached_resolver = use_cached_resolver_by_default);
@@ -40,13 +42,13 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void bind(const SockAddr&, unsigned int flags = 0);
 
-    virtual void bind(std::string_view host, std::string_view service, const addrinfo* hints = &defhints);
+    virtual void bind(std::string_view host, std::string_view service, const AddrInfoHintsSP& hints = default_hints);
 
     virtual void connect(TCPConnectRequest* tcp_connect_request);
 
     virtual void connect(const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void connect(const string& host, const string& service, uint64_t timeout = 0, const addrinfo* hints = nullptr);
+    virtual void connect(const string& host, const string& service, uint64_t timeout = 0, const AddrInfoHintsSP& hints = default_hints);
 
     virtual TCPConnectAutoBuilder connect(); 
 
@@ -54,7 +56,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void reconnect(const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void reconnect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints = nullptr);
+    virtual void reconnect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints = default_hints);
 
     void connect_internal(TCPConnectRequest* connect_request);
 
@@ -122,9 +124,8 @@ protected:
 
 private:
     uv_tcp_t uvh;
-    static addrinfo defhints;
-    ResolveRequestSP resolve_request;
     TimerSP connect_timer;
+    static AddrInfoHintsSP default_hints;
 };
 
 using TCPSP = iptr<TCP>;
@@ -139,14 +140,14 @@ struct TCPConnectRequest : ConnectRequest {
 
         Derived& concrete() { return static_cast<Derived&>(*this); }
 
-        Derived& to(const string& host, const string& service, const addrinfo* hints = nullptr) {
+        Derived& to(const string& host, const string& service, const AddrInfoHintsSP& hints = TCP::default_hints) {
             host_    = host;
             service_ = service;
             hints_   = hints;
             return concrete();
         }
         
-        Derived& to(const string& host, uint16_t port, const addrinfo* hints = nullptr) {
+        Derived& to(const string& host, uint16_t port, const AddrInfoHintsSP& hints = TCP::default_hints) {
             host_    = host;
             service_ = panda::to_string(port);
             hints_   = hints;
@@ -181,7 +182,7 @@ struct TCPConnectRequest : ConnectRequest {
         SockAddr        sa_;
         string          host_;
         string          service_;
-        const addrinfo* hints_ = nullptr;
+        AddrInfoHintsSP hints_;
         uint64_t        timeout_ = 0;
         connect_fn      callback_;
         SocksSP         socks_;
@@ -196,34 +197,31 @@ struct TCPConnectRequest : ConnectRequest {
 
     CallbackDispatcher<connect_fptr> event;
 
-    string    host_;
-    string    service_;
-    addrinfo  hints_ = {};
-    SockAddr  sa_;
-    uint64_t  timeout_ = 0;
-    SocksSP   socks_;
+    string          host_;
+    string          service_;
+    AddrInfoHintsSP hints_;
+    SockAddr        sa_;
+    uint64_t        timeout_ = 0;
+    SocksSP         socks_;
 
 protected:
-    TCPConnectRequest(bool            reconnect,
-                      const SockAddr& sa,
-                      const string&   host,
-                      const string&   service,
-                      const addrinfo* hints,
-                      uint64_t        timeout,
-                      connect_fn      callback,
-                      const SocksSP&  socks)
+    TCPConnectRequest(bool                   reconnect,
+                      const SockAddr&        sa,
+                      const string&          host,
+                      const string&          service,
+                      const AddrInfoHintsSP& hints,
+                      uint64_t               timeout,
+                      connect_fn             callback,
+                      const SocksSP&         socks)
             : ConnectRequest(callback, reconnect)
             , host_(host)
             , service_(service)
+            , hints_(hints)
             , sa_(sa)
             , timeout_(timeout)
             , socks_(socks)
     {
         _ECTOR();
-
-        if (hints) {
-            hints_ = *hints;
-        }
     }
 
 private:

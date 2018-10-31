@@ -120,8 +120,9 @@ struct XSTCP : TCP, XSStream {
         io_sv.reset();
         TCP::open(sock);
     }
+
     template<class Builder>
-    static Builder construct_connect(SV* host_or_sa, SV* service_or_callback, float timeout, addrinfo* hints, bool reconnect) {
+    static Builder construct_connect(SV* host_or_sa, SV* service_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
         if (service_or_callback && !SvROK(service_or_callback)) {
             return Builder().to(xs::in<string>(host_or_sa), xs::in<string>(service_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {

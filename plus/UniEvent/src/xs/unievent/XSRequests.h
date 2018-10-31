@@ -23,14 +23,14 @@ private:
 struct XSTCPConnectRequest : TCPConnectRequest {
     XSCallback xscb;
 
-    XSTCPConnectRequest(bool            reconnect,
-                        const SockAddr& sa,
-                        const string&   host,
-                        const string&   service,
-                        const addrinfo* hints,
-                        uint64_t        timeout,
-                        SV*      xs_callback,
-                        const SocksSP& socks)
+    XSTCPConnectRequest(bool                   reconnect,
+                        const SockAddr&        sa,
+                        const string&          host,
+                        const string&          service,
+                        const AddrInfoHintsSP& hints,
+                        uint64_t               timeout,
+                        SV*                    xs_callback,
+                        const SocksSP&         socks)
             : TCPConnectRequest(reconnect, sa, host, service, hints, timeout, xs_callback ? _cb : connect_fn(nullptr), socks) {
         xscb.set(xs_callback);
     }
