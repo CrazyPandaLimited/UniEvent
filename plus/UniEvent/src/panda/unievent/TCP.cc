@@ -1,61 +1,11 @@
 #include "TCP.h"
-
-#include "Resolver.h"
 #include "Prepare.h"
 #include "ssl/SSLFilter.h"
 #include "socks/SocksFilter.h"
 
 namespace panda { namespace unievent {
 
-AddrInfoHintsSP default_hints = AddrInfoHintsSP(new AddrInfoHints);
-
-namespace {
-
-uint16_t getenv_free_port() {
-    const char*     env     = getenv("UNIEVENT_FREE_PORT");
-    static uint16_t env_int = env ? atoi(env) : 0;
-    return env_int;
-}
-
-uint16_t any_free_port(Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    test->bind("localhost", "0");
-    auto sa = test->get_sockaddr();
-    auto port = sa.is_inet4() ? sa.inet4().port() : sa.inet6().port();
-    test.reset();
-    loop->run_nowait();
-    if (port > 1024) {
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
-
-bool check_if_free(uint16_t port, Loop* loop) {
-    iptr<TCP> test = new TCP(loop);
-    try {
-        test->bind("localhost", panda::to_string(port));
-        test.reset();
-        loop->run_nowait();
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-} // namespace
-
-uint16_t find_free_port() {
-    thread_local iptr<Loop> loop(new Loop);
-    static uint16_t port = getenv_free_port();
-    if (port) {
-        while (!check_if_free(port++, loop)) {
-        }
-        return port;
-    } else {
-        return any_free_port(loop);
-    }
-}
+AddrInfoHintsSP TCP::default_hints = AddrInfoHintsSP(new AddrInfoHints);
 
 TCP::~TCP() { _EDTOR(); _EDEBUG("~TCP: %p", static_cast<Handle*>(this)); }
 
@@ -120,34 +70,30 @@ void TCP::bind(std::string_view host, std::string_view service, const AddrInfoHi
     freeaddrinfo(res);
 }
 
-void TCP::connect_internal(TCPConnectRequest* tcp_connect_request) {
-    if (!tcp_connect_request->sa_) {
-        _EDEBUGTHIS("connect_internal, resolving %p", tcp_connect_request);
+void TCP::do_connect(TCPConnectRequest* req) {
+    if (!req->sa_) {
+        _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolver->resolve(tcp_connect_request->host_, tcp_connect_request->service_, tcp_connect_request->hints_,
-                              [=](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
-                                  _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                                  if (err) {
-                                      int errcode = err->code();
-                                      Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(errcode), tcp_connect_request); },
-                                                         loop());
-                                      return;
-                                  }
-
-                                  tcp_connect_request->sa_ = address->head->ai_addr;
-
-                                  connect_internal(tcp_connect_request);
-                              });
+            resolver->resolve(req->host_, req->service_, req->hints_, [=](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+                _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
+                if (err) {
+                    int errcode = err->code();
+                    Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
+                    return;
+                }
+                req->sa_ = address->head->ai_addr;
+                do_connect(req);
+            });
             return;
         } catch (...) {
-            Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(ERRNO_RESOLVE), tcp_connect_request); }, loop());
+            Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
             return;
         }
     }
-    
-    int err = uv_tcp_connect(_pex_(tcp_connect_request), &uvh, tcp_connect_request->sa_.get(), Stream::uvx_on_connect);
+
+    int err = uv_tcp_connect(_pex_(req), &uvh, req->sa_.get(), Stream::uvx_on_connect);
     if (err) {
-        Prepare::call_soon([=] { call_filters(&StreamFilter::on_connect, CodeError(err), tcp_connect_request); }, loop());
+        Prepare::call_soon([=] { filters_.on_connect(CodeError(err), req); }, loop());
         return;
     }
 }
@@ -185,7 +131,7 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
                                                     loop()));
     }
 
-    call_filters(&StreamFilter::connect, tcp_connect_request);    
+    filters_.connect(tcp_connect_request);
 }
 
 void TCP::connect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints) {
@@ -225,7 +171,7 @@ void TCP::use_ssl (const SSL_METHOD* method) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // insert right after default front filter if there are no other filters
-        filters_.insert(++filters_.begin(), new ssl::SSLFilter(this, method));
+        filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
     } else {
         // insert before socks as socks has its own auth encryption methods
         filters_.insert(pos, new ssl::SSLFilter(this, method));
@@ -240,7 +186,7 @@ void TCP::use_socks(const SocksSP& socks) {
     auto pos = find_filter<socks::SocksFilter>();
     if(pos == filters_.end()) {
         // always insert socks as last (before default back) filter
-        filters_.insert(--filters_.end(), new socks::SocksFilter(this, socks));
+        filters_.insert(filters_.end(), new socks::SocksFilter(this, socks));
     } else {
         filters_.insert(filters_.erase(pos), new socks::SocksFilter(this, socks));
     }

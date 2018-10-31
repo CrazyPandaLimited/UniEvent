@@ -8,13 +8,25 @@ PROTOTYPES: DISABLE
 
 void core_dump () { abort(); }
 
-void variate_ssl (bool val) { variation.ssl = val; }
+bool variate_ssl (bool val = false) {
+    if (items) variation.ssl = val;
+    RETVAL = variation.ssl;
+}
 
-void variate_socks (bool val) { variation.socks = val; }
+int variate_socks (int val = 0) {
+    if (items) variation.socks = val;
+    RETVAL = variation.socks;
+}
 
-void variate_socks_url (string val) { variation.socks_url = val; }
+bool variate_buf (bool val = false) {
+    if (items) variation.buf = val;
+    RETVAL = variation.buf;
+}
 
-void variate_buf (bool val) { variation.buf = val; }
+string variate_socks_url (string val = "") {
+    if (items) variation.socks_url = val;
+    RETVAL = variation.socks_url;
+}
 
 void _benchmark_regular_resolver () { 
     LoopSP loop(new Loop);

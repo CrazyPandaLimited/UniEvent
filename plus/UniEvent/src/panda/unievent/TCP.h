@@ -16,8 +16,6 @@ namespace panda { namespace unievent {
 using panda::net::SockAddr;
 
 constexpr bool use_cached_resolver_by_default = true;
-    
-uint16_t find_free_port();
 
 struct addrinfo_deleter {
     void operator() (addrinfo* ptr) {
@@ -58,7 +56,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void reconnect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints = default_hints);
 
-    void connect_internal(TCPConnectRequest* connect_request);
+    void do_connect(TCPConnectRequest* connect_request);
 
     using Stream::use_ssl;
     void use_ssl(const SSL_METHOD* method = nullptr) override;
@@ -239,7 +237,5 @@ struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBui
 private:
     TCP* tcp_;
 };
-
-uint16_t find_free_port();
 
 }}
