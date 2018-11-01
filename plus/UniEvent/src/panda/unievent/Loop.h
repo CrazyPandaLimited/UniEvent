@@ -10,8 +10,6 @@
 
 namespace panda { namespace unievent {
 
-struct Handle;
-struct CachedResolver;
 struct Loop : virtual panda::Refcnt {
     using walk_fn = function<void(Handle* event)>;
 
@@ -38,7 +36,7 @@ struct Loop : virtual panda::Refcnt {
         Refcnt::release();
     }
     
-    CachedResolverSP default_resolver();
+    ResolverSP resolver();
 
     static Loop* global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -59,7 +57,7 @@ private:
     uv_loop_t  _uvloop_body;
     uv_loop_t* _uvloop;
     bool closed;
-    iptr<CachedResolver> resolver;
+    iptr<Resolver> resolver_;
 
     Loop (bool);
 

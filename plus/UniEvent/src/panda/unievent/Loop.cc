@@ -54,11 +54,11 @@ void Loop::walk (walk_fn cb) {
     uv_walk(_uvloop, uvx_walk_cb, &cb);
 }
 
-CachedResolverSP Loop::default_resolver () {
-    if (!resolver) {
-        resolver = new CachedResolver(this);
+ResolverSP Loop::resolver () {
+    if (!resolver_) {
+        resolver_ = new Resolver(this);
     }
-    return resolver;
+    return resolver_;
 }
 
 void Loop::close () {

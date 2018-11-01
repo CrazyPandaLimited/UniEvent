@@ -1,5 +1,6 @@
 #pragma once
 #include "inc.h"
+#include "Fwd.h"
 #include "Error.h"
 #include <panda/cast.h>
 
@@ -75,7 +76,6 @@ inline uv_errno_t _err_gai2uv (int syscode) {
     return (uv_errno_t) uv__getaddrinfo_translate_error(syscode);
 }
 
-struct Handle; struct Request;
 template <class T, class X> static T hcast (X* h) { return panda::dyn_cast<T>(static_cast<Handle*>(h->data)); }
 template <class T, class X> static T rcast (X* r) { return panda::dyn_cast<T>(static_cast<Request*>(r->data)); }
 

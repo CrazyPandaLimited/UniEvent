@@ -28,9 +28,9 @@ string variate_socks_url (string val = "") {
     RETVAL = variation.socks_url;
 }
 
-void _benchmark_regular_resolver () { 
+void _benchmark_simple_resolver () { 
     LoopSP loop(new Loop);
-    ResolverSP resolver(new Resolver(loop));
+    SimpleResolverSP resolver(new SimpleResolver(loop));
    
     for (auto i=0; i<1000; i++) {
         bool called = false;                                                          
@@ -38,7 +38,7 @@ void _benchmark_regular_resolver () {
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+                [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                     called = true;
                 });
     }
@@ -48,7 +48,7 @@ void _benchmark_regular_resolver () {
 
 void _benchmark_cached_resolver () { 
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop));
+    ResolverSP resolver(new Resolver(loop));
    
     // put it into cache first 
     bool called = false;                                                          
@@ -56,7 +56,7 @@ void _benchmark_cached_resolver () {
             "localhost", 
             "80", 
             nullptr, 
-            [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+            [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                 called = true;
             });
     
@@ -70,7 +70,7 @@ void _benchmark_cached_resolver () {
                 "localhost", 
                 "80", 
                 nullptr,
-                [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+                [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
                     called = true;
                 });
     }

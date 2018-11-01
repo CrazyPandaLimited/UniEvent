@@ -13,23 +13,23 @@ std::string dump(addrinfo* ai) {
 
 TEST_CASE("basic resolver", "[resolver]") {
     LoopSP loop(new Loop);
-    ResolverSP resolver{new Resolver(loop)};
-    resolver->resolve("google.com", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    SimpleResolverSP resolver{new SimpleResolver(loop)};
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
     loop->run();
 }
 
 TEST_CASE("cached resolver", "[resolver]") {
     LoopSP loop(new Loop);
-    CachedResolverSP resolver{new CachedResolver(loop)};
+    ResolverSP resolver{new Resolver(loop)};
 
     // it is not in cache, async call
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
 
     loop->run();
 
     // in cache, so the call is sync
     bool called = false;
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });
@@ -39,17 +39,17 @@ TEST_CASE("cached resolver", "[resolver]") {
 
 TEST_CASE("cached resolver, same hints", "[resolver]") {
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop));
+    ResolverSP resolver(new Resolver(loop));
 
     AddrInfoHintsSP hints = new AddrInfoHints();
-    resolver->resolve("localhost", "80", hints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    resolver->resolve("localhost", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         REQUIRE(!err);
     });
 
     loop->run();
 
     bool called = false;
-    resolver->resolve("localhost", "80", hints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
+    resolver->resolve("localhost", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });
@@ -59,15 +59,15 @@ TEST_CASE("cached resolver, same hints", "[resolver]") {
 
 TEST_CASE("cached resolver, with custom hints and default hints", "[resolver]") {
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop));
+    ResolverSP resolver(new Resolver(loop));
 
-    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
     });
     
     loop->run();
     
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
     });
 
@@ -76,15 +76,15 @@ TEST_CASE("cached resolver, with custom hints and default hints", "[resolver]") 
 
 TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") {
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop));
+    ResolverSP resolver(new Resolver(loop));
 
-    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err);
     });
 
     loop->run();
 
-    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET6), [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET6), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
     });
 
@@ -93,10 +93,10 @@ TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") 
 
 TEST_CASE("standalone cached resolver", "[resolver]") {
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop));
+    ResolverSP resolver(new Resolver(loop));
 
     SockAddr addr1;
-    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         REQUIRE(!err);
         CHECK(address->head);
         addr1 = address->head->ai_addr;
@@ -106,7 +106,7 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
 
     bool called = false;
     SockAddr addr2;
-    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         REQUIRE(!err);
         CHECK(address->head);
         addr2  = address->head->ai_addr;
@@ -146,10 +146,10 @@ TEST_CASE("rotator", "[resolver]") {
 TEST_CASE("cached resolver limit", "[resolver]") {
     size_t LIMIT = 2;
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver(loop, 500, LIMIT));
+    ResolverSP resolver(new Resolver(loop, 500, LIMIT));
 
     bool called = false;
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
 
     loop->run();
 
@@ -158,7 +158,7 @@ TEST_CASE("cached resolver limit", "[resolver]") {
     REQUIRE(resolver->cache_size() == 1);
 
     called = false;
-    resolver->resolve("google.com", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
 
     loop->run();
 
@@ -166,7 +166,7 @@ TEST_CASE("cached resolver limit", "[resolver]") {
     REQUIRE(resolver->cache_size() == 2);
 
     called = false;
-    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
+    resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*) { called = true; });
 
     loop->run();
 

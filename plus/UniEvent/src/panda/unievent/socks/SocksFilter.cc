@@ -249,7 +249,7 @@ void SocksFilter::do_auth() {
 void SocksFilter::do_resolve() {
     _EDEBUGTHIS("do_resolve_host");
     TCP* tcp         = dyn_cast<TCP*>(handle);
-    tcp->resolver->resolve(host_, panda::to_string(port_), nullptr, [=](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    tcp->resolver()->resolve(host_, panda::to_string(port_), nullptr, [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         _EDEBUGTHIS("resolved err:%d", err ? err->code() : 0);
         if (err || this->state_ == State::canceled) {
             do_error();

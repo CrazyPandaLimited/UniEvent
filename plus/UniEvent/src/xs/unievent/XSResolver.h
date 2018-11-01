@@ -36,18 +36,11 @@ template <class T>
 const Simple BasicXSResolver<T>::evname_on_resolve = Simple::shared("on_resolve");
 
 using XSResolver       = BasicXSResolver<Resolver>;
-using XSCachedResolver = BasicXSResolver<CachedResolver>;
 
 }} // namespace xs::event
 
 namespace xs {
-
     template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
         std::string package () { return "UniEvent::Resolver"; }
     };
-
-    template <class TYPE> struct Typemap<panda::unievent::CachedResolver*, TYPE> : TypemapObject<panda::unievent::CachedResolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
-        std::string package () { return "UniEvent::CachedResolver"; }
-    };
-
 }

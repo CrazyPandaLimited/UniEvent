@@ -14,13 +14,10 @@
 #include "Poll.h"
 #include "Handle.h"
 #include "Request.h"
-#include "ResolveFunction.h"
 #include "Timer.h"
 #include "global.h"
 
 namespace panda { namespace unievent {
-
-constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
 // addrinfo extract, there are fields needed for hinting only
 struct AddrInfoHints : virtual Refcnt {
@@ -148,9 +145,6 @@ struct CachedAddress : AddressRotator {
 
 namespace cached_resolver {
 
-constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
-constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
-
 struct Hash;
 struct Key : virtual Refcnt {
     friend Hash;
@@ -209,7 +203,8 @@ struct AresTask : virtual Refcnt {
     PollSP poll;
 };
 
-struct Resolver : virtual Refcnt {
+struct SimpleResolver : virtual Refcnt {
+    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
     // keep in sync with xsi constants
     enum { 
@@ -217,15 +212,15 @@ struct Resolver : virtual Refcnt {
         UE_AI_NUMERICSERV = ARES_AI_NUMERICSERV
     };
 
-    ~Resolver();
-    Resolver(Loop* loop);
-    Resolver(Resolver& other) = delete; 
-    Resolver& operator=(Resolver& other) = delete;
+    ~SimpleResolver();
+    SimpleResolver(Loop* loop);
+    SimpleResolver(SimpleResolver& other) = delete; 
+    SimpleResolver& operator=(SimpleResolver& other) = delete;
 
     virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback = nullptr);
 
 protected:
-    virtual void on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err);
+    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err);
     
 private:
     static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
@@ -240,15 +235,18 @@ public:
     AresTasks tasks;
 };
 
-struct CachedResolver : Resolver {
+struct Resolver : SimpleResolver {
+    static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
+    static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
+
     using CacheType = std::unordered_map<cached_resolver::Key, cached_resolver::Value, cached_resolver::Hash>;
 
-    ~CachedResolver();
+    ~Resolver();
 
-    CachedResolver(Loop* loop, time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
+    Resolver(Loop* loop, time_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
     
-    CachedResolver(CachedResolver& other) = delete; 
-    CachedResolver& operator=(CachedResolver& other) = delete;
+    Resolver(Resolver& other) = delete; 
+    Resolver& operator=(Resolver& other) = delete;
 
     // search in cache, will remove the record if expired
     std::tuple<CacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints);
@@ -262,7 +260,7 @@ struct CachedResolver : Resolver {
     void clear() { cache_.clear(); }
 
 protected:
-    void on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) override;
+    void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) override;
 
 private:
     bool expunge_cache() {
@@ -283,20 +281,20 @@ private:
 struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
     ~ResolveRequest(); 
     ResolveRequest(ResolveFunction callback);
-    
+
     CallbackDispatcher<ResolveFunctionPlain> event;
-    Resolver*                                resolver;
+    SimpleResolver*                          resolver;
     iptr<cached_resolver::Key>               key;
     bool                                     async;
 };
 
-inline Resolver* get_thread_local_simple_resolver(Loop* loop) {
-    thread_local ResolverSP resolver(new Resolver(loop));
+inline SimpleResolver* get_thread_local_simple_resolver(Loop* loop) {
+    thread_local SimpleResolverSP resolver(new SimpleResolver(loop));
     return resolver.get();
 }
 
-inline CachedResolver* get_thread_local_cached_resolver(Loop* loop) {
-    thread_local CachedResolverSP resolver(new CachedResolver(loop));
+inline Resolver* get_thread_local_cached_resolver(Loop* loop) {
+    thread_local ResolverSP resolver(new Resolver(loop));
     return resolver.get();
 }
 

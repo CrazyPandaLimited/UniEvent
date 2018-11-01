@@ -4,7 +4,6 @@
 #include "Timer.h"
 #include "Socks.h"
 #include "Stream.h"
-#include "ResolveFunction.h"
 #include "socks/SocksFilter.h"
 
 #include <ostream>
@@ -16,8 +15,6 @@ namespace panda { namespace unievent {
 
 using panda::net::SockAddr;
 
-constexpr bool use_cached_resolver_by_default = true;
-
 struct addrinfo_deleter {
     void operator() (addrinfo* ptr) {
         if (ptr != nullptr) freeaddrinfo(ptr);
@@ -26,16 +23,16 @@ struct addrinfo_deleter {
 
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
-struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder;
-
 struct TCP : virtual Stream, AllocatedObject<TCP> {
     friend TCPConnectRequest;
 
+    static constexpr bool USE_CACHED_RESOLVER_BY_DEFAULT = true;
+
     ~TCP();
 
-    TCP(Loop* loop = Loop::default_loop(), bool cached_resolver = use_cached_resolver_by_default);
+    TCP(Loop* loop = Loop::default_loop(), bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
 
-    TCP(Loop* loop, unsigned int flags, bool cached_resolver = use_cached_resolver_by_default);
+    TCP(Loop* loop, unsigned int flags, bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
 
     virtual void open(sock_t socket);
 
@@ -110,19 +107,19 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
     	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw CodeError(-errno);
     }
 #endif
-    
+
+    ResolverSP resolver() { return loop()->resolver(); }
+
     using Handle::set_recv_buffer_size;
     using Handle::set_send_buffer_size;
    
-    ResolverSP resolver;
-
 protected:
     void on_handle_reinit () override;
     void _close() override;
-    void init(bool cached_resolver);
 
 private:
     uv_tcp_t uvh;
+    bool cached_resolver;
     TimerSP connect_timer;
     static AddrInfoHintsSP default_hints;
 };

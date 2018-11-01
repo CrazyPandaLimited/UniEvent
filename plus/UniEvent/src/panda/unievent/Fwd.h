@@ -2,6 +2,7 @@
 #pragma once
 
 #include <panda/refcnt.h>
+#include <panda/function.h>
 
 namespace panda { namespace unievent {
 
@@ -29,14 +30,22 @@ using StreamSP = iptr<Stream>;
 struct TCP;
 using TCPSP = iptr<TCP>;
 
+struct Pipe;
+using PipeSP = iptr<Pipe>;
+
+struct SimpleResolver;
+using SimpleResolverSP = iptr<SimpleResolver>;
+
 struct Resolver;
 using ResolverSP = iptr<Resolver>;
 
-struct CachedResolver;
-using CachedResolverSP = iptr<CachedResolver>;
+struct Request;
 
 struct ConnectRequest;
 using ConnectRequestSP = iptr<ConnectRequest>;
+
+struct TCPConnectRequest;
+using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 
 struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
@@ -58,5 +67,12 @@ using SocksSP = iptr<Socks>;
 
 struct AresTask;
 using AresTaskSP = iptr<AresTask>;
+
+struct CodeError;
+
+struct TCPConnectAutoBuilder;
+
+using ResolveFunctionPlain = void(SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err);
+using ResolveFunction = function<ResolveFunctionPlain>;
 
 }} // namespace panda::unievent

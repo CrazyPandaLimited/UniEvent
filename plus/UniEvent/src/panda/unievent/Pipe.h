@@ -67,6 +67,4 @@ private:
     bool      ipc;
 };
 
-using PipeSP = iptr<Pipe>;
-
 }}

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#include <panda/unievent/Fwd.h>
 #include <panda/unievent/Request.h>
 #include <panda/unievent/Resolver.h>
 #include <panda/unievent/Socks.h>
@@ -8,13 +9,6 @@
 #include <panda/lib/memory.h>
 #include <panda/net/sockaddr.h>
 #include <panda/refcnt.h>
-
-namespace panda { namespace unievent {
-    struct ResolveRequest;
-    struct TCPConnectRequest;
-    struct ConnectRequest;
-    struct TCP;
-}}
 
 namespace panda { namespace unievent { namespace socks {
 

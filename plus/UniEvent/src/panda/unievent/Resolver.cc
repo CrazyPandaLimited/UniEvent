@@ -5,13 +5,13 @@
 
 namespace panda { namespace unievent {
 
-Resolver::~Resolver() {
+SimpleResolver::~SimpleResolver() {
     _EDTOR();
     ares_destroy(channel);
     timer->stop();
 }
 
-Resolver::Resolver(Loop* loop) : loop(loop) {
+SimpleResolver::SimpleResolver(Loop* loop) : loop(loop) {
     _ECTOR();
     ares_options options;
     options.sock_state_cb      = ares_sockstate_cb;
@@ -28,8 +28,8 @@ Resolver::Resolver(Loop* loop) : loop(loop) {
     });
 }
 
-void Resolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
-    ResolverSP resolver = static_cast<Resolver*>(data);
+void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
+    SimpleResolverSP resolver = static_cast<SimpleResolver*>(data);
     auto task_pos = resolver->tasks.find(sock);
     AresTaskSP task = task_pos != std::end(resolver->tasks) ? task_pos->second : nullptr;
     
@@ -58,7 +58,7 @@ void Resolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
     }
 }
 
-void Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
+void SimpleResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback));
     resolve_request->key      = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), string(service), hints->clone()));
     resolve_request->resolver = this;
@@ -74,9 +74,9 @@ void Resolver::resolve(std::string_view node, std::string_view service, const Ad
     resolve_request->async = true;
 }
 
-void Resolver::ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai) {
+void SimpleResolver::ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai) {
     ResolveRequest* resolve_request = static_cast<ResolveRequest*>(arg);
-    Resolver*       resolver        = resolve_request->resolver;
+    SimpleResolver*       resolver        = resolve_request->resolver;
 
     _EDEBUG("ares_resolve_cb {resolve_request:%p}{status:%d}", resolve_request, status);
 
@@ -104,19 +104,19 @@ void Resolver::ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinf
     }
 }
 
-void Resolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
+void SimpleResolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}", resolve_request.get(), err ? err->code() : 0);
     resolve_request->event(resolver, resolve_request, address, err);
 }
 
-CachedResolver::~CachedResolver() { _EDTOR(); }
+Resolver::~Resolver() { _EDTOR(); }
 
-CachedResolver::CachedResolver(Loop* loop, time_t expiration_time, size_t limit) : Resolver(loop), expiration_time_(expiration_time), limit_(limit) {
+Resolver::Resolver(Loop* loop, time_t expiration_time, size_t limit) : SimpleResolver(loop), expiration_time_(expiration_time), limit_(limit) {
     _ECTOR();
 }
 
-std::tuple<CachedResolver::CacheType::const_iterator, bool>
-CachedResolver::find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints) {
+std::tuple<Resolver::CacheType::const_iterator, bool>
+Resolver::find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints) {
     iptr<cached_resolver::Key> key(new cached_resolver::Key(string(node), string(service), hints));
 
     _EDEBUG("looking in cache [%.*s] [%.*s] %zd", (int)node.length(), node.data(), (int)service.length(), service.data(), cache_.size());
@@ -136,7 +136,7 @@ CachedResolver::find(std::string_view node, std::string_view service, const Addr
     return std::make_tuple<CacheType::const_iterator, bool>(address_pos, false);
 }
 
-void CachedResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
+void Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
     _EDEBUGTHIS("resolve");
     CacheType::const_iterator address_pos;
     bool                      found;
@@ -148,10 +148,10 @@ void CachedResolver::resolve(std::string_view node, std::string_view service, co
         }
     }
 
-    Resolver::resolve(node, service, hints, callback);
+    SimpleResolver::resolve(node, service, hints, callback);
 }
 
-void CachedResolver::on_resolve(ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
+void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}", resolve_request.get(), err ? err->code() : 0);
     if (!err) {
         expunge_cache();

@@ -8,34 +8,23 @@ AddrInfoHintsSP TCP::default_hints = AddrInfoHintsSP(new AddrInfoHints);
 
 TCP::~TCP() { _EDTOR(); _EDEBUG("~TCP: %p", static_cast<Handle*>(this)); }
 
-TCP::TCP(Loop* loop, bool cached_resolver) {
+TCP::TCP(Loop* loop, bool use_cached_resolver) : cached_resolver(use_cached_resolver) {
     _ECTOR();
     _EDEBUG("TCP: %p", static_cast<Handle*>(this));
     int err = uv_tcp_init(_pex_(loop), &uvh);
     if (err)
         throw CodeError(err);
     _init(&uvh);
-
-    init(cached_resolver);
+    connection_factory = [=](){return new TCP(loop, cached_resolver);};
 }
 
-TCP::TCP(Loop* loop, unsigned int flags, bool cached_resolver) {
+TCP::TCP(Loop* loop, unsigned int flags, bool use_cached_resolver) : cached_resolver(use_cached_resolver) {
     _ECTOR();
     int err = uv_tcp_init_ex(_pex_(loop), &uvh, flags);
     if (err)
         throw CodeError(err);
     _init(&uvh);
-
-    init(cached_resolver);
-}
-
-void TCP::init(bool cached_resolver) {
-    connection_factory = [=](){return new TCP(loop(), cached_resolver);};
-    if (cached_resolver) {
-        resolver = get_thread_local_cached_resolver(loop());
-    } else {
-        resolver = get_thread_local_simple_resolver(loop());
-    }
+    connection_factory = [=](){return new TCP(loop, cached_resolver);};
 }
 
 void TCP::open(sock_t socket) {
@@ -72,16 +61,17 @@ void TCP::do_connect(TCPConnectRequest* req) {
     if (!req->sa_) {
         _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolver->resolve(req->host_, req->service_, req->hints_, [=](ResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
-                _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                if (err) {
-                    int errcode = err->code();
-                    Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
-                    return;
-                }
-                req->sa_ = address->head->ai_addr;
-                do_connect(req);
-            });
+            loop()->resolver()->resolve(req->host_, req->service_, req->hints_,
+                [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+                    _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
+                    if (err) {
+                        int errcode = err->code();
+                        Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
+                        return;
+                    }
+                    req->sa_ = address->head->ai_addr;
+                    do_connect(req);
+                });
             return;
         } catch (...) {
             Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
