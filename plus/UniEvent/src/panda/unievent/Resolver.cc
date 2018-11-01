@@ -8,6 +8,7 @@ namespace panda { namespace unievent {
 Resolver::~Resolver() {
     _EDTOR();
     ares_destroy(channel);
+    timer->stop();
 }
 
 Resolver::Resolver(Loop* loop) : loop(loop) {
@@ -59,7 +60,7 @@ void Resolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
 
 void Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback));
-    resolve_request->key      = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), string(service), hints));
+    resolve_request->key      = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), string(service), hints->clone()));
     resolve_request->resolver = this;
     resolve_request->retain();
     retain();

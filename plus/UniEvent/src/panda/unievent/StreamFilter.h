@@ -1,12 +1,11 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Error.h"
 #include "Request.h"
 #include "IntrusiveChain.h"
 
 namespace panda { namespace unievent {
-
-struct Stream;
-using StreamSP = iptr<Stream>;
 
 struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
     static const char* TYPE;

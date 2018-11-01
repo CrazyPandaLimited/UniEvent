@@ -1,6 +1,9 @@
 #include "Loop.h"
-#include "Debug.h"
+
 #include <thread>
+
+#include "Debug.h"
+#include "Resolver.h"
 
 namespace panda { namespace unievent {
 
@@ -21,6 +24,7 @@ void Loop::_init_default_loop () {
 }
 
 Loop::Loop () : closed(false) {
+    _ECTOR();
     _uvloop = &_uvloop_body;
     int err = uv_loop_init(_uvloop);
     if (err) throw CodeError(err);
@@ -29,6 +33,7 @@ Loop::Loop () : closed(false) {
 
 // constructor for global default loop
 Loop::Loop (bool) : closed(false) {
+    _ECTOR();
     _uvloop = uv_default_loop();
     if (!_uvloop) throw Error("Cannot create default loop: uv_default_loop() failed");
     _uvloop->data = this;
@@ -47,6 +52,13 @@ void Loop::stop       () { _EDEBUGTHIS("Loop::stop)"); uv_stop(_uvloop); }
 
 void Loop::walk (walk_fn cb) {
     uv_walk(_uvloop, uvx_walk_cb, &cb);
+}
+
+CachedResolverSP Loop::default_resolver () {
+    if (!resolver) {
+        resolver = new CachedResolver(this);
+    }
+    return resolver;
 }
 
 void Loop::close () {
@@ -71,6 +83,7 @@ void Loop::handle_fork () {
 }
 
 Loop::~Loop () {
+    _EDTOR();
     assert(closed);
 }
 

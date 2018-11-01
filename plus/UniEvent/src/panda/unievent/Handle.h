@@ -1,12 +1,14 @@
 #pragma once
-#include "Loop.h"
-#include "global.h"
-#include "Debug.h"
-#include "Command.h"
-#include "test/Trace.h"
+
 #include <bitset>
 #include <cstdint>
+
 #include <panda/CallbackDispatcher.h>
+
+#include "global.h"
+#include "Loop.h"
+#include "Debug.h"
+#include "Command.h"
 
 namespace panda { namespace unievent {
 
@@ -192,7 +194,5 @@ private:
 
 void refcnt_dec (const Handle* o); // no body for startup error - cannot dec const object
 inline void refcnt_dec (Handle* o) { o->release(); }
-
-using HandleSP = panda::iptr<Handle>;
 
 }}

@@ -1,8 +1,9 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Timer.h"
 #include "Socks.h"
 #include "Stream.h"
-#include "Resolver.h"
 #include "ResolveFunction.h"
 #include "socks/SocksFilter.h"
 
@@ -126,8 +127,6 @@ private:
     static AddrInfoHintsSP default_hints;
 };
 
-using TCPSP = iptr<TCP>;
-
 std::ostream& operator<< (std::ostream&, const TCP&);
 
 struct TCPConnectRequest : ConnectRequest {
@@ -180,7 +179,7 @@ struct TCPConnectRequest : ConnectRequest {
         SockAddr        sa_;
         string          host_;
         string          service_;
-        AddrInfoHintsSP hints_;
+        AddrInfoHintsSP hints_   = TCP::default_hints;
         uint64_t        timeout_ = 0;
         connect_fn      callback_;
         SocksSP         socks_;
@@ -227,8 +226,6 @@ private:
 
     uv_connect_t uvr_;
 };
-
-using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 
 struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
     ~TCPConnectAutoBuilder() { tcp_->connect(this->build()); }

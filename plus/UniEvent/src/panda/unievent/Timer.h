@@ -1,11 +1,9 @@
 #pragma once
 
+#include "Fwd.h"
 #include "Handle.h"
 
 namespace panda { namespace unievent {
-
-struct Timer;
-using TimerSP = iptr<Timer>;
 
 // All the values are in milliseconds.
 struct Timer : virtual Handle, AllocatedObject<Timer> {

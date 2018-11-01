@@ -22,27 +22,6 @@ namespace panda { namespace unievent {
 
 constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
-struct Resolver;
-using ResolverSP = iptr<Resolver>;
-
-struct CachedResolver;
-using CachedResolverSP = iptr<CachedResolver>;
-
-struct ResolveRequest;
-using ResolveRequestSP = iptr<ResolveRequest>;
-
-struct AddrInfoHints;
-using AddrInfoHintsSP = iptr<AddrInfoHints>;
-
-struct AddrInfo;
-using AddrInfoSP = iptr<AddrInfo>;
-
-struct AddressRotator;
-using AddressRotatorSP = iptr<AddressRotator>;
-
-struct CachedAddress;
-using CachedAddressSP = iptr<CachedAddress>;
-
 // addrinfo extract, there are fields needed for hinting only
 struct AddrInfoHints : virtual Refcnt {
     AddrInfoHints(int family = AF_UNSPEC, int socktype = SOCK_STREAM, int proto = 0, int flags = AI_PASSIVE) : 
@@ -50,6 +29,10 @@ struct AddrInfoHints : virtual Refcnt {
 
     bool operator==(const AddrInfoHints& other) const {
         return ai_family == other.ai_family && ai_socktype == other.ai_socktype && ai_protocol == other.ai_protocol && ai_flags == other.ai_flags;
+    }
+
+    AddrInfoHintsSP clone() const {
+        return new AddrInfoHints(ai_family, ai_socktype, ai_protocol, ai_flags);
     }
 
     template <typename T> T to() const {
@@ -70,31 +53,30 @@ struct AddrInfoHints : virtual Refcnt {
     int ai_protocol;
     int ai_flags;
 };
-    
 
-struct AddrInfo : virtual Refcnt {                                                                                                                        
-    ~AddrInfo() {                                                                                                                                         
+struct AddrInfo : virtual Refcnt {
+    ~AddrInfo() {
         if (head) {
             ares_freeaddrinfo(head);
-        }                                                                                                                                                     
+        }
     }
 
     explicit AddrInfo(ares_addrinfo* addr) : head(addr) {}
 
-    AddrInfo(AddrInfo&& other) {                                                                                                                      
-        head       = other.head;                                                                                                                              
-        other.head = 0;                                                                                                                                       
-    }                                                                                                                                                         
-                                                                                                                                                              
-    AddrInfo& operator=(AddrInfo&& other) {                                                                                                           
-        head       = other.head;                                                                                                                              
-        other.head = 0;                                                                                                                                       
-        return *this;                                                                                                                                         
-    }                                                                                                                                                         
-                                                                                                                                                              
-    AddrInfo(AddrInfo& other) = delete;                                                                                                               
-    AddrInfo& operator=(AddrInfo& other) = delete;                                                                                                    
-                                                                                                                                                              
+    AddrInfo(AddrInfo&& other) {
+        head       = other.head;
+        other.head = 0;
+    }
+
+    AddrInfo& operator=(AddrInfo&& other) {
+        head       = other.head;
+        other.head = 0;
+        return *this;
+    }
+
+    AddrInfo(AddrInfo& other) = delete;
+    AddrInfo& operator=(AddrInfo& other) = delete;
+
     void detach() { head = nullptr; }
 
     ares_addrinfo* head;
@@ -207,9 +189,6 @@ typedef iptr<CachedAddress> Value;
 
 } // namespace cached_resolver
 
-struct AresTask;
-using AresTaskSP = iptr<AresTask>;
-
 struct AresTask : virtual Refcnt {
     ~AresTask() {
         if (poll) {
@@ -231,6 +210,13 @@ struct AresTask : virtual Refcnt {
 };
 
 struct Resolver : virtual Refcnt {
+
+    // keep in sync with xsi constants
+    enum { 
+        UE_AI_CANONNAME   = ARES_AI_CANONNAME,
+        UE_AI_NUMERICSERV = ARES_AI_NUMERICSERV
+    };
+
     ~Resolver();
     Resolver(Loop* loop);
     Resolver(Resolver& other) = delete; 

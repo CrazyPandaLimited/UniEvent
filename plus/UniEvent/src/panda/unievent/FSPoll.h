@@ -52,6 +52,4 @@ private:
     static void uvx_on_fs_poll (uv_fs_poll_t* handle, int errcode, const stat_t* prev, const stat_t* curr);
 };
 
-using FSPollSP = iptr<FSPoll>;
-
 }}

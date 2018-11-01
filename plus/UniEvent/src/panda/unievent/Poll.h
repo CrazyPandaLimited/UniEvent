@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Handle.h"
 
 namespace panda { namespace unievent {
@@ -38,7 +39,5 @@ private:
 
     static void uvx_on_poll (uv_poll_t* handle, int status, int events);
 };
-
-using PollSP = iptr<Poll>;
 
 }}

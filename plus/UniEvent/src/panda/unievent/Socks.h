@@ -62,6 +62,4 @@ struct Socks : virtual Refcnt {
     bool     socks_resolve;
 };
 
-using SocksSP = iptr<Socks>;
-
-}} // namespace panda::event
+}} // namespace panda::unievent

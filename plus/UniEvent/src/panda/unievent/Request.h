@@ -73,9 +73,6 @@ private:
     Timer* timer_;
 };
 
-using ConnectRequestSP = iptr<ConnectRequest>;
-
-
 struct ShutdownRequest : Request, AllocatedObject<ShutdownRequest, true> {
     using shutdown_fptr = void(Stream* handle, const CodeError* err, ShutdownRequest* req);
     using shutdown_fn = function<shutdown_fptr>;

@@ -14,7 +14,7 @@ std::string dump(addrinfo* ai) {
 TEST_CASE("basic resolver", "[resolver]") {
     LoopSP loop(new Loop);
     ResolverSP resolver{new Resolver(loop)};
-    resolver->resolve("google.com", "", nullptr, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
     loop->run();
 }
 
@@ -23,13 +23,13 @@ TEST_CASE("cached resolver", "[resolver]") {
     CachedResolverSP resolver{new CachedResolver(loop)};
 
     // it is not in cache, async call
-    resolver->resolve("localhost", "", nullptr, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
 
     loop->run();
 
     // in cache, so the call is sync
     bool called = false;
-    resolver->resolve("localhost", "", nullptr, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
+    resolver->resolve("localhost", "80", new AddrInfoHints, [&](ResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });

@@ -1,7 +1,6 @@
 #include "TCP.h"
 #include "Prepare.h"
 #include "ssl/SSLFilter.h"
-#include "socks/SocksFilter.h"
 
 namespace panda { namespace unievent {
 
@@ -32,7 +31,6 @@ TCP::TCP(Loop* loop, unsigned int flags, bool cached_resolver) {
 
 void TCP::init(bool cached_resolver) {
     connection_factory = [=](){return new TCP(loop(), cached_resolver);};
-
     if (cached_resolver) {
         resolver = get_thread_local_cached_resolver(loop());
     } else {

@@ -1,10 +1,9 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Handle.h"
 
 namespace panda { namespace unievent {
-
-struct Prepare;
-using PrepareSP = iptr<Prepare>;
 
 struct Prepare : virtual Handle {
     using prepare_fptr = void(Prepare* handle);
