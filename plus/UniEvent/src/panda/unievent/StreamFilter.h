@@ -9,7 +9,8 @@ struct Stream;
 using StreamSP = iptr<Stream>;
 
 struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
-    static const char* TYPE;
+    const void* type     () const { return _type; }
+    double      priority () const { return _priority; }
 
     virtual bool is_secure ();
 
@@ -23,8 +24,9 @@ struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
     virtual void on_eof        ();
     virtual void on_reinit     ();
 
+
 protected:
-    StreamFilter (Stream* h, const char* type);
+    StreamFilter (Stream* h, const void* type, double priority);
 
     CodeError temp_read_start    ();
     void      restore_read_start ();
@@ -35,11 +37,12 @@ protected:
     void set_connected(bool success);
     void set_shutdown(bool success);
 
-protected:
     friend Stream;
+    Stream*  handle;
 
-    Stream*     handle;
-    const char* type_;
+private:
+    const void*  _type;
+    const double _priority;
 };
 
 using StreamFilterSP = iptr<StreamFilter>;

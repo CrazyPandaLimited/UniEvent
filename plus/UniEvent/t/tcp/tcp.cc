@@ -186,7 +186,7 @@ TEST_CASE("try use server without certificate 2", "[tcp][v-ssl]") {
     REQUIRE_THROWS(server->listen(1));
 }
 
-TEST_CASE("server read", "[tcp][v-ssl][v-socks][v-buf]") {
+TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {});
     TCPSP client = make_client(test.loop);
     TCPSP server = make_server(test.loop);

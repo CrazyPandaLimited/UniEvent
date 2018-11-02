@@ -83,33 +83,20 @@ struct Stream : virtual Handle {
         _pex_(request)->handle = uvsp();
     }
 
-    void add_filter (StreamFilter* filter);
-
-    virtual void use_ssl  (SSL_CTX* context);
-    virtual void use_ssl  (const SSL_METHOD* method = nullptr);
+    void use_ssl (SSL_CTX* context);
+    void use_ssl (const SSL_METHOD* method = nullptr);
 
     SSL* get_ssl   () const;
     bool is_secure () const;
     
-    template <typename F> StreamFilters::const_iterator find_filter () const {
-        return std::find_if(filters_.cbegin(), filters_.cend(),
-                                [](const StreamFilterSP& filter) { return dyn_cast<F*>(filter.get()) != nullptr; });
-    }
+    void add_filter (const StreamFilterSP&);
 
-    template <typename F> iptr<F> get_filter () const {
-        auto pos = find_filter<F>();
-        return pos != filters_.cend() ? dyn_cast<F*>(pos->get()) : nullptr;
-    }
+    template <typename F>
+    iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
+    StreamFilterSP get_filter (const void* type) const;
 
-    // push after the front filter
-    void push_ahead_filter (const StreamFilterSP& filter) {
-        filters_.insert(filters_.begin(), filter);
-    }
-
-    // push before the back filter
-    void push_behind_filter (const StreamFilterSP& filter) {
-        filters_.insert(filters_.end(), filter);
-    }
+    void push_ahead_filter  (const StreamFilterSP& filter) { filters_.insert(filters_.begin(), filter); }
+    void push_behind_filter (const StreamFilterSP& filter) { filters_.insert(filters_.end(), filter); }
 
     StreamFilters& filters () { return filters_; }
     
@@ -118,13 +105,13 @@ struct Stream : virtual Handle {
      
     void do_write (WriteRequest* req);
 
-    virtual void     on_connection(StreamSP stream, const CodeError* err);
-    virtual void     on_connect(const CodeError* err, ConnectRequest* req);
-    virtual void     on_read(string& buf, const CodeError* err);
-    virtual void     on_write(const CodeError* err, WriteRequest* req);
-    virtual void     on_shutdown(const CodeError* err, ShutdownRequest* req);
-    virtual void     on_eof();
-    virtual StreamSP on_create_connection();
+    virtual void     on_connection        (StreamSP stream, const CodeError* err);
+    virtual void     on_connect           (const CodeError* err, ConnectRequest* req);
+    virtual void     on_read              (string& buf, const CodeError* err);
+    virtual void     on_write             (const CodeError* err, WriteRequest* req);
+    virtual void     on_shutdown          (const CodeError* err, ShutdownRequest* req);
+    virtual void     on_eof               ();
+    virtual StreamSP on_create_connection ();
 
     friend uv_stream_t* _pex_ (Stream*);
 
@@ -142,38 +129,15 @@ protected:
     static const uint32_t SF_LISTENING  = HF_LAST << 7;
     static const uint32_t SF_LAST       = SF_LISTENING;
 
-    void set_connecting () {
-        _EDEBUGTHIS("set_connecting");
-        flags &= ~SF_CONNECTED;
-        flags |= SF_CONNECTING;
-    }
-
-    void set_connected (bool success) {
-        _EDEBUGTHIS("set_connected: %d", (int)success);
-        flags &= ~SF_CONNECTING;
-        flags = success ? flags | SF_CONNECTED : flags & ~SF_CONNECTED;
-    }
-    
-    void set_shutting () {
-        _EDEBUGTHIS("set_shutting");
-        flags &= ~SF_SHUT;
-        flags |= SF_SHUTTING;
-    }
-
-    void set_shutdown (bool success) {
-        flags &= ~SF_SHUTTING;
-        flags = success ? flags | SF_SHUT : flags & ~SF_SHUT;
-    }
-    
-    void set_reading () { flags |= SF_READING; }
-    
-    void clear_reading () { flags &= ~SF_READING; }
-
-    void set_wantread () { flags |= SF_WANTREAD; }
-    
-    void clear_wantread () { flags &= ~SF_WANTREAD; }
-    
-    void set_listening () { flags |= SF_LISTENING; }
+    void set_connecting ()             { flags &= ~SF_CONNECTED; flags |= SF_CONNECTING; }
+    void set_connected  (bool success) { flags &= ~SF_CONNECTING; flags = success ? flags | SF_CONNECTED : flags & ~SF_CONNECTED; }
+    void set_shutting   ()             { flags &= ~SF_SHUT; flags |= SF_SHUTTING; }
+    void set_shutdown   (bool success) { flags &= ~SF_SHUTTING; flags = success ? flags | SF_SHUT : flags & ~SF_SHUT; }
+    void set_reading    ()             { flags |= SF_READING; }
+    void clear_reading  ()             { flags &= ~SF_READING; }
+    void set_wantread   ()             { flags |= SF_WANTREAD; }
+    void clear_wantread ()             { flags &= ~SF_WANTREAD; }
+    void set_listening  ()             { flags |= SF_LISTENING; }
 
     void on_handle_reinit () override;
 

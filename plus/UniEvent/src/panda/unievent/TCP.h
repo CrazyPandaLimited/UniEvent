@@ -1,10 +1,8 @@
 #pragma once
 #include "Timer.h"
-#include "Socks.h"
 #include "Stream.h"
 #include "Resolver.h"
 #include "ResolveFunction.h"
-#include "socks/SocksFilter.h"
 
 #include <ostream>
 #include <panda/string.h>
@@ -55,11 +53,6 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
     virtual void reconnect(const string& host, const string& service, uint64_t timeout, const addrinfo* hints = nullptr);
 
     void do_connect(TCPConnectRequest* connect_request);
-
-    using Stream::use_ssl;
-    void use_ssl(const SSL_METHOD* method = nullptr) override;
-    void use_socks(std::string_view host, uint16_t port = 1080, std::string_view login = "", std::string_view passw = "", bool socks_resolve = true);
-    void use_socks(const SocksSP& socks);
 
     void tcp_nodelay (bool enable) {
         int err = uv_tcp_nodelay(&uvh, enable);
@@ -155,20 +148,12 @@ struct TCPConnectRequest : ConnectRequest {
 
         Derived& timeout(uint64_t timeout) { timeout_ = timeout; return concrete(); }
         
-        Derived&
-        socks(std::string_view host, uint16_t port = 1080, std::string_view login = "", std::string_view passw = "", bool socks_resolve = true) {
-            socks_ = new Socks(string(host), port, string(login), string(passw), socks_resolve);
-            return concrete();
-        }
-
-        Derived& socks(const SocksSP& socks) { socks_ = socks; return concrete(); }
-        
         Derived& callback(connect_fn callback) { callback_ = callback; return concrete(); } 
         
         Derived& reconnect(bool reconnect) { reconnect_ = reconnect; return concrete(); }
 
         TCPConnectRequest* build() {
-            return new TCPConnectRequest(reconnect_, sa_, host_, service_, hints_, timeout_, callback_, socks_);
+            return new TCPConnectRequest(reconnect_, sa_, host_, service_, hints_, timeout_, callback_);
         }
 
         BasicBuilder(const BasicBuilder&) = default;
@@ -182,7 +167,6 @@ struct TCPConnectRequest : ConnectRequest {
         const addrinfo* hints_ = nullptr;
         uint64_t        timeout_ = 0;
         connect_fn      callback_;
-        SocksSP         socks_;
     };
 
 
@@ -194,12 +178,11 @@ struct TCPConnectRequest : ConnectRequest {
 
     CallbackDispatcher<connect_fptr> event;
 
-    string    host_;
-    string    service_;
-    addrinfo  hints_ = {};
-    SockAddr  sa_;
-    uint64_t  timeout_ = 0;
-    SocksSP   socks_;
+    string   host_;
+    string   service_;
+    addrinfo hints_ = {};
+    SockAddr sa_;
+    uint64_t timeout_ = 0;
 
 protected:
     TCPConnectRequest(bool            reconnect,
@@ -208,14 +191,12 @@ protected:
                       const string&   service,
                       const addrinfo* hints,
                       uint64_t        timeout,
-                      connect_fn      callback,
-                      const SocksSP&  socks)
+                      connect_fn      callback)
             : ConnectRequest(callback, reconnect)
             , host_(host)
             , service_(service)
             , sa_(sa)
             , timeout_(timeout)
-            , socks_(socks)
     {
         _ECTOR();
 
@@ -233,9 +214,8 @@ private:
 using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 
 struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
-    ~TCPConnectAutoBuilder() { tcp_->connect(this->build()); }
-    TCPConnectAutoBuilder(TCP* tcp) : tcp_(tcp) {}
-
+    TCPConnectAutoBuilder (TCP* tcp) : tcp_(tcp) {}
+    ~TCPConnectAutoBuilder () { tcp_->connect(this->build()); }
 private:
     TCP* tcp_;
 };

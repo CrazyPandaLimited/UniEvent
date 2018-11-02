@@ -167,41 +167,6 @@ void TCP::reconnect(const string& host, const string& service, uint64_t timeout,
     connect().to(host, service, hints).timeout(timeout).reconnect(true);
 }
 
-// use_socks and use_ssl will work with two filters only
-// for custom configuration add filters manually
-void TCP::use_ssl (const SSL_METHOD* method) {
-    if (is_secure()) {
-        return;
-    }
-    
-    if(!method && listening()) {
-        throw Error("Programming error, use server certificate");
-    }
-
-    auto pos = find_filter<socks::SocksFilter>();
-    if(pos == filters_.end()) {
-        // insert right after default front filter if there are no other filters
-        filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
-    } else {
-        // insert before socks as socks has its own auth encryption methods
-        filters_.insert(pos, new ssl::SSLFilter(this, method));
-    }
-}
-
-void TCP::use_socks(std::string_view host, uint16_t port, std::string_view login, std::string_view passw, bool socks_resolve) {
-    use_socks(new Socks(string(host), port, string(login), string(passw), socks_resolve));
-}
-
-void TCP::use_socks(const SocksSP& socks) { 
-    auto pos = find_filter<socks::SocksFilter>();
-    if(pos == filters_.end()) {
-        // always insert socks as last (before default back) filter
-        filters_.insert(filters_.end(), new socks::SocksFilter(this, socks));
-    } else {
-        filters_.insert(filters_.erase(pos), new socks::SocksFilter(this, socks));
-    }
-}
-
 void TCP::on_handle_reinit() {
     int err = uv_tcp_init(uvh.loop, &uvh);
     if (err)

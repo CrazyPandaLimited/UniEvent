@@ -45,9 +45,7 @@ void StreamFilters::on_eof () {
     else        handle->do_on_eof();
 }
 
-const char* StreamFilter::TYPE = "EMPTY";
-
-StreamFilter::StreamFilter (Stream* h, const char* type = TYPE) : handle(h), type_(type) {}
+StreamFilter::StreamFilter (Stream* h, const void* type, double priority) : handle(h), _type(type), _priority(priority) {}
 
 void StreamFilter::set_connecting () {
     handle->set_connecting();
