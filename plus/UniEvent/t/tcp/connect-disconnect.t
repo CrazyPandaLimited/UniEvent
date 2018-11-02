@@ -18,13 +18,14 @@ $cl->connect($sa, sub {
     pass "first connected";
 });
 $cl->write('1');
-$cl->disconnect();
+$cl->disconnect;
 $cl->connect($sa, sub {
     my ($handler, $err) = @_;
     fail $err if $err;
     pass "second connected";
 	$loop->stop;
 });
+
 $loop->update_time;
 $loop->run;
 

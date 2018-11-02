@@ -15,7 +15,7 @@ TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
         SECTION("just go") {}
     });
 
-    client->connect(sa.ip(), string::from_number(sa.port()));
+    client->connect(sa.ip(), sa.port());
     _pex_(client)->type = UV_HANDLE; // make uv_handle invalid for sync error after resolving
 
     client->write("123");
@@ -173,7 +173,7 @@ TEST_CASE("reset accepted connection", "[tcp][v-ssl]") {
 TEST_CASE("try use server without certificate 1", "[tcp][v-ssl]") {
     AsyncTest test(2000, {});
     TCPSP server = new TCP(test.loop);
-    server->bind("localhost", "0");
+    server->bind("localhost", 0);
     server->listen(1);
     REQUIRE_THROWS(server->use_ssl());
 }
@@ -181,7 +181,7 @@ TEST_CASE("try use server without certificate 1", "[tcp][v-ssl]") {
 TEST_CASE("try use server without certificate 2", "[tcp][v-ssl]") {
     AsyncTest test(2000, {});
     TCPSP server = new TCP(test.loop);
-    server->bind("localhost", "0");
+    server->bind("localhost", 0);
     server->use_ssl();
     REQUIRE_THROWS(server->listen(1));
 }

@@ -24,9 +24,6 @@ using CachedResolverSP = iptr<CachedResolver>;
 struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
 
-struct BasicAddress;
-using BasicAddressSP = iptr<BasicAddress>;
-
 struct AddressRotator;
 using AddressRotatorSP = iptr<AddressRotator>;
 
@@ -34,66 +31,56 @@ struct CachedAddress;
 using CachedAddressSP = iptr<CachedAddress>;
 
 struct BasicAddress : virtual Refcnt {
-    ~BasicAddress() {
-        if (head) {
-            uv_freeaddrinfo(head);
-        }
+    explicit BasicAddress (addrinfo* addr) : head(addr) {}
+
+    ~BasicAddress () {
+        if (head) uv_freeaddrinfo(head);
     }
 
-    explicit BasicAddress(addrinfo* addr) : head(addr) {}
-
-    BasicAddress(BasicAddress&& other) {
+    BasicAddress (BasicAddress&& other) {
         head       = other.head;
         other.head = 0;
     }
 
-    BasicAddress& operator=(BasicAddress&& other) {
+    BasicAddress& operator= (BasicAddress&& other) {
         head       = other.head;
         other.head = 0;
         return *this;
     }
 
-    BasicAddress(BasicAddress& other) = delete; 
-    BasicAddress& operator=(BasicAddress& other) = delete;
+    BasicAddress (const BasicAddress& other) = delete;
+    BasicAddress& operator= (const BasicAddress& other) = delete;
    
-    void detach() { head = nullptr; }
+    void detach () { head = nullptr; }
 
     addrinfo* head;
 };
+using BasicAddressSP = iptr<BasicAddress>;
 
 struct AddressRotator : BasicAddress {
-    ~AddressRotator() {}
-    
-    AddressRotator(BasicAddressSP other) : BasicAddress(std::move(*other)) {
+    AddressRotator (BasicAddressSP other) : BasicAddress(std::move(*other)) {
         init();
     }
 
-    AddressRotator(addrinfo* addr) : BasicAddress(addr) {
+    AddressRotator (addrinfo* addr) : BasicAddress(addr) {
         init();
     }
     
-    AddressRotator(AddressRotator& other) = delete; 
-    AddressRotator& operator=(AddressRotator& other) = delete;
+    AddressRotator (const AddressRotator& other) = delete;
+    AddressRotator& operator= (const AddressRotator& other) = delete;
 
     // rotate everything in cache
-    addrinfo* next() {
-        if (current->ai_next) {
-            current = current->ai_next;
-        } else {
-            current = head;
-        }
-
+    addrinfo* next () {
+        current = current->ai_next ? current->ai_next : head;
         return current;
     }
 
     addrinfo* current;
 
 private:
-    void init() {
+    void init () {
         length_ = 0;
-        for (auto res = head; res; res = res->ai_next) {
-            ++length_;
-        }
+        for (auto res = head; res; res = res->ai_next) ++length_;
 
         // get random element and set it as initial
         if (length_) {
@@ -115,12 +102,12 @@ private:
 };
 
 struct CachedAddress : AddressRotator {
-    CachedAddress(CachedAddress& other) = delete; 
-    CachedAddress& operator=(CachedAddress& other) = delete;
+    CachedAddress (const CachedAddress& other) = delete;
+    CachedAddress& operator= (const CachedAddress& other) = delete;
 
-    CachedAddress(BasicAddressSP address, std::time_t update_time = std::time(0)) : AddressRotator(address), update_time(update_time) {}
+    CachedAddress (BasicAddressSP address, std::time_t update_time = std::time(0)) : AddressRotator(address), update_time(update_time) {}
 
-    bool expired(time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
+    bool expired (time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
 
     std::time_t update_time;
 };
@@ -144,23 +131,23 @@ struct Hints {
 
 struct Hash;
 struct Key : virtual Refcnt {
-    Key(const string& node, const string& service, const addrinfo* hints) : node_(node), service_(service) {
+    Key (const string& node, uint16_t port, const addrinfo* hints) : node(node), port(port) {
         if (hints) {
-            hints_.ai_flags    = hints->ai_flags;
-            hints_.ai_family   = hints->ai_family;
-            hints_.ai_socktype = hints->ai_socktype;
-            hints_.ai_protocol = hints->ai_protocol;
+            this->hints.ai_flags    = hints->ai_flags;
+            this->hints.ai_family   = hints->ai_family;
+            this->hints.ai_socktype = hints->ai_socktype;
+            this->hints.ai_protocol = hints->ai_protocol;
         }
     }
 
-    bool operator==(const Key& other) const { return node_ == other.node_ && service_ == other.service_ && hints_ == other.hints_; }
+    bool operator== (const Key& other) const { return node == other.node && port == other.port && hints == other.hints; }
 
 private:
     friend Hash;
 
-    string node_;
-    string service_;
-    Hints  hints_;
+    string   node;
+    uint16_t port;
+    Hints    hints;
 };
 
 struct Hash {
@@ -171,12 +158,12 @@ struct Hash {
 
     std::size_t operator()(const Key& p) const {
         std::size_t seed = 0;
-        hash_combine(seed, p.node_);
-        hash_combine(seed, p.service_);
-        hash_combine(seed, p.hints_.ai_flags);
-        hash_combine(seed, p.hints_.ai_family);
-        hash_combine(seed, p.hints_.ai_socktype);
-        hash_combine(seed, p.hints_.ai_protocol);
+        hash_combine(seed, p.node);
+        hash_combine(seed, p.port);
+        hash_combine(seed, p.hints.ai_flags);
+        hash_combine(seed, p.hints.ai_family);
+        hash_combine(seed, p.hints.ai_socktype);
+        hash_combine(seed, p.hints.ai_protocol);
         return seed;
     }
 };
@@ -188,57 +175,55 @@ typedef iptr<CachedAddress> Value;
 } // namespace cached_resolver
 
 struct AbstractResolver : virtual Refcnt {
-    virtual ResolveRequestSP resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) = 0;
-    virtual void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) = 0;
+    virtual ResolveRequestSP resolve (Loop* loop, std::string_view node, uint16_t port, const addrinfo* hints, ResolveFunction callback) = 0;
+    virtual void on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) = 0;
 };
 
 struct Resolver : AbstractResolver {
-    ~Resolver() { _EDTOR(); }
-    Resolver() { _ECTOR(); }
-    ResolveRequestSP resolve(Loop*            loop,
-                             std::string_view node,
-                             std::string_view service  = std::string_view(),
-                             const addrinfo*  hints    = nullptr,
-                             ResolveFunction  callback = nullptr) override;
+    Resolver () {}
+
+    ResolveRequestSP resolve (Loop*            loop,
+                              std::string_view node,
+                              uint16_t         port = 0,
+                              const addrinfo*  hints    = nullptr,
+                              ResolveFunction  callback = nullptr) override;
     
-    Resolver(Resolver& other) = delete; 
-    Resolver& operator=(Resolver& other) = delete;
+    Resolver (const Resolver& other) = delete;
+    Resolver& operator= (const Resolver& other) = delete;
 
 protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
+    void on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
 };
 
 struct CachedResolver : Resolver {
     using CacheType = std::unordered_map<cached_resolver::Key, cached_resolver::Value, cached_resolver::Hash>;
 
-    ~CachedResolver();
-
-    CachedResolver(time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
+    CachedResolver (time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
     
-    CachedResolver(CachedResolver& other) = delete; 
-    CachedResolver& operator=(CachedResolver& other) = delete;
+    CachedResolver (const CachedResolver& other) = delete;
+    CachedResolver& operator= (const CachedResolver& other) = delete;
 
     // search in cache, will remove the record if expired
     std::tuple<CacheType::const_iterator, bool>
-    find(std::string_view node, std::string_view service = std::string_view(), const addrinfo* hints = nullptr);
+    find (std::string_view node, uint16_t port = 0, const addrinfo* hints = nullptr);
 
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if the cache is too big
-    ResolveRequestSP resolve(Loop*            loop,
-                             std::string_view node,
-                             std::string_view service  = std::string_view(),
-                             const addrinfo*  hints    = nullptr,
-                             ResolveFunction  callback = nullptr) override;
+    ResolveRequestSP resolve (Loop*            loop,
+                              std::string_view node,
+                              uint16_t         port = 0,
+                              const addrinfo*  hints    = nullptr,
+                              ResolveFunction  callback = nullptr) override;
 
-    size_t cache_size() const { return cache_.size(); }
+    size_t cache_size () const { return cache_.size(); }
 
-    void clear() { cache_.clear(); }
+    void clear () { cache_.clear(); }
 
 protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
+    void on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
 
 private:
-    bool expunge_cache() {
+    bool expunge_cache () {
         if (cache_.size() >= limit_) {
             _EDEBUG("cleaning cache %p %ld", this, cache_.size());
             cache_.clear();
@@ -247,9 +232,9 @@ private:
         return false;
     }
 
-    CacheType          cache_;
-    time_t             expiration_time_;
-    size_t             limit_;
+    CacheType cache_;
+    time_t    expiration_time_;
+    size_t    limit_;
 };
 
 struct Request;
@@ -257,8 +242,7 @@ struct ConnectRequest;
 struct ResolveRequest : CancelableRequest, AllocatedObject<ResolveRequest, true> {
     CallbackDispatcher<ResolveFunctionPlain> event;
 
-    ResolveRequest(ResolveFunction callback);
-    ~ResolveRequest() { _EDTOR(); }
+    ResolveRequest (ResolveFunction callback);
 
     void cancel() override;
 
@@ -266,16 +250,16 @@ struct ResolveRequest : CancelableRequest, AllocatedObject<ResolveRequest, true>
     iptr<cached_resolver::Key> key;
 };
 
-inline Resolver* get_global_basic_resolver() {
+inline Resolver* get_global_basic_resolver () {
     static ResolverSP resolver(new Resolver());
     return resolver.get();
 }
 
-inline CachedResolver* get_thread_local_cached_resolver() {
+inline CachedResolver* get_thread_local_cached_resolver () {
     thread_local CachedResolverSP resolver(new CachedResolver());
     return resolver.get();
 }
 
-inline void clear_resolver_cache() { get_thread_local_cached_resolver()->clear(); }
+inline void clear_resolver_cache () { get_thread_local_cached_resolver()->clear(); }
 
-}} // namespace panda::event
+}}

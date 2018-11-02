@@ -146,7 +146,7 @@ void Stream::listen (int backlog, connection_fn callback) {
 }
 
 void Stream::accept () {
-    accept(on_create_connection());
+    accept(connection_factory ? connection_factory() : on_create_connection());
 }
 
 void Stream::accept (const StreamSP& stream) {
@@ -360,7 +360,7 @@ void Stream::on_eof () {
 }
     
 StreamSP Stream::on_create_connection () {
-    return connection_factory(); 
+    throw ImplRequiredError("on_create_connection");
 }
 
 }}
