@@ -9,7 +9,7 @@ my $l = UniEvent::Loop->default_loop();
 my $res;
 
 my @to_res = ('google-public-dns-a.google.com', 'domain');
-my ($check_ip, $check_port) = ('8.8.8.8', 53);
+my ($check_ip, $check_port) = ('8.8.8.8', 53, );
 
 sub get_sas {
     # diag "WTF";
@@ -19,7 +19,10 @@ sub get_sas {
         (my $r, $sas, my $err) = @_;
         $l->stop();
     });
-    $r->resolve(@to_res);
+    $r->resolve($check_ip, $check_port, sub {
+        (my $r, $sas, my $err) = @_;
+        $l->stop();
+    }, {"family" => UniEvent::AF_INET6});
     $l->run();
     return $sas;
 }

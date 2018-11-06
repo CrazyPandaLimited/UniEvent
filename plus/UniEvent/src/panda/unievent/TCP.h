@@ -112,6 +112,9 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     using Handle::set_recv_buffer_size;
     using Handle::set_send_buffer_size;
+
+public:    
+    bool cached_resolver;
    
 protected:
     void on_handle_reinit () override;
@@ -119,7 +122,6 @@ protected:
 
 private:
     uv_tcp_t uvh;
-    bool cached_resolver;
     TimerSP connect_timer;
     static AddrInfoHintsSP default_hints;
 };

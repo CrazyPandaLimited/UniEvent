@@ -14,22 +14,32 @@ std::string dump(addrinfo* ai) {
 TEST_CASE("basic resolver", "[resolver]") {
     LoopSP loop(new Loop);
     SimpleResolverSP resolver{new SimpleResolver(loop)};
-    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+        _EDEBUG("%p", err);
+        REQUIRE(!err); 
+    });
     loop->run();
+    resolver->close();
 }
 
 TEST_CASE("cached resolver", "[resolver]") {
     LoopSP loop(new Loop);
     ResolverSP resolver{new Resolver(loop)};
 
-    // it is not in cache, async call
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { REQUIRE(!err); });
+    // Resolver will use cache by default, first time it is not in cache, async call
+    bool called = false;
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+        REQUIRE(!err); 
+        called = true;
+    });
 
     loop->run();
+    
+    REQUIRE(called);
 
     // in cache, so the call is sync
-    bool called = false;
-    resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
+    called = false;
+    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });
@@ -40,16 +50,20 @@ TEST_CASE("cached resolver", "[resolver]") {
 TEST_CASE("cached resolver, same hints", "[resolver]") {
     LoopSP loop(new Loop);
     ResolverSP resolver(new Resolver(loop));
-
     AddrInfoHintsSP hints = new AddrInfoHints();
-    resolver->resolve("localhost", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    
+    bool called = false;
+    resolver->resolve("google.com", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         REQUIRE(!err);
+        called = true;
     });
 
     loop->run();
+    
+    REQUIRE(called);
 
-    bool called = false;
-    resolver->resolve("localhost", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
+    called = false;
+    resolver->resolve("google.com", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });
@@ -61,34 +75,46 @@ TEST_CASE("cached resolver, with custom hints and default hints", "[resolver]") 
     LoopSP loop(new Loop);
     ResolverSP resolver(new Resolver(loop));
 
+    bool called = false;
     resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
+        called = true;
     });
     
     loop->run();
+    REQUIRE(called);
     
+    called = false;
     resolver->resolve("localhost", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
+        called = true;
     });
 
     loop->run();
+    REQUIRE(called);
 }
 
 TEST_CASE("cached resolver, with hints and with different hints", "[resolver]") {
     LoopSP loop(new Loop);
     ResolverSP resolver(new Resolver(loop));
 
-    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    bool called = false;
+    resolver->resolve("google.com", "80", new AddrInfoHints(AF_INET), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err);
+        called = true;
     });
 
     loop->run();
+    REQUIRE(called);
 
-    resolver->resolve("localhost", "80", new AddrInfoHints(AF_INET6), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
+    called = false;
+    resolver->resolve("google.com", "80", new AddrInfoHints(AF_INET6), [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) { 
         REQUIRE(!err); 
+        called = true;
     });
 
     loop->run();
+    REQUIRE(called);
 }
 
 TEST_CASE("standalone cached resolver", "[resolver]") {
@@ -123,20 +149,20 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
 TEST_CASE("rotator", "[resolver]") {
     int size = 10;
     ares_addrinfo ai[size];
-    for(auto i=0;i<size;++i) {
+    for (auto i = 0; i < size; ++i) {
         memset(&ai[i], 0, sizeof(addrinfo));
-        if(i < size-1) {
-            ai[i].ai_next = &ai[i+1];
+        if (i < size - 1) {
+            ai[i].ai_next = &ai[i + 1];
         }
     }
 
     AddressRotatorSP address_rotator(new AddressRotator(ai));
 
     std::set<ares_addrinfo*> result;
-    for(auto i=0;i<size;++i) {
+    for (auto i = 0; i < size; ++i) {
         result.insert(address_rotator->rotate());
     }
-    
+
     // prevent from freeing stack allocated addrinfo 
     address_rotator->detach();
 

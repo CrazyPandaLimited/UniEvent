@@ -12,7 +12,12 @@ struct Timer : virtual Handle, AllocatedObject<Timer> {
     
     CallbackDispatcher<timer_fptr> timer_event;
 
+    ~Timer() {
+        _EDTOR();
+    }
+
     Timer (Loop* loop = Loop::default_loop()) {
+        _ECTOR();
         uv_timer_init(_pex_(loop), &uvh);
         _init(&uvh);
     }

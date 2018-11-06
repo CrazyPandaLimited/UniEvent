@@ -27,6 +27,9 @@ using PrepareSP = iptr<Prepare>;
 struct Stream;
 using StreamSP = iptr<Stream>;
 
+struct StreamFilter;
+using StreamFilterSP = iptr<StreamFilter>;
+
 struct TCP;
 using TCPSP = iptr<TCP>;
 

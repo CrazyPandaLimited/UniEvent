@@ -45,10 +45,10 @@ void Loop::uvx_walk_cb (uv_handle_t* uvh, void* arg) {
     (*callback)(handle);
 }
 
-int  Loop::run        () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_DEFAULT); }
-int  Loop::run_once   () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_ONCE); }
-int  Loop::run_nowait () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_NOWAIT); }
-void Loop::stop       () { _EDEBUGTHIS("Loop::stop)"); uv_stop(_uvloop); }
+int  Loop::run        () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_DEFAULT); }
+int  Loop::run_once   () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_ONCE); }
+int  Loop::run_nowait () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_NOWAIT); }
+void Loop::stop       () { _EDEBUGTHIS(); uv_stop(_uvloop); }
 
 void Loop::walk (walk_fn cb) {
     uv_walk(_uvloop, uvx_walk_cb, &cb);
@@ -62,6 +62,10 @@ ResolverSP Loop::resolver () {
 }
 
 void Loop::close () {
+    _EDEBUG();
+    if(resolver_) {
+        resolver_->close();
+    }
     int err = uv_loop_close(_uvloop);
     if (err) throw CodeError(err);
     closed = true;

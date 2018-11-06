@@ -258,7 +258,7 @@ void SocksFilter::do_resolve() {
 
         sa_ = address->head->ai_addr;
         do_handshake();
-    });
+    }, tcp->cached_resolver);
 
     state(State::resolving_host);
 }

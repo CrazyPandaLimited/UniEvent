@@ -7,7 +7,7 @@
 
 namespace panda { namespace unievent {
 
-struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
+struct StreamFilter : virtual Refcnt, IntrusiveChainNode<StreamFilterSP> {
     static const char* TYPE;
 
     virtual bool is_secure ();
@@ -40,8 +40,6 @@ protected:
     Stream*     handle;
     const char* type_;
 };
-
-using StreamFilterSP = iptr<StreamFilter>;
 
 struct StreamFilters : IntrusiveChain<StreamFilterSP> {
     StreamFilters (Stream* h) : handle(h) {}

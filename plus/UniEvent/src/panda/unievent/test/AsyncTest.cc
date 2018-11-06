@@ -63,7 +63,7 @@ AsyncTest::~AsyncTest() noexcept(false) {
         throw Error("Test exits in bad state", *this);
     }
 
-    get_thread_local_cached_resolver(loop)->clear();
+    loop->resolver()->clear();
 }
 
 void AsyncTest::run() {

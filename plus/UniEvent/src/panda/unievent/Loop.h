@@ -57,7 +57,7 @@ private:
     uv_loop_t  _uvloop_body;
     uv_loop_t* _uvloop;
     bool closed;
-    iptr<Resolver> resolver_;
+    ResolverSP resolver_;
 
     Loop (bool);
 

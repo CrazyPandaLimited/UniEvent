@@ -3,6 +3,8 @@
 #include <map>
 #include <ctime>
 #include <cstdlib>
+#include <sstream>
+#include <iostream>
 #include <unordered_map>
 
 #include <ares.h>
@@ -76,8 +78,12 @@ struct AddrInfo : virtual Refcnt {
 
     void detach() { head = nullptr; }
 
+    std::string to_string();
+
     ares_addrinfo* head;
 };
+
+std::ostream& operator<<(std::ostream& os, const AddrInfo& ai);
 
 struct AddressRotator : AddrInfo {
     ~AddressRotator() {}
@@ -143,15 +149,25 @@ struct CachedAddress : AddressRotator {
     std::time_t update_time;
 };
 
-namespace cached_resolver {
+struct ResolverCacheHash;
+struct ResolverCacheKey : virtual Refcnt {
+    friend ResolverCacheHash;
 
-struct Hash;
-struct Key : virtual Refcnt {
-    friend Hash;
-
-public:
-    Key(const string& node, const string& service, const AddrInfoHintsSP& hints) : node_(node), service_(service), hints_(hints) {}
-    bool operator==(const Key& other) const { return node_ == other.node_ && service_ == other.service_ && hints_ == other.hints_; }
+    ResolverCacheKey(const string& node, const string& service, const AddrInfoHintsSP& hints) : node_(node), service_(service), hints_(hints) {}
+    bool operator==(const ResolverCacheKey& other) const 
+    {
+        if(hints_ == other.hints_) { 
+            // same hints or nullptr hints
+            return node_ == other.node_ && service_ == other.service_; 
+        }
+        else if(hints_ && other.hints_) { 
+            // some comparable hints
+            return node_ == other.node_ && service_ == other.service_ && *hints_ == *other.hints_; 
+        } else {
+            // different hints
+            return false;
+        }
+    }
 
 private:
     string          node_;
@@ -159,13 +175,13 @@ private:
     AddrInfoHintsSP hints_;
 };
 
-struct Hash {
+struct ResolverCacheHash {
     template <class T> inline void hash_combine(std::size_t& seed, const T& v) const {
         std::hash<T> hasher;
         seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
-    std::size_t operator()(const Key& p) const {
+    std::size_t operator()(const ResolverCacheKey& p) const {
         std::size_t seed = 0;
         hash_combine(seed, p.node_);
         hash_combine(seed, p.service_);
@@ -177,20 +193,23 @@ struct Hash {
     }
 };
 
-inline string to_string(const Key& key) { return string::from_number(cached_resolver::Hash{}(key), 16); }
+inline string to_string(const ResolverCacheKey& key) { return string::from_number(ResolverCacheHash{}(key), 16); }
 
-typedef iptr<CachedAddress> Value;
-
-} // namespace cached_resolver
+using ResolverCacheKeySP   = iptr<ResolverCacheKey>;
+using ResolverCacheValueSP = iptr<CachedAddress>;
+using ResolverCacheType    = std::unordered_map<ResolverCacheKey, ResolverCacheValueSP, ResolverCacheHash>;
 
 struct AresTask : virtual Refcnt {
     ~AresTask() {
+        _EDTOR();
         if (poll) {
             poll->stop();
         }
     }
 
-    AresTask(Loop* loop) : loop(loop) {}
+    AresTask(Loop* loop) : loop(loop) {
+        _ECTOR();
+    }
 
     void start(sock_t sock, int events, Poll::poll_fn callback) {
         if (!poll)
@@ -217,7 +236,8 @@ struct SimpleResolver : virtual Refcnt {
     SimpleResolver(SimpleResolver& other) = delete; 
     SimpleResolver& operator=(SimpleResolver& other) = delete;
 
-    virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback = nullptr);
+    virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = false);
+    virtual void close();
 
 protected:
     virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err);
@@ -225,10 +245,10 @@ protected:
 private:
     static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
     static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+    Timer*      timer;
     
 public:
     Loop*        loop;
-    TimerSP      timer;
     ares_channel channel;
 
     using AresTasks = std::map<sock_t, AresTaskSP>;
@@ -239,8 +259,6 @@ struct Resolver : SimpleResolver {
     static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
     static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
 
-    using CacheType = std::unordered_map<cached_resolver::Key, cached_resolver::Value, cached_resolver::Hash>;
-
     ~Resolver();
 
     Resolver(Loop* loop, time_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
@@ -249,11 +267,11 @@ struct Resolver : SimpleResolver {
     Resolver& operator=(Resolver& other) = delete;
 
     // search in cache, will remove the record if expired
-    std::tuple<CacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints);
+    std::tuple<ResolverCacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints);
 
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if the cache is too big
-    void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback = nullptr) override;
+    void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = true) override;
 
     size_t cache_size() const { return cache_.size(); }
 
@@ -273,9 +291,9 @@ private:
     }
 
 private:
-    CacheType          cache_;
-    time_t             expiration_time_;
-    size_t             limit_;
+    ResolverCacheType cache_;
+    time_t            expiration_time_;
+    size_t            limit_;
 };
 
 struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
@@ -284,20 +302,8 @@ struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
 
     CallbackDispatcher<ResolveFunctionPlain> event;
     SimpleResolver*                          resolver;
-    iptr<cached_resolver::Key>               key;
+    ResolverCacheKeySP                       key;
     bool                                     async;
 };
-
-inline SimpleResolver* get_thread_local_simple_resolver(Loop* loop) {
-    thread_local SimpleResolverSP resolver(new SimpleResolver(loop));
-    return resolver.get();
-}
-
-inline Resolver* get_thread_local_cached_resolver(Loop* loop) {
-    thread_local ResolverSP resolver(new Resolver(loop));
-    return resolver.get();
-}
-
-inline void clear_resolver_cache(Loop* loop) { get_thread_local_cached_resolver(loop)->clear(); }
 
 }} // namespace panda::event

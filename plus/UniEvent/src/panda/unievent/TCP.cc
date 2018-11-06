@@ -71,7 +71,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
                     }
                     req->sa_ = address->head->ai_addr;
                     do_connect(req);
-                });
+                }, cached_resolver);
             return;
         } catch (...) {
             Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
