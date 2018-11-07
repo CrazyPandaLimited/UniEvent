@@ -123,7 +123,6 @@ private:
         if (length_) {
             size_t pos        = 0;
             size_t random_pos = rand() % length_;
-            _EDEBUG("init to %ld %ld", length_, random_pos);
             for (auto res = head; res; res = res->ai_next) {
                 if (pos++ >= random_pos) {
                     current = res;
@@ -240,7 +239,7 @@ struct SimpleResolver : virtual Refcnt {
     virtual void close();
 
 protected:
-    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err);
+    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
     
 private:
     static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
@@ -278,7 +277,7 @@ struct Resolver : SimpleResolver {
     void clear() { cache_.clear(); }
 
 protected:
-    void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) override;
+    void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr) override;
 
 private:
     bool expunge_cache() {
@@ -298,7 +297,7 @@ private:
 
 struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
     ~ResolveRequest(); 
-    ResolveRequest(ResolveFunction callback);
+    ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
 
     CallbackDispatcher<ResolveFunctionPlain> event;
     SimpleResolver*                          resolver;

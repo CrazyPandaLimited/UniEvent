@@ -10,12 +10,13 @@ namespace xs { namespace unievent {
 using xs::my_perl;
 using namespace panda::unievent;
 
-template <class T> struct BasicXSResolver : T {
+struct XSResolver : Resolver {
     XSCallback resolve_xscb;
-    using T::T;
+    using Resolver::Resolver;
 
 protected:
-    void on_resolve (ResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
+    void on_resolve (SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) override {
+        _EDEBUGTHIS();
         auto salistref = Scalar::undef;
         if (!err) {
             auto salist = Array::create();
@@ -24,20 +25,16 @@ protected:
             }
             salistref = Ref::create(salist);
         }
-        if (!resolve_xscb.call(xs::out<T*>(this), evname_on_resolve, {salistref, xs::out(err)})) {
-            T::on_resolve(resolver, resolve_request, address, err);
-        }
+        resolve_xscb.call(xs::out<Resolver*>(this), evname_on_resolve, {salistref, xs::out(err)});
+        Resolver::on_resolve(resolver, resolve_request, address, err);
     }
 
     static const Simple evname_on_resolve;
 };
 
-template <class T>
-const Simple BasicXSResolver<T>::evname_on_resolve = Simple::shared("on_resolve");
+const Simple XSResolver::evname_on_resolve = Simple::shared("on_resolve");
 
-using XSResolver       = BasicXSResolver<Resolver>;
-
-}} // namespace xs::event
+}} // namespace xs::unievent
 
 namespace xs {
     template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {

@@ -82,11 +82,10 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
 }
 
 void SimpleResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
-    ResolveRequestSP resolve_request(new ResolveRequest(callback));
+    ResolveRequestSP resolve_request(new ResolveRequest(callback, this));
     if(use_cache) {
         resolve_request->key = new ResolverCacheKey(string(node), string(service), hints->clone());
     }
-    resolve_request->resolver = this;
     resolve_request->retain();
     retain();
 
@@ -158,16 +157,14 @@ void SimpleResolver::close() {
 
 std::tuple<ResolverCacheType::const_iterator, bool>
 Resolver::find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints) {
-    ResolverCacheKeySP key(new ResolverCacheKey(string(node), string(service), hints));
-
     _EDEBUGTHIS("looking in cache [%.*s:%.*s] cache_size: %zd", (int)node.length(), node.data(), (int)service.length(), service.data(), cache_.size());
-
-    auto address_pos = cache_.find(*key);
+    auto address_pos = cache_.find({string(node), string(service), hints});
     if (address_pos != end(cache_)) {
-        _EDEBUGTHIS("node in cache [%.*s]", (int)node.length(), node.data());
+        _EDEBUGTHIS("found in cache [%.*s]", (int)node.length(), node.data());
 
         time_t now = time(0);
         if (address_pos->second->expired(now, expiration_time_)) {
+            _EDEBUGTHIS("expired [%.*s]", (int)node.length(), node.data());
             cache_.erase(address_pos);
         } else {
             return std::make_tuple<ResolverCacheType::const_iterator, bool>(address_pos, true);
@@ -184,10 +181,7 @@ void Resolver::resolve(std::string_view node, std::string_view service, const Ad
         bool                              found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found) {
-            if (callback) {
-                ResolveRequestSP resolve_request;
-                callback(this, resolve_request, address_pos->second, nullptr);
-            }
+            on_resolve(this, new ResolveRequest(callback, this), address_pos->second);
             return;
         }
     }
@@ -196,9 +190,9 @@ void Resolver::resolve(std::string_view node, std::string_view service, const Ad
 }
 
 void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
-    _EDEBUGTHIS("resolve_request:%p err:%d", resolve_request.get(), err ? err->code() : 0);
+    _EDEBUGTHIS("resolve_request:%p err:%d use_cache:%d", resolve_request.get(), err ? err->code() : 0, (bool)resolve_request->key);
+    expunge_cache();
     if (!err && resolve_request->key) {
-        expunge_cache();
         // use address from the cache
         address = cache_.emplace(*resolve_request->key, CachedAddressSP(new CachedAddress(address))).first->second;
     }
@@ -207,7 +201,7 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
 
 ResolveRequest::~ResolveRequest() { _EDTOR(); }
 
-ResolveRequest::ResolveRequest(ResolveFunction callback) : resolver(nullptr), key(nullptr), async(false) {
+ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false) {
     _ECTOR();
     event.add(callback);
 }

@@ -61,7 +61,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
     if (!req->sa_) {
         _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            loop()->resolver()->resolve(req->host_, req->service_, req->hints_,
+            resolver()->resolve(req->host_, req->service_, req->hints_,
                 [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
                     _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
                     if (err) {
