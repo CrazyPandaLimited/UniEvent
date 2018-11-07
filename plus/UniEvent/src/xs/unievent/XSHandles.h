@@ -102,13 +102,9 @@ protected:
 };
 
 struct XSTCP : TCP, XSStream {
-    XSTCP (Loop* loop = Loop::default_loop()) : TCP(loop) {
-        connection_factory = [=](){
-            TCPSP ret = make_backref<XSTCP>(loop);
-            xs::out<TCP*>(ret.get());
-            return ret;
-        };
-    }
+    XSTCP (Loop* loop = Loop::default_loop()) : TCP(loop) {}
+
+    StreamSP on_create_connection () override;
 
     void open (const Sv& sv) {
         if (!sv.is_ref()) return open((sock_t)SvUV(sv));
@@ -122,9 +118,9 @@ struct XSTCP : TCP, XSStream {
     }
 
     template<class Builder>
-    static Builder construct_connect(SV* host_or_sa, SV* service_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
-        if (service_or_callback && !SvROK(service_or_callback)) {
-            return Builder().to(xs::in<string>(host_or_sa), xs::in<string>(service_or_callback), hints).timeout(timeout).reconnect(reconnect);
+    static Builder construct_connect(SV* host_or_sa, SV* port_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
+        if (port_or_callback && !SvROK(port_or_callback)) {
+            return Builder().to(xs::in<string>(host_or_sa), xs::in<uint16_t>(port_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {
             return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
         }
@@ -201,13 +197,9 @@ private:
 };
 
 struct XSPipe : Pipe, XSStream {
-    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {
-        connection_factory = [=](){
-            PipeSP ret = make_backref<XSPipe>(ipc, loop);
-            xs::out<Pipe*>(ret.get());
-            return ret;
-        };
-    }
+    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {}
+
+    StreamSP on_create_connection () override;
 
     void open (const Sv& sv) {
         if (!sv.is_ref()) return open((sock_t)SvUV(sv));
@@ -228,7 +220,11 @@ struct XSTTY : TTY, XSStream {
     XSTTY (Sv io, bool readable = false, Loop* loop = Loop::default_loop()) : TTY(sv2file(io), readable, loop) {
         if (io.is_ref()) io_sv = io;
     }
-    
+
+    XSTTY (file_t fd, bool readable = false, Loop* loop = Loop::default_loop()) : TTY(fd, readable, loop) {}
+
+    StreamSP on_create_connection () override;
+
 private:
     Sv io_sv;
 

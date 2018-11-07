@@ -15,7 +15,6 @@ TCP::TCP(Loop* loop, bool use_cached_resolver) : cached_resolver(use_cached_reso
     if (err)
         throw CodeError(err);
     _init(&uvh);
-    connection_factory = [=](){return new TCP(loop, cached_resolver);};
 }
 
 TCP::TCP(Loop* loop, unsigned int flags, bool use_cached_resolver) : cached_resolver(use_cached_resolver) {
@@ -24,7 +23,10 @@ TCP::TCP(Loop* loop, unsigned int flags, bool use_cached_resolver) : cached_reso
     if (err)
         throw CodeError(err);
     _init(&uvh);
-    connection_factory = [=](){return new TCP(loop, cached_resolver);};
+}
+
+StreamSP TCP::on_create_connection () {
+    return new TCP(loop());
 }
 
 void TCP::open(sock_t socket) {
@@ -38,13 +40,12 @@ void TCP::bind(const SockAddr& sa, unsigned int flags) {
     if (err) throw CodeError(err);
 }
 
-void TCP::bind(std::string_view host, std::string_view service, const AddrInfoHintsSP& hints) {
+void TCP::bind(std::string_view host, uint16_t port, const AddrInfoHintsSP& hints) {
     PEXS_NULL_TERMINATE(host, host_cstr);
-    PEXS_NULL_TERMINATE(service, service_cstr);
 
     addrinfo h = hints->to<addrinfo>();
     addrinfo* res;
-    int       syserr = getaddrinfo(host_cstr, service_cstr, &h, &res);
+    int       syserr = getaddrinfo(host_cstr, string::from_number(port).c_str(), &h, &res);
     if (syserr)
         throw CodeError(_err_gai2uv(syserr));
 
@@ -58,10 +59,10 @@ void TCP::bind(std::string_view host, std::string_view service, const AddrInfoHi
 }
 
 void TCP::do_connect(TCPConnectRequest* req) {
-    if (!req->sa_) {
+    if (!req->sa) {
         _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolver()->resolve(req->host_, req->service_, req->hints_,
+            resolver()->resolve(req->host, req->service, req->hints,
                 [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
                     _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
                     if (err) {
@@ -69,7 +70,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
                         Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
                         return;
                     }
-                    req->sa_ = address->head->ai_addr;
+                    req->sa = address->head->ai_addr;
                     do_connect(req);
                 }, cached_resolver);
             return;
@@ -79,7 +80,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
         }
     }
 
-    int err = uv_tcp_connect(_pex_(req), &uvh, req->sa_.get(), Stream::uvx_on_connect);
+    int err = uv_tcp_connect(_pex_(req), &uvh, req->sa.get(), Stream::uvx_on_connect);
     if (err) {
         Prepare::call_soon([=] { filters_.on_connect(CodeError(err), req); }, loop());
         return;
@@ -91,7 +92,7 @@ TCPConnectAutoBuilder TCP::connect() { return TCPConnectAutoBuilder(this); }
 void TCP::connect(TCPConnectRequest* tcp_connect_request) {
     _EDEBUGTHIS("connect %p", tcp_connect_request);
 
-    if(tcp_connect_request->is_reconnect) {
+    if (tcp_connect_request->is_reconnect) {
         disconnect();
     }
 
@@ -122,68 +123,32 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
     filters_.connect(tcp_connect_request);
 }
 
-void TCP::connect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints) {
-    _EDEBUGTHIS("connect to %.*s:%.*s", (int)host.length(), host.data(), (int)service.length(), service.data());
-    connect().to(host, service, hints).timeout(timeout);
+void TCP::connect(const string& host, uint16_t port, uint64_t timeout, const AddrInfoHintsSP& hints) {
+    _EDEBUGTHIS("connect to %.*s:%d", (int)host.length(), host.data(), port);
+    connect().to(host, port, hints).timeout(timeout);
 }
 
-void TCP::connect(const SockAddr& sa, uint64_t timeout) {
+void TCP::connect (const SockAddr& sa, uint64_t timeout) {
     _EDEBUGTHIS("connect to sock:%p", sa);
     connect().to(sa).timeout(timeout);
 }
 
-void TCP::reconnect(TCPConnectRequest* tcp_connect_request) {
+void TCP::reconnect (TCPConnectRequest* tcp_connect_request) {
     tcp_connect_request->is_reconnect = true;
     connect(tcp_connect_request);
 }
 
-void TCP::reconnect(const SockAddr& sa, uint64_t timeout) {
+void TCP::reconnect (const SockAddr& sa, uint64_t timeout) {
     connect().to(sa).timeout(timeout).reconnect(true);
 }
 
-void TCP::reconnect(const string& host, const string& service, uint64_t timeout, const AddrInfoHintsSP& hints) {
-    connect().to(host, service, hints).timeout(timeout).reconnect(true);
+void TCP::reconnect (const string& host, uint16_t port, uint64_t timeout, const AddrInfoHintsSP& hints) {
+    connect().to(host, port, hints).timeout(timeout).reconnect(true);
 }
 
-// use_socks and use_ssl will work with two filters only
-// for custom configuration add filters manually
-void TCP::use_ssl (const SSL_METHOD* method) {
-    if (is_secure()) {
-        return;
-    }
-    
-    if(!method && listening()) {
-        throw Error("Programming error, use server certificate");
-    }
-
-    auto pos = find_filter<socks::SocksFilter>();
-    if(pos == filters_.end()) {
-        // insert right after default front filter if there are no other filters
-        filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
-    } else {
-        // insert before socks as socks has its own auth encryption methods
-        filters_.insert(pos, new ssl::SSLFilter(this, method));
-    }
-}
-
-void TCP::use_socks(std::string_view host, uint16_t port, std::string_view login, std::string_view passw, bool socks_resolve) {
-    use_socks(new Socks(string(host), port, string(login), string(passw), socks_resolve));
-}
-
-void TCP::use_socks(const SocksSP& socks) { 
-    auto pos = find_filter<socks::SocksFilter>();
-    if(pos == filters_.end()) {
-        // always insert socks as last (before default back) filter
-        filters_.insert(filters_.end(), new socks::SocksFilter(this, socks));
-    } else {
-        filters_.insert(filters_.erase(pos), new socks::SocksFilter(this, socks));
-    }
-}
-
-void TCP::on_handle_reinit() {
+void TCP::on_handle_reinit () {
     int err = uv_tcp_init(uvh.loop, &uvh);
-    if (err)
-        throw CodeError(err);
+    if (err) throw CodeError(err);
     Stream::on_handle_reinit();
 }
 
@@ -197,8 +162,8 @@ std::ostream& operator<< (std::ostream& os, const TCP& tcp) {
 }
 
 std::ostream& operator<< (std::ostream& os, const TCPConnectRequest& r) {
-    if (r.sa_) return os << r.sa_;
-    else       return os << r.host_ << ':' << r.service_;
+    if (r.sa) return os << r.sa;
+    else      return os << r.host << ':' << r.port;
 }
 
 }} // namespace panda::event

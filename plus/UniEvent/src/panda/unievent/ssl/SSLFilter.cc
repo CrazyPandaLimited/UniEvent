@@ -1,18 +1,14 @@
 #include "SSLFilter.h"
-
+#include "SSLBio.h"
+#include "../Debug.h"
+#include "../Stream.h"
+#include "../Prepare.h"
 #include <vector>
-
 #include <openssl/err.h>
 #include <openssl/dh.h>
 #include <openssl/conf.h>
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
-
-#include <panda/unievent/Prepare.h>
-#include "../Stream.h"
-#include "SSLBio.h"
-#include "../Debug.h"
-
 
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
@@ -20,11 +16,20 @@
 
 namespace panda { namespace unievent { namespace ssl {
 
-const char* SSLFilter::TYPE = "SSL";
-bool        SSLFilter::openSSL_inited = SSLFilter::init_openSSL_lib();
+const void* SSLFilter::TYPE = &typeid(SSLFilter);
 
-class SSLWriteRequest : public WriteRequest {
-public:
+static bool init_openSSL_lib () {
+    SSL_library_init();
+    SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+    return true;
+}
+
+static const bool _init = init_openSSL_lib();
+
+struct SSLWriteRequest : WriteRequest {
     WriteRequest* src;
     ~SSLWriteRequest(){ _EDTOR(); }
     SSLWriteRequest (WriteRequest* src = nullptr) : WriteRequest(), src(src) { _ECTOR(); }
@@ -35,28 +40,25 @@ SSLFilter::~SSLFilter () {
     SSL_free(ssl);
 }
 
-SSLFilter::SSLFilter(SSLFilter* parent_filter, Stream* stream, SSL_CTX* context)
-        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(parent_filter), state(State::initial), profile(Profile::UNKNOWN) {
+SSLFilter::SSLFilter (SSLFilter* parent_filter, Stream* stream, SSL_CTX* context)
+        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), parent_filter(parent_filter), state(State::initial), profile(Profile::UNKNOWN)
+{
     _ECTOR();
     init(context);
 }
 
-SSLFilter::SSLFilter(Stream* stream, SSL_CTX* context)
-        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN) {
-    _ECTOR();
-    init(context);
-}
+SSLFilter::SSLFilter (Stream* stream, SSL_CTX* context) : SSLFilter(nullptr, stream, context) {}
 
-SSLFilter::SSLFilter(Stream* stream, const SSL_METHOD* method)
-        : StreamFilter(stream, TYPE), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN) {
+SSLFilter::SSLFilter (Stream* stream, const SSL_METHOD* method)
+        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN)
+{
     _ECTOR();
     if (!method) {
         method = SSLv23_client_method();
         profile = Profile::CLIENT;
     }
     SSL_CTX* context = SSL_CTX_new(method);
-    if (!context)
-        throw SSLError(SSL_ERROR_SSL);
+    if (!context) throw SSLError(SSL_ERROR_SSL);
     init(context);
     SSL_CTX_free(context); // it is refcounted, ssl keeps it if neded
 }
@@ -76,9 +78,7 @@ void SSLFilter::init (SSL_CTX* context) {
 
 void SSLFilter::reset () {
     _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
-    if (state == State::initial) {
-        return;
-    }
+    if (state == State::initial) return;
 
     ERR_clear_error();
     state = State::initial;
@@ -365,14 +365,5 @@ void SSLFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_requ
 }
 
 bool SSLFilter::is_secure () { return true; }
-
-bool SSLFilter::init_openSSL_lib () {
-    SSL_library_init();
-    SSL_load_error_strings();
-    ERR_load_BIO_strings();
-    ERR_load_crypto_strings();
-    OpenSSL_add_all_algorithms();
-    return true;
-}
 
 }}}

@@ -27,60 +27,6 @@ TCPSP make_basic_server (Loop* loop, const SockAddr& sa) {
     return server;
 }
 
-TCPSP make_socks_server (LoopSP loop, const SockAddr& sa) {
-    TCPSP server = new TCP(loop);
-    server->bind(sa);
-    server->listen(128);
-    server->connection_event.add([](Stream* server, StreamSP stream, const CodeError* err) {
-        assert(!err);
-        std::shared_ptr<int> state = std::make_shared<int>(0);
-        TCPSP client = new TCP(server->loop());
-        read(stream, [client, state](StreamSP stream, const string& buf, const CodeError* err) {
-            _EDUMP(buf, (int)buf.length(), 100);
-            assert(!err);
-            switch (*state) {
-                case 0: {
-                    stream->write("\x05\x00");
-                    *state = 1;
-                    break;
-                }
-                case 1: {
-                    string request_type = buf.substr(0, 4);
-                    if (request_type == string("\x05\x01\x00\x03")) {
-                        int host_length = buf[4];
-                        string host = buf.substr(5, host_length);
-                        uint16_t port = ntohs(*(uint16_t*)buf.substr(5 + host_length).data());
-                        client->connect("localhost", panda::to_string(port));
-                    } else {
-                        throw std::runtime_error("bad request");
-                    }
-
-                    read(client, [stream](Stream*, string& buf, const CodeError* err){
-                        assert(!err);
-                        // read from remote server
-                        stream->write(buf);
-                    });
-                    client->eof_event.add_back([stream](Stream* client){
-                        stream->shutdown();
-                        client->eof_event.remove_all();
-                    });
-
-                    stream->write("\x05\x00\x00\x01\xFF\xFF\xFF\xFF\xFF\xFF");
-                    *state = 2;
-                    break;
-                }
-                case 2: {
-                    // write to remote server
-                    client->write(buf);
-                    break;
-                }
-            }
-        });
-    });
-
-    return server;
-}
-
 TCPSP make_server (Loop* loop, const SockAddr& sa) {
     TCPSP server = new TCP(loop);
     server->bind(sa);
@@ -92,8 +38,7 @@ TCPSP make_server (Loop* loop, const SockAddr& sa) {
 TCPSP make_client (Loop* loop, bool cached_resolver) {
     TCPSP client = new TCP(loop, cached_resolver);
 
-    if (variation.ssl)   client->use_ssl();
-    if (variation.socks) client->use_socks(new Socks(variation.socks_url, variation.socks == 2));
+    if (variation.ssl) client->use_ssl();
 
     if (variation.buf) {
         client->set_recv_buffer_size(1);

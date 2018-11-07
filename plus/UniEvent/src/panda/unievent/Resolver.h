@@ -18,6 +18,8 @@
 #include "Request.h"
 #include "Timer.h"
 #include "global.h"
+#include "Request.h"
+#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
 
@@ -73,8 +75,8 @@ struct AddrInfo : virtual Refcnt {
         return *this;
     }
 
-    AddrInfo(AddrInfo& other) = delete;
-    AddrInfo& operator=(AddrInfo& other) = delete;
+    AddrInfo(const AddrInfo& other) = delete;
+    AddrInfo& operator=(const AddrInfo& other) = delete;
 
     void detach() { head = nullptr; }
 
@@ -138,8 +140,8 @@ private:
 };
 
 struct CachedAddress : AddressRotator {
-    CachedAddress(CachedAddress& other) = delete; 
-    CachedAddress& operator=(CachedAddress& other) = delete;
+    CachedAddress(const CachedAddress& other) = delete; 
+    CachedAddress& operator=(const CachedAddress& other) = delete;
 
     CachedAddress(AddrInfoSP address, std::time_t update_time = std::time(0)) : AddressRotator(address), update_time(update_time) {}
 
@@ -305,4 +307,4 @@ struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
     bool                                     async;
 };
 
-}} // namespace panda::event
+}} // namespace panda::unievent

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <unistd.h>
+#include <panda/log.h>
 
 namespace panda { namespace unievent { namespace test {
 
@@ -57,7 +58,7 @@ AsyncTest::~AsyncTest() noexcept(false) {
     loop->run_nowait(); 
     loop->run_nowait();
     loop->walk([](Handle* h){
-         _EDEBUG("%d %p %d", h->type(), h, h->refcnt());
+         panda_log_debug("smth is in Loop when destroing " << h->type() << ", "  << h << ", " <<  h->refcnt());
     }); 
     if (!broken_state && !happened_as_expected() && !std::uncaught_exception()) {
         throw Error("Test exits in bad state", *this);

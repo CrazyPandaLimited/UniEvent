@@ -1,6 +1,10 @@
 #include "Pipe.h"
 using namespace panda::unievent;
 
+StreamSP Pipe::on_create_connection () {
+    return new Pipe(ipc, loop());
+}
+
 void Pipe::open (file_t file) {
     int uverr = uv_pipe_open(&uvh, file);
     if (uverr) throw CodeError(uverr);

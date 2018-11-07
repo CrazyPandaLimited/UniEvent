@@ -13,19 +13,9 @@ bool variate_ssl (bool val = false) {
     RETVAL = variation.ssl;
 }
 
-int variate_socks (int val = 0) {
-    if (items) variation.socks = val;
-    RETVAL = variation.socks;
-}
-
 bool variate_buf (bool val = false) {
     if (items) variation.buf = val;
     RETVAL = variation.buf;
-}
-
-string variate_socks_url (string val = "") {
-    if (items) variation.socks_url = val;
-    RETVAL = variation.socks_url;
 }
 
 void _benchmark_simple_resolver () { 

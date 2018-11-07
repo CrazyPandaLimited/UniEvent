@@ -62,11 +62,9 @@ sub variate {
     my @names = reverse @_ or return;
     
     state $valvars = {
-        ssl   => [0,1],
-        socks => [0,1],
-        buf   => [0,1],
+        ssl => [0,1],
+        buf => [0,1],
     };
-    my $has_socks = grep {$_ eq 'socks'} @names;
     
     my ($code, $end) = ('') x 2;
     $code .= "foreach my \$${_}_val (\$valvars->{$_}->\@*) {\n" for @names;
@@ -75,18 +73,8 @@ sub variate {
     $code .= qq#subtest "$stname" => \$sub;\n#;
     $code .= "}" x @names;
     
-    if ($has_socks) {
-        require SocksProxy;
-        $has_socks = SocksProxy::start(); # pid
-    }
-    
     eval $code;
     die $@ if $@;
-    
-    if ($has_socks) {
-        kill INT => $has_socks;
-        waitpid($has_socks, 0);
-    }
 }
 
 sub variate_catch {

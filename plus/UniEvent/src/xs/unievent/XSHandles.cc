@@ -145,6 +145,12 @@ void XSStream::on_eof () {
     if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
 }
 
+StreamSP XSTCP::on_create_connection () {
+    TCPSP ret = make_backref<XSTCP>(loop());
+    xs::out<TCP*>(ret.get());
+    return ret;
+}
+
 void XSUDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
     auto obj = xs::out<UDP*>(aTHX_ this);
     if (!receive_xscb.call(obj, evname_on_receive, {
@@ -158,6 +164,18 @@ void XSUDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const C
 void XSUDP::on_send (const CodeError* err, SendRequest* req) {
     auto obj = xs::out<UDP*>(aTHX_ this);
     if (!send_xscb.call(obj, evname_on_send, { xs::out(err) })) UDP::on_send(err, req);
+}
+
+StreamSP XSPipe::on_create_connection () {
+    PipeSP ret = make_backref<XSPipe>(ipc, loop());
+    xs::out<Pipe*>(ret.get());
+    return ret;
+}
+
+StreamSP XSTTY::on_create_connection () {
+    TTYSP ret = make_backref<XSTTY>(fd, readable(), loop());
+    xs::out<TTY*>(ret.get());
+    return ret;
 }
 
 Stash perl_class_for_handle (Handle* h) {

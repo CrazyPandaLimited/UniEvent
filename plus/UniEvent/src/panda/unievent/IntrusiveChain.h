@@ -11,19 +11,17 @@
 
 namespace panda { namespace unievent {
 
-template <typename T> class Cloneable {
-public:
+template <typename T> struct Cloneable {
     virtual ~Cloneable() = default;
 
 protected:
     virtual T clone() const = 0;
 };
 
-template <typename T> class IntrusiveChainNode : public Cloneable<T> {
+template <typename T> struct IntrusiveChainNode : Cloneable<T> {
     template <typename S> friend class IntrusiveChain;
-    template <typename S, typename Pointer, typename Reference> friend class IntrusiveChainIterator;
+    template <typename S> friend class IntrusiveChainIterator;
 
-public:
     T next() const { return next_; }
     T prev() const { return prev_; }
 
@@ -33,70 +31,60 @@ public:
 
 /// Iterator is not cyclic, so to work with the standard bidirectional algorithms it uses head and tail pointers alongside with the current one.
 /// Typical cyclic implementation uses an extra sentinel Node object, which we will definitely do not want to allocate.
-template <typename T, typename Pointer, typename Reference> class IntrusiveChainIterator {
+template <typename T> struct IntrusiveChainIterator {
     template <typename S> friend class IntrusiveChain;
-    template <typename TT, typename PP, typename RR> friend class IntrusiveChainIterator;
+    template <typename S> friend class IntrusiveChainIterator;
 
-public:
     using difference_type   = ptrdiff_t;
     using value_type        = T;
-    using pointer           = Pointer;
-    using reference         = Reference;
+    using pointer           = T*;
+    using reference         = T&;
     using iterator_category = std::bidirectional_iterator_tag;
 
-    IntrusiveChainIterator(const T& head, const T& tail, const T& current = nullptr) : head_(head), tail_(tail), current_(current) {}
+    IntrusiveChainIterator (const T& tail, const T& current = nullptr) : tail_(tail), current_(current) {}
     
-    template <typename TT, typename PP, typename RR>
-    IntrusiveChainIterator(const IntrusiveChainIterator<TT, PP, RR>& o) : head_(o.head_), tail_(o.tail_), current_(o.current_) {}
+    template <typename S>
+    IntrusiveChainIterator (const IntrusiveChainIterator<S>& o) : tail_(o.tail_), current_(o.current_) {}
 
-    T&   operator*() { return current_; }
-    T*   operator->() { return &current_; }
-    bool operator==(const IntrusiveChainIterator& other) const { return current_ == other.current_ && head_ == other.head_ && tail_ == other.tail_; }
-    bool operator!=(const IntrusiveChainIterator& other) const { return !(*this == other); }
+    T&   operator*  () { return current_; }
+    T*   operator-> () { return &current_; }
+    bool operator== (const IntrusiveChainIterator& other) const { return current_ == other.current_; }
+    bool operator!= (const IntrusiveChainIterator& other) const { return !(*this == other); }
 
-    IntrusiveChainIterator& operator++() {
-        if(current_) {
-            current_ = current_->next_;
-        }
+    IntrusiveChainIterator& operator++ () {
+        current_ = current_->next_;
         return *this;
     }
 
-    IntrusiveChainIterator operator++(int) {
+    IntrusiveChainIterator operator++ (int) {
         IntrusiveChainIterator pos(*this);
-        if(current_) {
-            current_ = current_->next_;
-        }
+        current_ = current_->next_;
         return pos;
     }
 
-    IntrusiveChainIterator& operator--() {
-        if (current_) {
-            current_ = current_->prev_;
-        } else {
-            current_ = tail_;
-        }
+    IntrusiveChainIterator& operator-- () {
+        if (current_) current_ = current_->prev_;
+        else          current_ = tail_;
         return *this;
     }
 
-    IntrusiveChainIterator operator--(int) {
+    IntrusiveChainIterator operator-- (int) {
         IntrusiveChainIterator pos(*this);
-        if (current_) {
-            current_ = current_->prev_;
-        } else {
-            current_ = tail_;
-        }
-        return pos;
+        return --pos;
+    }
+
+    IntrusiveChainIterator& operator= (const IntrusiveChainIterator& oth) {
+        this->tail_ = oth.tail_;
+        this->current_ = oth.current_;
+        return *this;
     }
 
 private:
-    const T head_;
-    const T tail_;
-    // current=nullptr indicates end()
-    T current_;
+    T tail_;
+    T current_; // current=nullptr indicates end()
 };
 
-template <typename T> class IntrusiveChain : public Cloneable<IntrusiveChain<T>> {
-public:
+template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
     using value_type             = T;
     using size_type              = std::size_t;
     using difference_type        = std::ptrdiff_t;
@@ -104,8 +92,8 @@ public:
     using const_reference        = const T&;
     using pointer                = T*;
     using const_pointer          = const T*;
-    using iterator               = IntrusiveChainIterator<T, T*, T&>;
-    using const_iterator         = IntrusiveChainIterator<T, const T*, const T&>;
+    using iterator               = IntrusiveChainIterator<T>;
+    using const_iterator         = IntrusiveChainIterator<T>;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -214,7 +202,7 @@ public:
             push_back(node);
         }
         
-        return const_iterator(head_, tail_, node);
+        return const_iterator(tail_, node);
     }
 
     const_iterator erase(const_iterator pos) {
@@ -234,7 +222,7 @@ public:
 
             pos.current_->prev_ = pos.current_->next_ = nullptr;
 
-            return const_iterator(head_, tail_, current);
+            return const_iterator(tail_, current);
         } else {
             // it means that current points to end()
             return end();
@@ -251,14 +239,14 @@ public:
     const_reference front() const { return head_; }
     const_reference back() const { return tail_; }
 
-    iterator begin() { return iterator(head_, tail_, head_); }
-    iterator end() { return iterator(head_, tail_); }
+    iterator begin() { return iterator(tail_, head_); }
+    iterator end() { return iterator(tail_); }
 
-    const_iterator begin() const { return const_iterator(head_, tail_, head_); }
-    const_iterator end() const { return const_iterator(head_, tail_); }
+    const_iterator begin() const { return const_iterator(tail_, head_); }
+    const_iterator end() const { return const_iterator(tail_); }
     
-    const_iterator cbegin() const { return const_iterator(head_, tail_, head_); }
-    const_iterator cend() const { return const_iterator(head_, tail_); }
+    const_iterator cbegin() const { return const_iterator(tail_, head_); }
+    const_iterator cend() const { return const_iterator(tail_); }
 
     bool empty() const { return !head_; }
 
