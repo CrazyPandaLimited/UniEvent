@@ -1,4 +1,5 @@
 #pragma once
+#include "inc.h"
 #include "error.h"
 #include "XSCallback.h"
 #include <panda/unievent/TCP.h>
@@ -31,8 +32,6 @@ protected:
 
     static const Simple evname_on_resolve;
 };
-
-const Simple XSResolver::evname_on_resolve = Simple::shared("on_resolve");
 
 }} // namespace xs::unievent
 

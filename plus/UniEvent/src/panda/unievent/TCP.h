@@ -1,10 +1,9 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Timer.h"
-#include "Socks.h"
 #include "Stream.h"
 #include "Resolver.h"
-#include "ResolveFunction.h"
-#include "socks/SocksFilter.h"
 
 #include <ostream>
 #include <panda/string.h>
@@ -26,6 +25,8 @@ struct addrinfo_deleter {
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
 struct TCP : virtual Stream, AllocatedObject<TCP> {
+    friend TCPConnectRequest;
+
     static constexpr bool USE_CACHED_RESOLVER_BY_DEFAULT = true;
 
     TCP (Loop* loop = Loop::default_loop(), bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
@@ -167,30 +168,16 @@ struct TCPConnectRequest : ConnectRequest {
 
     CallbackDispatcher<connect_fptr> event;
 
-    string          host_;
-    string          service_;
-    AddrInfoHintsSP hints_;
-    SockAddr        sa_;
-    uint64_t        timeout_ = 0;
-    SocksSP         socks_;
+    string          host;
+    uint16_t        port;
+    AddrInfoHintsSP hints;
+    SockAddr        sa;
+    uint64_t        timeout = 0;
 
 protected:
-    TCPConnectRequest(bool                   reconnect,
-                      const SockAddr&        sa,
-                      const string&          host,
-                      uint16_t               port,
-                      const AddrInfoHintsSP& hints,
-                      uint64_t               timeout,
-                      connect_fn             callback)
-            : ConnectRequest(callback, reconnect)
-            , host_(host)
-            , service_(service)
-            , hints_(hints)
-            , sa_(sa)
-            , timeout_(timeout)
-    {
-
-    }
+    TCPConnectRequest(
+        bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, connect_fn callback)
+            : ConnectRequest(callback, reconnect), host(host), port(port), hints(hints), sa(sa), timeout(timeout) {}
 
 private:
     friend std::ostream& operator<< (std::ostream& os, const ConnectRequest& cr);

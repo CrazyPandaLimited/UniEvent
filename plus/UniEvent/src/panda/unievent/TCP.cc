@@ -6,11 +6,8 @@ namespace panda { namespace unievent {
 
 AddrInfoHintsSP TCP::default_hints = AddrInfoHintsSP(new AddrInfoHints);
 
-TCP::~TCP() { _EDTOR(); _EDEBUG("~TCP: %p", static_cast<Handle*>(this)); }
-
 TCP::TCP(Loop* loop, bool use_cached_resolver) : cached_resolver(use_cached_resolver) {
     _ECTOR();
-    _EDEBUG("TCP: %p", static_cast<Handle*>(this));
     int err = uv_tcp_init(_pex_(loop), &uvh);
     if (err)
         throw CodeError(err);
@@ -62,7 +59,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
     if (!req->sa) {
         _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolver()->resolve(req->host, req->service, req->hints,
+            resolver()->resolve(req->host, string::from_number(req->port), req->hints,
                 [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
                     _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
                     if (err) {
@@ -109,9 +106,9 @@ void TCP::connect(TCPConnectRequest* tcp_connect_request) {
     
     tcp_connect_request->retain();
 
-    if (tcp_connect_request->timeout_) {
-        _EDEBUGTHIS("going to set timer to: %lu", tcp_connect_request->timeout_);
-        tcp_connect_request->set_timer(Timer::once(tcp_connect_request->timeout_,
+    if (tcp_connect_request->timeout) {
+        _EDEBUGTHIS("going to set timer to: %lu", tcp_connect_request->timeout);
+        tcp_connect_request->set_timer(Timer::once(tcp_connect_request->timeout,
                                                     [=](Timer* t) {
                                                         _EDEBUG("connect timed out %p %p %u", t, this, tcp_connect_request->refcnt());
                                                         tcp_connect_request->release_timer();

@@ -11,6 +11,7 @@
 
 #include <panda/string_view.h>
 
+#include "Fwd.h"
 #include "Debug.h"
 #include "Loop.h"
 #include "Poll.h"
@@ -19,7 +20,6 @@
 #include "Timer.h"
 #include "global.h"
 #include "Request.h"
-#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
 
