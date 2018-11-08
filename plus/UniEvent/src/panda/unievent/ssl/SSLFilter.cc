@@ -148,7 +148,8 @@ void SSLFilter::start_ssl_connection (Profile profile) {
 }
 
 int SSLFilter::negotiate () {
-    assert((!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl)) && handle->connecting());
+    bool renegotiate = SSL_renegotiate_pending(ssl);
+    assert((!SSL_is_init_finished(ssl) && handle->connecting()) || renegotiate);
     
     state = State::negotiating;
     
@@ -207,6 +208,11 @@ void SSLFilter::negotiation_finished (const CodeError* err) {
         return;
     }
 
+    if (handle->connected()) { // prevent double callback call after renegotiate
+        state = State::terminal;
+        return;
+    }
+
     if(err) {
         state = State::error;
     } else {
@@ -235,6 +241,7 @@ void SSLFilter::on_read (string& encbuf, const CodeError* err) {
         _ESSL("on_read strange state: neither connecting nor connected, possibly server is not configured");
     }
 
+    _EDEBUG("ssl_init_finished %d, renegotiate %d", SSL_is_init_finished(ssl), SSL_renegotiate_pending(ssl));
     bool connecting = !SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl);
     if (err) {
         if (!handle->connecting()) { 
@@ -250,6 +257,8 @@ void SSLFilter::on_read (string& encbuf, const CodeError* err) {
     }
 
     SSLBio::set_buf(read_bio, encbuf);
+
+    _EDEBUG("connecting %d, err %s", connecting, err ? err->what() : "");
 
     int pending = encbuf.length();
     if (connecting && !(pending = negotiate())) { // no more data to read, handshake not completed
