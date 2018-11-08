@@ -32,8 +32,8 @@ template <typename T> struct IntrusiveChainNode : Cloneable<T> {
 /// Iterator is not cyclic, so to work with the standard bidirectional algorithms it uses head and tail pointers alongside with the current one.
 /// Typical cyclic implementation uses an extra sentinel Node object, which we will definitely do not want to allocate.
 template <typename T> struct IntrusiveChainIterator {
-    template <typename S> friend class IntrusiveChain;
-    template <typename S> friend class IntrusiveChainIterator;
+    template <typename S> friend struct IntrusiveChain;
+    template <typename S> friend struct IntrusiveChainIterator;
 
     using difference_type   = ptrdiff_t;
     using value_type        = T;

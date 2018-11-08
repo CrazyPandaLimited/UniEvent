@@ -61,7 +61,7 @@ void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
 }
 
 void Stream::do_on_connection (StreamSP stream, const CodeError* err) {
-    _EDEBUGTHIS("do_on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
+    _EDEBUGTHIS("do_on_connection, err: %d, stream: %p", err ? err->code() : 0, stream.get());
     stream->set_connected(!err);
     {
         auto guard = stream->lock_in_callback();
@@ -150,7 +150,7 @@ void Stream::accept () {
 }
 
 void Stream::accept (const StreamSP& stream) {
-    _EDEBUGTHIS("accept %p", stream);
+    _EDEBUGTHIS("accept %p", stream.get());
     stream->retain();
     // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
     stream->set_connecting();

@@ -131,7 +131,7 @@ void TCP::connect (const string& host, uint16_t port, uint64_t timeout, const ad
 }
 
 void TCP::connect (const SockAddr& sa, uint64_t timeout) {
-    _EDEBUGTHIS("connect to sock:%p", sa);
+    _EDEBUGTHIS("connect to sock:%s:%d", sa.ip().c_str(), sa.port());
     connect().to(sa).timeout(timeout);
 }
 

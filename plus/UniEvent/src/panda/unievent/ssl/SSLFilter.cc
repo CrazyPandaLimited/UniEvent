@@ -116,7 +116,7 @@ void SSLFilter::on_connect (const CodeError* err, ConnectRequest* req) {
 }
 
 void SSLFilter::on_connection (StreamSP stream, const CodeError* err) {
-    _ESSL("on_connection, stream: %p, err: %d", stream, err ? err->code() : 0);
+    _ESSL("on_connection, stream: %p, err: %d", stream.get(), err ? err->code() : 0);
     if (err) {
         NextFilter::on_connection(handle, err);
         return;

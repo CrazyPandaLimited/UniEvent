@@ -20,7 +20,7 @@ ResolveRequestSP Resolver::resolve (Loop* loop, std::string_view node, uint16_t 
     TimerSP t = new Timer(loop);
     t->timer_event.add([=](TimerSP) mutable {
         t.reset(); // just to capture timer and prevent it from death
-        _EDEBUG("on_resolve {resolve_request:%p}{syserr:%d}{res:%p}{is_canceled:%d}", resolve_request, syserr, res, resolve_request->canceled());
+        _EDEBUG("on_resolve {resolve_request:%p}{syserr:%d}{res:%p}{is_canceled:%d}", resolve_request.get(), syserr, res, resolve_request->canceled());
         CodeError err;
         BasicAddressSP addr;
 
