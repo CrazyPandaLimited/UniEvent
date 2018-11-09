@@ -1,7 +1,7 @@
 #include "../lib/test.h"
 #include <thread>
 
-TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
     AsyncTest test(10000, {"connected", "reset"});
 
     auto sa = test.get_refused_addr();
@@ -43,7 +43,7 @@ TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl][v-socks]") {
     _EDEBUG("END %d", client->refcnt());
 }
 
-TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]") {
     AsyncTest test(250, {"connected1", "connected2"});
 
     TCPSP server = make_server(test.loop);
@@ -84,7 +84,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     auto sa = server->get_sockaddr();
     server->connection_event.add([](Stream*, Stream*, const CodeError*) {});
 
-    TCPSP clients[tries];
+    std::vector<TCPSP> clients(tries);
     std::vector<decltype(clients[0]->connect_event)*> disps;
 
     for (int i = 0; i < tries; ++i) {
@@ -123,7 +123,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     // NB some connections could be made nevertheless canceled
 }
 
-TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
     AsyncTest test(150, {"connected called"});
 
     bool cached_resolver;
@@ -144,7 +144,7 @@ TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl][v-soc
     test.await(client->connect_event, "connected called");
 }
 
-TEST_CASE("connect timeout clean queue", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("connect timeout clean queue", "[tcp-connect-timeout][v-ssl]") {
     AsyncTest test(250, {"connected called"});
     bool cached_resolver;
     SECTION("ordinary resolver") {
@@ -167,7 +167,7 @@ TEST_CASE("connect timeout clean queue", "[tcp-connect-timeout][v-ssl][v-socks]"
     REQUIRE(test.await_not(client->write_event, 10));
 }
 
-TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ssl]") {
     AsyncTest test(1000, {"done"});
 
     TCPSP client = make_client(test.loop);
@@ -191,7 +191,7 @@ TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ss
     test.happens("done");
 }
 
-TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-connect-timeout][v-ssl][v-socks]") {
+TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-connect-timeout][v-ssl]") {
     bool cached_resolver;
     SECTION("ordinary resolver") {
         cached_resolver = false;

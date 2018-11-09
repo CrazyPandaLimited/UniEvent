@@ -8,7 +8,7 @@ my $l = UniEvent::Loop->default_loop();
 
 my $res;
 
-my @to_res = ('google-public-dns-a.google.com', 'domain');
+my @to_res = ('google-public-dns-a.google.com', 53);
 my ($check_ip, $check_port) = ('8.8.8.8', 53);
 
 sub get_sas {

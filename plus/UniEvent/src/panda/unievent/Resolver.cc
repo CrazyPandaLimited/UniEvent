@@ -5,23 +5,22 @@
 
 namespace panda { namespace unievent {
 
-ResolveRequestSP Resolver::resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) {
+ResolveRequestSP Resolver::resolve (Loop* loop, std::string_view node, uint16_t port, const addrinfo* hints, ResolveFunction callback) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback));
-    resolve_request->key         = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), string(service), hints));
-    resolve_request->resolver    = this;
+    resolve_request->key      = iptr<cached_resolver::Key>(new cached_resolver::Key(string(node), port, hints));
+    resolve_request->resolver = this;
     resolve_request->retain();
     retain();
 
     PEXS_NULL_TERMINATE(node, node_cstr);
-    PEXS_NULL_TERMINATE(service, service_cstr);
 
-    _EDEBUGTHIS("resolve resolve_request:%p {%s:%s}, loop:%p", resolve_request.get(), node_cstr, service_cstr, loop);
+    _EDEBUGTHIS("resolve resolve_request:%p {%s:%d}, loop:%p", resolve_request.get(), node_cstr, port, loop);
     addrinfo* res;
-    int syserr = getaddrinfo(node_cstr, service_cstr, hints, &res);
+    int syserr = getaddrinfo(node_cstr, port ? string::from_number(port).c_str() : "", hints, &res);
     TimerSP t = new Timer(loop);
     t->timer_event.add([=](TimerSP) mutable {
         t.reset(); // just to capture timer and prevent it from death
-        _EDEBUG("on_resolve {resolve_request:%p}{syserr:%d}{res:%p}{is_canceled:%d}", resolve_request, syserr, res, resolve_request->canceled());
+        _EDEBUG("on_resolve {resolve_request:%p}{syserr:%d}{res:%p}{is_canceled:%d}", resolve_request.get(), syserr, res, resolve_request->canceled());
         CodeError err;
         BasicAddressSP addr;
 
@@ -43,20 +42,18 @@ ResolveRequestSP Resolver::resolve(Loop* loop, std::string_view node, std::strin
     return resolve_request;
 }
 
-void Resolver::on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+void Resolver::on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}{is_canceled:%d}", resolve_request.get(), err ? err->code() : 0, resolve_request->canceled());
     resolve_request->event(resolver, resolve_request, address, err);
 }
 
-CachedResolver::~CachedResolver() { _EDTOR(); }
-
-CachedResolver::CachedResolver(time_t expiration_time, size_t limit) : expiration_time_(expiration_time), limit_(limit) { _ECTOR(); }
+CachedResolver::CachedResolver (time_t expiration_time, size_t limit) : expiration_time_(expiration_time), limit_(limit) {}
 
 std::tuple<CachedResolver::CacheType::const_iterator, bool>
-CachedResolver::find(std::string_view node, std::string_view service, const addrinfo* hints) {
-    iptr<cached_resolver::Key> key(new cached_resolver::Key(string(node), string(service), hints));
+CachedResolver::find (std::string_view node, uint16_t port, const addrinfo* hints) {
+    iptr<cached_resolver::Key> key(new cached_resolver::Key(string(node), port, hints));
 
-    _EDEBUG("looking in cache [%.*s] [%.*s] %zd", (int)node.length(), node.data(), (int)service.length(), service.data(), cache_.size());
+    _EDEBUG("looking in cache [%.*s] [%d] %zd", (int)node.length(), node.data(), port, cache_.size());
 
     auto address_pos = cache_.find(*key);
     if (address_pos != end(cache_)) {
@@ -74,23 +71,21 @@ CachedResolver::find(std::string_view node, std::string_view service, const addr
 }
 
 ResolveRequestSP
-CachedResolver::resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) {
+CachedResolver::resolve (Loop* loop, std::string_view node, uint16_t port, const addrinfo* hints, ResolveFunction callback) {
     _EDEBUGTHIS("resolve");
     CacheType::const_iterator address_pos;
     bool                      found;
-    std::tie(address_pos, found) = find(node, service, hints);
-    if (found) {
-        if (callback) {
-            ResolveRequestSP resolve_request;
-            callback(this, resolve_request, address_pos->second, nullptr);
-            return resolve_request;
-        }
+    std::tie(address_pos, found) = find(node, port, hints);
+    if (found && callback) {
+        ResolveRequestSP resolve_request;
+        callback(this, resolve_request, address_pos->second, nullptr);
+        return resolve_request;
     }
 
-    return Resolver::resolve(loop, node, service, hints, callback);
+    return Resolver::resolve(loop, node, port, hints, callback);
 }
 
-void CachedResolver::on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
+void CachedResolver::on_resolve (AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) {
     _EDEBUG("on_resolve {resolve_request:%p}{err:%d}{is_canceled:%d}", resolve_request.get(), err ? err->code() : 0, resolve_request->canceled());
     if (!err) {
         expunge_cache();
@@ -100,14 +95,13 @@ void CachedResolver::on_resolve(AbstractResolverSP resolver, ResolveRequestSP re
     resolve_request->event(resolver, resolve_request, address, err);
 }
 
-ResolveRequest::ResolveRequest(ResolveFunction callback) : resolver(nullptr), key(nullptr) {
+ResolveRequest::ResolveRequest (ResolveFunction callback) : resolver(nullptr), key(nullptr) {
     _ECTOR();
     event.add(callback);
 }
 
-void ResolveRequest::cancel() {
+void ResolveRequest::cancel () {
     if (this->canceled_) return;
-
     canceled_ = true;
 }
 

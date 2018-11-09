@@ -10,16 +10,13 @@ using namespace panda::unievent;
 using namespace panda::unievent::test;
 
 struct Variation {
-    bool   ssl;
-    int    socks;
-    string socks_url;
-    bool   buf;
+    bool ssl;
+    bool buf;
 };
 
 extern Variation variation;
 
 TCPSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TCPSP make_socks_server (LoopSP loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 TCPSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 TCPSP make_client       (Loop* loop, bool cached_resolver = true);
 

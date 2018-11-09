@@ -13,19 +13,9 @@ bool variate_ssl (bool val = false) {
     RETVAL = variation.ssl;
 }
 
-int variate_socks (int val = 0) {
-    if (items) variation.socks = val;
-    RETVAL = variation.socks;
-}
-
 bool variate_buf (bool val = false) {
     if (items) variation.buf = val;
     RETVAL = variation.buf;
-}
-
-string variate_socks_url (string val = "") {
-    if (items) variation.socks_url = val;
-    RETVAL = variation.socks_url;
 }
 
 void _benchmark_regular_resolver () { 
@@ -34,13 +24,9 @@ void _benchmark_regular_resolver () {
    
     for (auto i=0; i<1000; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), 
-                "localhost", 
-                "80", 
-                nullptr,
-                [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
-                    called = true;
-                });
+        ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
+            called = true;
+        });
     }
     
     loop->run();
@@ -52,27 +38,19 @@ void _benchmark_cached_resolver () {
    
     // cache first 
     bool called = false;                                                          
-    ResolveRequestSP request = resolver->resolve(loop.get(), 
-            "localhost", 
-            "80", 
-            nullptr, 
-            [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
-                called = true;
-            });
+    ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
+        called = true;
+    });
     
     // will resolve and cache here, loop will exit as there are no pending requests 
     loop->run();
 
     // resolve from cache 
-    for(auto i=0; i<99999; i++) {
+    for (auto i=0; i<99999; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), 
-                "localhost", 
-                "80", 
-                nullptr,
-                [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*){
-                    called = true;
-                });
+        ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
+            called = true;
+        });
     }
     
     loop->run();

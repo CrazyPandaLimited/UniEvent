@@ -1,6 +1,10 @@
 #include "TTY.h"
 using namespace panda::unievent;
 
+StreamSP TTY::on_create_connection () {
+    return new TTY(fd, readable(), loop());
+}
+
 void TTY::set_mode (int mode) {
     int err = uv_tty_set_mode(&uvh, mode);
     if (err) throw CodeError(err);

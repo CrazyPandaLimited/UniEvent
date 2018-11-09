@@ -61,7 +61,7 @@ void Stream::uvx_on_connection (uv_stream_t* stream, int status) {
 }
 
 void Stream::do_on_connection (StreamSP stream, const CodeError* err) {
-    _EDEBUGTHIS("do_on_connection, err: %d, stream: %p", err ? err->code() : 0, stream);
+    _EDEBUGTHIS("do_on_connection, err: %d, stream: %p", err ? err->code() : 0, stream.get());
     stream->set_connected(!err);
     {
         auto guard = stream->lock_in_callback();
@@ -138,10 +138,7 @@ void Stream::do_on_shutdown (const CodeError* err, ShutdownRequest* shutdown_req
 
 void Stream::listen (int backlog, connection_fn callback) {
     auto filter = get_filter<ssl::SSLFilter>();
-    if(filter && filter->is_client()) {
-        throw Error("Programming error, use server certificate");
-    }
-
+    if (filter && filter->is_client()) throw Error("Programming error, use server certificate");
     if (callback) connection_event.add(callback);
     int err = uv_listen(uvsp(), backlog, uvx_on_connection);
     if (err) throw CodeError(err);
@@ -149,11 +146,11 @@ void Stream::listen (int backlog, connection_fn callback) {
 }
 
 void Stream::accept () {
-    accept(on_create_connection());
+    accept(connection_factory ? connection_factory() : on_create_connection());
 }
 
 void Stream::accept (const StreamSP& stream) {
-    _EDEBUGTHIS("accept %p", stream);
+    _EDEBUGTHIS("accept %p", stream.get());
     stream->retain();
     // set connecting status so that all other requests (write, etc) are put into queue until handshake completed
     stream->set_connecting();
@@ -253,45 +250,51 @@ void Stream::on_handle_reinit () {
     if (wanted_read) set_wantread();
 }
 
-void Stream::add_filter (StreamFilter* filter) {
+void Stream::add_filter (const StreamFilterSP& filter) {
     assert(filter);
-    filters_.insert(--filters_.end(), filter);
-}
-
-void Stream::use_ssl (SSL_CTX* context) {
-    if (is_secure()) {
-        return;
+    auto it = filters_.begin();
+    auto pos = it;
+    bool found = false;
+    while (it != filters_.end()) {
+        if ((*it)->type() == filter->type()) {
+            *it = filter;
+            return;
+        }
+        if ((*it)->priority() > filter->priority() && !found) {
+            pos = it;
+            found = true;
+        }
+        it++;
     }
-
-    filters_.insert(filters_.begin(), new ssl::SSLFilter(this, context));
+    if (found) filters_.insert(pos, filter);
+    else filters_.push_back(filter);
 }
+
+StreamFilterSP Stream::get_filter (const void* type) const {
+    for (const auto& f : filters_) if (f->type() == type) return f;
+    return {};
+}
+
+void Stream::use_ssl (SSL_CTX* context) { add_filter(new ssl::SSLFilter(this, context)); }
 
 void Stream::use_ssl (const SSL_METHOD* method) {
-    if (is_secure()) {
-        return;
-    }
-   
-    if(!method && listening()) {
-        throw Error("Programming error, use server certificate");
-    }
-
-    filters_.insert(filters_.begin(), new ssl::SSLFilter(this, method));
+    ssl::SSLFilterSP f = new ssl::SSLFilter(this, method);
+    if (listening() && f->is_client()) throw Error("Using ssl without certificate on listening stream");
+    add_filter(f);
 }
 
-SSL* Stream::get_ssl() const {
+bool Stream::is_secure () const { return get_filter(ssl::SSLFilter::TYPE); }
+
+SSL* Stream::get_ssl () const {
     auto filter = get_filter<ssl::SSLFilter>();
-    return filter ? filter.get()->get_ssl() : nullptr;
+    return filter ? filter->get_ssl() : nullptr;
 }
 
-bool Stream::is_secure() const {
-    return get_filter<ssl::SSLFilter>();
-}
-
-void Stream::_close() {
+void Stream::_close () {
     Handle::_close();
 }
 
-void Stream::cancel_connect() {
+void Stream::cancel_connect () {
     _EDEBUGTHIS("cancel_connect");
     _close();
 }
@@ -356,8 +359,8 @@ void Stream::on_eof () {
     eof_event(this);
 }
     
-StreamSP Stream::on_create_connection() {
-    return connection_factory(); 
+StreamSP Stream::on_create_connection () {
+    throw ImplRequiredError("on_create_connection");
 }
 
 }}
