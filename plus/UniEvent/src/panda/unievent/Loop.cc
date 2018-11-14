@@ -1,6 +1,9 @@
 #include "Loop.h"
-#include "Debug.h"
+
 #include <thread>
+
+#include "Debug.h"
+#include "Resolver.h"
 
 namespace panda { namespace unievent {
 
@@ -21,6 +24,7 @@ void Loop::_init_default_loop () {
 }
 
 Loop::Loop () : closed(false) {
+    _ECTOR();
     _uvloop = &_uvloop_body;
     int err = uv_loop_init(_uvloop);
     if (err) throw CodeError(err);
@@ -29,6 +33,7 @@ Loop::Loop () : closed(false) {
 
 // constructor for global default loop
 Loop::Loop (bool) : closed(false) {
+    _ECTOR();
     _uvloop = uv_default_loop();
     if (!_uvloop) throw Error("Cannot create default loop: uv_default_loop() failed");
     _uvloop->data = this;
@@ -40,16 +45,36 @@ void Loop::uvx_walk_cb (uv_handle_t* uvh, void* arg) {
     (*callback)(handle);
 }
 
-int  Loop::run        () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_DEFAULT); }
-int  Loop::run_once   () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_ONCE); }
-int  Loop::run_nowait () { _EDEBUGTHIS("Loop::run)"); return uv_run(_uvloop, UV_RUN_NOWAIT); }
-void Loop::stop       () { _EDEBUGTHIS("Loop::stop)"); uv_stop(_uvloop); }
+int  Loop::run        () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_DEFAULT); }
+int  Loop::run_once   () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_ONCE); }
+int  Loop::run_nowait () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_NOWAIT); }
+
+void Loop::stop() {
+    _EDEBUGTHIS();
+    if (resolver_) {
+        resolver_->stop();
+    }
+
+    uv_stop(_uvloop);
+}
 
 void Loop::walk (walk_fn cb) {
     uv_walk(_uvloop, uvx_walk_cb, &cb);
 }
 
+ResolverSP Loop::resolver () {
+    if (!resolver_) {
+        resolver_ = new Resolver(this);
+    }
+    return resolver_;
+}
+
 void Loop::close () {
+    _EDEBUG();
+    
+    // give resolver a chance to stop
+    run_nowait();
+
     int err = uv_loop_close(_uvloop);
     if (err) throw CodeError(err);
     closed = true;
@@ -71,6 +96,7 @@ void Loop::handle_fork () {
 }
 
 Loop::~Loop () {
+    _EDTOR();
     assert(closed);
 }
 

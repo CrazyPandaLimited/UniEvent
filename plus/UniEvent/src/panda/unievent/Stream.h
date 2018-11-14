@@ -1,20 +1,20 @@
 #pragma once
-#include "Handle.h"
-#include "Request.h"
-#include "StreamFilter.h"
 
 #include <new>
 #include <algorithm>
+
 #include <panda/lib/memory.h>
+
+#include "Fwd.h"
+#include "Handle.h"
+#include "Request.h"
+#include "StreamFilter.h"
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
 struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
-
-struct Stream;
-using StreamSP = iptr<Stream>;
 
 struct Stream : virtual Handle {
     using connection_factory_fptr = StreamSP();

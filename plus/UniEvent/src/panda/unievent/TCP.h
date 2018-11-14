@@ -1,8 +1,9 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Timer.h"
 #include "Stream.h"
 #include "Resolver.h"
-#include "ResolveFunction.h"
 
 #include <ostream>
 #include <panda/string.h>
@@ -23,31 +24,33 @@ struct addrinfo_deleter {
 
 using addrinfo_keeper = std::unique_ptr<addrinfo, addrinfo_deleter>;
 
-struct ConnectRequest; struct TCPConnectRequest; struct TCPConnectAutoBuilder; struct ResolveRequest;
-
 struct TCP : virtual Stream, AllocatedObject<TCP> {
-    TCP (Loop* loop = Loop::default_loop(), bool cached_resolver = use_cached_resolver_by_default);
-    TCP (Loop* loop, unsigned int flags, bool cached_resolver = use_cached_resolver_by_default);
+    friend TCPConnectRequest;
+
+    static constexpr bool USE_CACHED_RESOLVER_BY_DEFAULT = true;
+
+    TCP (Loop* loop = Loop::default_loop(), bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
+    TCP (Loop* loop, unsigned int flags, bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
 
     virtual void open (sock_t socket);
 
     virtual void bind (const SockAddr&, unsigned int flags = 0);
 
-    virtual void bind (std::string_view host, uint16_t port, const addrinfo* hints = &defhints);
+    virtual void bind (std::string_view host, uint16_t port, const AddrInfoHintsSP& hints = default_hints);
 
     virtual void connect (TCPConnectRequest* tcp_connect_request);
 
     virtual void connect (const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void connect (const string& host, uint16_t port, uint64_t timeout = 0, const addrinfo* hints = nullptr);
+    virtual void connect (const string& host, uint16_t port, uint64_t timeout = 0, const AddrInfoHintsSP& hints = default_hints);
 
-    virtual TCPConnectAutoBuilder connect ();
+    virtual TCPConnectAutoBuilder connect (); 
 
     virtual void reconnect (TCPConnectRequest* tcp_connect_request);
 
     virtual void reconnect (const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void reconnect (const string& host, uint16_t port, uint64_t timeout, const addrinfo* hints = nullptr);
+    virtual void reconnect (const string& host, uint16_t port, uint64_t timeout, const AddrInfoHintsSP& hints = default_hints);
 
     void do_connect (TCPConnectRequest* connect_request);
 
@@ -97,27 +100,25 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
     	if (::setsockopt(fileno(), level, optname, optval, optlen)) throw CodeError(-errno);
     }
 #endif
-    
+
     StreamSP on_create_connection () override;
+    ResolverSP resolver() { return loop()->resolver(); }
 
     using Handle::set_recv_buffer_size;
     using Handle::set_send_buffer_size;
-   
-    AbstractResolverSP resolver;
 
 protected:
     void on_handle_reinit () override;
     void _close () override;
-    void init (bool cached_resolver);
 
+public:    
+    bool cached_resolver;
+   
 private:
     uv_tcp_t uvh;
-    static addrinfo defhints;
-    ResolveRequestSP resolve_request;
     TimerSP connect_timer;
+    static AddrInfoHintsSP default_hints;
 };
-
-using TCPSP = iptr<TCP>;
 
 std::ostream& operator<< (std::ostream&, const TCP&);
 
@@ -129,7 +130,7 @@ struct TCPConnectRequest : ConnectRequest {
 
         Derived& concrete () { return static_cast<Derived&>(*this); }
         
-        Derived& to (const string& host, uint16_t port, const addrinfo* hints = nullptr) {
+        Derived& to (const string& host, uint16_t port, const AddrInfoHintsSP& hints = TCP::default_hints) {
             _host  = host;
             _port  = port;
             _hints = hints;
@@ -139,8 +140,8 @@ struct TCPConnectRequest : ConnectRequest {
         Derived& to (const SockAddr& sa) { _sa = sa; return concrete(); }
 
         Derived& timeout (uint64_t timeout) { _timeout = timeout; return concrete(); }
-        
-        Derived& callback (connect_fn callback) { _callback = callback; return concrete(); }
+                
+        Derived& callback (connect_fn callback) { _callback = callback; return concrete(); } 
         
         Derived& reconnect (bool reconnect) { _reconnect = reconnect; return concrete(); }
 
@@ -156,7 +157,7 @@ struct TCPConnectRequest : ConnectRequest {
         SockAddr        _sa;
         string          _host;
         uint16_t        _port;
-        const addrinfo* _hints = nullptr;
+        AddrInfoHintsSP _hints   = TCP::default_hints;
         uint64_t        _timeout = 0;
         connect_fn      _callback;
     };
@@ -167,26 +168,22 @@ struct TCPConnectRequest : ConnectRequest {
 
     CallbackDispatcher<connect_fptr> event;
 
-    string   host;
-    uint16_t port;
-    addrinfo hints = {};
-    SockAddr sa;
-    uint64_t timeout = 0;
+    string          host;
+    uint16_t        port;
+    AddrInfoHintsSP hints;
+    SockAddr        sa;
+    uint64_t        timeout = 0;
 
 protected:
-    TCPConnectRequest (bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const addrinfo* hints, uint64_t timeout, connect_fn callback)
-            : ConnectRequest(callback, reconnect), host(host), port(port), sa(sa), timeout(timeout)
-    {
-        if (hints) this->hints = *hints;
-    }
+    TCPConnectRequest(
+        bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, connect_fn callback)
+            : ConnectRequest(callback, reconnect), host(host), port(port), hints(hints), sa(sa), timeout(timeout) {}
 
 private:
     friend std::ostream& operator<< (std::ostream& os, const ConnectRequest& cr);
 
     uv_connect_t uvr;
 };
-
-using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 
 struct TCPConnectAutoBuilder : TCPConnectRequest::BasicBuilder<TCPConnectAutoBuilder> {
     TCPConnectAutoBuilder (TCP* tcp) : tcp(tcp) {}

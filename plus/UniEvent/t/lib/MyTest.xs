@@ -18,15 +18,19 @@ bool variate_buf (bool val = false) {
     RETVAL = variation.buf;
 }
 
-void _benchmark_regular_resolver () { 
+void _benchmark_simple_resolver () { 
     LoopSP loop(new Loop);
-    ResolverSP resolver(new Resolver);
+    SimpleResolverSP resolver(new SimpleResolver(loop));
    
     for (auto i=0; i<1000; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
-            called = true;
-        });
+        resolver->resolve( 
+                "localhost", 
+                "80", 
+                nullptr,
+                [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+                    called = true;
+                });
     }
     
     loop->run();
@@ -34,23 +38,31 @@ void _benchmark_regular_resolver () {
 
 void _benchmark_cached_resolver () { 
     LoopSP loop(new Loop);
-    CachedResolverSP resolver(new CachedResolver);
+    ResolverSP resolver(new Resolver(loop));
    
-    // cache first 
+    // put it into cache first 
     bool called = false;                                                          
-    ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
-        called = true;
-    });
+    resolver->resolve( 
+            "localhost", 
+            "80", 
+            nullptr, 
+            [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+                called = true;
+            });
     
     // will resolve and cache here, loop will exit as there are no pending requests 
     loop->run();
 
-    // resolve from cache 
-    for (auto i=0; i<99999; i++) {
+    // resolve gets address from cache 
+    for(auto i=0; i<99999; i++) {
         bool called = false;                                                          
-        ResolveRequestSP request = resolver->resolve(loop.get(), "localhost", 80, nullptr, [&](AbstractResolverSP, ResolveRequestSP, BasicAddressSP, const CodeError*) {
-            called = true;
-        });
+        resolver->resolve( 
+                "localhost", 
+                "80", 
+                nullptr,
+                [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){
+                    called = true;
+                });
     }
     
     loop->run();

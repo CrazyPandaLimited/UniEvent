@@ -1,14 +1,9 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Request.h"
-#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
-
-struct Handle;
-struct Stream;
-struct TCP;
-struct TCPConnectRequest;
-struct Pipe;
 
 struct CommandBase {
     enum class Type {UNKNOWN, CLOSE_DELETE, CLOSE_REINIT, CONNECT, CONNECT_PIPE, WRITE, SHUTDOWN, USER_CALLBACK};

@@ -69,6 +69,4 @@ private:
     uv_pipe_t uvh;
 };
 
-using PipeSP = iptr<Pipe>;
-
 }}

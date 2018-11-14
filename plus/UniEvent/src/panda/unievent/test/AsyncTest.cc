@@ -63,8 +63,6 @@ AsyncTest::~AsyncTest() noexcept(false) {
     if (!broken_state && !happened_as_expected() && !std::uncaught_exception()) {
         throw Error("Test exits in bad state", *this);
     }
-
-    get_thread_local_cached_resolver()->clear();
 }
 
 void AsyncTest::run() {

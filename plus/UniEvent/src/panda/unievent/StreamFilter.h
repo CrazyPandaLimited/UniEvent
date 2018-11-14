@@ -1,12 +1,11 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Error.h"
 #include "Request.h"
 #include "IntrusiveChain.h"
 
 namespace panda { namespace unievent {
-
-struct Stream;
-using StreamSP = iptr<Stream>;
 
 struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
     const void* type     () const { return _type; }
@@ -23,7 +22,6 @@ struct StreamFilter : virtual Refcnt, IntrusiveChainNode<iptr<StreamFilter>> {
     virtual void on_shutdown   (const CodeError*, ShutdownRequest*);
     virtual void on_eof        ();
     virtual void on_reinit     ();
-
 
 protected:
     StreamFilter (Stream* h, const void* type, double priority);
@@ -44,8 +42,6 @@ private:
     const void*  _type;
     const double _priority;
 };
-
-using StreamFilterSP = iptr<StreamFilter>;
 
 struct StreamFilters : IntrusiveChain<StreamFilterSP> {
     StreamFilters (Stream* h) : handle(h) {}

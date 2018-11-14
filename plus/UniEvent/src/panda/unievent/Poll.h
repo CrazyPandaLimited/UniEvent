@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Handle.h"
 
 namespace panda { namespace unievent {
@@ -15,7 +16,12 @@ struct Poll : virtual Handle {
       DISCONNECT = UV_DISCONNECT 
     };
 
+    ~Poll() {
+        _EDTOR();
+    }
+
     Poll (int fd, sock_t socket, Loop* loop = Loop::default_loop()) {
+        _ECTOR();
         int err;
         if (fd >= 0) err = uv_poll_init(_pex_(loop), &uvh, fd);
         else err = uv_poll_init_socket(_pex_(loop), &uvh, socket);

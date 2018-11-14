@@ -106,7 +106,9 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     }
 
     test.await(disps, "connected1");
-    clear_resolver_cache();
+
+    test.loop->resolver()->clear();
+    
     _EDEBUG("----------------- second -----------------");
 
     for (int i = 0; i < tries; ++i) {
@@ -116,7 +118,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
 
     test.await(disps, "connected2");
 
-    clear_resolver_cache();
+    test.loop->resolver()->clear();
 
     CHECK(connected == tries * 2);
     CHECK(successes >= tries);
@@ -219,7 +221,7 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-co
     REQUIRE(called);
     REQUIRE(failed);
 
-    clear_resolver_cache();
+    test.loop->resolver()->clear();
     called = false;
     failed = false;
 

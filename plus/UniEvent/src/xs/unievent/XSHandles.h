@@ -118,7 +118,7 @@ struct XSTCP : TCP, XSStream {
     }
 
     template<class Builder>
-    static Builder construct_connect (SV* host_or_sa, SV* port_or_callback, float timeout, addrinfo* hints, bool reconnect) {
+    static Builder construct_connect(SV* host_or_sa, SV* port_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
         if (port_or_callback && !SvROK(port_or_callback)) {
             return Builder().to(xs::in<string>(host_or_sa), xs::in<uint16_t>(port_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {

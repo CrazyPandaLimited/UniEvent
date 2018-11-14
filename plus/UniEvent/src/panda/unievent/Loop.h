@@ -1,12 +1,14 @@
 #pragma once
-#include "Error.h"
+
 #include <functional>
+
 #include <panda/refcnt.h>
 #include <panda/CallbackDispatcher.h>
 
-namespace panda { namespace unievent {
+#include "Fwd.h"
+#include "Error.h"
 
-struct Handle;
+namespace panda { namespace unievent {
 
 struct Loop : virtual panda::Refcnt {
     using walk_fn = function<void(Handle* event)>;
@@ -33,6 +35,8 @@ struct Loop : virtual panda::Refcnt {
         if (refcnt() <= 1 && !closed) close();
         Refcnt::release();
     }
+    
+    ResolverSP resolver();
 
     static Loop* global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -53,6 +57,7 @@ private:
     uv_loop_t  _uvloop_body;
     uv_loop_t* _uvloop;
     bool closed;
+    ResolverSP resolver_;
 
     Loop (bool);
 
@@ -66,8 +71,6 @@ private:
 };
 
 inline uv_loop_t* _pex_ (Loop* loop) { return loop->_uvloop; }
-
-using LoopSP = iptr<Loop>;
 
 void refcnt_dec (const Loop* o);
 inline void refcnt_dec (Loop* o) { o->release(); }
