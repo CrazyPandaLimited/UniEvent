@@ -52,7 +52,7 @@ struct ConnectRequest : Request, AllocatedObject<ConnectRequest, true> {
     bool is_reconnect;
 
     ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
-        _EDEBUGTHIS("callback %p %d", callback, (bool)callback);
+        _EDEBUGTHIS("callback %d", (bool)callback);
         if (callback) { 
             event.add(callback);
         }
@@ -147,7 +147,7 @@ struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
         _EDTOR();
     }
     friend uv_write_t* _pex_ (WriteRequest*);
-    friend class Stream;
+    friend struct Stream;
 
 private:
     uv_write_t uvr;

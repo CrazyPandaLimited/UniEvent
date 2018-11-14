@@ -84,7 +84,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     auto sa = server->get_sockaddr();
     server->connection_event.add([](Stream*, Stream*, const CodeError*) {});
 
-    TCPSP clients[tries];
+    std::vector<TCPSP> clients(tries);
     std::vector<decltype(clients[0]->connect_event)*> disps;
 
     for (int i = 0; i < tries; ++i) {
