@@ -238,7 +238,7 @@ struct SimpleResolver : virtual Refcnt {
     SimpleResolver& operator=(SimpleResolver& other) = delete;
 
     virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = false);
-    virtual void close();
+    virtual void stop();
 
 protected:
     virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
@@ -246,8 +246,9 @@ protected:
 private:
     static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
     static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
-    Timer*      timer;
-    
+
+    TimerSP timer;
+
 public:
     Loop*        loop;
     ares_channel channel;

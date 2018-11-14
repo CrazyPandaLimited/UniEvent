@@ -19,7 +19,7 @@ TEST_CASE("basic resolver", "[resolver]") {
         REQUIRE(!err); 
     });
     loop->run();
-    resolver->close();
+    //resolver->stop();
 }
 
 TEST_CASE("cached resolver", "[resolver]") {
@@ -53,7 +53,7 @@ TEST_CASE("cached resolver, same hints", "[resolver]") {
     AddrInfoHintsSP hints = new AddrInfoHints();
     
     bool called = false;
-    resolver->resolve("google.com", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
+    resolver->resolve("google.com", "80", hints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
         REQUIRE(!err);
         called = true;
     });

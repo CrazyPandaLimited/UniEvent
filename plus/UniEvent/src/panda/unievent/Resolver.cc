@@ -29,10 +29,11 @@ std::ostream& operator<<(std::ostream& os, const AddrInfo& ai) {
 
 SimpleResolver::~SimpleResolver() {
     _EDTOR();
+    if (timer) {
+        timer->stop();
+    }
+    tasks.clear();
     ares_destroy(channel);
-    //if (timer) {
-        //timer->stop();
-    //}
 }
 
 SimpleResolver::SimpleResolver(Loop* loop) : loop(loop) {
@@ -45,11 +46,11 @@ SimpleResolver::SimpleResolver(Loop* loop) : loop(loop) {
         throw CodeError(ERRNO_RESOLVE);
     }
 
-    //timer = new Timer(loop);
-    //timer->timer_event.add([=](Timer*) {
-        //_EDEBUG("resolve request timed out");
-        //ares_process_fd(channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
-    //});
+    timer = new Timer(loop);
+    timer->timer_event.add([=](Timer*) {
+        _EDEBUG("resolve request timed out");
+        ares_process_fd(channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+    });
 }
 
 void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int write) {
@@ -61,24 +62,25 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
 
     if (read || write) {
         if (!task) {
-            //if (!resolver->timer->active()) {
-                //resolver->timer->start(DEFAULT_RESOLVE_TIMEOUT);
-            //}
+            if (!resolver->timer->active()) {
+                resolver->timer->start(DEFAULT_RESOLVE_TIMEOUT);
+            }
             task = new AresTask(resolver->loop);
             resolver->tasks.emplace(sock, task);
         }
 
-        task->start(sock, (read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0), [=](Poll* handle, int events, const CodeError* err) {
-            //resolver->timer->again();
+        task->start(sock, (read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0), [=](Poll*, int, const CodeError*) {
+            resolver->timer->again();
             ares_process_fd(resolver->channel, sock, sock);
         });
     } else {
         // c-ares notifies us that the socket is closed
-        assert(task && "No ares task");
-        //_EDEBUG("XXX %d", resolver->timer->refcnt());
-        resolver->tasks.erase(task_pos);
-        if (resolver->tasks.empty()) {
-            //resolver->timer->stop();
+        //assert(task && "No ares task");
+        if(task) {
+            resolver->tasks.erase(task_pos);
+        }
+        if (resolver->tasks.empty() && resolver->timer) {
+            resolver->timer->stop();
         }
     }
 }
@@ -100,7 +102,7 @@ void SimpleResolver::resolve(std::string_view node, std::string_view service, co
     resolve_request->async = true;
 }
 
-void SimpleResolver::ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai) {
+void SimpleResolver::ares_resolve_cb(void* arg, int status, int, ares_addrinfo* ai) {
     ResolveRequest* resolve_request = static_cast<ResolveRequest*>(arg);
     SimpleResolver* resolver        = resolve_request->resolver;
 
@@ -147,14 +149,14 @@ Resolver::Resolver(Loop* loop, time_t expiration_time, size_t limit) : SimpleRes
     _ECTOR();
 }
 
-void SimpleResolver::close() {
-    _EDEBUGTHIS("close");
+void SimpleResolver::stop() {
+    _EDEBUGTHIS("");
+    if (timer) {
+        timer->stop();
+        timer.reset();
+    }
     tasks.clear();
     ares_cancel(channel);
-    //timer->stop();
-    //timer->timer_event.remove_all();
-    //timer->reset();
-    //_EDEBUG("ZZZ %d", timer->refcnt());
 }
 
 std::tuple<ResolverCacheType::const_iterator, bool>
