@@ -64,11 +64,12 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
 }
 
 TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
-    AsyncTest test(500, {});
+    AsyncTest test(5000, {});
     SockAddr sa1, sa2;
     sa1 = sa2 = test.get_refused_addr();
     TCPSP server1, server2;
     SECTION ("no server") {}
+    /*
     SECTION ("first no server second with server") {
         server2 = make_server(test.loop);
         sa2 = server2->get_sockaddr();
@@ -79,6 +80,7 @@ TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
         server2 = make_server(test.loop);
         sa2 = server2->get_sockaddr();
     }
+    */
 
     TCPSP client = make_client(test.loop);
     string body;
