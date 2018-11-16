@@ -39,9 +39,15 @@ SimpleResolver::~SimpleResolver() {
 SimpleResolver::SimpleResolver(Loop* loop) : loop(loop) {
     _ECTOR();
     ares_options options;
+    int optmask = 0;
+
     options.sock_state_cb      = ares_sockstate_cb;
     options.sock_state_cb_data = this;
-    int optmask                = ARES_OPT_SOCK_STATE_CB;
+    optmask |= ARES_OPT_SOCK_STATE_CB;
+
+    options.flags = ARES_FLAG_NOALIASES;
+    optmask |= ARES_OPT_FLAGS;
+
     if (ares_init_options(&channel, &options, optmask) != ARES_SUCCESS) {
         throw CodeError(ERRNO_RESOLVE);
     }
