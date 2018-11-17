@@ -1,8 +1,8 @@
-// Forward declarations only
 #pragma once
-
 #include <panda/refcnt.h>
 #include <panda/function.h>
+
+// Forward declarations only
 
 namespace panda { namespace unievent {
 
