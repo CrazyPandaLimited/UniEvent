@@ -135,40 +135,15 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
     resolver->resolve("yandex.ru", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
         REQUIRE(!err);
         std::string addr_str = address->to_string();
-        _EDEBUG("XXX %p", address.get());
         CHECK(address->head);
-        //addr2  = address->head->ai_addr;
+        addr2  = address->head->ai_addr;
         called = true;
     });
 
     REQUIRE(called);
 
     // cached or not - the result is the same
-    // will rotate for tcp connection only
-    //REQUIRE(addr1 == addr2);
-}
-
-TEST_CASE("rotator", "[resolver]") {
-    int size = 10;
-    ares_addrinfo ai[size];
-    for (auto i = 0; i < size; ++i) {
-        memset(&ai[i], 0, sizeof(addrinfo));
-        if (i < size - 1) {
-            ai[i].ai_next = &ai[i + 1];
-        }
-    }
-
-    AddressRotatorSP address_rotator(new AddressRotator(ai));
-
-    std::set<ares_addrinfo*> result;
-    for (auto i = 0; i < size; ++i) {
-        result.insert(address_rotator->rotate());
-    }
-
-    // prevent from freeing stack allocated addrinfo 
-    address_rotator->detach();
-
-    REQUIRE(result.size() == size);
+    REQUIRE(addr1 == addr2);
 }
 
 TEST_CASE("cached resolver limit", "[resolver]") {

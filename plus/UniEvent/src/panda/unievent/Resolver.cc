@@ -173,7 +173,7 @@ Resolver::find(std::string_view node, std::string_view service, const AddrInfoHi
         _EDEBUGTHIS("found in cache [%.*s]", (int)node.length(), node.data());
 
         time_t now = time(0);
-        if (address_pos->second->expired(now, expiration_time_)) {
+        if (address_pos->second.expired(now, expiration_time_)) {
             _EDEBUGTHIS("expired [%.*s]", (int)node.length(), node.data());
             cache_.erase(address_pos);
         } else {
@@ -191,7 +191,7 @@ void Resolver::resolve(std::string_view node, std::string_view service, const Ad
         bool                              found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found) {
-            on_resolve(this, new ResolveRequest(callback, this), address_pos->second);
+            on_resolve(this, new ResolveRequest(callback, this), address_pos->second.address);
             return;
         }
     }
@@ -204,7 +204,7 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
     expunge_cache();
     if (!err && resolve_request->key) {
         // use address from the cache
-        address = cache_.emplace(*resolve_request->key, CachedAddressSP(new CachedAddress(address))).first->second;
+        address = cache_.emplace(*resolve_request->key, CachedAddress{address}).first->second.address;
     }
     resolve_request->event(resolver, resolve_request, address, err);
 }

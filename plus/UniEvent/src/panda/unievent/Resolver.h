@@ -62,7 +62,8 @@ struct AddrInfo : virtual Refcnt {
         }
     }
 
-    explicit AddrInfo(ares_addrinfo* addr) : head(addr) {}
+    explicit AddrInfo(ares_addrinfo* addr) : head(addr) {
+    }
 
     AddrInfo(AddrInfo&& other) {
         head       = other.head;
@@ -87,66 +88,13 @@ struct AddrInfo : virtual Refcnt {
 
 std::ostream& operator<<(std::ostream& os, const AddrInfo& ai);
 
-struct AddressRotator : AddrInfo {
-    ~AddressRotator() {}
-    
-    AddressRotator(AddrInfoSP other) : AddrInfo(std::move(*other)) {
-        init();
+struct CachedAddress {
+    CachedAddress(AddrInfoSP address, std::time_t update_time = std::time(0)) : address(address), update_time(update_time) {
     }
-
-    AddressRotator(ares_addrinfo* addr) : AddrInfo(addr) {
-        init();
-    }
-    
-    AddressRotator(AddressRotator& other) = delete; 
-    AddressRotator& operator=(AddressRotator& other) = delete;
-
-    // rotate everything in cache (round robin, ignore RFC6724)
-    ares_addrinfo* rotate() {
-        if (current->ai_next) {
-            current = current->ai_next;
-        } else {
-            current = head;
-        }
-
-        return current;
-    }
-
-    ares_addrinfo* current;
-
-private:
-    void init() {
-        length_ = 0;
-        for (auto res = head; res; res = res->ai_next) {
-            ++length_;
-        }
-
-        // get random element and set it as initial
-        if (length_) {
-            size_t pos        = 0;
-            size_t random_pos = rand() % length_;
-            for (auto res = head; res; res = res->ai_next) {
-                if (pos++ >= random_pos) {
-                    current = res;
-                    return;
-                }
-            }
-        } else {
-            current = head;
-        }
-    }
-
-    size_t length_;
-};
-
-struct CachedAddress : AddressRotator {
-    CachedAddress(const CachedAddress& other) = delete; 
-    CachedAddress& operator=(const CachedAddress& other) = delete;
-
-    CachedAddress(AddrInfoSP address, std::time_t update_time = std::time(0)) : AddressRotator(address), update_time(update_time) {}
 
     bool expired(time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
 
+    AddrInfoSP  address;
     std::time_t update_time;
 };
 
@@ -197,8 +145,7 @@ struct ResolverCacheHash {
 inline string to_string(const ResolverCacheKey& key) { return string::from_number(ResolverCacheHash{}(key), 16); }
 
 using ResolverCacheKeySP   = iptr<ResolverCacheKey>;
-using ResolverCacheValueSP = iptr<CachedAddress>;
-using ResolverCacheType    = std::unordered_map<ResolverCacheKey, ResolverCacheValueSP, ResolverCacheHash>;
+using ResolverCacheType    = std::unordered_map<ResolverCacheKey, CachedAddress, ResolverCacheHash>;
 
 struct AresTask : virtual Refcnt {
     ~AresTask() {
