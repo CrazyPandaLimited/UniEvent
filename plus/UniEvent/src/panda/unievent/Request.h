@@ -50,10 +50,9 @@ struct ConnectRequest : Request, AllocatedObject<ConnectRequest, true> {
 
     CallbackDispatcher<connect_fptr> event;
     bool is_reconnect;
-    //CodeError error;
 
     ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
-        _EDEBUGTHIS("callback %p %d", callback, (bool)callback);
+        _EDEBUGTHIS("callback %d", (bool)callback);
         if (callback) { 
             event.add(callback);
         }
@@ -73,9 +72,6 @@ private:
     uv_connect_t uvr;
     Timer* timer_;
 };
-
-using ConnectRequestSP = iptr<ConnectRequest>;
-
 
 struct ShutdownRequest : Request, AllocatedObject<ShutdownRequest, true> {
     using shutdown_fptr = void(Stream* handle, const CodeError* err, ShutdownRequest* req);
@@ -151,7 +147,7 @@ struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
         _EDTOR();
     }
     friend uv_write_t* _pex_ (WriteRequest*);
-    friend class Stream;
+    friend struct Stream;
 
 private:
     uv_write_t uvr;

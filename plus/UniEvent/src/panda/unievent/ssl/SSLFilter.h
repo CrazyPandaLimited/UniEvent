@@ -1,25 +1,22 @@
 #pragma once
-
 #include <queue>
-
 #include <openssl/ssl.h>
-
 #include "../StreamFilter.h"
 
 namespace panda { namespace unievent { namespace ssl {
 
-class SSLFilter : public StreamFilter, public AllocatedObject<SSLFilter, true> {
-public:
-    static const char* TYPE;
-
+struct SSLFilter : StreamFilter, AllocatedObject<SSLFilter, true> {
     enum class State { initial = 0, negotiating = 1, error = 2, terminal = 3 };
+
+    static constexpr double PRIORITY = 1;
+    static const     void*  TYPE;
 
     SSLFilter (Stream* h, SSL_CTX* context);
     SSLFilter (Stream* h, const SSL_METHOD* method = nullptr);
     
-    StreamFilterSP clone() const override { return StreamFilterSP(new SSLFilter(handle, SSL_get_SSL_CTX(ssl))); };
+    StreamFilterSP clone () const override { return new SSLFilter(handle, SSL_get_SSL_CTX(ssl)); };
 
-    void on_connection (Stream*, const CodeError*) override;
+    void on_connection (StreamSP, const CodeError*) override;
     void on_connect    (const CodeError*, ConnectRequest*) override;
     void write         (WriteRequest*) override;
     void on_write      (const CodeError* err, WriteRequest* req) override;
@@ -28,14 +25,13 @@ public:
     void on_reinit     () override;
     void on_shutdown   (const CodeError* err, ShutdownRequest* shutdown_request) override; 
     bool is_secure     () override;
+    bool is_client     () const { return profile == Profile::CLIENT; }
 
     void reset ();
 
     SSL* get_ssl () const { return ssl; }
 
     virtual ~SSLFilter ();
-
-    bool is_client() const { return profile == Profile::CLIENT; }
 
 private:
     SSLFilter (SSLFilter* parent_filter, Stream* h, SSL_CTX* context);
@@ -54,12 +50,12 @@ private:
     void start_ssl_connection (Profile);
     int  negotiate            ();
     void negotiation_finished (const CodeError* err = nullptr);
-    int read_ssl_buffer(string& decbuf, int pending);
+    int  read_ssl_buffer      (string& decbuf, int pending);
 
-    static bool openSSL_inited;
-    static bool init_openSSL_lib ();
     static void on_negotiate_write (Stream*, const CodeError*, WriteRequest*);
     static void on_regular_write   (Stream*, const CodeError*, WriteRequest*);
 };
+
+using SSLFilterSP = iptr<SSLFilter>;
 
 }}}

@@ -1,241 +1,233 @@
 #pragma once
+
+#include <map>
 #include <ctime>
 #include <cstdlib>
+#include <sstream>
+#include <iostream>
 #include <unordered_map>
+
+#include <ares.h>
+
 #include <panda/string_view.h>
 
-#include "Loop.h"
+#include "Fwd.h"
 #include "Debug.h"
+#include "Loop.h"
+#include "Poll.h"
+#include "Handle.h"
+#include "Request.h"
+#include "Timer.h"
 #include "global.h"
 #include "Request.h"
-#include "ResolveFunction.h"
 
 namespace panda { namespace unievent {
 
-struct AbstractResolver;
-using AbstractResolverSP = iptr<AbstractResolver>;
+// addrinfo extract, there are fields needed for hinting only
+struct AddrInfoHints : virtual Refcnt {
+    AddrInfoHints(int family = AF_UNSPEC, int socktype = SOCK_STREAM, int proto = 0, int flags = AI_PASSIVE) : 
+        ai_family(family), ai_socktype(socktype), ai_protocol(proto), ai_flags(flags) {}
 
-struct Resolver;
-using ResolverSP = iptr<Resolver>;
+    bool operator==(const AddrInfoHints& other) const {
+        return ai_family == other.ai_family && ai_socktype == other.ai_socktype && ai_protocol == other.ai_protocol && ai_flags == other.ai_flags;
+    }
 
-struct CachedResolver;
-using CachedResolverSP = iptr<CachedResolver>;
+    AddrInfoHintsSP clone() const {
+        return new AddrInfoHints(ai_family, ai_socktype, ai_protocol, ai_flags);
+    }
 
-struct ResolveRequest;
-using ResolveRequestSP = iptr<ResolveRequest>;
+    template <typename T> T to() const {
+        return T {
+            ai_flags,
+            ai_family,
+            ai_socktype,
+            ai_protocol,
+            0,
+            nullptr,
+            nullptr,
+            nullptr
+        };
+    }
 
-struct BasicAddress;
-using BasicAddressSP = iptr<BasicAddress>;
+    int ai_family;
+    int ai_socktype;
+    int ai_protocol;
+    int ai_flags;
+};
 
-struct AddressRotator;
-using AddressRotatorSP = iptr<AddressRotator>;
-
-struct CachedAddress;
-using CachedAddressSP = iptr<CachedAddress>;
-
-struct BasicAddress : virtual Refcnt {
-    ~BasicAddress() {
+struct AddrInfo : virtual Refcnt {
+    ~AddrInfo() {
         if (head) {
-            uv_freeaddrinfo(head);
+            ares_freeaddrinfo(head);
         }
     }
 
-    explicit BasicAddress(addrinfo* addr) : head(addr) {}
+    explicit AddrInfo(ares_addrinfo* addr) : head(addr) {
+    }
 
-    BasicAddress(BasicAddress&& other) {
+    AddrInfo(AddrInfo&& other) {
         head       = other.head;
         other.head = 0;
     }
 
-    BasicAddress& operator=(BasicAddress&& other) {
+    AddrInfo& operator=(AddrInfo&& other) {
         head       = other.head;
         other.head = 0;
         return *this;
     }
 
-    BasicAddress(BasicAddress& other) = delete; 
-    BasicAddress& operator=(BasicAddress& other) = delete;
-   
+    AddrInfo(const AddrInfo& other) = delete;
+    AddrInfo& operator=(const AddrInfo& other) = delete;
+
     void detach() { head = nullptr; }
 
-    addrinfo* head;
+    std::string to_string();
+
+    ares_addrinfo* head;
 };
 
-struct AddressRotator : BasicAddress {
-    ~AddressRotator() {}
-    
-    AddressRotator(BasicAddressSP other) : BasicAddress(std::move(*other)) {
-        init();
+std::ostream& operator<<(std::ostream& os, const AddrInfo& ai);
+
+struct CachedAddress {
+    CachedAddress(AddrInfoSP address, std::time_t update_time = std::time(0)) : address(address), update_time(update_time) {
     }
-
-    AddressRotator(addrinfo* addr) : BasicAddress(addr) {
-        init();
-    }
-    
-    AddressRotator(AddressRotator& other) = delete; 
-    AddressRotator& operator=(AddressRotator& other) = delete;
-
-    // rotate everything in cache
-    addrinfo* next() {
-        if (current->ai_next) {
-            current = current->ai_next;
-        } else {
-            current = head;
-        }
-
-        return current;
-    }
-
-    addrinfo* current;
-
-private:
-    void init() {
-        length_ = 0;
-        for (auto res = head; res; res = res->ai_next) {
-            ++length_;
-        }
-
-        // get random element and set it as initial
-        if (length_) {
-            size_t pos        = 0;
-            size_t random_pos = rand() % length_;
-            _EDEBUG("init to %ld %ld", length_, random_pos);
-            for (auto res = head; res; res = res->ai_next) {
-                if (pos++ >= random_pos) {
-                    current = res;
-                    return;
-                }
-            }
-        } else {
-            current = head;
-        }
-    }
-
-    size_t length_;
-};
-
-struct CachedAddress : AddressRotator {
-    CachedAddress(CachedAddress& other) = delete; 
-    CachedAddress& operator=(CachedAddress& other) = delete;
-
-    CachedAddress(BasicAddressSP address, std::time_t update_time = std::time(0)) : AddressRotator(address), update_time(update_time) {}
 
     bool expired(time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
 
+    AddrInfoSP  address;
     std::time_t update_time;
 };
 
-namespace cached_resolver {
+struct ResolverCacheHash;
+struct ResolverCacheKey : virtual Refcnt {
+    friend ResolverCacheHash;
 
-constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
-constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
-
-// addrinfo extract, there are fields needed for hinting only
-struct Hints {
-    bool operator==(const Hints& other) const {
-        return ai_flags == other.ai_flags && ai_family == other.ai_family && ai_socktype == other.ai_socktype && ai_protocol == other.ai_protocol;
-    }
-
-    int ai_flags    = AI_PASSIVE;
-    int ai_family   = PF_UNSPEC;
-    int ai_socktype = SOCK_STREAM;
-    int ai_protocol = 0;
-};
-
-struct Hash;
-struct Key : virtual Refcnt {
-    Key(const string& node, const string& service, const addrinfo* hints) : node_(node), service_(service) {
-        if (hints) {
-            hints_.ai_flags    = hints->ai_flags;
-            hints_.ai_family   = hints->ai_family;
-            hints_.ai_socktype = hints->ai_socktype;
-            hints_.ai_protocol = hints->ai_protocol;
+    ResolverCacheKey(const string& node, const string& service, const AddrInfoHintsSP& hints) : node_(node), service_(service), hints_(hints) {}
+    bool operator==(const ResolverCacheKey& other) const 
+    {
+        if(hints_ == other.hints_) { 
+            // same hints or nullptr hints
+            return node_ == other.node_ && service_ == other.service_; 
+        }
+        else if(hints_ && other.hints_) { 
+            // some comparable hints
+            return node_ == other.node_ && service_ == other.service_ && *hints_ == *other.hints_; 
+        } else {
+            // different hints
+            return false;
         }
     }
 
-    bool operator==(const Key& other) const { return node_ == other.node_ && service_ == other.service_ && hints_ == other.hints_; }
-
 private:
-    friend Hash;
-
-    string node_;
-    string service_;
-    Hints  hints_;
+    string          node_;
+    string          service_;
+    AddrInfoHintsSP hints_;
 };
 
-struct Hash {
+struct ResolverCacheHash {
     template <class T> inline void hash_combine(std::size_t& seed, const T& v) const {
         std::hash<T> hasher;
         seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
-    std::size_t operator()(const Key& p) const {
+    std::size_t operator()(const ResolverCacheKey& p) const {
         std::size_t seed = 0;
         hash_combine(seed, p.node_);
         hash_combine(seed, p.service_);
-        hash_combine(seed, p.hints_.ai_flags);
-        hash_combine(seed, p.hints_.ai_family);
-        hash_combine(seed, p.hints_.ai_socktype);
-        hash_combine(seed, p.hints_.ai_protocol);
+        hash_combine(seed, p.hints_->ai_flags);
+        hash_combine(seed, p.hints_->ai_family);
+        hash_combine(seed, p.hints_->ai_socktype);
+        hash_combine(seed, p.hints_->ai_protocol);
         return seed;
     }
 };
 
-inline string to_string(const Key& key) { return string::from_number(cached_resolver::Hash{}(key), 16); }
+inline string to_string(const ResolverCacheKey& key) { return string::from_number(ResolverCacheHash{}(key), 16); }
 
-typedef iptr<CachedAddress> Value;
+using ResolverCacheKeySP   = iptr<ResolverCacheKey>;
+using ResolverCacheType    = std::unordered_map<ResolverCacheKey, CachedAddress, ResolverCacheHash>;
 
-} // namespace cached_resolver
+struct AresTask : virtual Refcnt {
+    ~AresTask() {
+        _EDTOR();
+        if (poll) {
+            poll->stop();
+        }
+    }
 
-struct AbstractResolver : virtual Refcnt {
-    virtual ResolveRequestSP resolve(Loop* loop, std::string_view node, std::string_view service, const addrinfo* hints, ResolveFunction callback) = 0;
-    virtual void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) = 0;
+    AresTask(Loop* loop) : loop(loop) {
+        _ECTOR();
+    }
+
+    void start(sock_t sock, int events, Poll::poll_fn callback) {
+        if (!poll)
+            poll = new Poll(-1, sock, loop);
+
+        poll->start(events, callback);
+    }
+
+    LoopSP loop;
+    PollSP poll;
 };
 
-struct Resolver : AbstractResolver {
-    ~Resolver() { _EDTOR(); }
-    Resolver() { _ECTOR(); }
-    ResolveRequestSP resolve(Loop*            loop,
-                             std::string_view node,
-                             std::string_view service  = std::string_view(),
-                             const addrinfo*  hints    = nullptr,
-                             ResolveFunction  callback = nullptr) override;
+struct SimpleResolver : virtual Refcnt {
+    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
+
+    // keep in sync with xsi constants
+    enum { 
+        UE_AI_CANONNAME   = ARES_AI_CANONNAME,
+        UE_AI_NUMERICSERV = ARES_AI_NUMERICSERV
+    };
+
+    ~SimpleResolver();
+    SimpleResolver(Loop* loop);
+    SimpleResolver(SimpleResolver& other) = delete; 
+    SimpleResolver& operator=(SimpleResolver& other) = delete;
+
+    virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = false);
+    virtual void stop();
+
+protected:
+    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
+    
+private:
+    static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
+    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+
+    TimerSP timer;
+
+public:
+    Loop*        loop;
+    ares_channel channel;
+
+    using AresTasks = std::map<sock_t, AresTaskSP>;
+    AresTasks tasks;
+};
+
+struct Resolver : SimpleResolver {
+    static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
+    static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
+
+    ~Resolver();
+
+    Resolver(Loop* loop, time_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
     
     Resolver(Resolver& other) = delete; 
     Resolver& operator=(Resolver& other) = delete;
 
-protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
-};
-
-struct CachedResolver : Resolver {
-    using CacheType = std::unordered_map<cached_resolver::Key, cached_resolver::Value, cached_resolver::Hash>;
-
-    ~CachedResolver();
-
-    CachedResolver(time_t expiration_time = cached_resolver::DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = cached_resolver::DEFAULT_CACHE_LIMIT);
-    
-    CachedResolver(CachedResolver& other) = delete; 
-    CachedResolver& operator=(CachedResolver& other) = delete;
-
     // search in cache, will remove the record if expired
-    std::tuple<CacheType::const_iterator, bool>
-    find(std::string_view node, std::string_view service = std::string_view(), const addrinfo* hints = nullptr);
+    std::tuple<ResolverCacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints);
 
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if the cache is too big
-    ResolveRequestSP resolve(Loop*            loop,
-                             std::string_view node,
-                             std::string_view service  = std::string_view(),
-                             const addrinfo*  hints    = nullptr,
-                             ResolveFunction  callback = nullptr) override;
+    void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = true) override;
 
     size_t cache_size() const { return cache_.size(); }
 
     void clear() { cache_.clear(); }
 
 protected:
-    void on_resolve(AbstractResolverSP resolver, ResolveRequestSP resolve_request, BasicAddressSP address, const CodeError* err) override;
+    void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr) override;
 
 private:
     bool expunge_cache() {
@@ -247,35 +239,20 @@ private:
         return false;
     }
 
-    CacheType          cache_;
-    time_t             expiration_time_;
-    size_t             limit_;
+private:
+    ResolverCacheType cache_;
+    time_t            expiration_time_;
+    size_t            limit_;
 };
 
-struct Request;
-struct ConnectRequest;
-struct ResolveRequest : CancelableRequest, AllocatedObject<ResolveRequest, true> {
+struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
+    ~ResolveRequest(); 
+    ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
+
     CallbackDispatcher<ResolveFunctionPlain> event;
-
-    ResolveRequest(ResolveFunction callback);
-    ~ResolveRequest() { _EDTOR(); }
-
-    void cancel() override;
-
-    AbstractResolver*          resolver;
-    iptr<cached_resolver::Key> key;
+    SimpleResolver*                          resolver;
+    ResolverCacheKeySP                       key;
+    bool                                     async;
 };
 
-inline Resolver* get_global_basic_resolver() {
-    static ResolverSP resolver(new Resolver());
-    return resolver.get();
-}
-
-inline CachedResolver* get_thread_local_cached_resolver() {
-    thread_local CachedResolverSP resolver(new CachedResolver());
-    return resolver.get();
-}
-
-inline void clear_resolver_cache() { get_thread_local_cached_resolver()->clear(); }
-
-}} // namespace panda::event
+}} // namespace panda::unievent

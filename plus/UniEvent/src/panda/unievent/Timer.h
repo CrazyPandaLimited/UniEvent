@@ -1,18 +1,23 @@
 #pragma once
+
+#include "Fwd.h"
 #include "Handle.h"
 
 namespace panda { namespace unievent {
 
-struct Timer;
-using TimerSP = iptr<Timer>;
-
+// All the values are in milliseconds.
 struct Timer : virtual Handle, AllocatedObject<Timer> {
     using timer_fptr = void(Timer* handle);
     using timer_fn = function<timer_fptr>;
     
     CallbackDispatcher<timer_fptr> timer_event;
 
+    ~Timer() {
+        _EDTOR();
+    }
+
     Timer (Loop* loop = Loop::default_loop()) {
+        _ECTOR();
         uv_timer_init(_pex_(loop), &uvh);
         _init(&uvh);
     }

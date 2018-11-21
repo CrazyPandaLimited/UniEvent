@@ -23,28 +23,21 @@ private:
 struct XSTCPConnectRequest : TCPConnectRequest {
     XSCallback xscb;
 
-    XSTCPConnectRequest(bool            reconnect,
-                        const sockaddr* sa,
-                        const string&   host,
-                        const string&   service,
-                        const addrinfo* hints,
-                        uint64_t        timeout,
-                        SV*      xs_callback,
-                        const SocksSP& socks)
-            : TCPConnectRequest(reconnect, sa, host, service, hints, timeout, xs_callback ? _cb : connect_fn(nullptr), socks) {
+    XSTCPConnectRequest(
+        bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, SV* xs_callback)
+            : TCPConnectRequest(reconnect, sa, host, port, hints, timeout, xs_callback ? _cb : connect_fn(nullptr)) {
         xscb.set(xs_callback);
     }
 
-    class Builder : public BasicBuilder<Builder> {
-    public:
-        Builder& callback(SV* xs_callback) { xs_callback_ = xs_callback; return *this; }
+    struct Builder : BasicBuilder<Builder> {
+        Builder& callback (SV* xs_callback) { _xs_callback = xs_callback; return *this; }
 
-        XSTCPConnectRequest* build() {
-            return new XSTCPConnectRequest(reconnect_, sa_, host_, service_, hints_, timeout_, xs_callback_, socks_);
+        XSTCPConnectRequest* build () {
+            return new XSTCPConnectRequest(_reconnect, _sa, _host, _port, _hints, _timeout, _xs_callback);
         }
 
     private:
-        SV* xs_callback_ = nullptr;
+        SV* _xs_callback = nullptr;
     };
 
 private:

@@ -10,8 +10,9 @@ struct Pipe : virtual Stream {
     Pipe (bool ipc = false, Loop* loop = Loop::default_loop()) : ipc(ipc) {
         uv_pipe_init(_pex_(loop), &uvh, ipc);
         _init(&uvh);
-        connection_factory = [=](){return new Pipe(ipc, loop);};
     }
+
+    StreamSP on_create_connection () override;
 
     virtual void open              (file_t file);
     virtual void bind              (string_view name);
@@ -62,11 +63,10 @@ struct Pipe : virtual Stream {
 protected:
     void on_handle_reinit () override;
 
+    bool ipc;
+
 private:
     uv_pipe_t uvh;
-    bool      ipc;
 };
-
-using PipeSP = iptr<Pipe>;
 
 }}

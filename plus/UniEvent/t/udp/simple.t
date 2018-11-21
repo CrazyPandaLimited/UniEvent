@@ -1,13 +1,14 @@
 use strict;
 use warnings;
 use lib 't/lib'; use MyTest;
+use Net::SockAddr;
 
 my $udp = new UniEvent::UDP;
 is($udp->type, UniEvent::Handle::HTYPE_UDP, "new udp object type");
 
-$udp->bind("localhost", 0);
-my ($host, $port) = UniEvent::inet_stop($udp->getsockname());
+$udp->bind(SA_LOOPBACK_ANY);
+my $sa = $udp->get_sockaddr;
 
-ok($port, "Bound to port");
+ok($sa->port, "Bound to port");
 
 done_testing();

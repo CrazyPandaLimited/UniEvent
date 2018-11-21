@@ -1,9 +1,8 @@
-#include "lib/test.h"
+#include "../lib/test.h"
 
-TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
+TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {"error"});
-    uint16_t port = find_free_port();
-//    TCPSP server = make_server(port, test.loop);
+    auto sa = test.get_refused_addr();
 
     TCPSP client = make_client(test.loop);
     client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
@@ -13,12 +12,10 @@ TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
         SECTION("disconnect") {
             client->disconnect();
         }
-        SECTION("just go") {
-        }
-
+        SECTION("just go") {}
     });
 
-    client->connect("localhost", panda::to_string(port));
+    client->connect(sa.ip(), sa.port());
     _pex_(client)->type = UV_HANDLE; // make uv_handle invalid for sync error after resolving
 
     client->write("123");
@@ -29,62 +26,61 @@ TEST_CASE("sync connect error", "[panda-event][tcp][ssl]") {
     REQUIRE(err.code() == ERRNO_ECANCELED);
 }
 
-TEST_CASE("write to closed socket", "[panda-event][tcp][ssl]") {
+TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {"error"});
-    uint16_t port = find_free_port();
-    TCPSP server = make_server(port, test.loop);
+    TCPSP server = make_server(test.loop);
+    auto sa = server->get_sockaddr();
 
     TCPSP client = make_client(test.loop);
-    client->connect("localhost", panda::to_string(port));
+    client->connect(sa);
     client->write("1");
     test.await(client->write_event);
     client->disconnect();
 
     if (false) { //TODO we need test params here
-        sp<Timer> t = Timer::once(10, [](Timer*){}, test.loop);
+        TimerSP t = Timer::once(10, [](Timer*){}, test.loop);
         test.await(t->timer_event);
     }
 
-    try {
-        SECTION ("write") {
-            client->write("2");
-            client->write_event.add([&](Stream*, const CodeError* err, WriteRequest*) {
-                REQUIRE(err);
-                REQUIRE(err->code() == ERRNO_EBADF);
-                test.happens("error");
-                test.loop->stop();
-            });
-        }
-        SECTION ("shutdown") {
-            client->shutdown();
-            client->shutdown_event.add([&](Stream*, const CodeError* err, ShutdownRequest*) {
-                REQUIRE(err);
-                REQUIRE(err->code() == ERRNO_ENOTCONN);
-                test.happens("error");
-                test.loop->stop();
-            });
-        }
-        test.loop->run();
-    } catch (CodeError* err) {
-        FAIL(err->what());
+    SECTION ("write") {
+        client->write("2");
+        client->write_event.add([&](Stream*, const CodeError* err, WriteRequest*) {
+            REQUIRE(err);
+            REQUIRE(err->code() == ERRNO_EBADF);
+            test.happens("error");
+            test.loop->stop();
+        });
     }
+    SECTION ("shutdown") {
+        client->shutdown();
+        client->shutdown_event.add([&](Stream*, const CodeError* err, ShutdownRequest*) {
+            REQUIRE(err);
+            REQUIRE(err->code() == ERRNO_ENOTCONN);
+            test.happens("error");
+            test.loop->stop();
+        });
+    }
+    test.loop->run();
 }
 
-TEST_CASE("immediate disconnect", "[panda-event][tcp][ssl]") {
-    AsyncTest test(500, {});
-    uint16_t port1 = find_free_port();
-    uint16_t port2 = find_free_port();
-    TCPSP server1;
-    TCPSP server2;
-    SECTION ("no server") {
-    }
+TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
+    AsyncTest test(5000, {});
+    SockAddr sa1, sa2;
+    sa1 = sa2 = test.get_refused_addr();
+    TCPSP server1, server2;
+    SECTION ("no server") {}
+    /*
     SECTION ("first no server second with server") {
-        server2 = make_server(port2, test.loop);
+        server2 = make_server(test.loop);
+        sa2 = server2->get_sockaddr();
     }
     SECTION ("with servers") {
-        server1 = make_server(port1, test.loop);
-        server2 = make_server(port2, test.loop);
+        server1 = make_server(test.loop);
+        sa1 = server1->get_sockaddr();
+        server2 = make_server(test.loop);
+        sa2 = server2->get_sockaddr();
     }
+    */
 
     TCPSP client = make_client(test.loop);
     string body;
@@ -93,12 +89,10 @@ TEST_CASE("immediate disconnect", "[panda-event][tcp][ssl]") {
     }
     size_t write_count = 0;
     client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        if(!err) {
-            client->disconnect();
-        }
+        if (!err) client->disconnect();
 
         client->connect_event.remove_all();
-        client->connect("localhost", panda::to_string(port2));
+        client->connect(sa2);
 
         for (size_t i = 0; i < 1200; ++i) {
             write_count++;
@@ -116,27 +110,28 @@ TEST_CASE("immediate disconnect", "[panda-event][tcp][ssl]") {
         }
     });
 
-    client->connect("localhost", panda::to_string(port1));
+    client->connect(sa1);
 
     test.run();
     REQUIRE(write_count == callback_count);
 }
 
-TEST_CASE("immediate client reset", "[panda-event][tcp][ssl]") {
+TEST_CASE("immediate client reset", "[tcp][v-ssl]") {
     AsyncTest test(2000, {"error"});
-    uint16_t port = find_free_port();
+    SockAddr sa = test.get_refused_addr();
     TCPSP server;
-    SECTION ("no server") {
-    }
+    SECTION ("no server") {}
     SECTION ("with server") {
-        server = make_server(port, test.loop);
+        server = make_server(test.loop);
+        sa = server->get_sockaddr();
     }
     SECTION ("with nossl server") {
-        server = make_basic_server(port, test.loop);
+        server = make_basic_server(test.loop);
+        sa = server->get_sockaddr();
     }
     TCPSP client = make_client(test.loop);
 
-    client->connect("localhost", panda::to_string(port));
+    client->connect(sa);
     client->reset();
 
     auto res = test.await(client->connect_event, "error");
@@ -144,10 +139,9 @@ TEST_CASE("immediate client reset", "[panda-event][tcp][ssl]") {
     REQUIRE(err.code() == ERRNO_ECANCELED);
 }
 
-TEST_CASE("immediate client write reset", "[panda-event][tcp][ssl]") {
+TEST_CASE("immediate client write reset", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {});
-    uint16_t port = find_free_port();
-    TCPSP server = make_server(port, test.loop);
+    TCPSP server = make_server(test.loop);
     TCPSP client = make_client(test.loop);
     
     client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
@@ -156,16 +150,15 @@ TEST_CASE("immediate client write reset", "[panda-event][tcp][ssl]") {
         test.loop->stop();
     });
 
-    client->connect("localhost", panda::to_string(port));
+    client->connect(server->get_sockaddr());
     client->write("123");
 
     test.loop->run();
 }
 
-TEST_CASE("reset accepted connection", "[panda-event][tcp][ssl]") {
+TEST_CASE("reset accepted connection", "[tcp][v-ssl]") {
     AsyncTest test(2000, {});
-    uint16_t port = find_free_port();
-    TCPSP server = make_server(port, test.loop);
+    TCPSP server = make_server(test.loop);
     TCPSP client = make_client(test.loop);
     
     server->connection_event.add([&](Stream*, Stream* client, const CodeError* err) {
@@ -174,36 +167,33 @@ TEST_CASE("reset accepted connection", "[panda-event][tcp][ssl]") {
         test.loop->stop();
     });
 
-    client->connect("localhost", panda::to_string(port));
+    client->connect(server->get_sockaddr());
 
     test.loop->run();
 }
 
-TEST_CASE("try use server without certificate 1", "[panda-event][tcp][ssl]") {
+TEST_CASE("try use server without certificate 1", "[tcp][v-ssl]") {
     AsyncTest test(2000, {});
-    uint16_t port = find_free_port();
     TCPSP server = new TCP(test.loop);
-    server->bind("localhost", panda::to_string(port));
+    server->bind("localhost", 0);
     server->listen(1);
     REQUIRE_THROWS(server->use_ssl());
 }
 
-TEST_CASE("try use server without certificate 2", "[panda-event][tcp][ssl]") {
+TEST_CASE("try use server without certificate 2", "[tcp][v-ssl]") {
     AsyncTest test(2000, {});
-    uint16_t port = find_free_port();
     TCPSP server = new TCP(test.loop);
-    server->bind("localhost", panda::to_string(port));
+    server->bind("localhost", 0);
     server->use_ssl();
     REQUIRE_THROWS(server->listen(1));
 }
 
-TEST_CASE("server read", "[panda-event][tcp][ssl][socks]") {
+TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {});
-    uint16_t port = find_free_port();
     TCPSP client = make_client(test.loop);
-    TCPSP server = make_server(port, test.loop);
+    TCPSP server = make_server(test.loop);
    
-    iptr<Stream> session; 
+    StreamSP session;
     server->connection_event.add([&](Stream*, Stream* s, const CodeError* err) {
         REQUIRE_FALSE(err);
         session = s;
@@ -213,7 +203,7 @@ TEST_CASE("server read", "[panda-event][tcp][ssl][socks]") {
         });
     });
 
-    client->connect("localhost", panda::to_string(port));
+    client->connect(server->get_sockaddr());
     client->write("123");
 
     test.loop->run();

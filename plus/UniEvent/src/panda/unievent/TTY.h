@@ -15,8 +15,9 @@ struct TTY : virtual Stream {
         int err = uv_tty_init(_pex_(loop), &uvh, fd, readable);
         if (err) throw CodeError(err);
         _init(&uvh);
-        connection_factory = [=](){return new TTY(fd, readable, loop);};
     }
+
+    StreamSP on_create_connection () override;
 
     virtual void    set_mode    (int mode);
     virtual WinSize get_winsize ();
@@ -24,10 +25,12 @@ struct TTY : virtual Stream {
 protected:
     void on_handle_reinit () override;
     
-    file_t   fd;
+    file_t fd;
 
 private:
     uv_tty_t uvh;
 };
+
+using TTYSP = iptr<TTY>;
 
 }}

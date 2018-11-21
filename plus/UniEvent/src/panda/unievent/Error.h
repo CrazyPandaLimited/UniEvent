@@ -1,5 +1,6 @@
 #pragma once
 #include "inc.h"
+#include "Fwd.h"
 #include <stdexcept>
 #include <panda/lib.h>
 #include <panda/string.h>
@@ -9,7 +10,6 @@ namespace panda { namespace unievent {
 
 using panda::string;
 using std::string_view;
-struct Loop;
 
 struct Error : std::exception {
     Error () {}
