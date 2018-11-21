@@ -8,6 +8,7 @@ namespace panda { namespace unievent {
 struct Loop : Refcnt {
     using backend::Backend;
     using backend::BackendLoop;
+    using Handles = IntrusiveChain<Handle*>;
 
     static Backend* default_backend () { return _default_backend; }
 
@@ -40,11 +41,14 @@ struct Loop : Refcnt {
     virtual void stop        () { backend->stop(); }
     virtual void handle_fork () { backend->handle_fork(); }
 
-    ResolverSP resolver();
+    const Handles& handles () const { return _handles; }
+
+    //ResolverSP resolver();
 
 private:
     BackendLoop* backend;
-    ResolverSP resolver_;
+    Handles      _handles;
+    //ResolverSP resolver_;
 
     Loop (BackendLoop*);
 

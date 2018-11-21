@@ -20,7 +20,7 @@ void Loop::_init_global_loop () {
 
 void Loop::_init_default_loop () {
     if (std::this_thread::get_id() == main_thread_id) _default_loop = global_loop();
-    else _default_loop = new Loop();
+    else _default_loop = new Loop(false);
 }
 
 Loop::Loop () : closed(false) {

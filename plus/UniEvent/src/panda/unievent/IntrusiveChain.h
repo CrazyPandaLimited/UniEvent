@@ -11,22 +11,13 @@
 
 namespace panda { namespace unievent {
 
-template <typename T> struct Cloneable {
-    virtual ~Cloneable() = default;
-
-protected:
-    virtual T clone() const = 0;
-};
-
-template <typename T> struct IntrusiveChainNode : Cloneable<T> {
+template <typename T> struct IntrusiveChainNode {
     template <typename S> friend class IntrusiveChain;
     template <typename S> friend class IntrusiveChainIterator;
 
-    T next() const { return next_; }
-    T prev() const { return prev_; }
-
-    T next_;
-    T prev_;
+private:
+    T next;
+    T prev;
 };
 
 /// Iterator is not cyclic, so to work with the standard bidirectional algorithms it uses head and tail pointers alongside with the current one.
@@ -40,6 +31,7 @@ template <typename T> struct IntrusiveChainIterator {
     using pointer           = T*;
     using reference         = T&;
     using iterator_category = std::bidirectional_iterator_tag;
+    using ICN               = IntrusiveChainNode;
 
     IntrusiveChainIterator (const T& tail, const T& current = nullptr) : tail_(tail), current_(current) {}
     
@@ -52,18 +44,18 @@ template <typename T> struct IntrusiveChainIterator {
     bool operator!= (const IntrusiveChainIterator& other) const { return !(*this == other); }
 
     IntrusiveChainIterator& operator++ () {
-        current_ = current_->next_;
+        current_ = current_->ICN::next;
         return *this;
     }
 
     IntrusiveChainIterator operator++ (int) {
         IntrusiveChainIterator pos(*this);
-        current_ = current_->next_;
+        current_ = current_->ICN::next;
         return pos;
     }
 
     IntrusiveChainIterator& operator-- () {
-        if (current_) current_ = current_->prev_;
+        if (current_) current_ = current_->ICN::prev;
         else          current_ = tail_;
         return *this;
     }
@@ -84,7 +76,7 @@ private:
     T current_; // current=nullptr indicates end()
 };
 
-template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
+template <typename T> struct IntrusiveChain {
     using value_type             = T;
     using size_type              = std::size_t;
     using difference_type        = std::ptrdiff_t;
@@ -96,72 +88,66 @@ template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
     using const_iterator         = IntrusiveChainIterator<T>;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using ICN                    = IntrusiveChainNode;
 
-    ~IntrusiveChain() {
+    ~IntrusiveChain () {
         clear();
     }
 
-    IntrusiveChain() : head_(), tail_() {}
+    IntrusiveChain () : head_(), tail_() {}
 
-    IntrusiveChain(std::initializer_list<T> il) : IntrusiveChain() {
+    IntrusiveChain (std::initializer_list<T> il) : IntrusiveChain() {
         for (const T& node : il) {
             push_back(node);
         }
     }
 
-    IntrusiveChain(const IntrusiveChain&) = delete;
-    IntrusiveChain& operator=(const IntrusiveChain&) = delete;
+    IntrusiveChain (const IntrusiveChain&) = delete;
+    IntrusiveChain& operator= (const IntrusiveChain&) = delete;
 
-    IntrusiveChain(IntrusiveChain&& other) noexcept {
+    IntrusiveChain (IntrusiveChain&& other) noexcept {
         std::swap(head_, other.head_);
         std::swap(tail_, other.tail_);
     }
 
-    IntrusiveChain& operator=(IntrusiveChain&& other) noexcept {
-        if (this != &other)  
-        {  
+    IntrusiveChain& operator= (IntrusiveChain&& other) noexcept {
+        if (this != &other) {
             std::swap(head_, other.head_);
             std::swap(tail_, other.tail_);
         } 
         return *this;
     }
 
-    IntrusiveChain clone() const {
-        IntrusiveChain result;
-        std::for_each(begin(), end(), [&](T& node){ result.push_back(node->clone()); });
-        return result;
-    }
-
-    void push_back(const T& node) {
+    void push_back (const T& node) {
         if (empty()) {
             head_ = tail_ = node;
         } else {
-            tail_->next_ = node;
-            node->prev_  = tail_;
-            node->next_  = nullptr;
+            tail_->ICN::next = node;
+            node->ICN::prev  = tail_;
+            node->ICN::next  = nullptr;
             tail_        = node;
         }
     }
 
-    void push_front(const T& node) {
+    void push_front (const T& node) {
         if (empty()) {
             head_ = tail_ = node;
         } else {
-            head_->prev_ = node;
-            node->prev_  = nullptr;
-            node->next_  = head_;
+            head_->ICN::prev = node;
+            node->ICN::prev  = nullptr;
+            node->ICN::next  = head_;
             head_        = node;
         }
     }
 
     /// @return false if empty or the last one
-    bool pop_back() {
+    bool pop_back () {
         if (head_ == tail_) {
             head_ = tail_ = nullptr;
             return false;
         } else {
-            tail_        = tail_->prev_;
-            tail_->next_ = tail_->next_->prev_ = nullptr;
+            tail_            = tail_->ICN::prev_;
+            tail_->ICN::next = tail_->ICN::next->ICN::prev = nullptr;
             return true;
         }
     }
@@ -172,30 +158,30 @@ template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
             head_ = tail_ = nullptr;
             return false;
         } else {
-            head_        = head_->next_;
-            head_->prev_ = head_->prev_->next_ = nullptr;
+            head_            = head_->ICN::next;
+            head_->ICN::prev = head_->ICN::prev->ICN::next = nullptr;
             return true;
         }
     }
 
-    const_iterator insert(const_iterator pos, const T& node) {
+    const_iterator insert (const_iterator pos, const T& node) {
         if (pos.current_) {
-            if (pos.current_->prev_) {
-                node->prev_                = pos.current_->prev_;
-                node->next_                = pos.current_;
-                pos.current_->prev_->next_ = node;
-                pos.current_->prev_        = node;
+            if (pos.current_->ICN::prev) {
+                node->ICN::prev                    = pos.current_->ICN::prev;
+                node->ICN::next                    = pos.current_;
+                pos.current_->ICN::prev->ICN::next = node;
+                pos.current_->ICN::prev            = node;
             } else {
                 if (empty()) {
-                    tail_       = node;
-                    node->next_ = nullptr;
+                    tail_           = node;
+                    node->ICN::next = nullptr;
                 } else {
-                    node->next_         = pos.current_;
-                    pos.current_->prev_ = node;
+                    node->ICN::next         = pos.current_;
+                    pos.current_->ICN::prev = node;
                 }
 
-                head_       = node;
-                node->prev_ = nullptr;
+                head_           = node;
+                node->ICN::prev = nullptr;
             }
         } else {
             // it means that current points to end()
@@ -205,22 +191,22 @@ template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
         return const_iterator(tail_, node);
     }
 
-    const_iterator erase(const_iterator pos) {
+    const_iterator erase (const_iterator pos) {
         if (pos.current_) {
-            if (pos.current_->prev_) {
-                pos.current_->prev_->next_ = pos.current_->next_;
+            if (pos.current_->ICN::prev) {
+                pos.current_->ICN::prev->ICN::next = pos.current_->ICN::next;
             } else {
-                head_ = pos.current_->next_;
+                head_ = pos.current_->ICN::next;
             }
             
-            T current = pos.current_->next_;
-            if (pos.current_->next_) {
-                pos.current_->next_->prev_ = pos.current_->prev_;
+            T current = pos.current_->ICN::next;
+            if (pos.current_->ICN::next) {
+                pos.current_->ICN::next->ICN::prev = pos.current_->ICN::prev;
             } else {
-                tail_ = pos.current_->prev_;
+                tail_ = pos.current_->ICN::prev;
             }
 
-            pos.current_->prev_ = pos.current_->next_ = nullptr;
+            pos.current_->ICN::prev = pos.current_->ICN::next = nullptr;
 
             return const_iterator(tail_, current);
         } else {
@@ -229,49 +215,35 @@ template <typename T> struct IntrusiveChain : Cloneable<IntrusiveChain<T>> {
         }
     }
 
-    void clear() {
+    void clear () {
         while (pop_back());
     }
 
-    reference front() { return head_; }
-    reference back() { return tail_; }
+    reference front () { return head_; }
+    reference back  () { return tail_; }
 
-    const_reference front() const { return head_; }
-    const_reference back() const { return tail_; }
+    const_reference front () const { return head_; }
+    const_reference back  () const { return tail_; }
 
-    iterator begin() { return iterator(tail_, head_); }
-    iterator end() { return iterator(tail_); }
+    iterator begin () { return iterator(tail_, head_); }
+    iterator end   () { return iterator(tail_); }
 
-    const_iterator begin() const { return const_iterator(tail_, head_); }
-    const_iterator end() const { return const_iterator(tail_); }
+    const_iterator begin () const { return const_iterator(tail_, head_); }
+    const_iterator end   () const { return const_iterator(tail_); }
     
-    const_iterator cbegin() const { return const_iterator(tail_, head_); }
-    const_iterator cend() const { return const_iterator(tail_); }
+    const_iterator cbegin () const { return const_iterator(tail_, head_); }
+    const_iterator cend   () const { return const_iterator(tail_); }
 
-    bool empty() const { return !head_; }
+    bool empty () const { return !head_; }
 
-    size_type size() const { return std::distance(begin(), end()); }
-
-    void dump_refs(std::ostream& out) const {
-        for (const T& node : *this) {
-            out << "node:";
-            if (node) {
-                out << "\"" << *node << "\""
-                    << " prev: " << (node->prev_ ? node->prev_->refcnt() : 0) 
-                    << " next: " << (node->next_ ? node->next_->refcnt() : 0);
-            } else {
-                out << "null";
-            }
-            out << std::endl;
-        }
-    }
+    size_type size () const { return std::distance(begin(), end()); }
 
 private:
     T head_;
     T tail_;
 };
 
-template <typename T> std::ostream& operator<<(std::ostream& out, const IntrusiveChain<T>& chain) {
+template <typename T> std::ostream& operator<< (std::ostream& out, const IntrusiveChain<T>& chain) {
     for (auto node : chain) {
         out << "node: ";
         if (node) {
@@ -284,4 +256,4 @@ template <typename T> std::ostream& operator<<(std::ostream& out, const Intrusiv
     return out;
 }
 
-}} // namespace panda::event
+}}
