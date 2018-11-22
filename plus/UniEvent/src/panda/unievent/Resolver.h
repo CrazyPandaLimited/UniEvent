@@ -142,8 +142,6 @@ struct ResolverCacheHash {
     }
 };
 
-inline string to_string(const ResolverCacheKey& key) { return string::from_number(ResolverCacheHash{}(key), 16); }
-
 using ResolverCacheKeySP   = iptr<ResolverCacheKey>;
 using ResolverCacheType    = std::unordered_map<ResolverCacheKey, CachedAddress, ResolverCacheHash>;
 
