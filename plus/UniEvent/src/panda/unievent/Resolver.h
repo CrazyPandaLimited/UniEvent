@@ -169,6 +169,7 @@ struct AresTask : virtual Refcnt {
 };
 
 struct SimpleResolver : virtual Refcnt {
+    // channel inactivity timeout 
     static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
 
     // keep in sync with xsi constants
@@ -182,7 +183,13 @@ struct SimpleResolver : virtual Refcnt {
     SimpleResolver(SimpleResolver& other) = delete; 
     SimpleResolver& operator=(SimpleResolver& other) = delete;
 
-    virtual void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = false);
+    virtual ResolveRequestSP resolve(
+            std::string_view node,
+            std::string_view service,
+            const AddrInfoHintsSP& hints,
+            ResolveFunction callback,
+            bool use_cache = false);
+
     virtual void stop();
 
 protected:
@@ -218,7 +225,12 @@ struct Resolver : SimpleResolver {
 
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if the cache is too big
-    void resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache = true) override;
+    ResolveRequestSP resolve(
+            std::string_view node,
+            std::string_view service,
+            const AddrInfoHintsSP& hints,
+            ResolveFunction callback,
+            bool use_cache = true) override;
 
     size_t cache_size() const { return cache_.size(); }
 
@@ -248,9 +260,10 @@ struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
     ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
 
     CallbackDispatcher<ResolveFunctionPlain> event;
-    SimpleResolver*                          resolver;
-    ResolverCacheKeySP                       key;
-    bool                                     async;
+    SimpleResolver* resolver;
+    ResolverCacheKeySP key;
+    bool async;
+    bool canceled;
 };
 
 }} // namespace panda::unievent

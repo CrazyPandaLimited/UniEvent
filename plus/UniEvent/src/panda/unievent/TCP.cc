@@ -59,7 +59,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
     if (!req->sa) {
         _EDEBUGTHIS("do_connect, resolving %p", req);
         try {
-            resolver()->resolve(req->host, string::from_number(req->port), req->hints,
+            resolve_request = resolver()->resolve(req->host, string::from_number(req->port), req->hints,
                 [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
                     _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
                     if (err) {
@@ -151,6 +151,10 @@ void TCP::on_handle_reinit () {
 
 void TCP::_close() {
     _EDEBUGTHIS("close");
+    if (resolve_request) {
+        // ignore callback
+        resolve_request->canceled = true;
+    }
     Stream::_close();
 }
 

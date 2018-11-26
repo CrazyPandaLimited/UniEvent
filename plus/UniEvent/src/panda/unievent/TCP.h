@@ -118,6 +118,7 @@ private:
     uv_tcp_t uvh;
     TimerSP connect_timer;
     static AddrInfoHintsSP default_hints;
+    ResolveRequestSP resolve_request;
 };
 
 std::ostream& operator<< (std::ostream&, const TCP&);

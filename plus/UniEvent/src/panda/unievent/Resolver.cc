@@ -81,7 +81,6 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
         });
     } else {
         // c-ares notifies us that the socket is closed
-        //assert(task && "No ares task");
         if(task) {
             resolver->tasks.erase(task_pos);
         }
@@ -91,7 +90,7 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
     }
 }
 
-void SimpleResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
+ResolveRequestSP SimpleResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback, this));
     if(use_cache) {
         resolve_request->key = new ResolverCacheKey(string(node), string(service), hints->clone());
@@ -106,6 +105,7 @@ void SimpleResolver::resolve(std::string_view node, std::string_view service, co
     ares_addrinfo h = hints->to<ares_addrinfo>();
     ares_getaddrinfo(channel, node_cstr, service_cstr, &h, ares_resolve_cb, resolve_request.get());
     resolve_request->async = true;
+    return resolve_request;
 }
 
 void SimpleResolver::ares_resolve_cb(void* arg, int status, int, ares_addrinfo* ai) {
@@ -184,19 +184,20 @@ Resolver::find(std::string_view node, std::string_view service, const AddrInfoHi
     return std::make_tuple<ResolverCacheType::const_iterator, bool>(address_pos, false);
 }
 
-void Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
+ResolveRequestSP Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
     _EDEBUGTHIS("use_cache: %d", use_cache);
     if(use_cache) {
         ResolverCacheType::const_iterator address_pos;
         bool                              found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found) {
-            on_resolve(this, new ResolveRequest(callback, this), address_pos->second.address);
-            return;
+            ResolveRequestSP resolve_request = new ResolveRequest(callback, this);
+            on_resolve(this, resolve_request, address_pos->second.address);
+            return resolve_request;
         }
     }
 
-    SimpleResolver::resolve(node, service, hints, callback, use_cache);
+    return SimpleResolver::resolve(node, service, hints, callback, use_cache);
 }
 
 void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
@@ -206,12 +207,16 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
         // use address from the cache
         address = cache_.emplace(*resolve_request->key, CachedAddress{address}).first->second.address;
     }
-    resolve_request->event(resolver, resolve_request, address, err);
+
+    if (!resolve_request->canceled) {
+        // call only if not canceled
+        resolve_request->event(resolver, resolve_request, address, err);
+    }
 }
 
 ResolveRequest::~ResolveRequest() { _EDTOR(); }
 
-ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false) {
+ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false), canceled(false) {
     _ECTOR();
     event.add(callback);
 }
