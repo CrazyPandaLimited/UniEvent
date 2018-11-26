@@ -51,10 +51,6 @@ int  Loop::run_nowait () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_NOWAIT);
 
 void Loop::stop() {
     _EDEBUGTHIS();
-    if (resolver_) {
-        resolver_->stop();
-    }
-
     uv_stop(_uvloop);
 }
 
@@ -71,7 +67,9 @@ ResolverSP Loop::resolver () {
 
 void Loop::close () {
     _EDEBUG();
-    
+
+    resolver_ = nullptr;
+
     // give resolver a chance to stop
     run_nowait();
 
