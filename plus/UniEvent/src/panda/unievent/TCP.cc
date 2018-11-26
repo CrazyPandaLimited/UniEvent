@@ -6,6 +6,10 @@ namespace panda { namespace unievent {
 
 AddrInfoHintsSP TCP::default_hints = AddrInfoHintsSP(new AddrInfoHints);
 
+TCP::~TCP() {
+    _EDTOR();
+}
+
 TCP::TCP(Loop* loop, bool use_cached_resolver) : cached_resolver(use_cached_resolver) {
     _ECTOR();
     int err = uv_tcp_init(_pex_(loop), &uvh);

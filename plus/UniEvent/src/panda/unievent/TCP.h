@@ -29,6 +29,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     static constexpr bool USE_CACHED_RESOLVER_BY_DEFAULT = true;
 
+    ~TCP ();
     TCP (Loop* loop = Loop::default_loop(), bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
     TCP (Loop* loop, unsigned int flags, bool cached_resolver = USE_CACHED_RESOLVER_BY_DEFAULT);
 
