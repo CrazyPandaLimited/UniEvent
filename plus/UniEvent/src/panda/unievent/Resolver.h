@@ -210,8 +210,8 @@ public:
 };
 
 struct Resolver : SimpleResolver {
-    static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 300;
-    static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000;
+    static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
+    static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000; // [records]
 
     ~Resolver();
 
