@@ -176,3 +176,26 @@ TEST_CASE("cached resolver limit", "[resolver]") {
     REQUIRE(called);
     REQUIRE(resolver->cache_size() == 1);
 }
+
+TEST_CASE("resolve connect timeout", "[tcp-connect-timeout][v-ssl]") {
+    AsyncTest test(850, {});
+
+    TCPSP server = make_server(test.loop);
+    auto  sa     = server->get_sockaddr();
+
+    for (size_t i = 0; i < 50; ++i) {
+        TCPSP client = make_client(test.loop, false);
+
+        test.loop->update_time();
+        client->connect().to(sa.ip(), sa.port()).timeout(1);
+
+        client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) { CHECK(err); });
+
+        for (size_t i = 0; i < 10; ++i) {
+            client->write("123");
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+        test.await(client->connect_event, "");
+    }
+}

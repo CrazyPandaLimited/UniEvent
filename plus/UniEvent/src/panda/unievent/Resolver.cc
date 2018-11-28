@@ -208,10 +208,7 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
         address = cache_.emplace(*resolve_request->key, CachedAddress{address}).first->second.address;
     }
 
-    if (!resolve_request->canceled) {
-        // call only if not canceled
-        resolve_request->event(resolver, resolve_request, address, err);
-    }
+    resolve_request->event(resolver, resolve_request, address, resolve_request->canceled ? CodeError(ERRNO_RESOLVE) : err);
 }
 
 ResolveRequest::~ResolveRequest() { _EDTOR(); }
