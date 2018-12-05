@@ -64,7 +64,7 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
     auto task_pos = resolver->tasks.find(sock);
     AresTaskSP task = task_pos != std::end(resolver->tasks) ? task_pos->second : nullptr;
     
-    _EDEBUG("resolver:%p task:%p sock:%d read:%d write:%d", resolver, task.get(), sock, read, write);
+    _EDEBUG("resolver:%p task:%p sock:%d read:%d write:%d", resolver.get(), task.get(), sock, read, write);
 
     if (read || write) {
         if (!task) {
