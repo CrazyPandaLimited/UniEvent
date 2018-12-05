@@ -178,7 +178,7 @@ TEST_CASE("cached resolver limit", "[resolver]") {
 }
 
 TEST_CASE("resolve connect timeout", "[tcp-connect-timeout][v-ssl]") {
-    AsyncTest test(850, {});
+    AsyncTest test(5000, {});
 
     TCPSP server = make_server(test.loop);
     auto  sa     = server->get_sockaddr();
