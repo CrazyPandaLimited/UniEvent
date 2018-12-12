@@ -4,16 +4,19 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct UVLoop : BackendLoop {
-    UVLoop () : _uvloop(&_uvloop_body) {
-        int err = uv_loop_init(_uvloop);
-        if (err) throw uvx_code_error(err);
-        //_uvloop->data = this;
+    UVLoop (uv_loop_t* uvl) {
+        if (uvl) _uvloop = uvl; // for global loop
+        else {                  // for others
+            _uvloop = &_uvloop_body;
+            int err = uv_loop_init(_uvloop);
+            if (err) throw uvx_code_error(err);
+        }
     }
 
     ~UVLoop () {
         uv_run(_uvloop, UV_RUN_NOWAIT); // finish all closing handles
         int err = uv_loop_close(_uvloop);
-        assert(!err); // unievent doesn't close non-empty loops
+        assert(!err); // unievent should have closed all handles
     }
 
     int  run        () override { return uv_run(_uvloop, UV_RUN_DEFAULT); }
@@ -28,6 +31,23 @@ struct UVLoop : BackendLoop {
 
     uv_loop_t  _uvloop_body;
     uv_loop_t* _uvloop;
+
 };
+
+//void Loop::uvx_walk_cb (uv_handle_t* uvh, void* arg) {
+//    Handle* handle = static_cast<Handle*>(uvh->data);
+//    walk_fn* callback = static_cast<walk_fn*>(arg);
+//    (*callback)(handle);
+//}
+
+//void Loop::walk (walk_fn cb) {
+//    uv_walk(_uvloop, uvx_walk_cb, &cb);
+//}
+
+//using walk_fn = function<void(Handle* event)>;
+//virtual void walk (walk_fn cb);
+//static void uvx_walk_cb (uv_handle_t* handle, void* arg);
+//friend uv_loop_t* _pex_ (Loop*);
+//inline uv_loop_t* _pex_ (Loop* loop) { return loop->_uvloop; }
 
 }}}

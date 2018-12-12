@@ -1,6 +1,9 @@
-namespace panda { namespace unievent { namespace engine {
+namespace panda { namespace unievent { namespace backend {
+
+struct Backend;
 
 struct BackendLoop {
+
     virtual int  run         () = 0;
     virtual int  run_once    () = 0;
     virtual int  run_nowait  () = 0;

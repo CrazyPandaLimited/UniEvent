@@ -13,7 +13,7 @@ struct Backend {
     virtual ~Backend () {}
 
 protected:
-    Backend (std::string_view type) {}
+    Backend (std::string_view type) : _type(type) {}
 
 private:
     panda::string _type;

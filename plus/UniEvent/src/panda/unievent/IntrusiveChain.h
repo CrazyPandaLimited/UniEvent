@@ -31,7 +31,7 @@ template <typename T> struct IntrusiveChainIterator {
     using pointer           = T*;
     using reference         = T&;
     using iterator_category = std::bidirectional_iterator_tag;
-    using ICN               = IntrusiveChainNode;
+    using ICN               = IntrusiveChainNode<T>;
 
     IntrusiveChainIterator (const T& tail, const T& current = nullptr) : tail_(tail), current_(current) {}
     
@@ -88,7 +88,7 @@ template <typename T> struct IntrusiveChain {
     using const_iterator         = IntrusiveChainIterator<T>;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using ICN                    = IntrusiveChainNode;
+    using ICN                    = IntrusiveChainNode<T>;
 
     ~IntrusiveChain () {
         clear();

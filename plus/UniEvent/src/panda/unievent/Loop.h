@@ -1,18 +1,17 @@
 #pragma once
 #include "Fwd.h"
-#include "Error.h"
+#include "IntrusiveChain.h"
 #include "backend/Backend.h"
 
 namespace panda { namespace unievent {
 
+backend::Backend* default_backend     ();
+void              set_default_backend (backend::Backend* backend);
+
 struct Loop : Refcnt {
-    using backend::Backend;
-    using backend::BackendLoop;
-    using Handles = IntrusiveChain<Handle*>;
-
-    static Backend* default_backend () { return _default_backend; }
-
-    static void set_default_backend (Backend* backend);
+    using Backend     = backend::Backend;
+    using BackendLoop = backend::BackendLoop;
+    using Handles     = IntrusiveChain<Handle*>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -28,43 +27,39 @@ struct Loop : Refcnt {
 
     virtual ~Loop ();
 
-    //int      backend_timeout () const { return uv_backend_timeout(_uvloop); }
-    //uint64_t now             () const { return uv_now(_uvloop); }
-    //void     update_time     ()       { uv_update_time(_uvloop); }
+    const Backend* backend () const { return _backend; }
+
     bool     is_default      () const { return _default_loop == this; }
     bool     is_global       () const { return _global_loop == this; }
-    //bool     alive           () const { return uv_loop_alive(_uvloop) != 0; }
 
-    virtual int  run         () { backend->run(); }
-    virtual int  run_once    () { backend->run_once(); }
-    virtual int  run_nowait  () { backend->run_nowait(); }
-    virtual void stop        () { backend->stop(); }
-    virtual void handle_fork () { backend->handle_fork(); }
+    virtual int  run         () { return impl->run(); }
+    virtual int  run_once    () { return impl->run_once(); }
+    virtual int  run_nowait  () { return impl->run_nowait(); }
+    virtual void stop        () { impl->stop(); }
+    virtual void handle_fork () { impl->handle_fork(); }
 
     const Handles& handles () const { return _handles; }
 
-    //ResolverSP resolver();
+    ResolverSP resolver ();
 
 private:
-    BackendLoop* backend;
+    Backend*     _backend;
+    BackendLoop* impl;
     Handles      _handles;
-    //ResolverSP resolver_;
+    ResolverSP   _resolver;
 
-    Loop (BackendLoop*);
+    Loop (Backend*, BackendLoop*);
 
-    static Backend* _defaut_backend;
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;
 
     static void _init_global_loop ();
     static void _init_default_loop ();
-
 };
 
-//using walk_fn = function<void(Handle* event)>;
-//virtual void walk (walk_fn cb);
-//static void uvx_walk_cb (uv_handle_t* handle, void* arg);
-//friend uv_loop_t* _pex_ (Loop*);
-//inline uv_loop_t* _pex_ (Loop* loop) { return loop->_uvloop; }
+//int      backend_timeout () const { return uv_backend_timeout(_uvloop); }
+//uint64_t now             () const { return uv_now(_uvloop); }
+//void     update_time     ()       { uv_update_time(_uvloop); }
+//bool     alive           () const { return uv_loop_alive(_uvloop) != 0; }
 
 }}
