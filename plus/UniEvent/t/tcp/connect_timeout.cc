@@ -44,7 +44,7 @@ TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
 }
 
 TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]") {
-    AsyncTest test(250, {"connected1", "connected2"});
+    AsyncTest test(1000, {"connected1", "connected2"});
 
     TCPSP server = make_server(test.loop);
     auto sa = server->get_sockaddr();
@@ -55,7 +55,7 @@ TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]"
 
     TCPSP client = make_client(test.loop, cached_resolver);
 
-    client->connect().to(sa).timeout(20);
+    client->connect().to(sa).timeout(1000);
 
     client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
         if (err) WARN(err->what());
@@ -66,7 +66,7 @@ TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]"
 
     client->disconnect();
 
-    client->connect().to(sa).timeout(20);
+    client->connect().to(sa).timeout(1000);
 
     test.await(client->connect_event, "connected2");
 
