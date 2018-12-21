@@ -1,7 +1,7 @@
 #pragma once
 #include "inc.h"
-#include "Fwd.h"
 #include <stdexcept>
+#include <system_error>
 #include <panda/lib.h>
 #include <panda/string.h>
 #include <panda/string_view.h>
@@ -28,62 +28,64 @@ struct ImplRequiredError : Error {
 };
 
 struct CodeError : Error {
-    CodeError (uv_errno_t code) : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (int code = 0)    : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (errno_t code)    : Error(), _code(code)                  {}
+    CodeError () {}
+    CodeError (const std::error_code& code, const string& name, const string& descr) : _code(code), _name(name), _descr(descr) {}
 
-    virtual errno_t code () const;
-    virtual string  name () const;
-    virtual string  str  () const;
+    const std::error_code& code () const;
+
+    virtual string name  () const;
+    virtual string descr () const;
 
     virtual CodeError* clone () const override;
 
     explicit
-    operator bool() const { return _code != 0; }
+    operator bool () const { return _code.value(); }
 
     operator const CodeError* () const { return _code ? this : nullptr; }
 
 protected:
-    errno_t _code;
+    std::error_code _code;
+    string          _name;
+    string          _descr;
     string _mkwhat () const override;
 };
 
-struct DyLibError : CodeError {
-    DyLibError (int code = 0, uv_lib_t* lib = nullptr) : CodeError(code), lib(lib) {}
+//struct DyLibError : CodeError {
+//    DyLibError (int code = 0, uv_lib_t* lib = nullptr) : CodeError(code), lib(lib) {}
+//
+//    virtual string dlerror () const;
+//
+//    string _mkwhat () const override;
+//
+//    virtual DyLibError* clone () const override;
+//
+//private:
+//    uv_lib_t* lib;
+//};
 
-    virtual string dlerror () const;
-
-    string _mkwhat () const override;
-
-    virtual DyLibError* clone () const override;
-
-private:
-    uv_lib_t* lib;
-};
-
-struct SSLError : CodeError {
-    SSLError (int ssl_code);
-    SSLError (int ssl_code, unsigned long openssl_code);
-
-    int ssl_code     () const;
-    int openssl_code () const;
-
-    string name () const override;
-    int library  () const;
-    int function () const;
-    int reason   () const;
-
-    string library_str  () const;
-    string function_str () const;
-    string reason_str   () const;
-
-    string str () const override;
-
-    virtual SSLError* clone () const override;
-
-private:
-    int           _ssl_code;
-    unsigned long _openssl_code;
-};
+//struct SSLError : CodeError {
+//    SSLError (int ssl_code);
+//    SSLError (int ssl_code, unsigned long openssl_code);
+//
+//    int ssl_code     () const;
+//    int openssl_code () const;
+//
+//    string name () const override;
+//    int library  () const;
+//    int function () const;
+//    int reason   () const;
+//
+//    string library_str  () const;
+//    string function_str () const;
+//    string reason_str   () const;
+//
+//    string str () const override;
+//
+//    virtual SSLError* clone () const override;
+//
+//private:
+//    int           _ssl_code;
+//    unsigned long _openssl_code;
+//};
 
 }}

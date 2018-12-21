@@ -1,5 +1,5 @@
 #pragma once
-#include "Fwd.h"
+#include "forward.h"
 #include "IntrusiveChain.h"
 #include "backend/Backend.h"
 
@@ -23,32 +23,34 @@ struct Loop : Refcnt {
         return _default_loop;
     }
 
-    Loop (Backend* backend = nullptr);
+    Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
 
     virtual ~Loop ();
 
     const Backend* backend () const { return _backend; }
 
-    bool     is_default      () const { return _default_loop == this; }
-    bool     is_global       () const { return _global_loop == this; }
+    bool is_default () const { return _default_loop == this; }
+    bool is_global  () const { return _global_loop == this; }
 
-    virtual int  run         () { return impl->run(); }
-    virtual int  run_once    () { return impl->run_once(); }
-    virtual int  run_nowait  () { return impl->run_nowait(); }
-    virtual void stop        () { impl->stop(); }
-    virtual void handle_fork () { impl->handle_fork(); }
+    virtual int  run         () { return _impl->run(); }
+    virtual int  run_once    () { return _impl->run_once(); }
+    virtual int  run_nowait  () { return _impl->run_nowait(); }
+    virtual void stop        () { _impl->stop(); }
+    virtual void handle_fork () { _impl->handle_fork(); }
 
     const Handles& handles () const { return _handles; }
 
-    ResolverSP resolver ();
+    //ResolverSP resolver ();
+
+    BackendLoop* impl () const { return _impl; }
 
 private:
     Backend*     _backend;
-    BackendLoop* impl;
+    BackendLoop* _impl;
     Handles      _handles;
-    ResolverSP   _resolver;
+    //ResolverSP   _resolver;
 
-    Loop (Backend*, BackendLoop*);
+    Loop (Backend*, BackendLoop::Type);
 
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;

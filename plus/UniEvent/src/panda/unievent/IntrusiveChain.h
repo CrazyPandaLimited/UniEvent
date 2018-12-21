@@ -146,7 +146,7 @@ template <typename T> struct IntrusiveChain {
             head_ = tail_ = nullptr;
             return false;
         } else {
-            tail_            = tail_->ICN::prev_;
+            tail_            = tail_->ICN::prev;
             tail_->ICN::next = tail_->ICN::next->ICN::prev = nullptr;
             return true;
         }

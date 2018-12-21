@@ -6,6 +6,8 @@
 
 namespace panda { namespace unievent { namespace test {
 
+using panda::net::SockAddr;
+
 SockAddr AsyncTest::get_refused_addr () {
     static SockAddr ret;
     while (!ret) {
@@ -57,9 +59,9 @@ AsyncTest::~AsyncTest() noexcept(false) {
     loop->run_nowait(); 
     loop->run_nowait(); 
     loop->run_nowait();
-    loop->walk([](Handle* h){
-         panda_log_debug("smth is in Loop when destroing " << h->type() << ", "  << h << ", " <<  h->refcnt());
-    }); 
+    for (auto h : loop->handles()) {
+        panda_log_debug("smth is in Loop when destroing " << h->type() << ", "  << h << ", " <<  h->refcnt());
+    }
     if (!broken_state && !happened_as_expected() && !std::uncaught_exception()) {
         throw Error("Test exits in bad state", *this);
     }

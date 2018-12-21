@@ -1,9 +1,7 @@
-#include <uv.h>
+#include <panda/unievent/backend/Backend.h>
 
 namespace panda { namespace unievent { namespace backend {
 
-inline CodeError uvx_code_error (int uverr) {
-
-}
+extern Backend* UV;
 
 }}}

@@ -1,26 +1,23 @@
 #pragma once
-
-#include "Fwd.h"
+#include "forward.h"
 #include "Handle.h"
+#include "backend/BackendTimer.h"
 
 namespace panda { namespace unievent {
 
 // All the values are in milliseconds.
-struct Timer : virtual Handle, AllocatedObject<Timer> {
+struct Timer : virtual Handle {
+    using BackendTimer = backend::BackendTimer;
     using timer_fptr = void(Timer* handle);
     using timer_fn = function<timer_fptr>;
     
     CallbackDispatcher<timer_fptr> timer_event;
 
-    ~Timer() {
-        _EDTOR();
+    Timer (Loop* loop = Loop::default_loop()) {
+        _impl = loop->impl()->new_timer(this);
     }
 
-    Timer (Loop* loop = Loop::default_loop()) {
-        _ECTOR();
-        uv_timer_init(_pex_(loop), &uvh);
-        _init(&uvh);
-    }
+    const HandleType& type () const override;
 
     void once     (uint64_t initial) { start(0, initial); }
     void start    (uint64_t repeat)  { start(repeat, repeat); }
@@ -32,18 +29,17 @@ struct Timer : virtual Handle, AllocatedObject<Timer> {
     virtual uint64_t repeat () const;
     virtual void     repeat (uint64_t repeat);
 
-    void reset () override;
+    void reset () override { stop(); }
 
     static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
     static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
 
+    static const HandleType Type;
+
 protected:
     virtual void on_timer ();
 
-private:
-    uv_timer_t uvh;
-
-    static void uvx_on_timer (uv_timer_t* handle);
+    BackendTimer* impl () const { return static_cast<BackendTimer*>(_impl); }
 };
 
 }}

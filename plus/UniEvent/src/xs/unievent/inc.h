@@ -20,11 +20,11 @@ struct Typemap<addrinfo*, TYPE_PTR> : TypemapBase<addrinfo*, TYPE_PTR> {
     }
 };
 
-template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
-    SSL_CTX* in (pTHX_ SV* arg) {
-        if (!SvOK(arg)) return nullptr;
-        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
-    }
-};
+//template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
+//    SSL_CTX* in (pTHX_ SV* arg) {
+//        if (!SvOK(arg)) return nullptr;
+//        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
+//    }
+//};
 
 }

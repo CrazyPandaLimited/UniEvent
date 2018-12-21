@@ -1,5 +1,6 @@
 #pragma once
 #include <panda/unievent.h>
+#include <panda/net/sockaddr.h>
 #include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent { namespace test {
@@ -10,6 +11,7 @@ using sp = iptr<T>;
 using panda::string;
 
 struct AsyncTest {
+    using SockAddr = panda::net::SockAddr;
     LoopSP loop;
     std::vector<string> expected;
     std::vector<string> happened;
