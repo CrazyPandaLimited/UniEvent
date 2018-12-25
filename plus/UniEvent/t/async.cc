@@ -47,20 +47,20 @@ TEST_CASE("async multi", "[async]") {
     REQUIRE(called == 2);
 }
 
-TEST_CASE("call_soon", "[async]") {
-    AsyncTest test(200, {"call"});
-    size_t count = 0;
-    Prepare::call_soon([&]() {
-        count++;
-        if (count >= 2) {
-            FAIL("called twice");
-        }
-        test.happens("call");
-        test.loop->stop();
-    }, test.loop);
-    test.run();
-    TimerSP timer = Timer::once(50, [&](Timer*){
-        test.loop->stop();
-    }, test.loop);
-    REQUIRE(count == 1);
-}
+//TEST_CASE("call_soon", "[async]") {
+//    AsyncTest test(200, {"call"});
+//    size_t count = 0;
+//    Prepare::call_soon([&]() {
+//        count++;
+//        if (count >= 2) {
+//            FAIL("called twice");
+//        }
+//        test.happens("call");
+//        test.loop->stop();
+//    }, test.loop);
+//    test.run();
+//    TimerSP timer = Timer::once(50, [&](Timer*){
+//        test.loop->stop();
+//    }, test.loop);
+//    REQUIRE(count == 1);
+//}

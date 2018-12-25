@@ -2,7 +2,7 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use Net::SockAddr;
-
+plan skip_all => 'disabled';
 my $loop = UniEvent::Loop->default_loop;
 
 my $s = new UniEvent::TCP;

@@ -1,6 +1,7 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
+BEGIN { plan skip_all => 'disabled'; }
 use UniEvent::Error qw/ERRNO_EBUSY/;
 use UniEvent::Handle;
 

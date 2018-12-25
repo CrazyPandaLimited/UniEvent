@@ -2,7 +2,7 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Error;
-
+BEGIN { plan skip_all => 'disabled'; }
 my ($l, $fsp, $t, $err);
 my @stat_fields = qw/dev ino mode nlink uid gid rdev size atime mtime ctime blksize blocks flags gen birthtime/;
 

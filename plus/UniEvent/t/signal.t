@@ -2,7 +2,7 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Signal qw/:const signame/;
-
+BEGIN { plan skip_all => 'disabled'; }
 my ($l, $s, $t, $err, $lastsignum);
 my @constants = qw/
     SIGHUP SIGINT SIGQUIT SIGILL SIGTRAP SIGABRT SIGBUS SIGFPE SIGKILL SIGUSR1 SIGSEGV SIGUSR2 SIGPIPE SIGALRM SIGTERM

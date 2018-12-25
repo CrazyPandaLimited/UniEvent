@@ -1,6 +1,7 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
+BEGIN { plan skip_all => 'disabled'; }
 use UniEvent qw/:const
     cpu_info resident_set_memory uptime free_memory total_memory hrtime interface_info get_rusage loadavg hostname
 /;

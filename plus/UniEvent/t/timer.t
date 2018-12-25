@@ -1,7 +1,7 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-
+BEGIN { plan skip_all => 'disabled'; }
 catch_run('[timer]');
 
 my ($l, $now, $t, $t2, $i, $j);

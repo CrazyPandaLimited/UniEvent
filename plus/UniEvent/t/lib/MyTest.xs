@@ -1,7 +1,7 @@
 #include <xs/unievent.h>
 #include "test.h"
 #include <panda/unievent/Loop.h>
-#include <panda/unievent/Resolver.h>
+//#include <panda/unievent/Resolver.h>
 
 MODULE = MyTest                PACKAGE = MyTest
 PROTOTYPES: DISABLE
@@ -18,6 +18,7 @@ bool variate_buf (bool val = false) {
     RETVAL = variation.buf;
 }
 
+=c
 void _benchmark_simple_resolver () { 
     LoopSP loop(new Loop);
     SimpleResolverSP resolver(new SimpleResolver(loop));
@@ -66,4 +67,5 @@ void _benchmark_cached_resolver () {
     }
     
     loop->run();
-}                                                                                                                                                        
+}
+=cut

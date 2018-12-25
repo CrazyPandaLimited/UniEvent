@@ -3,7 +3,7 @@ use lib 't/lib';
 use MyTest;
 use Net::SockAddr;
 use Net::SSLeay;
-
+plan skip_all => 'disabled';
 my $SERV_CERT = "t/cert/cert.pem";
 my $serv_ctx = Net::SSLeay::CTX_new();
 Net::SSLeay::CTX_use_certificate_file($serv_ctx, $SERV_CERT, &Net::SSLeay::FILETYPE_PEM) or sslerr();

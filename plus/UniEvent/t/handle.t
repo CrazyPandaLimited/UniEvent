@@ -2,7 +2,7 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Handle;
-
+BEGIN { plan skip_all => 'disabled'; }
 my ($l, $t, $i);
 
 # check constants existance

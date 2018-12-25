@@ -16,10 +16,10 @@ struct Variation {
 
 extern Variation variation;
 
-TCPSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TCPSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TCPSP make_client       (Loop* loop, bool cached_resolver = true);
+//TCPSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+//TCPSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+//TCPSP make_client       (Loop* loop, bool cached_resolver = true);
 
-SSL_CTX* get_ssl_ctx ();
+//SSL_CTX* get_ssl_ctx ();
 
-TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout = 1000);
+//TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout = 1000);

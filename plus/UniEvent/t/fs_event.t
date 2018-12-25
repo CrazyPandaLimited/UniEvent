@@ -3,7 +3,7 @@ use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Error;
 use UniEvent::FSEvent;
-
+BEGIN { plan skip_all => 'disabled'; }
 # TODO: check WATCH_ENTRY / STAT / RECURSIVE flags behaviour when they become working in libuv
 
 my ($l, $fse, $t, $err);

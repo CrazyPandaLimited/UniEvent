@@ -1,5 +1,5 @@
 #pragma once
-#include <panda/unievent/Fwd.h>
+#include <panda/unievent/forward.h>
 #include <panda/unievent/Loop.h>
 //#include <panda/unievent/Prepare.h>
 //#include <panda/unievent/Check.h>

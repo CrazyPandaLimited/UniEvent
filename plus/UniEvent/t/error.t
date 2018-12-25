@@ -3,20 +3,120 @@ use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Error;
 
-# check constants existance
-cmp_ok(
-  ERRNO_E2BIG + ERRNO_EACCES + ERRNO_EADDRINUSE + ERRNO_EADDRNOTAVAIL + ERRNO_EAFNOSUPPORT + ERRNO_EAGAIN + ERRNO_EAI_ADDRFAMILY +
-  ERRNO_EAI_AGAIN + ERRNO_EAI_BADFLAGS + ERRNO_EAI_BADHINTS + ERRNO_EAI_CANCELED + ERRNO_EAI_FAIL + ERRNO_EAI_FAMILY + ERRNO_EAI_MEMORY +
-  ERRNO_EAI_NODATA + ERRNO_EAI_NONAME + ERRNO_EAI_OVERFLOW + ERRNO_EAI_PROTOCOL + ERRNO_EAI_SERVICE + ERRNO_EAI_SOCKTYPE +
-  ERRNO_EALREADY + ERRNO_EBADF + ERRNO_EBUSY + ERRNO_ECANCELED + ERRNO_ECHARSET + ERRNO_ECONNABORTED + ERRNO_ECONNREFUSED +
-  ERRNO_ECONNRESET + ERRNO_EDESTADDRREQ + ERRNO_EEXIST + ERRNO_EFAULT + ERRNO_EFBIG + ERRNO_EHOSTUNREACH + ERRNO_EINTR + ERRNO_EINVAL +
-  ERRNO_EIO + ERRNO_EISCONN + ERRNO_EISDIR + ERRNO_ELOOP + ERRNO_EMFILE + ERRNO_EMSGSIZE + ERRNO_ENAMETOOLONG + ERRNO_ENETDOWN +
-  ERRNO_ENETUNREACH + ERRNO_ENFILE + ERRNO_ENOBUFS + ERRNO_ENODEV + ERRNO_ENOENT + ERRNO_ENOMEM + ERRNO_ENONET + ERRNO_ENOPROTOOPT +
-  ERRNO_ENOSPC + ERRNO_ENOSYS + ERRNO_ENOTCONN + ERRNO_ENOTDIR + ERRNO_ENOTEMPTY + ERRNO_ENOTSOCK + ERRNO_ENOTSUP + ERRNO_EPERM +
-  ERRNO_EPIPE + ERRNO_EPROTO + ERRNO_EPROTONOSUPPORT + ERRNO_EPROTOTYPE + ERRNO_ERANGE + ERRNO_EROFS + ERRNO_ESHUTDOWN + ERRNO_ESPIPE +
-  ERRNO_ESRCH + ERRNO_ETIMEDOUT + ERRNO_ETXTBSY + ERRNO_EXDEV + ERRNO_UNKNOWN + ERRNO_EOF + ERRNO_ENXIO + ERRNO_EMLINK + ERRNO_SSL,
-  '<', 0, "constants exist",
-);
+subtest "error constants" => sub {
+    foreach my $row (
+        ["address_family_not_supported", "EAFNOSUPPORT"],
+        ["address_in_use", "EADDRINUSE"],
+        ["address_not_available", "EADDRNOTAVAIL"],
+        ["already_connected", "EISCONN"],
+        ["argument_list_too_long", "E2BIG"],
+        ["argument_out_of_domain", "EDOM"],
+        ["bad_address", "EFAULT"],
+        ["bad_file_descriptor", "EBADF"],
+        ["bad_message", "EBADMSG"],
+        ["broken_pipe", "EPIPE"],
+        ["connection_aborted", "ECONNABORTED"],
+        ["connection_already_in_progress", "EALREADY"],
+        ["connection_refused", "ECONNREFUSED"],
+        ["connection_reset", "ECONNRESET"],
+        ["cross_device_link", "EXDEV"],
+        ["destination_address_required", "EDESTADDRREQ"],
+        ["device_or_resource_busy", "EBUSY"],
+        ["directory_not_empty", "ENOTEMPTY"],
+        ["executable_format_error", "ENOEXEC"],
+        ["file_exists", "EEXIST"],
+        ["file_too_large", "EFBIG"],
+        ["filename_too_long", "ENAMETOOLONG"],
+        ["function_not_supported", "ENOSYS"],
+        ["host_unreachable", "EHOSTUNREACH"],
+        ["identifier_removed", "EIDRM"],
+        ["illegal_byte_sequence", "EILSEQ"],
+        ["inappropriate_io_control_operation", "ENOTTY"],
+        ["interrupted", "EINTR"],
+        ["invalid_argument", "EINVAL"],
+        ["invalid_seek", "ESPIPE"],
+        ["io_error", "EIO"],
+        ["is_a_directory", "EISDIR"],
+        ["message_size", "EMSGSIZE"],
+        ["network_down", "ENETDOWN"],
+        ["network_reset", "ENETRESET"],
+        ["network_unreachable", "ENETUNREACH"],
+        ["no_buffer_space", "ENOBUFS"],
+        ["no_child_process", "ECHILD"],
+        ["no_link", "ENOLINK"],
+        ["no_lock_available", "ENOLCK"],
+        ["no_message_available", "ENODATA"],
+        ["no_message", "ENOMSG"],
+        ["no_protocol_option", "ENOPROTOOPT"],
+        ["no_space_on_device", "ENOSPC"],
+        ["no_stream_resources", "ENOSR"],
+        ["no_such_device_or_address", "ENXIO"],
+        ["no_such_device", "ENODEV"],
+        ["no_such_file_or_directory", "ENOENT"],
+        ["no_such_process", "ESRCH"],
+        ["not_a_directory", "ENOTDIR"],
+        ["not_a_socket", "ENOTSOCK"],
+        ["not_a_stream", "ENOSTR"],
+        ["not_connected", "ENOTCONN"],
+        ["not_enough_memory", "ENOMEM"],
+        ["not_supported", "ENOTSUP"],
+        ["operation_canceled", "ECANCELED"],
+        ["operation_in_progress", "EINPROGRESS"],
+        ["operation_not_permitted", "EPERM"],
+        ["operation_not_supported", "EOPNOTSUPP"],
+        ["operation_would_block", "EWOULDBLOCK"],
+        ["owner_dead", "EOWNERDEAD"],
+        ["permission_denied", "EACCES"],
+        ["protocol_error", "EPROTO"],
+        ["protocol_not_supported", "EPROTONOSUPPORT"],
+        ["read_only_file_system", "EROFS"],
+        ["resource_deadlock_would_occur", "EDEADLK"],
+        ["resource_unavailable_try_again", "EAGAIN"],
+        ["result_out_of_range", "ERANGE"],
+        ["state_not_recoverable", "ENOTRECOVERABLE"],
+        ["stream_timeout", "ETIME"],
+        ["text_file_busy", "ETXTBSY"],
+        ["timed_out", "ETIMEDOUT"],
+        ["too_many_files_open_in_system", "ENFILE"],
+        ["too_many_files_open", "EMFILE"],
+        ["too_many_links", "EMLINK"],
+        ["too_many_symbolic_link_levels", "ELOOP"],
+        ["value_too_large", "EOVERFLOW"],
+        ["wrong_protocol_type", "EPROTOTYPE"],
+        ###########################################################
+        ["ssl_error", "ESSL"],
+        ["socks_error", "ESOCKS"],
+        ["resolve_error", "ERESOLVE"],
+        ["ai_address_family_not_supported", "EAI_ADDRFAMILY"],
+        ["ai_temporary_failure", "EAI_AGAIN"],
+        ["ai_bad_flags", "EAI_BADFLAGS"],
+        ["ai_bad_hints", "EAI_BADHINTS"],
+        ["ai_request_canceled", "EAI_CANCELED"],
+        ["ai_permanent_failure", "EAI_FAIL"],
+        ["ai_family_not_supported", "EAI_FAMILY"],
+        ["ai_out_of_memory", "EAI_MEMORY"],
+        ["ai_no_address", "EAI_NODATA"],
+        ["ai_unknown_node_or_service", "EAI_NONAME"],
+        ["ai_argument_buffer_overflow", "EAI_OVERFLOW"],
+        ["ai_resolved_protocol_unknown", "EAI_PROTOCOL"],
+        ["ai_service_not_available_for_socket_type", "EAI_SERVICE"],
+        ["ai_socket_type_not_supported", "EAI_SOCKTYPE"],
+        ["invalid_unicode_character", "ECHARSET"],
+        ["not_on_network", "ENONET"],
+        ["transport_endpoint_shutdown", "ESHUTDOWN"],
+        ["unknown_error", "UNKNOWN"],
+        ["host_down", "EHOSTDOWN"],
+        ["remote_io", "EREMOTEIO"],
+    ) {
+        my ($long, $short) = @$row;
+        my $long_sub = UniEvent::Error->can($long);
+        my $val = $long_sub->();
+        cmp_ok($val, '>', 0, "UniEvent::Error::$long(): $val");
+        my $short_sub = UniEvent::Error->can($short);
+        is($short_sub->(), $val, "UniEvent::Error::$short()");
+        is(eval("$short"), $val, "$short exported");
+    }
+};
 
 subtest "Error" => sub {
     my $e = new_ok "UniEvent::Error" => ["message"];
@@ -36,35 +136,37 @@ subtest "ImplRequiredError" => sub {
 };
 
 subtest "CodeError" => sub {
-    my $e = new_ok "UniEvent::CodeError" => [ERRNO_EACCES];
-    is $e->code, ERRNO_EACCES, "code ok";
-    ok $e->what, "what present";
-    is $e->name, "EACCES", "name ok";
-    ok $e->str, "str present";
-    my $c = $e->clone;
-    isa_ok $c, ref($e);
-    is $c, $e, "clone ok";
+    for my $row ([EACCES, UniEvent::CodeError::generic_category()], [ESSL, UniEvent::CodeError::unievent_category()]) {
+        my $e = new_ok "UniEvent::CodeError" => $row;
+        is $e->code, $row->[0], "code ok";
+        is $e->category, $row->[1], "category ok";
+        ok $e->descr, "descr present";
+        ok $e->what, "what present";
+        my $c = $e->clone;
+        isa_ok $c, ref($e);
+        is $c, $e, "clone ok";
+    }
 };
 
-subtest "SSLError" => sub {
-    my $ssl_code = 1;
-    my $e = new_ok "UniEvent::SSLError" => [$ssl_code];
-    is $e->code, ERRNO_SSL, "code ok";
-    ok $e->what, "what present";
-    is $e->name, "SSL", "name ok";
-    ok $e->str, "str present";
-    is $e->ssl_code, $ssl_code, "ssl code";
-    $e->openssl_code;
-    $e->library;
-    $e->function;
-    $e->reason;
-    $e->library_str;
-    $e->function_str;
-    $e->reason_str;
-    $e->str;
-    my $c = $e->clone;
-    isa_ok $c, ref($e);
-    is $c, $e, "clone ok";
-};
+#subtest "SSLError" => sub {
+#    my $ssl_code = 1;
+#    my $e = new_ok "UniEvent::SSLError" => [$ssl_code];
+#    is $e->code, ERRNO_SSL, "code ok";
+#    ok $e->what, "what present";
+#    is $e->name, "SSL", "name ok";
+#    ok $e->str, "str present";
+#    is $e->ssl_code, $ssl_code, "ssl code";
+#    $e->openssl_code;
+#    $e->library;
+#    $e->function;
+#    $e->reason;
+#    $e->library_str;
+#    $e->function_str;
+#    $e->reason_str;
+#    $e->str;
+#    my $c = $e->clone;
+#    isa_ok $c, ref($e);
+#    is $c, $e, "clone ok";
+#};
 
 done_testing();

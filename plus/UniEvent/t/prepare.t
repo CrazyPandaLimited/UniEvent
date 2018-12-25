@@ -1,7 +1,7 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-
+BEGIN { plan skip_all => 'disabled'; }
 my ($l, $p, $i, $j, $t);
 
 $i = $j = 0;

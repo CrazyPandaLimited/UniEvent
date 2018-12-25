@@ -213,36 +213,6 @@ TEST_CASE("next", "[intrusive_chain]") {
     REQUIRE((*std::next(chain.begin()))->value == 11);
 }
 
-TEST_CASE("clone", "[intrusive_chain]") {
-    IntrusiveChain<NodeSP> chain1 = {new Node(1), new Node(2), new Node(3)};
-    IntrusiveChain<NodeSP> chain2;
-
-    // check clone first
-    chain2 = chain1.clone();
-    
-    REQUIRE((to_vector<int>(chain1) == std::vector<int>{1, 2, 3}));
-    REQUIRE((to_vector<int>(chain2) == std::vector<int>{1, 2, 3}));
-
-    // than check references    
-    std::vector<NodeSP> holder1;
-    std::transform(chain1.begin(), chain1.end(), std::back_inserter(holder1), [](const NodeSP& node) {return node;});
-    
-    REQUIRE(holder1.size() == 3);
-
-    chain1.clear();
-    REQUIRE(chain1.empty());
-    REQUIRE(check_references(holder1));
-
-    std::vector<NodeSP> holder2;
-    std::transform(chain2.begin(), chain2.end(), std::back_inserter(holder2), [](const NodeSP& node) {return node;});
-    
-    REQUIRE(holder2.size() == 3);
-
-    chain2.clear();
-    REQUIRE(chain2.empty());
-    REQUIRE(check_references(holder2));
-}
-
 TEST_CASE("find element", "[intrusive_chain]") {
     std::vector<NodeSP>    holder = {new Node(1), new Node(2), new Node(3)};
     IntrusiveChain<NodeSP> chain;
