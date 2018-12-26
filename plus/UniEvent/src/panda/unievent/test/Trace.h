@@ -1,5 +1,7 @@
 #pragma once
 
+#include <panda/string.h>
+
 #if defined(__linux__)
 
 #include <cstdio>
@@ -7,27 +9,40 @@
 
 #include <execinfo.h>
 
+namespace panda { namespace unievent { namespace test {
+
 
 // see https://www.gnu.org/software/libc/manual/html_node/Backtraces.html
-inline void print_trace() {
+inline panda::string get_trace() {
     void *array[10];
     size_t size;
     char **strings;
 
+    panda::string result;
+
     size = backtrace(array, 10);
     strings = backtrace_symbols(array, size);
 
-    printf("Obtained %zd stack frames.\n", size);
     for(size_t i = 0; i < size; i++) {
-        printf("%s\n", strings[i]);
+        result += strings[i];
+        result += "\n";
     }
 
     free(strings);
+    return result;
 }
+
+}}}
 
 #else
 
-void print_trace() {}
+namespace panda { namespace unievent { namespace test {
+
+inline panda::string get_trace() {}
+
+}}}
 
 #endif
+
+
 

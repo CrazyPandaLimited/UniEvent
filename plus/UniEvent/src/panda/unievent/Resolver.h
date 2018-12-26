@@ -192,6 +192,7 @@ struct SimpleResolver : virtual Refcnt {
 
     virtual void stop();
 
+    virtual void call_on_resolve(ResolveRequest* resolve_request, const AddrInfoSP& addr, CodeError err);
 protected:
     virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
     
@@ -259,11 +260,13 @@ struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
     ~ResolveRequest(); 
     ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
 
+    virtual void cancel();
+
     CallbackDispatcher<ResolveFunctionPlain> event;
     SimpleResolver* resolver;
     ResolverCacheKeySP key;
     bool async;
-    bool canceled;
+    bool done;
 };
 
 }} // namespace panda::unievent

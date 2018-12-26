@@ -127,7 +127,7 @@ void SimpleResolver::ares_resolve_cb(void* arg, int status, int, ares_addrinfo* 
     }
 
     if (resolve_request->async) {
-        resolver->on_resolve(resolver, resolve_request, addr, err);
+        resolver->call_on_resolve(resolve_request, addr, err);
         resolve_request->release();
         resolver->release();
     } else {
@@ -135,7 +135,7 @@ void SimpleResolver::ares_resolve_cb(void* arg, int status, int, ares_addrinfo* 
         TimerSP t = new Timer(resolver->loop);
         t->timer_event.add([=](TimerSP) mutable {
             _EDEBUG("artificial async call");
-            resolver->on_resolve(resolver, resolve_request, addr, err);
+            resolver->call_on_resolve(resolve_request, addr, err);
             resolve_request->release();
             resolver->release();
             t.reset();
@@ -147,6 +147,14 @@ void SimpleResolver::ares_resolve_cb(void* arg, int status, int, ares_addrinfo* 
 void SimpleResolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err) {
     _EDEBUGTHIS("resolve_request:%p err:%d", resolve_request.get(), err ? err->code() : 0);
     resolve_request->event(resolver, resolve_request, address, err);
+}
+
+void SimpleResolver::call_on_resolve(ResolveRequest* resolve_request, const AddrInfoSP& addr, CodeError err) {
+    _EDEBUG("call_on_resolve");
+    if (!resolve_request->done) {
+        on_resolve(this, resolve_request, addr, err);
+    }
+
 }
 
 Resolver::~Resolver() { _EDTOR(); }
@@ -188,11 +196,14 @@ ResolveRequestSP Resolver::resolve(std::string_view node, std::string_view servi
     _EDEBUGTHIS("use_cache: %d", use_cache);
     if(use_cache) {
         ResolverCacheType::const_iterator address_pos;
-        bool                              found;
+        bool found;
         std::tie(address_pos, found) = find(node, service, hints);
         if (found) {
             ResolveRequestSP resolve_request = new ResolveRequest(callback, this);
-            on_resolve(this, resolve_request, address_pos->second.address);
+            Prepare::call_soon([=]() {
+                call_on_resolve(resolve_request, address_pos->second.address, CodeError{});
+            }, loop);
+
             return resolve_request;
         }
     }
@@ -207,15 +218,22 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
         // use address from the cache
         address = cache_.emplace(*resolve_request->key, CachedAddress{address}).first->second.address;
     }
-
-    resolve_request->event(resolver, resolve_request, address, resolve_request->canceled ? CodeError(ERRNO_ECANCELED) : err);
+    resolve_request->event(resolver, resolve_request, address, resolve_request->done ? CodeError(ERRNO_ECANCELED) : err);
 }
 
-ResolveRequest::~ResolveRequest() { _EDTOR(); }
+ResolveRequest::~ResolveRequest() { _EDTOR(); panda_debug_v(this); }
 
-ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false), canceled(false) {
+ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false), done(false) {
     _ECTOR();
     event.add(callback);
+}
+
+void ResolveRequest::cancel() {
+    if (done) return;
+
+    resolver->call_on_resolve(this, nullptr, CodeError(ERRNO_ECANCELED));
+
+    done = true;
 }
 
 }} // namespace panda::unievent

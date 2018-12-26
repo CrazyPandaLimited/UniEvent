@@ -25,7 +25,7 @@ $t->prepare_callback(sub {
     $cl->connect($srv->get_sockaddr, sub {
         my ($handler, $err) = @_;
         fail $err if $err;
-	return if ++$d[1] == 1000;
+        return if ++$d[1] == 1000;
         $cl->write('GET /gcm/send HTTP/1.0\r\n\r\n', sub { $_[0]->disconnect; });
     });
     $t->stop if ++$d[0] == 1000;

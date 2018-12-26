@@ -43,6 +43,7 @@ TEST_CASE("cached resolver", "[resolver]") {
         REQUIRE(!err);
         called = true;
     });
+    loop->run_nowait();
 
     REQUIRE(called);
 }
@@ -67,6 +68,8 @@ TEST_CASE("cached resolver, same hints", "[resolver]") {
         REQUIRE(!err);
         called = true;
     });
+
+    loop->run_nowait();
 
     REQUIRE(called);
 }
@@ -140,6 +143,7 @@ TEST_CASE("standalone cached resolver", "[resolver]") {
         called = true;
     });
 
+    loop->run_nowait();
     REQUIRE(called);
 
     // cached or not - the result is the same
