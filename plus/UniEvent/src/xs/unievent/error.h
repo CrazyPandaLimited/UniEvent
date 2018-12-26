@@ -22,7 +22,7 @@ namespace xs {
     };
     template <class TYPE> struct Typemap<const panda::unievent::ImplRequiredError*, TYPE> : Typemap<const panda::unievent::Error*,     TYPE> {};
     template <class TYPE> struct Typemap<const panda::unievent::CodeError*,         TYPE> : Typemap<const panda::unievent::Error*,     TYPE> {};
-//    template <class TYPE> struct Typemap<const panda::unievent::SSLError*,          TYPE> : Typemap<const panda::unievent::CodeError*, TYPE> {};
+    template <class TYPE> struct Typemap<const panda::unievent::SSLError*,          TYPE> : Typemap<const panda::unievent::CodeError*, TYPE> {};
 
     template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : TypemapRefCast<TYPE&> {
         Sv out (pTHX_ TYPE& var, const Sv& proto = {}) { return Typemap<TYPE*>::out(aTHX_ &var, proto); }

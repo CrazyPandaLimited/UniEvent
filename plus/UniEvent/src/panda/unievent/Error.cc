@@ -83,16 +83,16 @@ CodeError* CodeError::clone () const { return new CodeError(_code); }
 //}
 //
 //DyLibError* DyLibError::clone () const { return new DyLibError(_code, lib); }
-//
-//
-//SSLError::SSLError (int ssl_code) : CodeError(ERRNO_SSL), _ssl_code(ssl_code), _openssl_code(0) {
-//    if (_ssl_code == SSL_ERROR_SSL) {
-//        unsigned long tmp;
-//        while ((tmp = ERR_get_error())) _openssl_code = tmp;
-//    }
-//}
 
-SSLError::SSLError (int ssl_code, unsigned long openssl_code) : CodeError(ERRNO_SSL), _ssl_code(ssl_code), _openssl_code(openssl_code) {}
+
+SSLError::SSLError (int ssl_code) : SSLError(ssl_code, 0) {
+    if (_ssl_code == SSL_ERROR_SSL) {
+        unsigned long tmp;
+        while ((tmp = ERR_get_error())) _openssl_code = tmp;
+    }
+}
+
+SSLError::SSLError (int ssl_code, unsigned long openssl_code) : CodeError(errc::ssl_error), _ssl_code(ssl_code), _openssl_code(openssl_code) {}
 
 int SSLError::ssl_code     () const { return _ssl_code; }
 int SSLError::openssl_code () const { return _openssl_code; }
@@ -119,7 +119,7 @@ string SSLError::reason_str () const {
     return str ? string(str) : string();
 }
 
-string SSLError::str () const {
+string SSLError::descr () const {
     if (_ssl_code != SSL_ERROR_SSL) return {};
     string ret(120);
     char* buf = ret.buf();

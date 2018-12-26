@@ -112,7 +112,7 @@ struct SSLError : CodeError {
     string function_str () const;
     string reason_str   () const;
 
-    string str () const override;
+    string descr () const override;
 
     virtual SSLError* clone () const override;
 

@@ -148,25 +148,24 @@ subtest "CodeError" => sub {
     }
 };
 
-#subtest "SSLError" => sub {
-#    my $ssl_code = 1;
-#    my $e = new_ok "UniEvent::SSLError" => [$ssl_code];
-#    is $e->code, ERRNO_SSL, "code ok";
-#    ok $e->what, "what present";
-#    is $e->name, "SSL", "name ok";
-#    ok $e->str, "str present";
-#    is $e->ssl_code, $ssl_code, "ssl code";
-#    $e->openssl_code;
-#    $e->library;
-#    $e->function;
-#    $e->reason;
-#    $e->library_str;
-#    $e->function_str;
-#    $e->reason_str;
-#    $e->str;
-#    my $c = $e->clone;
-#    isa_ok $c, ref($e);
-#    is $c, $e, "clone ok";
-#};
+subtest "SSLError" => sub {
+    my $ssl_code = 1;
+    my $e = new_ok "UniEvent::SSLError" => [$ssl_code];
+    is $e->code, ESSL, "code ok";
+    ok $e->what, "what present";
+    ok $e->descr, "descr present";
+    is $e->ssl_code, $ssl_code, "ssl code";
+    $e->openssl_code;
+    $e->library;
+    $e->function;
+    $e->reason;
+    $e->library_str;
+    $e->function_str;
+    $e->reason_str;
+    $e->descr;
+    my $c = $e->clone;
+    isa_ok $c, ref($e);
+    is $c, $e, "clone ok";
+};
 
 done_testing();
