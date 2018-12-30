@@ -1,0 +1,12 @@
+#include <panda/unievent/backend/uv.h>
+
+MODULE = UniEvent                PACKAGE = UniEvent::Backend
+PROTOTYPES: DISABLE
+
+BOOT {
+    Stash stash(__PACKAGE__, GV_ADD);
+    auto sv = xs::out<backend::Backend*>(backend::UV);
+    SvREFCNT_inc(sv);
+    sv.readonly(true);
+    newCONSTSUB(stash, "UV", sv);
+}

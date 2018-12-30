@@ -18,6 +18,8 @@ void Handle::destroy () {
 //    if (!asyncq_empty()) asyncq_cancel();
 //    assert(!uv_is_closing(uvhp));
 //    uv_close(uvhp, uvx_on_close_delete);
+    _impl->destroy();
+    _impl = nullptr;
 }
 
 //void Handle::uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf) {

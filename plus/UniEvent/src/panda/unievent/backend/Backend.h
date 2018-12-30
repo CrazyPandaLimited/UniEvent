@@ -6,17 +6,17 @@ namespace panda { namespace unievent { namespace backend {
 
 struct Backend {
 
-    panda::string type () const { return _type; }
+    panda::string name () const { return _name; }
 
     virtual BackendLoop* new_loop (Loop* frontend, BackendLoop::Type type) = 0;
 
     virtual ~Backend () {}
 
 protected:
-    Backend (std::string_view type) : _type(type) {}
+    Backend (std::string_view name) : _name(name) {}
 
 private:
-    panda::string _type;
+    panda::string _name;
 };
 
 }}}

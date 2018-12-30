@@ -36,9 +36,9 @@ struct UVTimer : UVHandle<BackendTimer> {
 private:
     uv_timer_t uvh;
 
-    static void uvx_on_timer (uv_timer_t* uvh) {
-        auto h = get_handle<UVTimer*>(uvh);
-        h->frontend->call_now();
+    static void uvx_on_timer (uv_timer_t* p) {
+        auto h = get_handle<UVTimer*>(p);
+        if (h->frontend) h->frontend->call_now();
     }
 };
 

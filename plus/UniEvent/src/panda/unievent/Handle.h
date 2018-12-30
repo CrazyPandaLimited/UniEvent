@@ -29,7 +29,7 @@ struct Handle : IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject
     buf_alloc_fn buf_alloc_event;
 
     void release () const {
-        if (refcnt() <= 1) const_cast<Handle*>(this)->destroy();
+        if (refcnt() <= 1 && _impl) const_cast<Handle*>(this)->destroy();
         Refcnt::release();
     }
 
@@ -105,6 +105,16 @@ protected:
 //    uint32_t     flags;
 //    bool         in_user_callback;
 
+    Handle () /*: flags(0), in_user_callback(false)*/ {
+        _ECTOR();
+        //asyncq.head = asyncq.tail = nullptr;
+    }
+
+    void _init (BackendHandle* impl) {
+        _impl = impl;
+        loop()->register_handle(this);
+    }
+
 //    struct InUserCallbackLock {
 //        Handle* h;
 //        InUserCallbackLock(Handle* h) : h(h){
@@ -127,12 +137,7 @@ protected:
 //    static const uint32_t HF_WEAK = 0x01;
 //    static const uint32_t HF_BUSY = 0x02;
 //    static const uint32_t HF_LAST = HF_BUSY;
-//
-//    Handle () : flags(0), in_user_callback(false) {
-//        _ECTOR();
-//        asyncq.head = asyncq.tail = nullptr;
-//    }
-//
+
 //    void _init (void* hptr) {
 //        uvhp = static_cast<uv_handle_t*>(hptr);
 //        uvhp->data = this;
@@ -154,8 +159,8 @@ protected:
 //    }
 //
 //    void async_unlock_noresume () {
-//        //assert(flags & HF_BUSY); // COMMENTED OUT - TO REFACTOR - Такие случаи возникают в тестах Front с учетом обнуления флагов в reset().
-//                                   // нужно исправить в UniEvent 2.0 (any-engine) - перепроектировать очереди
+//        //assert(flags & HF_BUSY); // COMMENTED OUT - TO REFACTOR - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ Front пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ reset().
+//                                   // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ UniEvent 2.0 (any-engine) - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 //        flags &= ~HF_BUSY;
 //    }
 //

@@ -24,14 +24,14 @@ protected:
 };
 
 
-//struct XSPrepare : Prepare, XSHandle {
-//    XSCallback prepare_xscb;
-//    XSPrepare (Loop* loop) : Prepare(loop) {}
-//protected:
-//    void on_prepare () override;
-//};
-//
-//
+struct XSPrepare : Prepare, XSHandle {
+    XSCallback prepare_xscb;
+    XSPrepare (Loop* loop) : Prepare(loop) {}
+protected:
+    void on_prepare () override;
+};
+
+
 //struct XSCheck : Check, XSHandle {
 //    XSCallback check_xscb;
 //    XSCheck (Loop* loop) : Check(loop) {}
@@ -239,16 +239,20 @@ protected:
 
 namespace xs {
 
+template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
+    panda::string package () { return "UniEvent::Backend"; }
+};
+
 template <class TYPE> struct Typemap <panda::unievent::Loop*, TYPE> : TypemapObject<panda::unievent::Loop*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
     panda::string package () { return "UniEvent::Loop"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
-//template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::Prepare"; }
-//};
-//
+template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::Prepare"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::Check"; }
 //};

@@ -19,10 +19,18 @@ protected:
     }
 
     void destroy () override {
-        throw "pohsle na huy";
+        this->template frontend = nullptr;
+        uv_close(uvhp, uvx_on_close);
     }
 
     uv_handle_t* uvhp;
+
+private:
+    static void uvx_on_close (uv_handle_t* p) {
+        auto h = get_handle(p);
+        _EDEBUG("[%p] uvx_on_close", h);
+        delete h;
+    }
 };
 
 }}}}

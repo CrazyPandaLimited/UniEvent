@@ -63,11 +63,11 @@ static const auto evname_on_create_connection = Simple::shared("on_create_connec
 //    }));
 //}
 
-//void XSPrepare::on_prepare () {
-//    auto obj = xs::out<Prepare*>(aTHX_ this);
-//    if (!prepare_xscb.call(obj, evname_on_prepare)) Prepare::on_prepare();
-//}
-//
+void XSPrepare::on_prepare () {
+    auto obj = xs::out<Prepare*>(aTHX_ this);
+    if (!prepare_xscb.call(obj, evname_on_prepare)) Prepare::on_prepare();
+}
+
 //void XSCheck::on_check () {
 //    auto obj = xs::out<Check*>(aTHX_ this);
 //    if (!check_xscb.call(obj, evname_on_check)) Check::on_check();

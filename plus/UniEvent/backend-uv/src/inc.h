@@ -1,5 +1,6 @@
 #pragma once
 #include <uv.h>
+#include <panda/unievent/Debug.h>
 #include <panda/unievent/Error.h>
 #include <panda/unievent/backend/BackendHandle.h>
 
@@ -89,7 +90,7 @@ inline CodeError uvx_code_error (int uverr) {
     }
 }
 
-template <class T, class X>
+template <class T = BackendHandle*, class X>
 inline T get_handle (X* uvhp) {
     return static_cast<T>(reinterpret_cast<BackendHandle*>(uvhp->data));
 }

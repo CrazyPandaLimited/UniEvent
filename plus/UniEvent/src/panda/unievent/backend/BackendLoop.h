@@ -10,13 +10,18 @@ struct BackendLoop {
 
     Loop* frontend () const { return _frontend; }
 
+    virtual uint64_t now         () const = 0;
+    virtual void     update_time () = 0;
+    virtual bool     alive       () const = 0;
+
     virtual int  run         () = 0;
     virtual int  run_once    () = 0;
     virtual int  run_nowait  () = 0;
     virtual void stop        () = 0;
     virtual void handle_fork () = 0;
 
-    virtual BackendTimer* new_timer (Timer* frontend) = 0;
+    virtual BackendTimer*   new_timer   (Timer*   frontend) = 0;
+    virtual BackendPrepare* new_prepare (Prepare* frontend) = 0;
 
     virtual ~BackendLoop () {}
 

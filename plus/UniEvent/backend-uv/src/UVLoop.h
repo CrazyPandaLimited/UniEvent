@@ -1,6 +1,7 @@
 #pragma once
 #include "inc.h"
 #include "UVTimer.h"
+#include "UVPrepare.h"
 #include <panda/unievent/backend/BackendLoop.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
@@ -27,6 +28,10 @@ struct UVLoop : BackendLoop {
         assert(!err); // unievent should have closed all handles
     }
 
+    uint64_t now         () const override { return uv_now(_uvloop); }
+    void     update_time ()       override { uv_update_time(_uvloop); }
+    bool     alive       () const override { return uv_loop_alive(_uvloop) != 0; }
+
     int  run        () override { return uv_run(_uvloop, UV_RUN_DEFAULT); }
     int  run_once   () override { return uv_run(_uvloop, UV_RUN_ONCE); }
     int  run_nowait () override { return uv_run(_uvloop, UV_RUN_NOWAIT); }
@@ -37,7 +42,8 @@ struct UVLoop : BackendLoop {
         if (err) throw uvx_code_error(err);
     }
 
-    BackendTimer* new_timer (Timer* frontend) override { return new UVTimer(_uvloop, frontend); }
+    BackendTimer*   new_timer   (Timer*   frontend) override { return new UVTimer  (_uvloop, frontend); }
+    BackendPrepare* new_prepare (Prepare* frontend) override { return new UVPrepare(_uvloop, frontend); }
 
 private:
     uv_loop_t  _uvloop_body;

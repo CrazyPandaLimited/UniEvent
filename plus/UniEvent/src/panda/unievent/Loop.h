@@ -32,6 +32,10 @@ struct Loop : Refcnt {
     bool is_default () const { return _default_loop == this; }
     bool is_global  () const { return _global_loop == this; }
 
+    uint64_t now         () const { return _impl->now(); }
+    void     update_time ()       { _impl->update_time(); }
+    bool     alive       () const { return _impl->alive(); }
+
     virtual int  run         () { return _impl->run(); }
     virtual int  run_once    () { return _impl->run_once(); }
     virtual int  run_nowait  () { return _impl->run_nowait(); }
@@ -52,16 +56,18 @@ private:
 
     Loop (Backend*, BackendLoop::Type);
 
+    void register_handle (Handle* h) {
+        _handles.push_front(h);
+    }
+
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;
 
     static void _init_global_loop ();
     static void _init_default_loop ();
-};
 
-//int      backend_timeout () const { return uv_backend_timeout(_uvloop); }
-//uint64_t now             () const { return uv_now(_uvloop); }
-//void     update_time     ()       { uv_update_time(_uvloop); }
-//bool     alive           () const { return uv_loop_alive(_uvloop) != 0; }
+    friend void set_default_backend (backend::Backend*);
+    friend class Handle;
+};
 
 }}

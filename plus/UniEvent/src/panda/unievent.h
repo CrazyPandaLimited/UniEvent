@@ -1,7 +1,7 @@
 #pragma once
 #include <panda/unievent/forward.h>
 #include <panda/unievent/Loop.h>
-//#include <panda/unievent/Prepare.h>
+#include <panda/unievent/Prepare.h>
 //#include <panda/unievent/Check.h>
 //#include <panda/unievent/Idle.h>
 #include <panda/unievent/Timer.h>
