@@ -22,6 +22,8 @@ sub test_cached_resolver {
     # in cache, sync call
     $r->resolve('google-public-dns-a.google.com', 'domain', sub { (my $r, $sa2, my $err) = @_; }, {"family" => UniEvent::AF_INET});
     
+    $l->run_nowait();
+
     is($sa2->[0]->ip, $check_ip, 'Google public DNS IP resolution');
     is($sa2->[0]->port, $check_port, 'Google public DNS port resolution');
 }
