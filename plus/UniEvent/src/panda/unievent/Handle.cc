@@ -18,6 +18,7 @@ void Handle::destroy () {
 //    if (!asyncq_empty()) asyncq_cancel();
 //    assert(!uv_is_closing(uvhp));
 //    uv_close(uvhp, uvx_on_close_delete);
+    loop()->unregister_handle(this);
     _impl->destroy();
     _impl = nullptr;
 }

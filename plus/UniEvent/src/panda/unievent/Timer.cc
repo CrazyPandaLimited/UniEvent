@@ -1,10 +1,10 @@
 #include "Timer.h"
 using namespace panda::unievent;
 
-const HandleType Timer::Type("timer");
+const HandleType Timer::TYPE("timer");
 
 const HandleType& Timer::type () const {
-    return Type;
+    return TYPE;
 }
 
 void Timer::start (uint64_t repeat, uint64_t initial) {

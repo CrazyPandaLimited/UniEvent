@@ -1,10 +1,10 @@
 #include "Prepare.h"
 using namespace panda::unievent;
 
-const HandleType Prepare::Type("prepare");
+const HandleType Prepare::TYPE("prepare");
 
 const HandleType& Prepare::type () const {
-    return Type;
+    return TYPE;
 }
 
 void Prepare::start (prepare_fn callback) {

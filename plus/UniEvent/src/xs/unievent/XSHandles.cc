@@ -187,10 +187,10 @@ Stash perl_class_for_handle (Handle* h) {
 //        ca[Idle::Type]    = Stash("UniEvent::Idle",    GV_ADD);
 //        ca[Pipe::Type]    = Stash("UniEvent::Pipe",    GV_ADD);
 //        ca[Poll::Type]    = Stash("UniEvent::Poll",    GV_ADD);
-//        ca[Prepare::Type] = Stash("UniEvent::Prepare", GV_ADD);
+        ca[Prepare::TYPE] = Stash("UniEvent::Prepare", GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
 //        ca[TCP::Type]     = Stash("UniEvent::TCP",     GV_ADD);
-        ca[Timer::Type]   = Stash("UniEvent::Timer",   GV_ADD);
+        ca[Timer::TYPE]   = Stash("UniEvent::Timer",   GV_ADD);
 //        ca[TTY::Type]     = Stash("UniEvent::TTY",     GV_ADD);
 //        ca[UDP::Type]     = Stash("UniEvent::UDP",     GV_ADD);
 //        ca[Signal::Type]  = Stash("UniEvent::Signal",  GV_ADD);

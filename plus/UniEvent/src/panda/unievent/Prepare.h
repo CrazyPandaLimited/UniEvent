@@ -26,7 +26,7 @@ struct Prepare : virtual Handle {
 
     static PrepareSP call_soon (function<void()> f, Loop* loop = Loop::default_loop());
 
-    static const HandleType Type;
+    static const HandleType TYPE;
 
 protected:
     virtual void on_prepare ();

@@ -89,12 +89,15 @@ subtest 'loop is alive while handle exists 2' => sub {
 
 subtest 'handles' => sub {
     my $loop = new UniEvent::Loop;
-    my $hl = $loop->handles;
-    is @$hl, 0, "no handles in fresh loop";
+    cmp_deeply $loop->handles, [], "no handles in fresh loop";
     
     my $h = new UniEvent::Prepare($loop);
-    $hl = $loop->handles;
+    my $hl = $loop->handles;
     is @$hl, 1, "one handle";
+    is $hl->[0]->type, UniEvent::Prepare::TYPE(), "handle is correct";
+    undef $h;
+    
+    cmp_deeply $loop->handles, [], "no handles left";
 };
 
 #$loop->close();

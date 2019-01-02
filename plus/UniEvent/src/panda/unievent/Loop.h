@@ -1,7 +1,7 @@
 #pragma once
 #include "forward.h"
-#include "IntrusiveChain.h"
 #include "backend/Backend.h"
+#include <panda/lib/intrusive_chain.h>
 
 namespace panda { namespace unievent {
 
@@ -11,7 +11,7 @@ void              set_default_backend (backend::Backend* backend);
 struct Loop : Refcnt {
     using Backend     = backend::Backend;
     using BackendLoop = backend::BackendLoop;
-    using Handles     = IntrusiveChain<Handle*>;
+    using Handles     = panda::lib::IntrusiveChain<Handle*>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -57,6 +57,10 @@ private:
     Loop (Backend*, BackendLoop::Type);
 
     void register_handle (Handle* h) {
+        _handles.push_front(h);
+    }
+
+    void unregister_handle (Handle* h) {
         _handles.push_front(h);
     }
 

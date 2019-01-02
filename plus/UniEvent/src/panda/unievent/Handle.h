@@ -22,7 +22,7 @@ std::ostream& operator<< (std::ostream& out, const HandleType&);
 
 //typedef uv_os_fd_t os_fd_t;
 
-struct Handle : IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
+struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
     using BackendHandle = backend::BackendHandle;
     typedef panda::function<string(Handle* h, size_t cap)> buf_alloc_fn;
 

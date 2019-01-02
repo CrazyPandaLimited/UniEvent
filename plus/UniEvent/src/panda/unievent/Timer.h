@@ -33,7 +33,7 @@ struct Timer : virtual Handle {
     static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
     static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
 
-    static const HandleType Type;
+    static const HandleType TYPE;
 
 protected:
     virtual void on_timer ();
