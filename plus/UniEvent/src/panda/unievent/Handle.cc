@@ -4,20 +4,18 @@ namespace panda { namespace unievent {
 static const size_t MIN_ALLOC_SIZE = 1024;
 
 string Handle::buf_alloc (size_t cap) {
-    if (buf_alloc_event) return buf_alloc_event(this, cap);
+    if (buf_alloc_callback) return buf_alloc_callback(this, cap);
     string ret(cap);
     return ret;
 }
 
 void Handle::destroy () {
-//    _EDEBUGTHIS("destroy, locked: %d, type: %d", async_locked(), type());
+    _EDEBUGTHIS("destroy, locked: %d, type: %s", /*async_locked()*/ 0, type().name);
 //    if (async_locked()) {
 //        asyncq_push(new CommandCloseDelete());
 //        return;
 //    }
 //    if (!asyncq_empty()) asyncq_cancel();
-//    assert(!uv_is_closing(uvhp));
-//    uv_close(uvhp, uvx_on_close_delete);
     loop()->unregister_handle(this);
     _impl->destroy();
     _impl = nullptr;

@@ -34,6 +34,7 @@ void Loop::_init_default_loop () {
 }
 
 Loop::Loop (Backend* backend, BackendLoop::Type type) {
+    _ECTOR();
     if (!backend) backend = default_backend();
     _backend = backend;
     _impl = backend->new_loop(this, type);
@@ -45,6 +46,7 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
 //}
 
 Loop::~Loop () {
+    _EDTOR();
     while (_handles.size()) _handles.front()->destroy();
     delete _impl;
 }

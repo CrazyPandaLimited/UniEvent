@@ -57,11 +57,11 @@ private:
     Loop (Backend*, BackendLoop::Type);
 
     void register_handle (Handle* h) {
-        _handles.push_front(h);
+        _handles.push_back(h);
     }
 
     void unregister_handle (Handle* h) {
-        _handles.push_front(h);
+        _handles.erase(h);
     }
 
     static LoopSP _global_loop;

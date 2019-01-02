@@ -31,7 +31,7 @@ struct Prepare : virtual Handle {
 protected:
     virtual void on_prepare ();
 
-    backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(_impl); }
+    backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(Handle::impl()); }
 };
 
 }}

@@ -91,49 +91,28 @@ subtest 'handles' => sub {
     my $loop = new UniEvent::Loop;
     cmp_deeply $loop->handles, [], "no handles in fresh loop";
     
-    my $h = new UniEvent::Prepare($loop);
-    my $hl = $loop->handles;
-    is @$hl, 1, "one handle";
-    is $hl->[0]->type, UniEvent::Prepare::TYPE(), "handle is correct";
-    undef $h;
+    my @h = map { new UniEvent::Prepare($loop) } 1..3;
+    is scalar $loop->handles->@*, 3, "handles count ok";
+    foreach my $h ($loop->handles->@*) {
+        is ref($h), 'UniEvent::Prepare', 'handle class ok';
+    }
+    undef @h;
     
     cmp_deeply $loop->handles, [], "no handles left";
 };
 
-#$loop->close();
-#$loop = undef;
-#
-#$loop = new UniEvent::Loop;
-#$h = new UniEvent::Prepare($loop);
-#$h->start(sub {});
-#$loop->run_nowait;
-#dies_ok { $loop->close } 'Non-empty loop dies on close';
-#$err = $@;
-#ok($err, 'error exists');
-#is(ref $err, 'UniEvent::CodeError', 'error is an object');
-#is($err->name, 'EBUSY', 'error is EBUSY');
-#is($err->code, ERRNO_EBUSY, 'error code is correct');
-#
-#undef $h;
-#$loop->run_nowait;
-#ok(!$loop->alive, 'loop isnt alive anymore');
-#$loop->close();
-#$loop = undef;
-#
-#$loop = UniEvent::Loop::default_loop();
-#@hlist = (new UniEvent::Prepare(), new UniEvent::Prepare(), new UniEvent::Prepare());
-##map { $_->start(sub {}) } @hlist;
-#$var = 0;
-#$loop->walk(sub {
-#    my $cur_handle = shift;
-#    is(ref $cur_handle, 'UniEvent::Prepare', 'walk handle works');
-#    $var++;
-#});
-#is($var, 3, 'walk walked through all the handles');
-#
-## CLONE_SKIP
-#is(UniEvent::Loop::CLONE_SKIP() + UniEvent::Loop->CLONE_SKIP(), 2, "Loop has CLONE_SKIP set to 1");
+subtest 'non empty loop destroys all handles when destroyed' => sub {
+    my $loop = new UniEvent::Loop;
+    my $h = new UniEvent::Prepare($loop);
+    $h->start(sub {});
+    $loop->run_nowait;
+    undef $loop;
+    
+    is $h->loop, undef, "handle has lost the loop";
+    dies_ok { $h->stop } "handle can not be used without loop";
+};
 
-say "EPTA";
+# CLONE_SKIP
+is UniEvent::Loop::CLONE_SKIP(), 1, "Loop has CLONE_SKIP set to 1";
 
 done_testing();

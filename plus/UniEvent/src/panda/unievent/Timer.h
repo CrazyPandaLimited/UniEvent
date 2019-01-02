@@ -38,7 +38,7 @@ struct Timer : virtual Handle {
 protected:
     virtual void on_timer ();
 
-    backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(_impl); }
+    backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(Handle::impl()); }
 };
 
 }}

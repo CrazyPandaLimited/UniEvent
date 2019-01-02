@@ -24,18 +24,23 @@ std::ostream& operator<< (std::ostream& out, const HandleType&);
 
 struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
     using BackendHandle = backend::BackendHandle;
-    typedef panda::function<string(Handle* h, size_t cap)> buf_alloc_fn;
+    using buf_alloc_fn  = panda::function<string(Handle* h, size_t cap)>;
 
-    buf_alloc_fn buf_alloc_event;
+    buf_alloc_fn buf_alloc_callback;
+
+    Handle () /*: flags(0), in_user_callback(false)*/ {
+        _ECTOR();
+        //asyncq.head = asyncq.tail = nullptr;
+    }
 
     void release () const {
         if (refcnt() <= 1 && _impl) const_cast<Handle*>(this)->destroy();
         Refcnt::release();
     }
 
-    void destroy ();
+    virtual void destroy ();
 
-    Loop* loop () const { return _impl->loop()->frontend(); }
+    Loop* loop () const { return _impl ? _impl->loop()->frontend() : nullptr; }
 
     virtual const HandleType& type () const = 0;
 
@@ -99,20 +104,19 @@ struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::All
 //    friend struct CommandCloseReinit;
 
 protected:
-    BackendHandle* _impl;
 
 //    uv_handle_t* uvhp;
 //    uint32_t     flags;
 //    bool         in_user_callback;
 
-    Handle () /*: flags(0), in_user_callback(false)*/ {
-        _ECTOR();
-        //asyncq.head = asyncq.tail = nullptr;
-    }
-
     void _init (BackendHandle* impl) {
         _impl = impl;
         loop()->register_handle(this);
+    }
+
+    BackendHandle* impl () const {
+        if (!_impl) throw Error("Loop has been destroyed and this handle can not be used anymore");
+        return _impl;
     }
 
 //    struct InUserCallbackLock {
@@ -194,6 +198,8 @@ public:
 //    virtual void _close(); // ignores command queue, calls uv_close, beware using this
 
 private:
+    BackendHandle* _impl;
+
 //    void close_delete ();
 //
 //    static void uvx_on_close_delete (uv_handle_t* handle);
