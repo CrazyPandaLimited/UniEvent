@@ -200,8 +200,9 @@ ResolveRequestSP Resolver::resolve(std::string_view node, std::string_view servi
         std::tie(address_pos, found) = find(node, service, hints);
         if (found) {
             ResolveRequestSP resolve_request = new ResolveRequest(callback, this);
+            AddrInfoSP addr = address_pos->second.address;
             Prepare::call_soon([=]() {
-                call_on_resolve(resolve_request, address_pos->second.address, CodeError{});
+                call_on_resolve(resolve_request, addr, CodeError{});
             }, loop);
 
             return resolve_request;
