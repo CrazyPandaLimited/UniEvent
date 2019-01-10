@@ -1,6 +1,7 @@
 #include "Loop.h"
 #include "Error.h"
 #include "Handle.h"
+#include "Prepare.h"
 //#include "Resolver.h"
 #include <panda/unievent/backend/uv.h>
 #include <thread>
@@ -40,15 +41,38 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
     _impl = backend->new_loop(this, type);
 }
 
-//ResolverSP Loop::resolver () {
-//    if (!_resolver) _resolver = new Resolver(this);
-//    return _resolver;
-//}
-
 Loop::~Loop () {
     _EDTOR();
     while (_handles.size()) _handles.front()->destroy();
     delete _impl;
 }
+
+void Loop::call_soon (soon_fn f) {
+    if (!_soon_handle) {
+        _soon_handle = new Prepare(this);
+        _soon_handle->start([this](Prepare*) { _call_soon(); });
+    }
+    else if (!_soon_callbacks.size()) {
+        _soon_handle->start();
+    }
+
+    _soon_callbacks.push_back(f);
+}
+
+void Loop::_call_soon () {
+    assert(!_soon_callbacks_reserve.size());
+    std::swap(_soon_callbacks, _soon_callbacks_reserve);
+
+    for (auto& f : _soon_callbacks_reserve) if (f) f();
+
+    _soon_callbacks_reserve.clear();
+    if (!_soon_callbacks.size()) _soon_handle->stop();
+}
+
+//ResolverSP Loop::resolver () {
+//    if (!_resolver) _resolver = new Resolver(this);
+//    return _resolver;
+//}
+
 
 }}

@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "forward.h"
 #include "backend/Backend.h"
 #include <panda/lib/intrusive_chain.h>
@@ -12,6 +13,7 @@ struct Loop : Refcnt {
     using Backend     = backend::Backend;
     using BackendLoop = backend::BackendLoop;
     using Handles     = panda::lib::IntrusiveChain<Handle*>;
+    using soon_fn     = function<void()>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -36,23 +38,30 @@ struct Loop : Refcnt {
     void     update_time ()       { _impl->update_time(); }
     bool     alive       () const { return _impl->alive(); }
 
-    virtual int  run         () { return _impl->run(); }
-    virtual int  run_once    () { return _impl->run_once(); }
-    virtual int  run_nowait  () { return _impl->run_nowait(); }
+    virtual bool run         () { return _impl->run(); }
+    virtual bool run_once    () { return _impl->run_once(); }
+    virtual bool run_nowait  () { return _impl->run_nowait(); }
     virtual void stop        () { _impl->stop(); }
     virtual void handle_fork () { _impl->handle_fork(); }
 
     const Handles& handles () const { return _handles; }
+
+    void call_soon (soon_fn f);
 
     //ResolverSP resolver ();
 
     BackendLoop* impl () const { return _impl; }
 
 private:
-    Backend*     _backend;
-    BackendLoop* _impl;
-    Handles      _handles;
-    //ResolverSP   _resolver;
+    using SoonCallbacks = std::vector<soon_fn>;
+
+    Backend*      _backend;
+    BackendLoop*  _impl;
+    Handles       _handles;
+    PrepareSP     _soon_handle;
+    SoonCallbacks _soon_callbacks;
+    SoonCallbacks _soon_callbacks_reserve;
+    //ResolverSP    _resolver;
 
     Loop (Backend*, BackendLoop::Type);
 
@@ -63,6 +72,8 @@ private:
     void unregister_handle (Handle* h) {
         _handles.erase(h);
     }
+
+    void _call_soon ();
 
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;

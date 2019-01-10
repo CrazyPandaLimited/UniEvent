@@ -40,11 +40,10 @@ my $loop = UniEvent::Loop->default;
 
 subtest 'doesnt block when no handles' => sub {
     alarm(1);
-    $loop->run_once;
-    $loop->run;
+    ok !$loop->run_once, 'run_once';
+    ok !$loop->run, 'run';
     alarm(0);
-    pass("doesnt block");
-    is($loop->run_nowait, 0, "run nowait - no events");
+    ok !$loop->run_nowait, 'run_nowait';
 };
 
 subtest 'loop is alive while handle exists' => sub {
@@ -54,7 +53,7 @@ subtest 'loop is alive while handle exists' => sub {
         $loop->stop;
     });
     alarm(1);
-    $loop->run;
+    ok $loop->run;
     alarm(0);
     pass 'loop stopped on stop';
     ok($loop->alive, 'loop is still alive');
@@ -62,7 +61,7 @@ subtest 'loop is alive while handle exists' => sub {
     ok(!$loop->alive, 'handle stopped, loop is not alive');
 
     alarm(1);
-    $loop->run;
+    ok !$loop->run;
     alarm(0);
     pass('loop won\'t run anymore');
 };
@@ -75,14 +74,14 @@ subtest 'loop is alive while handle exists 2' => sub {
         $hh->stop;
     });
     alarm(1);
-    $loop->run;
+    ok !$loop->run;
     alarm(0);
     ok !$loop->alive, 'loop exits when no more active handles';
     
     $h->start;
     undef $h;
     alarm(1);
-    $loop->run;
+    ok !$loop->run;
     alarm(0);
     pass('loop exits when no more handles');
 };
@@ -110,6 +109,26 @@ subtest 'non empty loop destroys all handles when destroyed' => sub {
     
     is $h->loop, undef, "handle has lost the loop";
     dies_ok { $h->stop } "handle can not be used without loop";
+};
+
+subtest 'call_soon' => sub {
+    subtest 'simple' => sub {
+        my $i = 0;
+        $loop->call_soon(sub { $i++ });
+        $loop->run_nowait for 1..3;
+        is $i, 1, 'called once';
+    };
+    subtest 'recursive' => sub {
+        my $i = 0;
+        $loop->call_soon(sub { $i++ });
+        $loop->run_nowait for 1..3;
+        $loop->call_soon(sub {
+            $i += 10;
+            $loop->call_soon(sub { $i += 100 });
+        });
+        $loop->run_nowait for 1..3;
+        is $i, 111, 'called';
+    };
 };
 
 # CLONE_SKIP

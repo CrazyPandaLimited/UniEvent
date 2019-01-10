@@ -1,45 +1,59 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-BEGIN { plan skip_all => 'disabled'; }
-my ($l, $p, $i, $j, $t);
 
-$i = $j = 0;
-$l = UniEvent::Loop->default_loop;
-$p = new UniEvent::Prepare;
-$t = new UniEvent::Timer;
-$t->timer_callback(sub { $l->stop if $j++ > 10 });
+my $l = UniEvent::Loop->default_loop;
+my $t = new UniEvent::Timer;
+$t->timer_callback(sub { $l->stop if ++(state $j) % 3 == 0 });
 $t->start(0.001);
 
-is($p->type, UniEvent::Handle::HTYPE_PREPARE);
+my $p = new UniEvent::Prepare;
+is $p->type, UniEvent::Prepare::TYPE, 'type ok';
 
-# start
-$p->prepare_callback(sub { $i++ });
-$p->start;
-$l->run;
-cmp_ok($i, '>', 0, "prepare works");
-$i = $j = 0;
+subtest 'start' => sub {
+    my $i = 0;
+    $p->prepare_callback(sub { $i++ });
+    $p->start;
+    $l->run;
+    cmp_ok $i, '>', 0, "prepare works";
+};
 
-# stop
-$p->stop;
-$l->run;
-is($i, 0, "stop works");
-$i = $j = 0;
+subtest 'stop' => sub {
+    my $i = 0;
+    $p->prepare_callback(sub { $i++ });
+    $p->stop;
+    $l->run;
+    is $i, 0, "stop works";
+};
 
-# reset
-$p->start(sub { $i-- });
-$l->run;
-cmp_ok($i, '<', 0, "start sets prepare_callback");
-$i = $j = 0;
-$p->reset;
-$l->run;
-is($i, 0, "reset works");
+subtest 'reset' => sub {
+    my $i = 0;
+    $p->prepare_callback(sub { $i++ });
+    $p->reset;
+    $l->run;
+    is $i, 0, "reset works";
+};
 
-my $called = 0;
-UniEvent::Prepare::call_soon(sub {
-    $called = 1;
-});
-$l->run;
-ok($called, 'call_soon');
+subtest 'prepare holds loop' => sub {
+    my $l = new UniEvent::Loop;
+    my $p = new UniEvent::Prepare($l);
+    $p->start(sub {});
+    ok $l->run_nowait;
+    $p->stop;
+    ok !$l->run_nowait;
+};
+
+subtest 'zombie mode' => sub {
+    my $l = new UniEvent::Loop;
+    my $p = new UniEvent::Prepare($l);
+    $p->prepare_callback(sub { fail("must not get called") });
+    $p->start;
+    undef $l;
+    is $p->loop, undef, "loop";
+    dies_ok { $p->start } "start";
+    dies_ok { $p->stop  } "stop";
+    dies_ok { $p->reset } "reset";
+    undef $p;
+};
 
 done_testing();

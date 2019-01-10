@@ -14,9 +14,9 @@ struct BackendLoop {
     virtual void     update_time () = 0;
     virtual bool     alive       () const = 0;
 
-    virtual int  run         () = 0;
-    virtual int  run_once    () = 0;
-    virtual int  run_nowait  () = 0;
+    virtual bool run         () = 0; // returns false if there are no more active handles
+    virtual bool run_once    () = 0; // -=-
+    virtual bool run_nowait  () = 0; // -=-
     virtual void stop        () = 0;
     virtual void handle_fork () = 0;
 

@@ -32,9 +32,9 @@ struct UVLoop : BackendLoop {
     void     update_time ()       override { uv_update_time(_uvloop); }
     bool     alive       () const override { return uv_loop_alive(_uvloop) != 0; }
 
-    int  run        () override { return uv_run(_uvloop, UV_RUN_DEFAULT); }
-    int  run_once   () override { return uv_run(_uvloop, UV_RUN_ONCE); }
-    int  run_nowait () override { return uv_run(_uvloop, UV_RUN_NOWAIT); }
+    bool run        () override { return uv_run(_uvloop, UV_RUN_DEFAULT); }
+    bool run_once   () override { return uv_run(_uvloop, UV_RUN_ONCE); }
+    bool run_nowait () override { return uv_run(_uvloop, UV_RUN_NOWAIT); }
     void stop       () override { uv_stop(_uvloop); }
 
     void handle_fork () override {

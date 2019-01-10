@@ -22,9 +22,7 @@ struct Prepare : virtual Handle {
 
     void reset () override;
 
-    void call_on_prepare () { on_prepare(); }
-
-    static PrepareSP call_soon (function<void()> f, Loop* loop = Loop::default_loop());
+    void call_now () { on_prepare(); }
 
     static const HandleType TYPE;
 

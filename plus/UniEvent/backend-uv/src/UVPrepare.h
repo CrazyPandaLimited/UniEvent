@@ -25,7 +25,7 @@ private:
 
     static void uvx_on_prepare (uv_prepare_t* p) {
         auto h = get_handle<UVPrepare*>(p);
-        if (h->frontend) h->frontend->call_on_prepare();
+        if (h->frontend) h->frontend->call_now();
     }
 };
 
