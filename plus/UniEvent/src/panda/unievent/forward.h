@@ -6,23 +6,32 @@
 
 namespace panda { namespace unievent {
 
+struct Loop;
+using LoopSP = iptr<Loop>;
+
 struct Handle;
 using HandleSP = iptr<Handle>;
 
-struct Loop;
-using LoopSP = iptr<Loop>;
+struct Prepare;
+using PrepareSP = iptr<Prepare>;
+
+struct Check;
+using CheckSP = iptr<Check>;
+
+struct Idle;
+using IdleSP = iptr<Idle>;
+
+struct Timer;
+using TimerSP = iptr<Timer>;
+
+
+
 
 struct Poll;
 using PollSP = iptr<Poll>;
 
 struct FSPoll;
 using FSPollSP = iptr<FSPoll>;
-
-struct Timer;
-using TimerSP = iptr<Timer>;
-
-struct Prepare;
-using PrepareSP = iptr<Prepare>;
 
 struct Stream;
 using StreamSP = iptr<Stream>;

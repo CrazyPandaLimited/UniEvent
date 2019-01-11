@@ -17,7 +17,7 @@ void Prepare::stop () {
 }
 
 void Prepare::reset () {
-    stop();
+    impl()->stop();
 }
 
 void Prepare::on_prepare () {

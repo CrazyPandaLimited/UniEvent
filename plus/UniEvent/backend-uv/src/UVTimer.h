@@ -13,7 +13,7 @@ struct UVTimer : UVHandle<BackendTimer> {
     }
 
     void start (uint64_t repeat, uint64_t initial) override {
-        uv_timer_start(&uvh, uvx_on_timer, initial, repeat);
+        uv_timer_start(&uvh, _call, initial, repeat);
     }
 
     void stop () override {
@@ -36,7 +36,7 @@ struct UVTimer : UVHandle<BackendTimer> {
 private:
     uv_timer_t uvh;
 
-    static void uvx_on_timer (uv_timer_t* p) {
+    static void _call (uv_timer_t* p) {
         auto h = get_handle<UVTimer*>(p);
         if (h->frontend) h->frontend->call_now();
     }

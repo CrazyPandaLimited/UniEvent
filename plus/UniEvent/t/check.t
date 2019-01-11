@@ -1,42 +1,56 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-BEGIN { plan skip_all => 'disabled'; }
-my ($l, $c, $p, $i, $j, $x, $t);
 
-$i = $j = 0;
-$l = UniEvent::Loop->default_loop;
-$c = new UniEvent::Check;
-$p = new UniEvent::Prepare;
-$t = new UniEvent::Timer;
-$t->timer_callback(sub { $l->stop if $j++ > 10 });
-$t->start(0.001);
+my $l = UniEvent::Loop->default_loop;
 
-is($c->type, UniEvent::Handle::HTYPE_CHECK);
+subtest 'start/stop/reset' => sub {
+    my $h = new UniEvent::Check;
+    is $h->type, UniEvent::Check::TYPE, 'type ok';
+    
+    my $i = 0;
+    $h->check_callback(sub { $i++ });
+    $h->start;
+    ok $l->run_nowait, 'holds loop';
+    is $i, 1, 'check works';
+    
+    $h->stop;
+    ok !$l->run_nowait, 'stopped';
+    is $i, 1, 'stop works';
+    
+    $h->start;
+    ok $l->run_nowait;
+    is $i, 2, 'started again';
 
-# start
-$p->prepare_callback(sub { $x++ });
-$p->start;
-$c->check_callback(sub { cmp_ok($x, '>', $i, "check is always after prepare"); $i++ });
-$c->start;
-$l->run;
-cmp_ok($i, '>', 0, "check works");
-$p->stop;
-$i = $j = 0;
+    $h->reset;
+    ok !$l->run_nowait;
+    is $i, 2, 'reset works';
+};
 
-# stop
-$c->stop;
-$l->run;
-is($i, 0, "stop works");
-$i = $j = 0;
+subtest 'runs after prepare' => sub {
+    my $i = 0;
+    my $p = new UniEvent::Prepare;
+    $p->start(sub { $i++ });
+    my $c = new UniEvent::Check;
+    $c->start(sub {
+        is $i, 1, 'after prepare';
+        $i += 10;
+    });
+    $l->run_nowait;
+    is $i, 11, 'called';
+};
 
-# reset
-$c->start(sub { $i-- });
-$l->run;
-cmp_ok($i, '<', 0, "start sets check_callback");
-$i = $j = 0;
-$c->reset;
-$l->run;
-is($i, 0, "reset works");
+subtest 'zombie mode' => sub {
+    my $l = new UniEvent::Loop;
+    my $h = new UniEvent::Check($l);
+    $h->check_callback(sub { fail("must not get called") });
+    $h->start;
+    undef $l;
+    is $h->loop, undef, "loop";
+    dies_ok { $h->start } "start";
+    dies_ok { $h->stop  } "stop";
+    dies_ok { $h->reset } "reset";
+    undef $h;
+};
 
 done_testing();

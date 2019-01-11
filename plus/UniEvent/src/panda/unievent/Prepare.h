@@ -1,13 +1,12 @@
 #pragma once
 #include "Handle.h"
-#include "forward.h"
 #include "backend/BackendPrepare.h"
 
 namespace panda { namespace unievent {
 
 struct Prepare : virtual Handle {
-    using prepare_fptr = void(Prepare* handle);
-    using prepare_fn = function<prepare_fptr>;
+    using prepare_fptr = void(Prepare*);
+    using prepare_fn   = function<prepare_fptr>;
 
     CallbackDispatcher<prepare_fptr> prepare_event;
 

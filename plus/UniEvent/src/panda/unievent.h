@@ -2,8 +2,8 @@
 #include <panda/unievent/forward.h>
 #include <panda/unievent/Loop.h>
 #include <panda/unievent/Prepare.h>
-//#include <panda/unievent/Check.h>
-//#include <panda/unievent/Idle.h>
+#include <panda/unievent/Check.h>
+#include <panda/unievent/Idle.h>
 #include <panda/unievent/Timer.h>
 //#include <panda/unievent/UDP.h>
 //#include <panda/unievent/Poll.h>

@@ -1,6 +1,8 @@
 #pragma once
 #include "inc.h"
+#include "UVIdle.h"
 #include "UVTimer.h"
+#include "UVCheck.h"
 #include "UVPrepare.h"
 #include <panda/unievent/backend/BackendLoop.h>
 
@@ -44,6 +46,8 @@ struct UVLoop : BackendLoop {
 
     BackendTimer*   new_timer   (Timer*   frontend) override { return new UVTimer  (_uvloop, frontend); }
     BackendPrepare* new_prepare (Prepare* frontend) override { return new UVPrepare(_uvloop, frontend); }
+    BackendCheck*   new_check   (Check*   frontend) override { return new UVCheck  (_uvloop, frontend); }
+    BackendIdle*    new_idle    (Idle*    frontend) override { return new UVIdle   (_uvloop, frontend); }
 
 private:
     uv_loop_t  _uvloop_body;

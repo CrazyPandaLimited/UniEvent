@@ -13,7 +13,7 @@ struct UVPrepare : UVHandle<BackendPrepare> {
     }
 
     void start () {
-        uv_prepare_start(&uvh, uvx_on_prepare);
+        uv_prepare_start(&uvh, _call);
     }
 
     void stop () {
@@ -23,7 +23,7 @@ struct UVPrepare : UVHandle<BackendPrepare> {
 private:
     uv_prepare_t uvh;
 
-    static void uvx_on_prepare (uv_prepare_t* p) {
+    static void _call (uv_prepare_t* p) {
         auto h = get_handle<UVPrepare*>(p);
         if (h->frontend) h->frontend->call_now();
     }

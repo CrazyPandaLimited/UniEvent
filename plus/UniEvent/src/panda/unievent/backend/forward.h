@@ -7,5 +7,7 @@ struct BackendLoop;
 struct BackendHandle;
 struct BackendTimer;
 struct BackendPrepare;
+struct BackendCheck;
+struct BackendIdle;
 
 }}};

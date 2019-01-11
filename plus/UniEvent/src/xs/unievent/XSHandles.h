@@ -32,20 +32,20 @@ protected:
 };
 
 
-//struct XSCheck : Check, XSHandle {
-//    XSCallback check_xscb;
-//    XSCheck (Loop* loop) : Check(loop) {}
-//protected:
-//    void on_check () override;
-//};
-//
-//
-//struct XSIdle : Idle, XSHandle {
-//    XSCallback idle_xscb;
-//    XSIdle (Loop* loop) : Idle(loop) {}
-//protected:
-//    void on_idle () override;
-//};
+struct XSCheck : Check, XSHandle {
+    XSCallback check_xscb;
+    XSCheck (Loop* loop) : Check(loop) {}
+protected:
+    void on_check () override;
+};
+
+
+struct XSIdle : Idle, XSHandle {
+    XSCallback idle_xscb;
+    XSIdle (Loop* loop) : Idle(loop) {}
+protected:
+    void on_idle () override;
+};
 
 
 struct XSTimer : Timer, XSHandle {
@@ -253,13 +253,13 @@ template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap
     panda::string package () { return "UniEvent::Prepare"; }
 };
 
-//template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::Check"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::Idle"; }
-//};
+template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::Check"; }
+};
+
+template <class TYPE> struct Typemap <panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::Idle"; }
+};
 
 template <class TYPE> struct Typemap <panda::unievent::Timer*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
     panda::string package () { return "UniEvent::Timer"; }

@@ -22,6 +22,8 @@ struct BackendLoop {
 
     virtual BackendTimer*   new_timer   (Timer*   frontend) = 0;
     virtual BackendPrepare* new_prepare (Prepare* frontend) = 0;
+    virtual BackendCheck*   new_check   (Check*   frontend) = 0;
+    virtual BackendIdle*    new_idle    (Idle*    frontend) = 0;
 
     virtual ~BackendLoop () {}
 

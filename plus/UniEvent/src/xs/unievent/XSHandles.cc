@@ -68,15 +68,15 @@ void XSPrepare::on_prepare () {
     if (!prepare_xscb.call(obj, evname_on_prepare)) Prepare::on_prepare();
 }
 
-//void XSCheck::on_check () {
-//    auto obj = xs::out<Check*>(aTHX_ this);
-//    if (!check_xscb.call(obj, evname_on_check)) Check::on_check();
-//}
-//
-//void XSIdle::on_idle () {
-//    auto obj = xs::out<Idle*>(aTHX_ this);
-//    if (!idle_xscb.call(obj, evname_on_idle)) Idle::on_idle();
-//}
+void XSCheck::on_check () {
+    auto obj = xs::out<Check*>(aTHX_ this);
+    if (!check_xscb.call(obj, evname_on_check)) Check::on_check();
+}
+
+void XSIdle::on_idle () {
+    auto obj = xs::out<Idle*>(aTHX_ this);
+    if (!idle_xscb.call(obj, evname_on_idle)) Idle::on_idle();
+}
 
 void XSTimer::on_timer () {
     auto obj = xs::out<Timer*>(aTHX_ this);
