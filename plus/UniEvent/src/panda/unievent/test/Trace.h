@@ -9,7 +9,7 @@
 
 #include <execinfo.h>
 
-namespace panda { namespace unievent { namespace test {
+namespace panda { namespace unievent { namespace debug {
 
 
 // see https://www.gnu.org/software/libc/manual/html_node/Backtraces.html
@@ -36,7 +36,7 @@ inline panda::string get_trace() {
 
 #else
 
-namespace panda { namespace unievent { namespace test {
+namespace panda { namespace unievent { namespace debug {
 
 inline panda::string get_trace() {}
 

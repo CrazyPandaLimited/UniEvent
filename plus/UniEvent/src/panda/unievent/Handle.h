@@ -100,15 +100,16 @@ struct Handle : virtual Refcnt {
 protected:
     uv_handle_t* uvhp;
     uint32_t     flags;
-    bool         in_user_callback;
+    uint32_t     in_user_callback;
 
     struct InUserCallbackLock {
         Handle* h;
         InUserCallbackLock(Handle* h) : h(h){
-            h->in_user_callback = true;
+            h->in_user_callback++;
         }
         ~InUserCallbackLock() {
-            h->in_user_callback = false;
+            assert(h->in_user_callback);
+            h->in_user_callback--;
         }
     };
 

@@ -222,7 +222,7 @@ void Resolver::on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_re
     resolve_request->event(resolver, resolve_request, address, resolve_request->done ? CodeError(ERRNO_ECANCELED) : err);
 }
 
-ResolveRequest::~ResolveRequest() { _EDTOR(); panda_debug_v(this); }
+ResolveRequest::~ResolveRequest() { _EDTOR(); }
 
 ResolveRequest::ResolveRequest(ResolveFunction callback, SimpleResolver* resolver) : resolver(resolver), key(nullptr), async(false), done(false) {
     _ECTOR();

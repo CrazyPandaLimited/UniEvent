@@ -206,3 +206,36 @@ TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
 
     test.loop->run();
 }
+//TODO: this test should have been failing before fix, but it did not
+//TODO: find a way to reproduce SRV-1273 from UniEvent
+TEST_CASE("UniEvent SRV-1273", "[tcp][v-ssl]") {
+    AsyncTest test(1000, {"client", "client", "client", "client", "client", "client", "client", "client", "client", "client"});
+    SockAddr addr = test.get_refused_addr();
+    std::vector<TCPSP> clients;
+    size_t counter = 0;
+
+    auto client_timer = unievent::Timer::start(30, [&](TimerSP) {
+        if (++counter == 10) {
+            test.loop->stop();
+        }
+        test.happens("client");
+        TCPSP client = new TCP(test.loop);
+        client->connect_event.add([](Stream* s, const CodeError* err, ConnectRequest*){
+            REQUIRE(err);
+            s->reset();
+        });
+
+        client->connect(addr.ip(), addr.port());
+        for (size_t i = 0; i < 2; ++i) {
+            client->write("123", ([](Stream* s, const CodeError* err, WriteRequest*){
+                REQUIRE(err);
+                s->reset();
+            }));
+        }
+        clients.push_back(client);
+    }, test.loop);
+
+    test.loop->run();
+    clients.clear();
+    REQUIRE(counter == 10);
+}

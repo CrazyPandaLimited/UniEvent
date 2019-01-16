@@ -32,7 +32,9 @@ void Stream::do_on_connect (const CodeError* err, ConnectRequest* connect_reques
     set_connected(!err);
     connect_request->release_timer();
     if (asyncq_empty()) {
-        if (unlock) async_unlock_noresume();
+        if (unlock) {
+            async_unlock_noresume();
+        }
         {
             auto guard = lock_in_callback();
             connect_request->event(this, err, connect_request);
