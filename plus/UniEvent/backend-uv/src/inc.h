@@ -1,94 +1,11 @@
 #pragma once
 #include <uv.h>
+#include <panda/unievent/util.h>
 #include <panda/unievent/Debug.h>
 #include <panda/unievent/Error.h>
 #include <panda/unievent/backend/BackendHandle.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
-
-inline CodeError uvx_code_error (int uverr) {
-    assert(uverr);
-    switch (uverr) {
-        case UV_E2BIG          : return CodeError(std::errc::argument_list_too_long);
-        case UV_EACCES         : return CodeError(std::errc::permission_denied);
-        case UV_EADDRINUSE     : return CodeError(std::errc::address_in_use);
-        case UV_EADDRNOTAVAIL  : return CodeError(std::errc::address_not_available);
-        case UV_EAFNOSUPPORT   : return CodeError(std::errc::address_family_not_supported);
-        case UV_EAGAIN         : return CodeError(std::errc::resource_unavailable_try_again);
-        case UV_EAI_ADDRFAMILY : return CodeError(errc::ai_address_family_not_supported);
-        case UV_EAI_AGAIN      : return CodeError(errc::ai_temporary_failure);
-        case UV_EAI_BADFLAGS   : return CodeError(errc::ai_bad_flags);
-        case UV_EAI_BADHINTS   : return CodeError(errc::ai_bad_hints);
-        case UV_EAI_CANCELED   : return CodeError(errc::ai_request_canceled);
-        case UV_EAI_FAIL       : return CodeError(errc::ai_permanent_failure);
-        case UV_EAI_FAMILY     : return CodeError(errc::ai_family_not_supported);
-        case UV_EAI_MEMORY     : return CodeError(errc::ai_out_of_memory);
-        case UV_EAI_NODATA     : return CodeError(errc::ai_no_address);
-        case UV_EAI_NONAME     : return CodeError(errc::ai_unknown_node_or_service);
-        case UV_EAI_OVERFLOW   : return CodeError(errc::ai_argument_buffer_overflow);
-        case UV_EAI_PROTOCOL   : return CodeError(errc::ai_resolved_protocol_unknown);
-        case UV_EAI_SERVICE    : return CodeError(errc::ai_service_not_available_for_socket_type);
-        case UV_EAI_SOCKTYPE   : return CodeError(errc::ai_socket_type_not_supported);
-        case UV_EALREADY       : return CodeError(std::errc::connection_already_in_progress);
-        case UV_EBADF          : return CodeError(std::errc::bad_file_descriptor);
-        case UV_EBUSY          : return CodeError(std::errc::device_or_resource_busy);
-        case UV_ECANCELED      : return CodeError(std::errc::operation_canceled);
-        case UV_ECHARSET       : return CodeError(errc::invalid_unicode_character);
-        case UV_ECONNABORTED   : return CodeError(std::errc::connection_aborted);
-        case UV_ECONNREFUSED   : return CodeError(std::errc::connection_refused);
-        case UV_ECONNRESET     : return CodeError(std::errc::connection_reset);
-        case UV_EDESTADDRREQ   : return CodeError(std::errc::destination_address_required);
-        case UV_EEXIST         : return CodeError(std::errc::file_exists);
-        case UV_EFAULT         : return CodeError(std::errc::bad_address);
-        case UV_EFBIG          : return CodeError(std::errc::file_too_large);
-        case UV_EHOSTUNREACH   : return CodeError(std::errc::host_unreachable);
-        case UV_EINTR          : return CodeError(std::errc::interrupted);
-        case UV_EINVAL         : return CodeError(std::errc::invalid_argument);
-        case UV_EIO            : return CodeError(std::errc::io_error);
-        case UV_EISCONN        : return CodeError(std::errc::already_connected);
-        case UV_EISDIR         : return CodeError(std::errc::is_a_directory);
-        case UV_ELOOP          : return CodeError(std::errc::too_many_symbolic_link_levels);
-        case UV_EMFILE         : return CodeError(std::errc::too_many_files_open);
-        case UV_EMSGSIZE       : return CodeError(std::errc::message_size);
-        case UV_ENAMETOOLONG   : return CodeError(std::errc::filename_too_long);
-        case UV_ENETDOWN       : return CodeError(std::errc::network_down);
-        case UV_ENETUNREACH    : return CodeError(std::errc::network_unreachable);
-        case UV_ENFILE         : return CodeError(std::errc::too_many_files_open_in_system);
-        case UV_ENOBUFS        : return CodeError(std::errc::no_buffer_space);
-        case UV_ENODEV         : return CodeError(std::errc::no_such_device);
-        case UV_ENOENT         : return CodeError(std::errc::no_such_file_or_directory);
-        case UV_ENOMEM         : return CodeError(std::errc::not_enough_memory);
-        case UV_ENONET         : return CodeError(errc::not_on_network);
-        case UV_ENOPROTOOPT    : return CodeError(std::errc::no_protocol_option);
-        case UV_ENOSPC         : return CodeError(std::errc::no_space_on_device);
-        case UV_ENOSYS         : return CodeError(std::errc::function_not_supported);
-        case UV_ENOTCONN       : return CodeError(std::errc::not_connected);
-        case UV_ENOTDIR        : return CodeError(std::errc::not_a_directory);
-        case UV_ENOTEMPTY      : return CodeError(std::errc::directory_not_empty);
-        case UV_ENOTSOCK       : return CodeError(std::errc::not_a_socket);
-        case UV_ENOTSUP        : return CodeError(std::errc::not_supported);
-        case UV_EPERM          : return CodeError(std::errc::operation_not_permitted);
-        case UV_EPIPE          : return CodeError(std::errc::broken_pipe);
-        case UV_EPROTO         : return CodeError(std::errc::protocol_error);
-        case UV_EPROTONOSUPPORT: return CodeError(std::errc::protocol_not_supported);
-        case UV_EPROTOTYPE     : return CodeError(std::errc::wrong_protocol_type);
-        case UV_ERANGE         : return CodeError(std::errc::result_out_of_range);
-        case UV_EROFS          : return CodeError(std::errc::read_only_file_system);
-        case UV_ESHUTDOWN      : return CodeError(errc::transport_endpoint_shutdown);
-        case UV_ESPIPE         : return CodeError(std::errc::invalid_seek);
-        case UV_ESRCH          : return CodeError(std::errc::no_such_process);
-        case UV_ETIMEDOUT      : return CodeError(std::errc::timed_out);
-        case UV_ETXTBSY        : return CodeError(std::errc::text_file_busy);
-        case UV_EXDEV          : return CodeError(std::errc::cross_device_link);
-        case UV_UNKNOWN        : return CodeError(errc::unknown_error);
-        case UV_ENXIO          : return CodeError(std::errc::no_such_device_or_address);
-        case UV_EMLINK         : return CodeError(std::errc::too_many_links);
-        case UV_EHOSTDOWN      : return CodeError(errc::host_down);
-        case UV_EREMOTEIO      : return CodeError(errc::remote_io);
-        case UV_ENOTTY         : return CodeError(std::errc::inappropriate_io_control_operation);
-        default                : return CodeError(errc::unknown_error);
-    }
-}
 
 template <class T = BackendHandle*, class X>
 inline T get_handle (X* uvhp) {

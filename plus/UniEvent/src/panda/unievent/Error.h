@@ -84,19 +84,6 @@ protected:
     string _mkwhat () const override;
 };
 
-//struct DyLibError : CodeError {
-//    DyLibError (int code = 0, uv_lib_t* lib = nullptr) : CodeError(code), lib(lib) {}
-//
-//    virtual string dlerror () const;
-//
-//    string _mkwhat () const override;
-//
-//    virtual DyLibError* clone () const override;
-//
-//private:
-//    uv_lib_t* lib;
-//};
-
 struct SSLError : CodeError {
     SSLError (int ssl_code);
     SSLError (int ssl_code, unsigned long openssl_code);

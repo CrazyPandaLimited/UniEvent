@@ -1,5 +1,4 @@
 #pragma once
-#include <uv.h>
 #include <type_traits>
 
 #define PEXS_NULL_TERMINATE(what, to)            \

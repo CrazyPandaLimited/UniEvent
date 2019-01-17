@@ -1,4 +1,5 @@
 #include "AsyncTest.h"
+#include <uv.h> // for getaddrinfo
 #include <sstream>
 #include <iostream>
 #include <unistd.h>

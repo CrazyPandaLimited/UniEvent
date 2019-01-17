@@ -51,6 +51,7 @@ ImplRequiredError* ImplRequiredError::clone () const {
     return ret;
 }
 
+
 ErrorCategory CodeError::category;
 
 CodeError::CodeError (errc      value) : _code(std::error_code((int)value, category)) {}
@@ -71,18 +72,6 @@ string CodeError::_mkwhat () const {
 }
 
 CodeError* CodeError::clone () const { return new CodeError(_code); }
-
-
-//string DyLibError::dlerror () const {
-//    return _code == 0 ? string() : string(uv_dlerror(lib));
-//}
-//
-//string DyLibError::_mkwhat () const {
-//    if (!_code) return {};
-//    return CodeError::_mkwhat() + " : " + dlerror();
-//}
-//
-//DyLibError* DyLibError::clone () const { return new DyLibError(_code, lib); }
 
 
 SSLError::SSLError (int ssl_code) : SSLError(ssl_code, 0) {
