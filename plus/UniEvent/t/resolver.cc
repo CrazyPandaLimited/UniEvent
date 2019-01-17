@@ -203,3 +203,20 @@ TEST_CASE("resolve connect timeout", "[tcp-connect-timeout][v-ssl]") {
         test.await(client->connect_event, "");
     }
 }
+
+TEST_CASE("resolve cache moment invalidation", "[tcp-connect-timeout][v-ssl]") {
+    AsyncTest test(500, {"cached", "resolved"});
+    AddrInfoHintsSP hints = new AddrInfoHints;
+    ResolverSP resolver = new Resolver(test.loop);
+
+    auto no_callback = [](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError*){};
+
+    ResolveRequestSP req = resolver->resolve("localhost", "80", hints, no_callback, true); // make sure, that localhost is in cache now
+    test.await(req->event, "cached");
+
+    req = resolver->resolve("localhost", "80", hints, no_callback, true); // real test resolving, should be get from cache and delayed with call_soon
+    resolver->clear();
+    auto res = test.await(req->event, "resolved");
+    AddrInfoSP addr = std::get<2>(res);
+    REQUIRE(addr);
+}
