@@ -12,11 +12,11 @@ struct UVCheck : UVHandle<BackendCheck> {
         _init(&uvh);
     }
 
-    void start () {
+    void start () override {
         uv_check_start(&uvh, _call);
     }
 
-    void stop () {
+    void stop () override {
         uv_check_stop(&uvh);
     }
 

@@ -12,11 +12,11 @@ struct UVIdle : UVHandle<BackendIdle> {
         _init(&uvh);
     }
 
-    void start () {
+    void start () override {
         uv_idle_start(&uvh, _call);
     }
 
-    void stop () {
+    void stop () override {
         uv_idle_stop(&uvh);
     }
 

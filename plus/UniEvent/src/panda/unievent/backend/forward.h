@@ -9,5 +9,6 @@ struct BackendTimer;
 struct BackendPrepare;
 struct BackendCheck;
 struct BackendIdle;
+struct BackendAsync;
 
 }}};

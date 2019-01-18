@@ -12,11 +12,11 @@ struct UVPrepare : UVHandle<BackendPrepare> {
         _init(&uvh);
     }
 
-    void start () {
+    void start () override {
         uv_prepare_start(&uvh, _call);
     }
 
-    void stop () {
+    void stop () override {
         uv_prepare_stop(&uvh);
     }
 
