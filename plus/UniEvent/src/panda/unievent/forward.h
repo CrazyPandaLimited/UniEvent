@@ -27,6 +27,9 @@ using TimerSP = iptr<Timer>;
 struct Async;
 using AsyncSP = iptr<Async>;
 
+struct Signal;
+using SignalSP = iptr<Signal>;
+
 
 //struct Poll;
 //using PollSP = iptr<Poll>;

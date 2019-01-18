@@ -55,6 +55,12 @@ protected:
     void on_timer () override;
 };
 
+struct XSSignal : Signal, XSHandle {
+    XSCallback signal_xscb;
+    XSSignal (Loop* loop) : Signal(loop) {}
+protected:
+    void on_signal (int signum) override;
+};
 
 //struct XSFSEvent : FSEvent, XSHandle {
 //    XSCallback fs_event_xscb;
@@ -70,14 +76,6 @@ protected:
 //    XSFSPoll (Loop* loop) : FSPoll(loop), stat_as_hash(false) {}
 //protected:
 //    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) override;
-//};
-//
-//
-//struct XSSignal : Signal, XSHandle {
-//    XSCallback signal_xscb;
-//    XSSignal (Loop* loop) : Signal(loop) {}
-//protected:
-//    void on_signal (int signum) override;
 //};
 //
 //
@@ -265,16 +263,16 @@ template <class TYPE> struct Typemap <panda::unievent::Timer*, TYPE> : Typemap<p
     panda::string package () { return "UniEvent::Timer"; }
 };
 
+template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::Signal"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::FSPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSPoll"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::Signal"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};

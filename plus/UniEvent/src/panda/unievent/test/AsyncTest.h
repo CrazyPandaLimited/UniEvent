@@ -16,7 +16,6 @@ struct AsyncTest {
     std::vector<string> expected;
     std::vector<string> happened;
     TimerSP timer;
-    bool broken_state;
 
     struct Error : std::runtime_error {
         Error(std::string msg, AsyncTest& test);

@@ -83,6 +83,11 @@ void XSTimer::on_timer () {
     if (!timer_xscb.call(obj, evname_on_timer)) Timer::on_timer();
 }
 
+void XSSignal::on_signal (int signum) {
+    auto obj = xs::out<Signal*>(aTHX_ this);
+    if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
+}
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
@@ -98,12 +103,6 @@ void XSTimer::on_timer () {
 //        err ? Scalar::undef : (stat_as_hash ? stat2hvr(curr) : stat2avr(curr)),
 //        xs::out(err)
 //    })) FSPoll::on_fs_poll(prev, curr, err);
-//}
-//
-//void XSSignal::on_signal (int signum) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Signal*>(aTHX_ this);
-//    if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 //}
 //
 //void XSStream::on_connection (StreamSP stream, const CodeError* err) {

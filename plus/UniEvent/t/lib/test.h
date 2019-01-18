@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include <thread>
 #include <catch.hpp>
 #include <panda/unievent.h>
 #include <panda/unievent/Debug.h>

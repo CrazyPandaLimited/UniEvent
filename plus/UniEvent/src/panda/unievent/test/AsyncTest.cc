@@ -42,48 +42,16 @@ AsyncTest::AsyncTest(uint64_t timeout, const std::vector<string>& expected)
     : loop(new Loop())
     , expected(expected)
     , timer(create_timeout(timeout))
-    , broken_state(false)
 {}
 
 AsyncTest::~AsyncTest() noexcept(false) {
-    timer.reset();
-    loop->run_nowait(); // wait for all events trigered
-    loop->run_nowait(); // in case of async close
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait();
-    for (auto h : loop->handles()) {
-        panda_log_debug("smth is in Loop when destroing " << h->type() << ", "  << h << ", " <<  h->refcnt());
-    }
-    if (!broken_state && !happened_as_expected() && !std::uncaught_exception()) {
+    if (!happened_as_expected() && !std::uncaught_exception()) {
         throw Error("Test exits in bad state", *this);
     }
 }
 
 void AsyncTest::run() {
-    try {
-        loop->run();
-    } catch (AsyncTest::Error& e) {
-        //assume that test can not be continued after our own error
-        string loop_err = destroy_loop();
-        string err(e.what());
-        if (loop_err) {
-            err += ",\nAlso there was a problem with destroing a loop after this:\n" + loop_err;
-        }
-        throw Error(err, *this);
-    } catch(panda::unievent::Error& e) {
-        throw Error(e.what(), *this);
-    } catch (std::exception& e) {
-        throw Error(e.what(), *this);
-    }
+    loop->run();
 }
 
 void AsyncTest::happens(string event) {
@@ -123,19 +91,6 @@ std::string AsyncTest::generate_report() {
         out << std::endl;
     }
     return out.str();
-}
-
-string AsyncTest::destroy_loop() {
-    try {
-        loop = nullptr;
-    } catch (panda::unievent::Error& e) {
-        // we have a problem with loop, destructor will throw anyway and we do not want it
-        // to prevent destructor from call
-        loop->retain(); // yes it is memory leak, but test will fail anyway
-        broken_state = true;
-        return e.whats();
-    }
-    return "";
 }
 
 bool AsyncTest::happened_as_expected() {

@@ -1,6 +1,6 @@
 #include "lib/test.h"
 
-TEST_CASE("async simple", "[async_test]") {
+TEST_CASE("async_test simple", "[async_test]") {
     bool called = false;
     AsyncTest test(200, {"timer"});
 
@@ -12,7 +12,7 @@ TEST_CASE("async simple", "[async_test]") {
     REQUIRE(std::get<0>(res) == timer.get());
 }
 
-TEST_CASE("async dispatcher", "[async_test]") {
+TEST_CASE("async_test dispatcher", "[async_test]") {
     bool called = false;
     AsyncTest test(200, {"dispatched"});
 
@@ -28,7 +28,7 @@ TEST_CASE("async dispatcher", "[async_test]") {
 }
 
 
-TEST_CASE("async multi", "[async_test]") {
+TEST_CASE("async_test multi", "[async_test]") {
     int called = 0;
     AsyncTest test(200, {});
 
@@ -47,7 +47,7 @@ TEST_CASE("async multi", "[async_test]") {
     REQUIRE(called == 2);
 }
 
-TEST_CASE("call_soon", "[async_test]") {
+TEST_CASE("async_test call_soon", "[async_test]") {
     AsyncTest test(200, {"call"});
     size_t count = 0;
     test.loop->call_soon([&]() {
@@ -56,9 +56,9 @@ TEST_CASE("call_soon", "[async_test]") {
         test.happens("call");
         test.loop->stop();
     });
-    test.run();
     TimerSP timer = Timer::once(50, [&](Timer*){
         test.loop->stop();
     }, test.loop);
+    test.run();
     REQUIRE(count == 1);
 }

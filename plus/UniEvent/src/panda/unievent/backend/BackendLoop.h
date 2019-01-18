@@ -25,6 +25,7 @@ struct BackendLoop {
     virtual BackendCheck*   new_check   (Check*)   = 0;
     virtual BackendIdle*    new_idle    (Idle*)    = 0;
     virtual BackendAsync*   new_async   (Async*)   = 0;
+    virtual BackendSignal*  new_signal  (Signal*)  = 0;
 
     virtual ~BackendLoop () {}
 

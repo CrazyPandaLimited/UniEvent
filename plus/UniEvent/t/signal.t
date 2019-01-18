@@ -1,45 +1,117 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-use UniEvent::Signal qw/:const signame/;
-BEGIN { plan skip_all => 'disabled'; }
-my ($l, $s, $t, $err, $lastsignum);
-my @constants = qw/
-    SIGHUP SIGINT SIGQUIT SIGILL SIGTRAP SIGABRT SIGBUS SIGFPE SIGKILL SIGUSR1 SIGSEGV SIGUSR2 SIGPIPE SIGALRM SIGTERM
-    SIGCHLD SIGCONT SIGSTOP SIGTSTP SIGTTIN SIGTTOU SIGURG SIGXCPU SIGXFSZ SIGVTALRM SIGPROF SIGWINCH SIGSYS
-/;
+use UniEvent::Signal;
 
-for my $cname (sort @constants) {
-    no strict 'refs';
-    my $f = \&{"UniEvent::Signal::$cname"};
-    ok(defined $f->(), "constant $cname exists");
-}
+*signame = \&UniEvent::Signal::signame;
 
-$l = UniEvent::Loop->default_loop;
-$s = new UniEvent::Signal;
-$t = new UniEvent::Timer;
-
-$s->signal_callback(\&cb);
-$t->start(0.001);
-
-foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {
-    $s->start($signum);
-    is($s->signum, $signum, "signal has been bound to correct signum ($signum)");
-    is($s->signame, signame($signum), 'signame/signame_for return correct values: '.$s->signame);
-    $t->timer_callback(sub { kill $signum => $$});
-    $l->run;
-    $s->stop;
-    is($lastsignum, $signum, "signal handler called for ".$s->signame($signum));
+subtest 'constants' => sub {
+    my @constants = qw/
+        SIGHUP SIGINT SIGQUIT SIGILL SIGTRAP SIGABRT SIGBUS SIGFPE SIGKILL SIGUSR1 SIGSEGV SIGUSR2 SIGPIPE SIGALRM SIGTERM
+        SIGCHLD SIGCONT SIGSTOP SIGTSTP SIGTTIN SIGTTOU SIGURG SIGXCPU SIGXFSZ SIGVTALRM SIGPROF SIGWINCH SIGSYS
+    /;
     
-    $s->start_once($signum);
-    $l->run;
-    is($lastsignum, $signum, "signal handler called again for ".$s->signame($signum));
+    for my $cname (sort @constants) {
+        my $f = UniEvent::Signal->can($cname);
+        my $val = $f->();
+        ok $val, "$cname -> $val";
+        is signame($val), $cname, "$val -> $cname";
+    }
+};
+
+my $l = UniEvent::Loop->default_loop;
+
+subtest 'signum/signame' => \&many, sub {
+    my $signum = shift;
+    my $s = new UniEvent::Signal;
+    is $s->type, UniEvent::Signal::TYPE, "type ok";
+    $s->start($signum);
+    is($s->signum, $signum, "signum: $signum");
+    is($s->signame, signame($signum), 'signame: '.$s->signame);
+};
+
+subtest 'start/stop/reset' => \&many, sub {
+    my $signum = shift;
+    my $s = new UniEvent::Signal;
+    my ($lastsignum, $i);
+
+    $s->signal_callback(sub {
+        $lastsignum = $_[1];
+        ++$i;
+        $l->stop;
+    });
+    
+    $s->start($signum);
+    
+    ok $l->run_nowait, 'holds loop';
+    
+    trigger($l, $signum);
+    ok $l->run;
+    is $i, 1, "signal handler called";
+    is $lastsignum, $signum, "correct signal";
+    
+    $s->stop;
+    block($signum);
+    trigger($l, $signum);
+    ok !$l->run_nowait, 'stopped';
+    is $i, 1, "doesn't get called";
+    
+    undef $lastsignum;
+    $s->start($signum);
+    trigger($l, $signum);
+    ok $l->run;
+    is $i, 2, "started again";
+    is $lastsignum, $signum, "correct signal";
+    
+    $s->reset;
+    block($signum);
+    trigger($l, $signum);
+    ok !$l->run, 'reset';
+    is $i, 2, "doesn't get called";  
+};
+
+subtest 'once' => \&many, sub {
+    my $signum = shift;
+    my $s = new UniEvent::Signal;
+    my ($lastsignum, $i);
+
+    $s->signal_callback(sub {
+        $lastsignum = $_[1];
+        ++$i;
+        $l->stop;
+    });
+    
+    $s->once($signum);
+    ok $l->run_nowait, 'holds loop';
+    
+    trigger($l, $signum);
+    ok !$l->run;
+    is $i, 1, "called";
+    is $lastsignum, $signum, "correct signal";
+    
+    block($signum);
+    ok !$l->run, "won't run again";
+    is $i, 1, "doesn't get called";
+};
+
+sub many {
+    my $sub = shift;
+    foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {
+        subtest signame($signum) => $sub, $signum;
+    }
+    %SIG = ();
 }
 
-sub cb {
-    my ($h, $signum) = @_;
-    $lastsignum = $signum;
-    $l->stop;
+sub trigger {
+    my ($loop, $signum) = @_;
+    $loop->call_soon(sub { kill $signum => $$ });
+}
+
+sub block {
+    my $num = shift;
+    my $name = signame($num);
+    $name =~ s/^SIG//;
+    $SIG{$name} = 'IGNORE';
 }
 
 done_testing();

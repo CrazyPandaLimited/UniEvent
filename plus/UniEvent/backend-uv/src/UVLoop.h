@@ -4,6 +4,7 @@
 #include "UVTimer.h"
 #include "UVCheck.h"
 #include "UVAsync.h"
+#include "UVSignal.h"
 #include "UVPrepare.h"
 #include <panda/unievent/backend/BackendLoop.h>
 
@@ -50,6 +51,7 @@ struct UVLoop : BackendLoop {
     BackendCheck*   new_check   (Check*   frontend) override { return new UVCheck  (_uvloop, frontend); }
     BackendIdle*    new_idle    (Idle*    frontend) override { return new UVIdle   (_uvloop, frontend); }
     BackendAsync*   new_async   (Async*   frontend) override { return new UVAsync  (_uvloop, frontend); }
+    BackendSignal*  new_signal  (Signal*  frontend) override { return new UVSignal (_uvloop, frontend); }
 
 private:
     uv_loop_t  _uvloop_body;

@@ -10,5 +10,6 @@ struct BackendPrepare;
 struct BackendCheck;
 struct BackendIdle;
 struct BackendAsync;
+struct BackendSignal;
 
 }}};
