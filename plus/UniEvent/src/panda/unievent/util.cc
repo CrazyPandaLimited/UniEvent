@@ -3,6 +3,59 @@
 
 namespace panda { namespace unievent {
 
+string hostname () {
+    string ret(20);
+    size_t len = ret.capacity();
+    int err = uv_os_gethostname(ret.buf(), &len);
+    if (err) {
+        if (err != UV_ENOBUFS) throw uvx_code_error(err);
+        ret.reserve(len);
+        err = uv_os_gethostname(ret.buf(), &len);
+        if (err) throw uvx_code_error(err);
+    }
+    ret.length(len);
+    return ret;
+}
+
+size_t get_rss () {
+    size_t rss;
+    int err = uv_resident_set_memory(&rss);
+    if (err) throw uvx_code_error(err);
+    return rss;
+}
+
+uint64_t get_free_memory  () {
+    return uv_get_free_memory();
+}
+
+uint64_t get_total_memory () {
+    return uv_get_total_memory();
+}
+
+std::vector<InterfaceAddress> interface_info () {
+    uv_interface_address_t* uvlist;
+    int cnt;
+    int err = uv_interface_addresses(&uvlist, &cnt);
+    if (err) throw uvx_code_error(err);
+
+    std::vector<InterfaceAddress> ret;
+    ret.reserve(cnt);
+    for (int i = 0; i < cnt; ++i) {
+        auto& uvrow = uvlist[i];
+        InterfaceAddress row;
+        row.name = uvrow.name;
+        std::memcpy(row.phys_addr, uvrow.phys_addr, sizeof(uvrow.phys_addr));
+        row.is_internal = uvrow.is_internal;
+        row.address = net::SockAddr((sockaddr*)&uvrow.address);
+        row.netmask = net::SockAddr((sockaddr*)&uvrow.netmask);
+        ret.push_back(row);
+    }
+
+    uv_free_interface_addresses(uvlist, cnt);
+
+    return ret;
+}
+
 std::vector<CpuInfo> cpu_info () {
     uv_cpu_info_t* uvlist;
     int cnt;
@@ -29,63 +82,33 @@ std::vector<CpuInfo> cpu_info () {
     return ret;
 }
 
-//string hostname () {
-//    string ret(20);
-//    size_t len = ret.capacity();
-//    int err = uv_os_gethostname(ret.buf(), &len);
-//    if (err) {
-//        if (err != UV_ENOBUFS) throw uvx_code_error(err);
-//        ret.reserve(len);
-//        err = uv_os_gethostname(ret.buf(), &len);
-//        if (err) throw uvx_code_error(err);
-//    }
-//    ret.length(len);
-//    return ret;
-//}
-//
-//size_t resident_set_memory () {
-//    size_t rss;
-//    int err = uv_resident_set_memory(&rss);
-//    if (err) throw uvx_code_error(err);
-//    return rss;
-//}
-//
-//uint64_t get_free_memory  () {
-//    return uv_get_free_memory();
-//}
-//
-//uint64_t get_total_memory () {
-//    return uv_get_total_memory();
-//}
-//
-//ResourceUsage get_rusage () {
-//    uv_rusage_t d;
-//    int err = uv_getrusage(&d);
-//    if (err) throw uvx_code_error(err);
-//
-//    ResourceUsage ret;
-//    ret.utime.sec  = d.ru_utime.tv_sec;
-//    ret.utime.usec = d.ru_utime.tv_usec;
-//    ret.stime.sec  = d.ru_stime.tv_sec;
-//    ret.stime.usec = d.ru_stime.tv_usec;
-//    ret.maxrss     = d.ru_maxrss;
-//    ret.ixrss      = d.ru_ixrss;
-//    ret.idrss      = d.ru_idrss;
-//    ret.isrss      = d.ru_isrss;
-//    ret.minflt     = d.ru_minflt;
-//    ret.majflt     = d.ru_majflt;
-//    ret.nswap      = d.ru_nswap;
-//    ret.inblock    = d.ru_inblock;
-//    ret.oublock    = d.ru_oublock;
-//    ret.msgsnd     = d.ru_msgsnd;
-//    ret.msgrcv     = d.ru_msgrcv;
-//    ret.nsignals   = d.ru_nsignals;
-//    ret.nvcsw      = d.ru_nvcsw;
-//    ret.nivcsw     = d.ru_nivcsw;
-//
-//    return ret;
-//}
+ResourceUsage get_rusage () {
+    uv_rusage_t d;
+    int err = uv_getrusage(&d);
+    if (err) throw uvx_code_error(err);
 
+    ResourceUsage ret;
+    ret.utime.sec  = d.ru_utime.tv_sec;
+    ret.utime.usec = d.ru_utime.tv_usec;
+    ret.stime.sec  = d.ru_stime.tv_sec;
+    ret.stime.usec = d.ru_stime.tv_usec;
+    ret.maxrss     = d.ru_maxrss;
+    ret.ixrss      = d.ru_ixrss;
+    ret.idrss      = d.ru_idrss;
+    ret.isrss      = d.ru_isrss;
+    ret.minflt     = d.ru_minflt;
+    ret.majflt     = d.ru_majflt;
+    ret.nswap      = d.ru_nswap;
+    ret.inblock    = d.ru_inblock;
+    ret.oublock    = d.ru_oublock;
+    ret.msgsnd     = d.ru_msgsnd;
+    ret.msgrcv     = d.ru_msgrcv;
+    ret.nsignals   = d.ru_nsignals;
+    ret.nvcsw      = d.ru_nvcsw;
+    ret.nivcsw     = d.ru_nivcsw;
+
+    return ret;
+}
 
 CodeError uvx_code_error (int uverr) {
     assert(uverr);
