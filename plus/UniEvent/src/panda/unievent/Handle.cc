@@ -10,7 +10,7 @@ string Handle::buf_alloc (size_t cap) {
 }
 
 void Handle::destroy () {
-    _EDEBUGTHIS("destroy, locked: %d, type: %s", /*async_locked()*/ 0, type().name);
+    _EDEBUGTHIS("%s, locked=%d", type().name, /*async_locked()*/0);
 //    if (async_locked()) {
 //        asyncq_push(new CommandCloseDelete());
 //        return;

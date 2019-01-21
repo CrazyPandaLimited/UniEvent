@@ -27,6 +27,14 @@ subtest 'start/stop/reset' => sub {
     is $i, 2, 'reset works';
 };
 
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Prepare;
+    my $i = 0;
+    $h->prepare_callback(sub { $i++ });
+    $h->call_now for 1..5;
+    is $i, 5;
+};
+
 subtest 'zombie mode' => sub {
     my $l = new UniEvent::Loop;
     my $h = new UniEvent::Prepare($l);

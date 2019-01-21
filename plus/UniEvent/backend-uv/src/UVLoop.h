@@ -27,7 +27,8 @@ struct UVLoop : BackendLoop {
     }
 
     ~UVLoop () {
-        run_nowait(); // finish all closing handles
+        run(); // finish all closing handles
+        run(); // finish all closing handles
         int err = uv_loop_close(_uvloop);
         assert(!err); // unievent should have closed all handles
     }
@@ -36,9 +37,9 @@ struct UVLoop : BackendLoop {
     void     update_time ()       override { uv_update_time(_uvloop); }
     bool     alive       () const override { return uv_loop_alive(_uvloop) != 0; }
 
-    bool run        () override { return uv_run(_uvloop, UV_RUN_DEFAULT); }
-    bool run_once   () override { return uv_run(_uvloop, UV_RUN_ONCE); }
-    bool run_nowait () override { return uv_run(_uvloop, UV_RUN_NOWAIT); }
+    bool run        () override { return _run(UV_RUN_DEFAULT); }
+    bool run_once   () override { return _run(UV_RUN_ONCE); }
+    bool run_nowait () override { return _run(UV_RUN_NOWAIT); }
     void stop       () override { uv_stop(_uvloop); }
 
     void handle_fork () override {
@@ -56,6 +57,11 @@ struct UVLoop : BackendLoop {
 private:
     uv_loop_t  _uvloop_body;
     uv_loop_t* _uvloop;
+
+    bool _run (uv_run_mode mode) {
+        _uvloop->stop_flag = 0;
+        return uv_run(_uvloop, mode);
+    }
 };
 
 }}}}

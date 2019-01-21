@@ -94,6 +94,32 @@ subtest 'once' => \&many, sub {
     is $i, 1, "doesn't get called";
 };
 
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Signal;
+    my $i = 0;
+    my $sig;
+    $h->signal_callback(sub { $i++, $sig = $_[1] });
+    $h->call_now(SIGHUP) for 1..5;
+    is $i, 5;
+    is $sig, SIGHUP;
+};
+
+subtest 'zombie mode' => sub {
+    my $l = new UniEvent::Loop;
+    my $h = new UniEvent::Signal($l);
+    $h->signal_callback(sub { fail("must not get called") });
+    $h->start(SIGHUP);
+    undef $l;
+    block(SIGHUP);
+    kill SIGHUP => $$;
+    is $h->loop, undef, "loop";
+    dies_ok { $h->stop          } "stop";
+    dies_ok { $h->reset         } "reset";
+    dies_ok { $h->start(SIGHUP) } "start";
+    dies_ok { $h->once(SIGHUP)  } "once";
+    undef $h;
+};
+
 sub many {
     my $sub = shift;
     foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {

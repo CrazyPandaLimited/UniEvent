@@ -131,7 +131,17 @@ subtest 'call_soon' => sub {
     };
 };
 
-# CLONE_SKIP
-is UniEvent::Loop::CLONE_SKIP(), 1, "Loop has CLONE_SKIP set to 1";
+subtest 'CLONE_SKIP' => sub {
+    is UniEvent::Loop::CLONE_SKIP(), 1;
+};
+
+subtest 'stop before run' => sub {
+    my $loop = UniEvent::Loop->new();
+    my $i;
+    $loop->call_soon(sub { ++$i });
+    $loop->stop;
+    $loop->run_nowait;
+    is $i, 1, "run works";
+};
 
 done_testing();

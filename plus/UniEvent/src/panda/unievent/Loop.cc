@@ -69,6 +69,12 @@ void Loop::_call_soon () {
     if (!_soon_callbacks.size()) _soon_handle->stop();
 }
 
+void Loop::dump () const {
+    for (auto h : _handles) {
+        printf("%s(%p)\n", h->type().name, h);
+    }
+}
+
 //ResolverSP Loop::resolver () {
 //    if (!_resolver) _resolver = new Resolver(this);
 //    return _resolver;

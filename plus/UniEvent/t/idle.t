@@ -58,6 +58,14 @@ subtest 'runs rarely when loop is high loaded' => sub {
     cmp_ok($i, '>', $high_loaded_cnt, "runs often again");
 };
 
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Idle;
+    my $i = 0;
+    $h->idle_callback(sub { $i++ });
+    $h->call_now for 1..5;
+    is $i, 5;
+};
+
 subtest 'zombie mode' => sub {
     my $l = new UniEvent::Loop;
     my $h = new UniEvent::Idle($l);

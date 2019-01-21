@@ -1,41 +1,57 @@
 #include "lib/test.h"
 
 TEST_CASE("async", "[async]") {
-    AsyncTest test(100, {"async"});
+    SECTION("send") {
+        AsyncTest test(100, {"async"});
 
-    Async async([&](Async*) {
-        test.happens("async");
-        test.loop->stop();
-    }, test.loop);
+        AsyncSP async = new Async([&](Async*) {
+            test.happens("async");
+            test.loop->stop();
+        }, test.loop);
 
-    SECTION("from this thread") {
-        SECTION("after run") {
-            test.loop->call_soon([&]{
-                async.send();
-            });
+        SECTION("from this thread") {
+            SECTION("after run") {
+                test.loop->call_soon([&]{
+                    async->send();
+                });
+            }
+            SECTION("before run") {
+                async->send();
+            }
+            test.run();
         }
-        SECTION("before run") {
-            async.send();
+
+        SECTION("from another thread") {
+            std::thread t;
+            SECTION("after run") {
+                t = std::thread([](Async* h) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    h->send();
+                }, async);
+                test.run();
+            }
+            SECTION("before run") {
+                t = std::thread([](Async* h) {
+                    h->send();
+                }, async);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                test.run();
+            }
+            t.join();
         }
-        test.run();
+
+        SECTION("call_now") {
+            async->call_now();
+        }
     }
 
-    SECTION("from another thread") {
-        std::thread t;
-        SECTION("after run") {
-            t = std::thread([](Async* h) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                h->send();
-            }, &async);
-            test.run();
-        }
-        SECTION("before run") {
-            t = std::thread([](Async* h) {
-                h->send();
-            }, &async);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            test.run();
-        }
-        t.join();
+    SECTION("zombie mode") {
+        LoopSP loop = new Loop();
+        AsyncSP async = new Async([](Async*){
+            FAIL("should not be called");
+        }, loop);
+        loop.reset();
+
+        REQUIRE_THROWS( async->send() );
     }
 }

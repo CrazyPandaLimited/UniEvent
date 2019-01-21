@@ -40,6 +40,14 @@ subtest 'runs after prepare' => sub {
     is $i, 11, 'called';
 };
 
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Check;
+    my $i = 0;
+    $h->check_callback(sub { $i++ });
+    $h->call_now for 1..5;
+    is $i, 5;
+};
+
 subtest 'zombie mode' => sub {
     my $l = new UniEvent::Loop;
     my $h = new UniEvent::Check($l);

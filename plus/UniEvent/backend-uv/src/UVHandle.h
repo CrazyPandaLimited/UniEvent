@@ -19,6 +19,7 @@ protected:
     }
 
     void destroy () override {
+        _EDEBUGTHIS("%s", uvx_type_name(uvhp));
         this->template frontend = nullptr;
         uv_close(uvhp, uvx_on_close);
     }
@@ -28,8 +29,19 @@ protected:
 private:
     static void uvx_on_close (uv_handle_t* p) {
         auto h = get_handle(p);
-        _EDEBUG("[%p] uvx_on_close", h);
+        _EDEBUG("[%p] %s", h, uvx_type_name(p));
         delete h;
+    }
+
+    static const char* uvx_type_name (uv_handle_t* p) {
+#       define XX(uc,lc) case UV_##uc : return #lc;
+        switch (p->type) {
+            UV_HANDLE_TYPE_MAP(XX)
+            case UV_FILE: return "file";
+            default: break;
+        }
+#       undef XX
+        return "";
     }
 };
 

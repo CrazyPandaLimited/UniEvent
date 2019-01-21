@@ -48,6 +48,8 @@ struct Loop : Refcnt {
 
     void call_soon (soon_fn f);
 
+    void dump () const;
+
     //ResolverSP resolver ();
 
     BackendLoop* impl () const { return _impl; }
