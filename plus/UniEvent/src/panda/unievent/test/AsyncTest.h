@@ -129,6 +129,16 @@ struct AsyncTest {
         return by_timer;
     }
 
+    bool wait(uint64_t timeout) {
+        bool by_timer = false;
+        TimerSP timer = Timer::once(timeout, [&](Timer*) {
+            by_timer = true;
+            loop->stop();
+        }, loop); (void)timer;
+        run();
+        return by_timer;
+    }
+
 protected:
     virtual std::string generate_report ();
     string destroy_loop (); // return error if smth foes wrong

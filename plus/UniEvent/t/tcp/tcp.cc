@@ -239,3 +239,35 @@ TEST_CASE("UniEvent SRV-1273", "[tcp][v-ssl]") {
     clients.clear();
     REQUIRE(counter == 10);
 }
+
+TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
+    AsyncTest test(500, {"connect", "done"});
+    TCPSP server = make_basic_server(test.loop);
+    server->use_ssl(get_ssl_ctx());
+
+    TCPSP sconn;
+
+    server->connection_factory = [&]() {
+        sconn = new TCP(test.loop);
+        return sconn;
+    };
+
+    bool destroyed = false;
+
+    server->connection_event.add([&](Stream*, StreamSP, const CodeError*) {
+        REQUIRE_FALSE(destroyed);
+    });
+
+    TCPSP client = new TCP(test.loop);
+    client->connect(server->get_sockaddr());
+    test.await(client->connect_event, "connect");
+
+    server.reset();
+    test.loop->run_nowait();
+    destroyed = true;
+    client->reset();
+    client.reset();
+
+    test.wait(30);
+    test.happens("done");
+}

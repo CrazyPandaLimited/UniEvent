@@ -69,7 +69,6 @@ void Stream::do_on_connection (StreamSP stream, const CodeError* err) {
         auto guard = stream->lock_in_callback();
         on_connection(stream, err);
     }
-    stream->release();
 }
 
 void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
@@ -158,6 +157,7 @@ void Stream::accept (const StreamSP& stream) {
     stream->set_connecting();
     int err = uv_accept(uvsp(), stream->uvsp());
     filters_.on_connection(stream, CodeError(err));
+    stream->release();
 }
 
 void Stream::read_start (read_fn callback) {

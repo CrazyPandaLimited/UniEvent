@@ -40,8 +40,8 @@ SSLFilter::~SSLFilter () {
     SSL_free(ssl);
 }
 
-SSLFilter::SSLFilter (SSLFilter* parent_filter, Stream* stream, SSL_CTX* context)
-        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), parent_filter(parent_filter), state(State::initial), profile(Profile::UNKNOWN)
+SSLFilter::SSLFilter (SSLFilterSP parent_filter, Stream* stream, SSL_CTX* context)
+        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), state(State::initial), profile(Profile::UNKNOWN), parent_filter(parent_filter)
 {
     _ECTOR();
     init(context);
@@ -50,7 +50,7 @@ SSLFilter::SSLFilter (SSLFilter* parent_filter, Stream* stream, SSL_CTX* context
 SSLFilter::SSLFilter (Stream* stream, SSL_CTX* context) : SSLFilter(nullptr, stream, context) {}
 
 SSLFilter::SSLFilter (Stream* stream, const SSL_METHOD* method)
-        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), parent_filter(nullptr), state(State::initial), profile(Profile::UNKNOWN)
+        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), state(State::initial), profile(Profile::UNKNOWN), parent_filter()
 {
     _ECTOR();
     if (!method) {
@@ -130,7 +130,7 @@ void SSLFilter::on_connection (StreamSP stream, const CodeError* err) {
         NextFilter::on_connection(handle, uverr);
         return;
     }
-
+    stream->retain();
     filter->start_ssl_connection(Profile::SERVER);
 }
 
@@ -225,8 +225,11 @@ void SSLFilter::negotiation_finished (const CodeError* err) {
         connect_request = nullptr;
     }
     else {
-        parent_filter->NextFilter::on_connection(handle, err);
+        if (auto parent = parent_filter.lock()) {
+            parent->NextFilter::on_connection(handle, err);
+        }
         handle->async_unlock();
+        handle->release();
     }
 }
 

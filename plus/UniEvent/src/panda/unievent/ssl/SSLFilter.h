@@ -34,7 +34,7 @@ struct SSLFilter : StreamFilter, AllocatedObject<SSLFilter, true> {
     virtual ~SSLFilter ();
 
 private:
-    SSLFilter (SSLFilter* parent_filter, Stream* h, SSL_CTX* context);
+    SSLFilter (iptr<SSLFilter> parent_filter, Stream* h, SSL_CTX* context);
 
     enum class Profile { UNKNOWN = 0, SERVER = 1, CLIENT = 2 };
 
@@ -42,9 +42,10 @@ private:
     BIO*            read_bio;
     BIO*            write_bio;
     ConnectRequest* connect_request;
-    SSLFilter*      parent_filter;
     State           state;
     Profile         profile;
+
+    weak_iptr<SSLFilter> parent_filter;
 
     void init                 (SSL_CTX* context);
     void start_ssl_connection (Profile);
