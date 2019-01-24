@@ -5,6 +5,8 @@
 #include <panda/unievent/Error.h>
 #include <panda/unievent/backend/BackendHandle.h>
 
+#define uvx_status2err(status) (status ? static_cast<const CodeError*>(uvx_code_error(status)) : nullptr)
+
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 template <class T = BackendHandle*, class X>

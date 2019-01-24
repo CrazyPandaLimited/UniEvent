@@ -1,6 +1,7 @@
 #pragma once
 #include "inc.h"
 #include "UVIdle.h"
+#include "UVPoll.h"
 #include "UVTimer.h"
 #include "UVCheck.h"
 #include "UVAsync.h"
@@ -47,12 +48,15 @@ struct UVLoop : BackendLoop {
         if (err) throw uvx_code_error(err);
     }
 
-    BackendTimer*   new_timer   (Timer*   frontend) override { return new UVTimer  (_uvloop, frontend); }
-    BackendPrepare* new_prepare (Prepare* frontend) override { return new UVPrepare(_uvloop, frontend); }
-    BackendCheck*   new_check   (Check*   frontend) override { return new UVCheck  (_uvloop, frontend); }
-    BackendIdle*    new_idle    (Idle*    frontend) override { return new UVIdle   (_uvloop, frontend); }
-    BackendAsync*   new_async   (Async*   frontend) override { return new UVAsync  (_uvloop, frontend); }
-    BackendSignal*  new_signal  (Signal*  frontend) override { return new UVSignal (_uvloop, frontend); }
+    BackendTimer*   new_timer  (Timer*   frontend) override { return new UVTimer  (_uvloop, frontend); }
+    BackendPrepare* new_prepare(Prepare* frontend) override { return new UVPrepare(_uvloop, frontend); }
+    BackendCheck*   new_check  (Check*   frontend) override { return new UVCheck  (_uvloop, frontend); }
+    BackendIdle*    new_idle   (Idle*    frontend) override { return new UVIdle   (_uvloop, frontend); }
+    BackendAsync*   new_async  (Async*   frontend) override { return new UVAsync  (_uvloop, frontend); }
+    BackendSignal*  new_signal (Signal*  frontend) override { return new UVSignal (_uvloop, frontend); }
+
+    BackendPoll* new_poll_sock (Poll* frontend, sock_t sock) override { return new UVPoll(_uvloop, frontend, sock); }
+    BackendPoll* new_poll_fd   (Poll* frontend, int    fd  ) override { return new UVPoll(_uvloop, frontend, fd, nullptr); }
 
 private:
     uv_loop_t  _uvloop_body;

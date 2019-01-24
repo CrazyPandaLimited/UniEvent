@@ -11,5 +11,6 @@ struct BackendCheck;
 struct BackendIdle;
 struct BackendAsync;
 struct BackendSignal;
+struct BackendPoll;
 
 }}};
