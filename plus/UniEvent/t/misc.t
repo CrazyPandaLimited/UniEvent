@@ -89,4 +89,14 @@ subtest 'get_rusage' => sub {
     }
 };
 
+subtest 'guess_type' => sub {
+    is UniEvent::guess_type(0), UniEvent::Handle::UNKNOWN_TYPE;
+    # TODO
+    #is UniEvent::guess_type(*STDIN{IO}), UniEvent::TTY::TYPE;
+    # for PIPE ?
+    # for TCP ?
+    # for UDP ?
+    # for FILE ?
+};
+
 done_testing();

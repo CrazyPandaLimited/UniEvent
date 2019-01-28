@@ -48,9 +48,6 @@ using PollSP = iptr<Poll>;
 //struct Pipe;
 //using PipeSP = iptr<Pipe>;
 //
-//struct SimpleResolver;
-//using SimpleResolverSP = iptr<SimpleResolver>;
-//
 //struct Resolver;
 //using ResolverSP = iptr<Resolver>;
 //
@@ -64,12 +61,6 @@ using PollSP = iptr<Poll>;
 //
 //struct ResolveRequest;
 //using ResolveRequestSP = iptr<ResolveRequest>;
-//
-//struct AddrInfoHints;
-//using AddrInfoHintsSP = iptr<AddrInfoHints>;
-//
-//struct AddrInfo;
-//using AddrInfoSP = iptr<AddrInfo>;
 //
 //struct AddressRotator;
 //using AddressRotatorSP = iptr<AddressRotator>;

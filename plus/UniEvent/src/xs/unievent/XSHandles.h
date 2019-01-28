@@ -17,6 +17,11 @@ using namespace panda::unievent;
 
 Stash perl_class_for_handle (Handle* h);
 
+inline file_t sv2file (const Sv& sv) {
+    if (sv.is_ref()) return (file_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
+    else             return (file_t)SvUV(sv);
+}
+
 struct XSHandle : virtual Handle {
 protected:
     mTHX;
@@ -226,11 +231,6 @@ protected:
 //private:
 //    Sv io_sv;
 //
-//    static file_t sv2file (const Sv& sv) {
-//        dTHX;
-//        if (sv.is_ref()) return (file_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
-//        else             return (file_t)SvUV(sv);
-//    }
 //};
 
 }}

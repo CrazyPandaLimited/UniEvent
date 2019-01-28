@@ -110,6 +110,18 @@ ResourceUsage get_rusage () {
     return ret;
 }
 
+const HandleType& guess_type (file_t file) {
+    auto uvt = uv_guess_handle(file);
+    switch (uvt) {
+        //case UV_TTY       : return TTY::TYPE;
+        //case UV_FILE      : ???;
+        //case UV_NAMED_PIPE: return Pipe::TYPE;
+        //case UV_UDP       : return UDP::TYPE;
+        //case UV_TCP       : return TCP::TYPE;
+        default           : return Handle::UNKNOWN_TYPE;
+    }
+}
+
 CodeError uvx_code_error (int uverr) {
     assert(uverr);
     switch (uverr) {

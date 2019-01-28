@@ -20,15 +20,13 @@ struct HandleType {
 };
 std::ostream& operator<< (std::ostream& out, const HandleType&);
 
-//typedef uv_os_fd_t os_fd_t;
-
 struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
     using BackendHandle = backend::BackendHandle;
     using buf_alloc_fn  = panda::function<string(Handle* h, size_t cap)>;
 
     buf_alloc_fn buf_alloc_callback;
 
-    Handle () /*: flags(0), in_user_callback(false)*/ {
+    Handle () : _weak(false) /*, in_user_callback(false)*/ {
         _ECTOR();
         //asyncq.head = asyncq.tail = nullptr;
     }
@@ -44,30 +42,24 @@ struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::All
 
     virtual const HandleType& type () const = 0;
 
-    //bool        active () const { return uv_is_active(uvhp); }
-    //bool        weak   () const { return flags & HF_WEAK; }
+    bool active () const { return impl()->active(); }
+    bool weak   () const { return _weak; }
     
+    void weak (bool value) {
+        if (_weak == value) return;
+        if (value) impl()->set_weak();
+        else       impl()->unset_weak();
+        _weak = value;
+    }
+
 //    os_fd_t fileno () const {
 //        os_fd_t fd;
 //        int err = uv_fileno(uvhp, &fd);
 //        if (err) throw CodeError(err);
 //        return fd;
 //    }
-//
-//    void weak (bool value) {
-//        if (weak() == value) return;
-//        if (value) {
-//            uv_unref(uvhp);
-//            flags |= HF_WEAK;
-//        } else  {
-//            uv_ref(uvhp);
-//            flags &= ~HF_WEAK;
-//        }
-//    }
-//
+
     virtual string buf_alloc (size_t cap);
-//
-//    void swap (Handle* other);
 
     virtual void reset () = 0;
 
@@ -98,15 +90,13 @@ struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::All
 //        asyncq_run(new CommandCallback(cb));
 //    }
 //
-//    static handle_type guess_type (file_t file);
-//
 //    friend struct CommandCloseDelete;
 //    friend struct CommandCloseReinit;
 
+    static const HandleType UNKNOWN_TYPE;
+
 protected:
 
-//    uv_handle_t* uvhp;
-//    uint32_t     flags;
 //    bool         in_user_callback;
 
     void _init (BackendHandle* impl) {
@@ -138,10 +128,6 @@ protected:
 //        CommandBase* tail;
 //    } asyncq;
 //
-//    static const uint32_t HF_WEAK = 0x01;
-//    static const uint32_t HF_BUSY = 0x02;
-//    static const uint32_t HF_LAST = HF_BUSY;
-
 //    void _init (void* hptr) {
 //        uvhp = static_cast<uv_handle_t*>(hptr);
 //        uvhp->data = this;
@@ -199,6 +185,7 @@ public:
 
 private:
     BackendHandle* _impl;
+    bool           _weak;
 
 //    void close_delete ();
 //

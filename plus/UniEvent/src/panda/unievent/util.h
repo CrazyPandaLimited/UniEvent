@@ -1,6 +1,7 @@
 #pragma once
 #include "inc.h"
 #include "Error.h"
+#include "Handle.h"
 #include <vector>
 #include <panda/net/sockaddr.h>
 
@@ -64,6 +65,8 @@ struct ResourceUsage {
 
 ResourceUsage get_rusage ();
 
+
+const HandleType& guess_type (file_t);
 
 CodeError uvx_code_error (int uverr);
 

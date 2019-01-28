@@ -3,6 +3,8 @@ namespace panda { namespace unievent {
 
 static const size_t MIN_ALLOC_SIZE = 1024;
 
+const HandleType Handle::UNKNOWN_TYPE("unknown");
+
 string Handle::buf_alloc (size_t cap) {
     if (buf_alloc_callback) return buf_alloc_callback(this, cap);
     string ret(cap);
@@ -54,23 +56,6 @@ void Handle::destroy () {
 //    h->async_unlock();
 //    h->release();
 //}
-
-//void Handle::swap (Handle *other) {
-//    assert(uvhp->type == other->uvhp->type);
-//    assert(uvhp->loop == other->uvhp->loop);
-//
-//    if (this == other) return;
-//    size_t size = uv_handle_size(uvhp->type);
-//
-//    std::swap_ranges((char*) uvhp, (char*)(uvhp) + size, (char*) other->uvhp); // could be twice faster by using uint64_t instead of char
-//    std::swap(uvhp->data, other->uvhp->data);
-//}
-
-//handle_type Handle::guess_type (file_t file) {
-//    uv_handle_type type = uv_guess_handle(file);
-//    return static_cast<handle_type>(type);
-//}
-//
 //void Handle::close_reinit (bool keep_asyncq) {
 //    _EDEBUGTHIS("close_reinit, keep_asyncq: %d, in_user_callback: %d, asyncq_empty(): %d ", keep_asyncq, in_user_callback, asyncq_empty());
 //    if (!keep_asyncq && in_user_callback) {

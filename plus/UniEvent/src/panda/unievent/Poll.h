@@ -32,12 +32,16 @@ struct Poll : virtual Handle {
         _EDTOR();
     }
 
+    const HandleType& type () const override;
+
     virtual void start (int events, poll_fn callback = nullptr);
     virtual void stop  ();
 
     void reset () override;
 
     void call_now (int events, const CodeError* err) { on_poll(events, err); }
+
+    static const HandleType TYPE;
 
 protected:
     virtual void on_poll (int events, const CodeError* err);

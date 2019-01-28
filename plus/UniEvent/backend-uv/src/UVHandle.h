@@ -18,6 +18,18 @@ protected:
         return reinterpret_cast<BackendLoop*>(uvhp->loop->data);
     }
 
+    bool active () const override {
+        return uv_is_active(uvhp);
+    }
+
+    virtual void set_weak () override {
+        uv_unref(uvhp);
+    }
+
+    virtual void unset_weak () override {
+        uv_ref(uvhp);
+    }
+
     void destroy () override {
         _EDEBUGTHIS("%s", uvx_type_name(uvhp));
         this->template frontend = nullptr;
