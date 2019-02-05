@@ -50,7 +50,7 @@ TEST_CASE("async_test multi", "[async_test]") {
 TEST_CASE("async_test call_soon", "[async_test]") {
     AsyncTest test(200, {"call"});
     size_t count = 0;
-    test.loop->call_soon([&]() {
+    test.loop->delay([&]() {
         count++;
         if (count >= 2) FAIL("called twice");
         test.happens("call");

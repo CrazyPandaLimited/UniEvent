@@ -10,44 +10,72 @@
 //    }
 //    return ss.str();
 //}
-//
-//TEST_CASE("basic resolver", "[resolver]") {
-//    LoopSP loop(new Loop);
-//    SimpleResolverSP resolver{new SimpleResolver(loop)};
-//    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
-//        _EDEBUG("%p", err);
-//        REQUIRE(!err);
-//    });
-//    loop->run();
-//    //resolver->stop();
-//}
-//
-//TEST_CASE("cached resolver", "[resolver]") {
-//    LoopSP loop(new Loop);
-//    ResolverSP resolver{new Resolver(loop)};
-//
-//    // Resolver will use cache by default, first time it is not in cache, async call
-//    bool called = false;
-//    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
-//        REQUIRE(!err);
-//        called = true;
-//    });
-//
-//    loop->run();
-//
-//    REQUIRE(called);
-//
-//    // in cache, so the call is sync
-//    called = false;
-//    resolver->resolve("google.com", "80", new AddrInfoHints, [&](SimpleResolverSP, ResolveRequestSP, AddrInfoSP, const CodeError* err) {
-//        REQUIRE(!err);
-//        called = true;
-//    });
-//    loop->run_nowait();
-//
-//    REQUIRE(called);
-//}
-//
+
+TEST_CASE("resolver", "[resolver]") {
+    AsyncTest test(2000, {"r", "r"});
+    ResolverSP resolver = new Resolver(test.loop);
+    AddrInfo res;
+
+    SECTION("basic") {
+        resolver->resolve().node("google.com").use_cache(false).on_resolve([&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+            test.happens("r");
+            CHECK(!err);
+            CHECK(ai);
+            res = ai;
+        }).run();
+        test.run();
+
+        resolver->resolve().node("google.com").use_cache(false).on_resolve([&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+            test.happens("r");
+            CHECK(!err);
+            CHECK(!ai.is(res)); // without cache every resolve is executed
+        }).run();
+        test.run();
+    }
+
+    SECTION("cached") {
+        SECTION("no hints") {
+            // Resolver will use cache by default, first time it is not in cache, async call
+            resolver->resolve("google.com", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+                test.happens("r");
+                REQUIRE(!err);
+                res = ai;
+            });
+            test.run();
+            CHECK(resolver->cache_size() == 1);
+
+            // in cache, so the call is sync
+            resolver->resolve("google.com", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+                test.happens("r");
+                REQUIRE(!err);
+                REQUIRE(ai.is(res));
+            });
+            test.run_nowait();
+            CHECK(resolver->cache_size() == 1);
+        }
+
+        SECTION("both default hints") {
+            auto b = resolver->resolve().node("google.com").service("80").on_resolve([&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+                test.happens("r");
+                REQUIRE(!err);
+                res = ai;
+            });
+            b.hints(AddrInfoHints());
+
+            b.run();
+            test.run();
+            CHECK(resolver->cache_size() == 1);
+
+            b.run();
+            test.run_nowait();
+            CHECK(resolver->cache_size() == 1);
+        }
+
+    }
+
+}
+
+
 //TEST_CASE("cached resolver, same hints", "[resolver]") {
 //    LoopSP loop(new Loop);
 //    ResolverSP resolver(new Resolver(loop));

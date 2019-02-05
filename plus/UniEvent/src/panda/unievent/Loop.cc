@@ -2,7 +2,7 @@
 #include "Error.h"
 #include "Handle.h"
 #include "Prepare.h"
-//#include "Resolver.h"
+#include "Resolver.h"
 #include <panda/unievent/backend/uv.h>
 #include <thread>
 
@@ -41,44 +41,51 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
     _impl = backend->new_loop(this, type);
 }
 
-Loop::~Loop () {
-    _EDTOR();
+void Loop::destroy () {
     while (_handles.size()) _handles.front()->destroy();
     delete _impl;
 }
 
-void Loop::call_soon (soon_fn f) {
-    if (!_soon_handle) {
-        _soon_handle = new Prepare(this);
-        _soon_handle->start([this](Prepare*) { _call_soon(); });
-    }
-    else if (!_soon_callbacks.size()) {
-        _soon_handle->start();
-    }
+Loop::~Loop () { _EDTOR(); }
 
-    _soon_callbacks.push_back(f);
+void Loop::delay (const delayed_fn& f, const iptr<Refcnt>& guard) {
+    if (!_delay_handle) {
+        _delay_handle = new Prepare(this);
+        _delay_handle->prepare_event.add([this](Prepare*) { _call_delayed(); });
+    }
+    if (!_delayed_callbacks.size()) _delay_handle->start();
+
+    _delayed_callbacks.push_back({f, guard});
 }
 
-void Loop::_call_soon () {
-    assert(!_soon_callbacks_reserve.size());
-    std::swap(_soon_callbacks, _soon_callbacks_reserve);
+void Loop::_call_delayed () {
+    assert(!_delayed_callbacks_reserve.size());
+    std::swap(_delayed_callbacks, _delayed_callbacks_reserve);
 
-    for (auto& f : _soon_callbacks_reserve) if (f) f();
+    for (auto& row : _delayed_callbacks_reserve) {
+        if (row.guard.weak_count() && !row.guard) continue; // skip callbacks with guard destroyed
+        if (row.cb) row.cb();
+    }
 
-    _soon_callbacks_reserve.clear();
-    if (!_soon_callbacks.size()) _soon_handle->stop();
+    _delayed_callbacks_reserve.clear();
+    if (!_delayed_callbacks.size()) _delay_handle->stop();
 }
 
 void Loop::dump () const {
     for (auto h : _handles) {
-        printf("%s(%p)\n", h->type().name, h);
+        printf("%p %s%s [%s%s]\n",
+            h,
+            h->active() && !h->weak() ? "": "~",
+            h->type().name,
+            h->active() ? "A" : "",
+            h->weak()   ? "W" : ""
+        );
     }
 }
 
-//ResolverSP Loop::resolver () {
-//    if (!_resolver) _resolver = new Resolver(this);
-//    return _resolver;
-//}
-
+ResolverSP& Loop::resolver () {
+    if (!_resolver) _resolver = new Resolver(this);
+    return _resolver;
+}
 
 }}

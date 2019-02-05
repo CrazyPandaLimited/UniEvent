@@ -5,18 +5,13 @@
 
 namespace xs {
 
-template <class TYPE_PTR>
-struct Typemap<addrinfo*, TYPE_PTR> : TypemapBase<addrinfo*, TYPE_PTR> {
-    using TYPE = typename std::remove_pointer<TYPE_PTR>::type;
-    TYPE_PTR in (pTHX_ SV* arg) {
-        if (!SvOK(arg)) return nullptr;
-        if (!SvPOK(arg) || SvCUR(arg) < sizeof(TYPE)) throw "argument is not a valid addrinfo/in_addr/in6_addr";
-        return reinterpret_cast<TYPE_PTR>(SvPVX(arg));
-    }
+template <> struct Typemap<panda::unievent::AddrInfoHints> : TypemapBase<panda::unievent::AddrInfoHints> {
+    using Hints = panda::unievent::AddrInfoHints;
 
-    Sv create (pTHX_ TYPE_PTR var, Sv = Sv()) {
-        if (!var) return &PL_sv_undef;
-        return Simple(std::string_view(reinterpret_cast<char*>(var), sizeof(TYPE)));
+    Hints in (pTHX_ SV* arg);
+
+    Sv create (pTHX_ const Hints& var, Sv = Sv()) {
+        return Simple(std::string_view(reinterpret_cast<const char*>(&var), sizeof(Hints)));
     }
 };
 

@@ -111,20 +111,20 @@ subtest 'non empty loop destroys all handles when destroyed' => sub {
     dies_ok { $h->stop } "handle can not be used without loop";
 };
 
-subtest 'call_soon' => sub {
+subtest 'delay' => sub {
     subtest 'simple' => sub {
         my $i = 0;
-        $loop->call_soon(sub { $i++ });
+        $loop->delay(sub { $i++ });
         $loop->run_nowait for 1..3;
         is $i, 1, 'called once';
     };
     subtest 'recursive' => sub {
         my $i = 0;
-        $loop->call_soon(sub { $i++ });
+        $loop->delay(sub { $i++ });
         $loop->run_nowait for 1..3;
-        $loop->call_soon(sub {
+        $loop->delay(sub {
             $i += 10;
-            $loop->call_soon(sub { $i += 100 });
+            $loop->delay(sub { $i += 100 });
         });
         $loop->run_nowait for 1..3;
         is $i, 111, 'called';
@@ -138,7 +138,7 @@ subtest 'CLONE_SKIP' => sub {
 subtest 'stop before run' => sub {
     my $loop = UniEvent::Loop->new();
     my $i;
-    $loop->call_soon(sub { ++$i });
+    $loop->delay(sub { ++$i });
     $loop->stop;
     $loop->run_nowait;
     is $i, 1, "run works";

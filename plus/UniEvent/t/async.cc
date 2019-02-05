@@ -11,7 +11,7 @@ TEST_CASE("async", "[async]") {
 
         SECTION("from this thread") {
             SECTION("after run") {
-                test.loop->call_soon([&]{
+                test.loop->delay([&]{
                     async->send();
                 });
             }

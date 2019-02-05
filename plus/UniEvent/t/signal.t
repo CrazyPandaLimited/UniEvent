@@ -130,7 +130,7 @@ sub many {
 
 sub trigger {
     my ($loop, $signum) = @_;
-    $loop->call_soon(sub { kill $signum => $$ });
+    $loop->delay(sub { kill $signum => $$ });
 }
 
 sub block {

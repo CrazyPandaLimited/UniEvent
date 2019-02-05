@@ -50,9 +50,9 @@ AsyncTest::~AsyncTest() noexcept(false) {
     }
 }
 
-void AsyncTest::run() {
-    loop->run();
-}
+void AsyncTest::run        () { loop->run(); }
+void AsyncTest::run_once   () { loop->run_once(); }
+void AsyncTest::run_nowait () { loop->run_nowait(); }
 
 void AsyncTest::happens(string event) {
     if (event) {
@@ -106,9 +106,11 @@ bool AsyncTest::happened_as_expected() {
 }
 
 sp<Timer> AsyncTest::create_timeout(uint64_t timeout) {
-    return timer_once(timeout, loop, [&]() {
+    auto ret = timer_once(timeout, loop, [&]() {
         throw Error("AsyncTest timeout", *this);
     });
+    ret->weak(true);
+    return ret;
 }
 
 AsyncTest::Error::Error(std::string msg, AsyncTest& test)

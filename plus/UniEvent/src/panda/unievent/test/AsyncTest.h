@@ -27,8 +27,10 @@ struct AsyncTest {
     AsyncTest (uint64_t timeout, const std::vector<string>& expected);
     virtual ~AsyncTest() noexcept(false);
 
-    void run ();
-    void happens (string event);
+    void run        ();
+    void run_once   ();
+    void run_nowait ();
+    void happens    (string event);
 
     template<typename F>
     static TimerSP timer_once (uint64_t timeout, Loop* loop, F&& f) {

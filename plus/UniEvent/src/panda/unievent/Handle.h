@@ -42,7 +42,7 @@ struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::All
 
     virtual const HandleType& type () const = 0;
 
-    bool active () const { return impl()->active(); }
+    bool active () const { return _impl ? _impl->active() : false; }
     bool weak   () const { return _weak; }
     
     void weak (bool value) {

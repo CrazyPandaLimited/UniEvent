@@ -33,6 +33,9 @@ using SignalSP = iptr<Signal>;
 struct Poll;
 using PollSP = iptr<Poll>;
 
+struct Resolver;
+using ResolverSP = iptr<Resolver>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
 //
@@ -48,9 +51,6 @@ using PollSP = iptr<Poll>;
 //struct Pipe;
 //using PipeSP = iptr<Pipe>;
 //
-//struct Resolver;
-//using ResolverSP = iptr<Resolver>;
-//
 //struct Request;
 //
 //struct ConnectRequest;
@@ -59,26 +59,14 @@ using PollSP = iptr<Poll>;
 //struct TCPConnectRequest;
 //using TCPConnectRequestSP = iptr<TCPConnectRequest>;
 //
-//struct ResolveRequest;
-//using ResolveRequestSP = iptr<ResolveRequest>;
-//
 //struct AddressRotator;
 //using AddressRotatorSP = iptr<AddressRotator>;
-//
-//struct CachedAddress;
-//using CachedAddressSP = iptr<CachedAddress>;
 //
 //struct Socks;
 //using SocksSP = iptr<Socks>;
 //
-//struct AresTask;
-//using AresTaskSP = iptr<AresTask>;
-//
 //struct CodeError;
 //
 //struct TCPConnectAutoBuilder;
-//
-//using ResolveFunctionPlain = void(SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err);
-//using ResolveFunction = function<ResolveFunctionPlain>;
 
-}} // namespace panda::unievent
+}}

@@ -14,7 +14,7 @@ struct Loop : Refcnt {
     using Backend     = backend::Backend;
     using BackendLoop = backend::BackendLoop;
     using Handles     = panda::lib::IntrusiveChain<Handle*>;
-    using soon_fn     = function<void()>;
+    using delayed_fn  = function<void()>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -28,7 +28,14 @@ struct Loop : Refcnt {
 
     Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
 
-    virtual ~Loop ();
+    void release () const {
+        if (refcnt() <= 1) const_cast<Loop*>(this)->destroy();
+        Refcnt::release();
+    }
+
+    void destroy ();
+
+    ~Loop ();
 
     const Backend* backend () const { return _backend; }
 
@@ -47,24 +54,28 @@ struct Loop : Refcnt {
 
     const Handles& handles () const { return _handles; }
 
-    void call_soon (soon_fn f);
+    void delay (const delayed_fn& f, const iptr<Refcnt>& guard = {});
 
     void dump () const;
 
-    //ResolverSP resolver ();
+    ResolverSP& resolver ();
 
     BackendLoop* impl () const { return _impl; }
 
 private:
-    using SoonCallbacks = std::vector<soon_fn>;
+    struct DelayedCallback {
+        delayed_fn        cb;
+        weak_iptr<Refcnt> guard;
+    };
+    using DelayedCallbacks = std::vector<DelayedCallback>;
 
-    Backend*      _backend;
-    BackendLoop*  _impl;
-    Handles       _handles;
-    PrepareSP     _soon_handle;
-    SoonCallbacks _soon_callbacks;
-    SoonCallbacks _soon_callbacks_reserve;
-    //ResolverSP    _resolver;
+    Backend*         _backend;
+    BackendLoop*     _impl;
+    Handles          _handles;
+    PrepareSP        _delay_handle;
+    DelayedCallbacks _delayed_callbacks;
+    DelayedCallbacks _delayed_callbacks_reserve;
+    ResolverSP       _resolver;
 
     Loop (Backend*, BackendLoop::Type);
 
@@ -76,7 +87,7 @@ private:
         _handles.erase(h);
     }
 
-    void _call_soon ();
+    void _call_delayed ();
 
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;
@@ -87,5 +98,7 @@ private:
     friend void set_default_backend (backend::Backend*);
     friend class Handle;
 };
+
+inline void refcnt_dec (const Loop* o) { o->release(); }
 
 }}

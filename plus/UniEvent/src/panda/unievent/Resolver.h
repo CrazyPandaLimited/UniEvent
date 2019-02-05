@@ -12,24 +12,23 @@
 #include <iostream>
 #include <unordered_map>
 #include <panda/string_view.h>
+#include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent {
 
 // addrinfo extract, there are fields needed for hinting only
 struct AddrInfoHints {
-    AddrInfoHints() : family(INT_MIN), socktype(INT_MIN), protocol(INT_MIN), flags(INT_MIN) {}
+    static constexpr const int PASSIVE     = ARES_AI_PASSIVE;
+    static constexpr const int CANONNAME   = ARES_AI_CANONNAME;
+    static constexpr const int NUMERICSERV = ARES_AI_NUMERICSERV;
 
-    AddrInfoHints(int family = AF_UNSPEC, int socktype = SOCK_STREAM, int proto = 0, int flags = AI_PASSIVE) : 
+    AddrInfoHints(int family = AF_UNSPEC, int socktype = 0, int proto = 0, int flags = 0) :
         family(family), socktype(socktype), protocol(proto), flags(flags) {}
 
     AddrInfoHints(const AddrInfoHints& oth) = default;
 
     bool operator==(const AddrInfoHints& oth) const {
         return family == oth.family && socktype == oth.socktype && protocol == oth.protocol && flags == oth.flags;
-    }
-
-    template <typename T> T to() const {
-        return T { flags, family, socktype, protocol, 0, nullptr, nullptr, nullptr };
     }
 
     int family;
@@ -39,7 +38,8 @@ struct AddrInfoHints {
 };
 
 struct AddrInfo : Refcnt {
-    explicit AddrInfo(ares_addrinfo* ai) : head(new DataSource(ai)), cur(ai) {}
+    AddrInfo()                  : cur(nullptr) {}
+    AddrInfo(ares_addrinfo* ai) : src(new DataSource(ai)), cur(ai) {}
 
     int              flags()     const { return cur->ai_flags; }
     int              family()    const { return cur->ai_family; }
@@ -48,8 +48,14 @@ struct AddrInfo : Refcnt {
     net::SockAddr    addr()      const { return cur->ai_addr; }
     std::string_view canonname() const { return cur->ai_canonname; }
     AddrInfo         next()      const { return AddrInfo(src, cur->ai_next); }
+    AddrInfo         first()     const { return AddrInfo(src, src->ai); }
 
     explicit operator bool() const { return cur; }
+
+    bool operator==(const AddrInfo& oth) const;
+    bool operator!=(const AddrInfo& oth) const { return !operator==(oth); }
+
+    bool is(const AddrInfo& oth) const { return cur == oth.cur; }
 
     //void detach() { head = nullptr; }
 
@@ -58,7 +64,8 @@ struct AddrInfo : Refcnt {
 private:
     struct DataSource : Refcnt {
         ares_addrinfo* ai;
-        ~AresWrapper() { ares_freeaddrinfo(ai); }
+        DataSource(ares_addrinfo* ai) : ai(ai) {}
+        ~DataSource() { ares_freeaddrinfo(ai); }
     };
 
     iptr<DataSource> src;
@@ -96,7 +103,7 @@ private:
 
 struct ResolverCacheHash {
     template <class T> inline void hash_combine(std::size_t& seed, const T& v) const {
-        seed ^= std::hash<T>(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
     std::size_t operator()(const ResolverCacheKey& p) const {
@@ -114,102 +121,119 @@ struct ResolverCacheHash {
 using ResolverCacheKeySP = iptr<ResolverCacheKey>;
 using ResolverCacheType  = std::unordered_map<ResolverCacheKey, CachedAddress, ResolverCacheHash>;
 
-struct AresTask : virtual Refcnt {
-    ~AresTask() {
-        _EDTOR();
-        if (poll) {
-            poll->stop();
-        }
-    }
+struct ResolveRequest;
+using ResolveRequestSP = iptr<ResolveRequest>;
 
-    AresTask(Loop* loop) : loop(loop) {
-        _ECTOR();
-    }
+struct ResolveRequest : panda::lib::IntrusiveChainNode<ResolveRequestSP>, Refcnt, panda::lib::AllocatedObject<ResolveRequest, true> {
+    using resolve_fptr = void(ResolverSP, ResolveRequestSP, const AddrInfo& address, const CodeError* err);
+    using resolve_fn   = function<resolve_fptr>;
 
-    void start(sock_t sock, int events, Poll::poll_fn callback) {
-        if (!poll)
-            poll = new Poll(-1, sock, loop);
-
-        poll->start(events, callback);
-    }
-
-    LoopSP loop;
-    PollSP poll;
-};
-
-struct Resolver : virtual Refcnt {
-    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 1000;  // [ms]
-    static constexpr time_t   DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
-    static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
-
-    // keep in sync with xsi constants
-    enum { 
-        UE_AI_CANONNAME   = ARES_AI_CANONNAME,
-        UE_AI_NUMERICSERV = ARES_AI_NUMERICSERV
-    };
-
-    Resolver(const LoopSP& loop = Loop::default_loop(), time_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
-    Resolver(Resolver& other) = delete;
-    Resolver& operator=(Resolver& other) = delete;
-    ~Resolver();
-
-    // resolve if not in cache and save in cache afterwards
-    // will trigger expunge if the cache is too big
-    virtual ResolveRequestSP resolve(
-            std::string_view node,
-            std::string_view service,
-            const AddrInfoHints& hints,
-            ResolveFunction callback,
-            bool use_cache = true);
-
-    virtual void stop();
-
-    // search in cache, will remove the record if expired
-    std::tuple<ResolverCacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHints& hints);
-
-    size_t cache_size() const { return cache.size(); }
-
-    void clear_cache() { cache.clear(); }
-
-    bool expunge_cache() {
-        if (cache.size() >= limit_) {
-            _EDEBUG("cleaning cache %p %ld", this, cache_.size());
-            cache.clear();
-            return true;
-        }
-        return false;
-    }
-
-    virtual void call_on_resolve(ResolveRequest* resolve_request, const AddrInfoSP& addr, CodeError err);
-protected:
-    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
-    
-private:
-    using AresTasks = std::map<sock_t, AresTaskSP>;
-
-    LoopSP            loop;
-    ares_channel      channel;
-    TimerSP           timer;
-    ResolverCacheType cache;
-    time_t            expiration_time;
-    size_t            limit;
-    AresTasks         tasks;
-
-    static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
-    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
-};
-
-struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
-    ~ResolveRequest(); 
-    ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
+    ResolveRequest(resolve_fn callback, Resolver* resolver);
+    ~ResolveRequest() {}
 
     virtual void cancel();
 
-    CallbackDispatcher<ResolveFunctionPlain> event;
-    SimpleResolver* resolver;
+    CallbackDispatcher<resolve_fptr> event;
+    Resolver* resolver;
     ResolverCacheKeySP key;
     bool async;
     bool done;
 };
 
-}} // namespace panda::unievent
+
+struct Resolver : virtual Refcnt {
+    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 5000;  // [ms]
+    static constexpr uint32_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
+    static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
+
+    using resolve_fn = ResolveRequest::resolve_fn;
+
+    struct Builder {
+        std::string_view _node;
+        std::string_view _service;
+        AddrInfoHints    _hints;
+        resolve_fn       _callback;
+        bool             _use_cache;
+        uint64_t         _timeout;
+
+        Builder(Resolver* r) : _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), _resolver(r), _called(false) {}
+
+        Builder& node      (std::string_view val)     { _node      = val; return *this; }
+        Builder& service   (std::string_view val)     { _service   = val; return *this; }
+        Builder& hints     (const AddrInfoHints& val) { _hints     = val; return *this; }
+        Builder& on_resolve(const resolve_fn& val)    { _callback  = val; return *this; }
+        Builder& use_cache (bool val)                 { _use_cache = val; return *this; }
+        Builder& timeout   (uint64_t val)             { _timeout   = val; return *this; }
+
+        ResolveRequestSP run () { return _resolver->resolve(*this); }
+
+    private:
+        Resolver* _resolver;
+        bool      _called;
+    };
+
+    Resolver(const LoopSP& loop = Loop::default_loop(), uint32_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
+    Resolver(Resolver& other) = delete;
+    Resolver& operator=(Resolver& other) = delete;
+    ~Resolver();
+
+    Builder resolve() { return Builder(this); }
+
+    ResolveRequestSP resolve(std::string_view node, resolve_fn callback, uint64_t timeout = DEFAULT_RESOLVE_TIMEOUT) {
+        return resolve().node(node).on_resolve(callback).timeout(timeout).run();
+    }
+
+    virtual void reset();
+
+    uint32_t cache_expiration_time() const { return expiration_time; }
+    size_t   cache_limit          () const { return limit; }
+    size_t   cache_size           () const { return cache.size(); }
+
+    void cache_expiration_time(uint32_t val) { expiration_time = val; }
+
+    void cache_limit(size_t val) {
+        limit = val;
+        clear_cache();
+    }
+
+    void clear_cache();
+
+    virtual void call_now(ResolveRequestSP, const AddrInfo&, const CodeError*);
+
+protected:
+    virtual ResolveRequestSP resolve(const Builder&);
+
+    virtual void on_resolve(ResolverSP, ResolveRequestSP, const AddrInfo&, const CodeError* = nullptr);
+    
+private:
+    struct Connection {
+        PollSP  poll;
+        TimerSP timer;
+    };
+
+    using Connections = std::map<sock_t, Connection>;
+    using Requests    = panda::lib::IntrusiveChain<ResolveRequestSP>;
+
+    weak<LoopSP>      loop;
+    ares_channel      channel;
+    TimerSP           dns_roll_timer;
+    ResolverCacheType cache;
+    time_t            expiration_time;
+    size_t            limit;
+    Connections       connections;
+    Requests          requests;
+
+    LoopSP get_loop () const {
+        auto ret = loop.lock();
+        if (!ret) throw Error("Loop has been destroyed and this resolver can not be used anymore");
+        return ret;
+    }
+
+    // search in cache, will remove the record if expired
+    AddrInfo find(std::string_view node, std::string_view service, const AddrInfoHints& hints);
+
+    static void ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai);
+    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+};
+
+}}
