@@ -144,40 +144,57 @@ TEST_CASE("resolver", "[resolver]") {
             CHECK(ai);
         }, 1000);
         test.run();
+        CHECK(resolver->cache_size() == 1);
 
         // will not make it
         resolver->resolve("ya.ru", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
             test.happens("r");
-            CHECK(err);
+            REQUIRE(err);
+            CHECK(err->code() == std::errc::timed_out);
             CHECK(!ai);
         }, 1);
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         test.run();
-
-        std::cout << "timeout end\n";
+        CHECK(resolver->cache_size() == 1);
     }
 
+    SECTION("cancel") {
+        test.expected = {"r"};
+
+        auto req = resolver->resolve("tut.by", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+            test.happens("r");
+            REQUIRE(err);
+            CHECK(err->code() == std::errc::operation_canceled);
+            CHECK(!ai);
+        });
+
+        SECTION("sync") {
+            req->cancel();
+        }
+        SECTION("async") {
+            test.loop->delay([=]{
+                req->cancel();
+            });
+        }
+        test.run();
+
+        req->cancel(); // should be no-op
+    }
+
+    SECTION("resolver destroy") {
+        auto cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+            test.happens("r");
+            REQUIRE(err);
+            CHECK(err->code() == std::errc::operation_canceled);
+            CHECK(!ai);
+        };
+        auto req1 = resolver->resolve("lenta.ru", cb);
+        auto req2 = resolver->resolve("mail.ru", cb);
+
+        resolver.reset();
+        test.run();
+    }
+
+    test.loop->dump();
+
 }
-//
-//TEST_CASE("resolve connect timeout", "[tcp-connect-timeout][v-ssl]") {
-//    AsyncTest test(5000, {});
-//
-//    TCPSP server = make_server(test.loop);
-//    auto  sa     = server->get_sockaddr();
-//
-//    for (size_t i = 0; i < 50; ++i) {
-//        TCPSP client = make_client(test.loop, false);
-//
-//        test.loop->update_time();
-//        client->connect().to(sa.ip(), sa.port()).timeout(1);
-//
-//        client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) { CHECK(err); });
-//
-//        for (size_t i = 0; i < 10; ++i) {
-//            client->write("123");
-//        }
-//        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-//
-//        test.await(client->connect_event, "");
-//    }
-//}

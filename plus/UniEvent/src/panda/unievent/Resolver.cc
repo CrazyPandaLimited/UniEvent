@@ -194,8 +194,6 @@ void Resolver::call_now (const ResolveRequestSP& req, const AddrInfo& addr, cons
     }
 
     on_resolve(req, addr, err);
-
-    get_loop()->dump();
 }
 
 void Resolver::remove_request (ResolveRequest* req) {
