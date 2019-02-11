@@ -75,7 +75,7 @@ void Loop::dump () const {
     for (auto h : _handles) {
         printf("%p %s%s [%s%s]\n",
             h,
-            h->active() && !h->weak() ? "": "~",
+            h->active() && !h->weak() ? "": "-",
             h->type().name,
             h->active() ? "A" : "",
             h->weak()   ? "W" : ""

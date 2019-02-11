@@ -22,12 +22,12 @@ struct AddrInfoHints {
     static constexpr const int CANONNAME   = ARES_AI_CANONNAME;
     static constexpr const int NUMERICSERV = ARES_AI_NUMERICSERV;
 
-    AddrInfoHints(int family = AF_UNSPEC, int socktype = 0, int proto = 0, int flags = 0) :
+    AddrInfoHints (int family = AF_UNSPEC, int socktype = 0, int proto = 0, int flags = 0) :
         family(family), socktype(socktype), protocol(proto), flags(flags) {}
 
-    AddrInfoHints(const AddrInfoHints& oth) = default;
+    AddrInfoHints (const AddrInfoHints& oth) = default;
 
-    bool operator==(const AddrInfoHints& oth) const {
+    bool operator== (const AddrInfoHints& oth) const {
         return family == oth.family && socktype == oth.socktype && protocol == oth.protocol && flags == oth.flags;
     }
 
@@ -41,45 +41,45 @@ struct AddrInfo : Refcnt {
     AddrInfo()                  : cur(nullptr) {}
     AddrInfo(ares_addrinfo* ai) : src(new DataSource(ai)), cur(ai) {}
 
-    int              flags()     const { return cur->ai_flags; }
-    int              family()    const { return cur->ai_family; }
-    int              socktype()  const { return cur->ai_socktype; }
-    int              protocol()  const { return cur->ai_protocol; }
-    net::SockAddr    addr()      const { return cur->ai_addr; }
-    std::string_view canonname() const { return cur->ai_canonname; }
-    AddrInfo         next()      const { return AddrInfo(src, cur->ai_next); }
-    AddrInfo         first()     const { return AddrInfo(src, src->ai); }
+    int              flags     () const { return cur->ai_flags; }
+    int              family    () const { return cur->ai_family; }
+    int              socktype  () const { return cur->ai_socktype; }
+    int              protocol  () const { return cur->ai_protocol; }
+    net::SockAddr    addr      () const { return cur->ai_addr; }
+    std::string_view canonname () const { return cur->ai_canonname; }
+    AddrInfo         next      () const { return AddrInfo(src, cur->ai_next); }
+    AddrInfo         first     () const { return AddrInfo(src, src->ai); }
 
-    explicit operator bool() const { return cur; }
+    explicit operator bool () const { return cur; }
 
-    bool operator==(const AddrInfo& oth) const;
-    bool operator!=(const AddrInfo& oth) const { return !operator==(oth); }
+    bool operator== (const AddrInfo& oth) const;
+    bool operator!= (const AddrInfo& oth) const { return !operator==(oth); }
 
-    bool is(const AddrInfo& oth) const { return cur == oth.cur; }
+    bool is (const AddrInfo& oth) const { return cur == oth.cur; }
 
     //void detach() { head = nullptr; }
 
-    std::string to_string();
+    std::string to_string ();
 
 private:
     struct DataSource : Refcnt {
         ares_addrinfo* ai;
-        DataSource(ares_addrinfo* ai) : ai(ai) {}
-        ~DataSource() { ares_freeaddrinfo(ai); }
+        DataSource (ares_addrinfo* ai) : ai(ai) {}
+        ~DataSource () { ares_freeaddrinfo(ai); }
     };
 
     iptr<DataSource> src;
     ares_addrinfo*   cur;
 
-    AddrInfo(const iptr<DataSource>& src, ares_addrinfo* cur) : src(src), cur(cur) {}
+    AddrInfo (const iptr<DataSource>& src, ares_addrinfo* cur) : src(src), cur(cur) {}
 };
 
-std::ostream& operator<<(std::ostream& os, const AddrInfo& ai);
+std::ostream& operator<< (std::ostream& os, const AddrInfo& ai);
 
 struct CachedAddress {
-    CachedAddress(const AddrInfo& ai, std::time_t update_time = std::time(0)) : address(ai), update_time(update_time) {}
+    CachedAddress (const AddrInfo& ai, std::time_t update_time = std::time(0)) : address(ai), update_time(update_time) {}
 
-    bool expired(time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
+    bool expired (time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
 
     AddrInfo    address;
     std::time_t update_time;
@@ -89,9 +89,9 @@ struct ResolverCacheHash;
 struct ResolverCacheKey : Refcnt {
     friend ResolverCacheHash;
 
-    ResolverCacheKey(const string& node, const string& service, const AddrInfoHints& hints) : node(node), service(service), hints(hints) {}
+    ResolverCacheKey (const string& node, const string& service, const AddrInfoHints& hints) : node(node), service(service), hints(hints) {}
 
-    bool operator==(const ResolverCacheKey& other) const {
+    bool operator== (const ResolverCacheKey& other) const {
         return node == other.node && service == other.service && hints == other.hints;
     }
 
@@ -102,11 +102,11 @@ private:
 };
 
 struct ResolverCacheHash {
-    template <class T> inline void hash_combine(std::size_t& seed, const T& v) const {
+    template <class T> inline void hash_combine (std::size_t& seed, const T& v) const {
         seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
-    std::size_t operator()(const ResolverCacheKey& p) const {
+    std::size_t operator() (const ResolverCacheKey& p) const {
         std::size_t seed = 0;
         hash_combine(seed, p.node);
         hash_combine(seed, p.service);
@@ -125,19 +125,25 @@ struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
 
 struct ResolveRequest : panda::lib::IntrusiveChainNode<ResolveRequestSP>, Refcnt, panda::lib::AllocatedObject<ResolveRequest, true> {
-    using resolve_fptr = void(ResolverSP, ResolveRequestSP, const AddrInfo& address, const CodeError* err);
+    using resolve_fptr = void(const ResolverSP&, const ResolveRequestSP&, const AddrInfo& address, const CodeError* err);
     using resolve_fn   = function<resolve_fptr>;
 
-    ResolveRequest(resolve_fn callback, Resolver* resolver);
-    ~ResolveRequest() {}
+    ~ResolveRequest ();
 
-    virtual void cancel();
+    virtual void cancel ();
 
     CallbackDispatcher<resolve_fptr> event;
-    Resolver* resolver;
+
+private:
+    friend Resolver;
+
+    ResolveRequest (resolve_fn callback, Resolver* resolver);
+
+    Resolver*          resolver;
     ResolverCacheKeySP key;
-    bool async;
-    bool done;
+    TimerSP            timer;
+    bool               async;
+    bool               done;
 };
 
 
@@ -151,19 +157,21 @@ struct Resolver : virtual Refcnt {
     struct Builder {
         std::string_view _node;
         std::string_view _service;
+        uint16_t         _port;
         AddrInfoHints    _hints;
         resolve_fn       _callback;
         bool             _use_cache;
         uint64_t         _timeout;
 
-        Builder(Resolver* r) : _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), _resolver(r), _called(false) {}
+        Builder (Resolver* r) : _port(0), _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), _resolver(r), _called(false) {}
 
-        Builder& node      (std::string_view val)     { _node      = val; return *this; }
-        Builder& service   (std::string_view val)     { _service   = val; return *this; }
-        Builder& hints     (const AddrInfoHints& val) { _hints     = val; return *this; }
-        Builder& on_resolve(const resolve_fn& val)    { _callback  = val; return *this; }
-        Builder& use_cache (bool val)                 { _use_cache = val; return *this; }
-        Builder& timeout   (uint64_t val)             { _timeout   = val; return *this; }
+        Builder& node       (std::string_view val)     { _node      = val; return *this; }
+        Builder& service    (std::string_view val)     { _service   = val; return *this; }
+        Builder& port       (uint16_t val)             { _port      = val; return *this; }
+        Builder& hints      (const AddrInfoHints& val) { _hints     = val; return *this; }
+        Builder& on_resolve (const resolve_fn& val)    { _callback  = val; return *this; }
+        Builder& use_cache  (bool val)                 { _use_cache = val; return *this; }
+        Builder& timeout    (uint64_t val)             { _timeout   = val; return *this; }
 
         ResolveRequestSP run () { return _resolver->resolve(*this); }
 
@@ -172,38 +180,39 @@ struct Resolver : virtual Refcnt {
         bool      _called;
     };
 
-    Resolver(const LoopSP& loop = Loop::default_loop(), uint32_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
-    Resolver(Resolver& other) = delete;
-    Resolver& operator=(Resolver& other) = delete;
-    ~Resolver();
+    Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
+    ~Resolver ();
 
-    Builder resolve() { return Builder(this); }
+    Resolver (Resolver& other) = delete;
+    Resolver& operator= (Resolver& other) = delete;
 
-    ResolveRequestSP resolve(std::string_view node, resolve_fn callback, uint64_t timeout = DEFAULT_RESOLVE_TIMEOUT) {
+    Builder resolve () { return Builder(this); }
+
+    ResolveRequestSP resolve (std::string_view node, resolve_fn callback, uint64_t timeout = DEFAULT_RESOLVE_TIMEOUT) {
         return resolve().node(node).on_resolve(callback).timeout(timeout).run();
     }
 
-    virtual void reset();
+    virtual void reset ();
 
-    uint32_t cache_expiration_time() const { return expiration_time; }
-    size_t   cache_limit          () const { return limit; }
-    size_t   cache_size           () const { return cache.size(); }
+    uint32_t cache_expiration_time () const { return expiration_time; }
+    size_t   cache_limit           () const { return limit; }
+    size_t   cache_size            () const { return cache.size(); }
 
-    void cache_expiration_time(uint32_t val) { expiration_time = val; }
+    void cache_expiration_time (uint32_t val) { expiration_time = val; }
 
-    void cache_limit(size_t val) {
+    void cache_limit (size_t val) {
         limit = val;
         clear_cache();
     }
 
-    void clear_cache();
+    void clear_cache ();
 
-    virtual void call_now(ResolveRequestSP, const AddrInfo&, const CodeError*);
+    virtual void call_now (const ResolveRequestSP&, const AddrInfo&, const CodeError*);
 
 protected:
-    virtual ResolveRequestSP resolve(const Builder&);
+    virtual ResolveRequestSP resolve (const Builder&);
 
-    virtual void on_resolve(ResolverSP, ResolveRequestSP, const AddrInfo&, const CodeError* = nullptr);
+    virtual void on_resolve (const ResolveRequestSP&, const AddrInfo&, const CodeError* = nullptr);
     
 private:
     struct Connection {
@@ -211,7 +220,7 @@ private:
         TimerSP timer;
     };
 
-    using Connections = std::map<sock_t, Connection>;
+    using Connections = std::map<sock_t, PollSP>;
     using Requests    = panda::lib::IntrusiveChain<ResolveRequestSP>;
 
     weak<LoopSP>      loop;
@@ -230,10 +239,12 @@ private:
     }
 
     // search in cache, will remove the record if expired
-    AddrInfo find(std::string_view node, std::string_view service, const AddrInfoHints& hints);
+    AddrInfo find (std::string_view node, std::string_view service, const AddrInfoHints& hints);
 
-    static void ares_resolve_cb(void* arg, int status, int timeouts, ares_addrinfo* ai);
-    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+    void remove_request (ResolveRequest* req);
+
+    static void ares_resolve_cb (void* arg, int status, int timeouts, ares_addrinfo* ai);
+    static void ares_sockstate_cb (void* data, sock_t sock, int read, int write);
 };
 
 }}
