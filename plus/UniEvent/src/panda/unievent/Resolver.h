@@ -209,6 +209,11 @@ struct Resolver : virtual Refcnt {
 
     virtual void call_now (const ResolveRequestSP&, const AddrInfo&, const CodeError*);
 
+    void release () const {
+        if (refcnt() <= 1) const_cast<Resolver*>(this)->destroy();
+        Refcnt::release();
+    }
+
 protected:
     virtual ResolveRequestSP resolve (const Builder&);
 
@@ -243,8 +248,12 @@ private:
 
     void remove_request (ResolveRequest* req);
 
+    void destroy ();
+
     static void ares_resolve_cb (void* arg, int status, int timeouts, ares_addrinfo* ai);
     static void ares_sockstate_cb (void* data, sock_t sock, int read, int write);
 };
+
+inline void refcnt_dec (const Resolver* o) { o->release(); }
 
 }}

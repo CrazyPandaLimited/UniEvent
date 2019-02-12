@@ -58,12 +58,7 @@ Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit) 
     });
 }
 
-Resolver::~Resolver () {
-    _EDTOR();
-    dns_roll_timer.reset();
-    connections.clear();
-    ares_destroy(channel);
-}
+Resolver::~Resolver () { _EDTOR(); }
 
 ResolveRequestSP Resolver::resolve (const Builder& p) {
     auto loop = get_loop();
@@ -154,14 +149,26 @@ void Resolver::ares_resolve_cb (void* arg, int status, int, ares_addrinfo* ai) {
 
     CodeError err;
     AddrInfo  addr;
-    if (status == ARES_SUCCESS) {
-        addr = AddrInfo(ai);
-        #if EVENT_LIB_DEBUG >= 1
-        std::string addr_str = addr.to_string();
-        _EDEBUG("addr: %.*s", (int)addr_str.length(), addr_str.data());
-        #endif
-    } else {
-        err = CodeError(errc::resolve_error);
+    switch (status) {
+        case ARES_SUCCESS:
+            addr = AddrInfo(ai);
+            #if EVENT_LIB_DEBUG >= 1
+            _EDEBUG("addr: %.*s", (int)addr.to_string().length(), addr.to_string().data());
+            #endif
+            break;
+        case ARES_ECANCELLED:
+        case ARES_EDESTRUCTION:
+            err = CodeError(std::errc::operation_canceled);
+            break;
+        case ARES_ENOTIMP:
+            err = CodeError(std::errc::address_family_not_supported);
+            break;
+        case ARES_ENOMEM:
+            err = CodeError(std::errc::not_enough_memory);
+            break;
+        case ARES_ENOTFOUND:
+        default:
+            err = CodeError(errc::resolve_error);
     }
 
     if (req->async) {
@@ -220,6 +227,13 @@ AddrInfo Resolver::find (std::string_view node, std::string_view service, const 
 
 void Resolver::clear_cache () {
     cache.clear();
+}
+
+void Resolver::destroy () {
+    ares_destroy(channel);
+    dns_roll_timer = nullptr;
+    assert(!requests.size());
+    assert(!connections.size());
 }
 
 ResolveRequest::ResolveRequest (resolve_fn callback, Resolver* resolver) : resolver(resolver), async(false), done(false) {
