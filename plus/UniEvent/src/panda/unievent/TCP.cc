@@ -66,7 +66,6 @@ void TCP::do_connect(TCPConnectRequest* req) {
             resolve_request = resolver()->resolve(req->host, string::from_number(req->port), req->hints,
                 [=](SimpleResolverSP, ResolveRequestSP, AddrInfoSP address, const CodeError* err) {
                     _EDEBUG("resolve callback, err: %d", err ? err->code() : 0);
-                    panda_log_debug("TCP: on resolve " << dynamic_cast<Handle*>(this) << " : " << resolve_request.get());
                     resolve_request.reset();
                     if (err) {
                         int errcode = err->code();
