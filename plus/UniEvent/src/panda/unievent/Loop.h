@@ -1,7 +1,9 @@
 #pragma once
 #include "inc.h"
+#include "rcntd.h"
 #include "forward.h"
 #include "backend/Backend.h"
+#include <panda/CallbackDispatcher.h>
 #include <panda/lib/intrusive_chain.h>
 #include <vector>
 
@@ -10,11 +12,13 @@ namespace panda { namespace unievent {
 backend::Backend* default_backend     ();
 void              set_default_backend (backend::Backend* backend);
 
-struct Loop : Refcnt {
-    using Backend     = backend::Backend;
-    using BackendLoop = backend::BackendLoop;
-    using Handles     = panda::lib::IntrusiveChain<Handle*>;
-    using delayed_fn  = function<void()>;
+struct Loop : Refcntd {
+    using Backend      = backend::Backend;
+    using BackendLoop  = backend::BackendLoop;
+    using Handles      = panda::lib::IntrusiveChain<Handle*>;
+    using delayed_fn   = function<void()>;
+    using destroy_fptr = void(const LoopSP&);
+    using destroy_fn   = function<destroy_fptr>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -26,16 +30,9 @@ struct Loop : Refcnt {
         return _default_loop;
     }
 
+    CallbackDispatcher<destroy_fptr> destroy_event;
+
     Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
-
-    void release () const {
-        if (refcnt() <= 1) const_cast<Loop*>(this)->destroy();
-        Refcnt::release();
-    }
-
-    void destroy ();
-
-    ~Loop ();
 
     const Backend* backend () const { return _backend; }
 
@@ -61,6 +58,11 @@ struct Loop : Refcnt {
     ResolverSP& resolver ();
 
     BackendLoop* impl () const { return _impl; }
+
+protected:
+    virtual void on_delete () override;
+
+    ~Loop ();
 
 private:
     struct DelayedCallback {
@@ -98,7 +100,5 @@ private:
     friend void set_default_backend (backend::Backend*);
     friend class Handle;
 };
-
-inline void refcnt_dec (const Loop* o) { o->release(); }
 
 }}

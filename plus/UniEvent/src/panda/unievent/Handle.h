@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <panda/string.h>
 #include <panda/lib/memory.h>
-#include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent {
 
@@ -20,23 +19,11 @@ struct HandleType {
 };
 std::ostream& operator<< (std::ostream& out, const HandleType&);
 
-struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
+struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcntd, panda::lib::AllocatedObject<Handle> {
     using BackendHandle = backend::BackendHandle;
     using buf_alloc_fn  = panda::function<string(Handle* h, size_t cap)>;
 
     buf_alloc_fn buf_alloc_callback;
-
-    Handle () : _weak(false) /*, in_user_callback(false)*/ {
-        _ECTOR();
-        //asyncq.head = asyncq.tail = nullptr;
-    }
-
-    void release () const {
-        if (refcnt() <= 1 && _impl) const_cast<Handle*>(this)->destroy();
-        Refcnt::release();
-    }
-
-    virtual void destroy ();
 
     Loop* loop () const { return _impl ? _impl->loop()->frontend() : nullptr; }
 
@@ -95,9 +82,23 @@ struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::All
 
     static const HandleType UNKNOWN_TYPE;
 
+//    // clang restricts friendliness forwarding via derived classes as of example in 11.4
+//    // so making it public: https://bugs.llvm.org/show_bug.cgi?id=6840
+//    static void uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf);
+//
+//    virtual void _close(); // ignores command queue, calls uv_close, beware using this
+
 protected:
+    friend Loop;
 
 //    bool         in_user_callback;
+
+    Handle () : _weak(false) /*, in_user_callback(false)*/ {
+        _ECTOR();
+        //asyncq.head = asyncq.tail = nullptr;
+    }
+
+    ~Handle () {}
 
     void _init (BackendHandle* impl) {
         _impl = impl;
@@ -108,6 +109,10 @@ protected:
         if (!_impl) throw Error("Loop has been destroyed and this handle can not be used anymore");
         return _impl;
     }
+
+    virtual void destroy ();
+
+    virtual void on_delete () override;
 
 //    struct InUserCallbackLock {
 //        Handle* h;
@@ -174,14 +179,6 @@ protected:
 //    }
 //
     // private dtor prevents creating Handles on the stack / statically / etc.
-    virtual ~Handle () {}
-
-public:
-//    // clang restricts friendliness forwarding via derived classes as of example in 11.4
-//    // so making it public: https://bugs.llvm.org/show_bug.cgi?id=6840
-//    static void uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf);
-//
-//    virtual void _close(); // ignores command queue, calls uv_close, beware using this
 
 private:
     BackendHandle* _impl;
@@ -192,7 +189,5 @@ private:
 //    static void uvx_on_close_delete (uv_handle_t* handle);
 //    static void uvx_on_close_reinit (uv_handle_t* handle);
 };
-
-inline void refcnt_dec (const Handle* o) { o->release(); }
 
 }}

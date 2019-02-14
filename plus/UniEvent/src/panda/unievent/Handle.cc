@@ -12,7 +12,8 @@ string Handle::buf_alloc (size_t cap) {
 }
 
 void Handle::destroy () {
-    _EDEBUGTHIS("%s, locked=%d", type().name, /*async_locked()*/0);
+    if (!_impl) return;
+    _EDEBUGTHIS("%s", type().name);
 //    if (async_locked()) {
 //        asyncq_push(new CommandCloseDelete());
 //        return;
@@ -21,6 +22,10 @@ void Handle::destroy () {
     loop()->unregister_handle(this);
     _impl->destroy();
     _impl = nullptr;
+}
+
+void Handle::on_delete () {
+    if (_impl) destroy();
 }
 
 //void Handle::uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf) {

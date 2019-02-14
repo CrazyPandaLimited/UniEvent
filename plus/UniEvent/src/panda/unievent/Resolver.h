@@ -147,7 +147,7 @@ private:
 };
 
 
-struct Resolver : virtual Refcnt {
+struct Resolver : virtual Refcntd {
     static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 5000;  // [ms]
     static constexpr uint32_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
     static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
@@ -181,7 +181,6 @@ struct Resolver : virtual Refcnt {
     };
 
     Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
-    ~Resolver ();
 
     Resolver (Resolver& other) = delete;
     Resolver& operator= (Resolver& other) = delete;
@@ -209,16 +208,15 @@ struct Resolver : virtual Refcnt {
 
     virtual void call_now (const ResolveRequestSP&, const AddrInfo&, const CodeError*);
 
-    void release () const {
-        if (refcnt() <= 1) const_cast<Resolver*>(this)->destroy();
-        Refcnt::release();
-    }
-
 protected:
     virtual ResolveRequestSP resolve (const Builder&);
 
     virtual void on_resolve (const ResolveRequestSP&, const AddrInfo&, const CodeError* = nullptr);
     
+    virtual void on_delete () override;
+
+    ~Resolver () {}
+
 private:
     struct Connection {
         PollSP  poll;
@@ -228,7 +226,7 @@ private:
     using Connections = std::map<sock_t, PollSP>;
     using Requests    = panda::lib::IntrusiveChain<ResolveRequestSP>;
 
-    weak<LoopSP>      loop;
+    Loop*             loop;
     ares_channel      channel;
     TimerSP           dns_roll_timer;
     ResolverCacheType cache;
@@ -236,12 +234,7 @@ private:
     size_t            limit;
     Connections       connections;
     Requests          requests;
-
-    LoopSP get_loop () const {
-        auto ret = loop.lock();
-        if (!ret) throw Error("Loop has been destroyed and this resolver can not be used anymore");
-        return ret;
-    }
+    Loop::destroy_fn  on_loop_destroy;
 
     // search in cache, will remove the record if expired
     AddrInfo find (std::string_view node, std::string_view service, const AddrInfoHints& hints);
@@ -253,7 +246,5 @@ private:
     static void ares_resolve_cb (void* arg, int status, int timeouts, ares_addrinfo* ai);
     static void ares_sockstate_cb (void* data, sock_t sock, int read, int write);
 };
-
-inline void refcnt_dec (const Resolver* o) { o->release(); }
 
 }}

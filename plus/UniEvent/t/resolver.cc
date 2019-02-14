@@ -181,18 +181,69 @@ TEST_CASE("resolver", "[resolver]") {
         req->cancel(); // should be no-op
     }
 
-    SECTION("resolver destroy") {
-        auto cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
-            test.happens("r");
-            REQUIRE(err);
-            CHECK(err->code() == std::errc::operation_canceled);
-            CHECK(!ai);
-        };
-        auto req1 = resolver->resolve("lenta.ru", cb);
-        auto req2 = resolver->resolve("mail.ru", cb);
+    auto cancel_cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+        test.happens("r");
+        REQUIRE(err);
+        CHECK(err->code() == std::errc::operation_canceled);
+        CHECK(!ai);
+    };
 
-        resolver.reset();
+    SECTION("reset") {
+        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
+        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+
+        SECTION("sync") {
+            resolver->reset();
+        }
+        SECTION("async") {
+            test.loop->delay([&]{
+                resolver->reset();
+            });
+        }
+
         test.run();
+
+        req1->cancel(); // should not die
+    }
+
+    SECTION("resolver destroy") {
+        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
+        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+
+        SECTION("sync") {
+            resolver = nullptr;
+        }
+        SECTION("async") {
+            test.loop->delay([&]{
+                resolver = nullptr;
+            });
+        }
+
+        test.run();
+
+        req1->cancel();
+    }
+
+    SECTION("loop destroy") {
+        LoopSP loop = new Loop();
+        resolver = new Resolver(loop);
+
+        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
+        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+
+        SECTION("sync") {
+            loop = nullptr;
+        }
+        SECTION("async") {
+            test.loop->delay([&]{
+                loop = nullptr;
+            });
+            test.run();
+        }
+
+        CHECK_THROWS(resolver->resolve("localhost", cancel_cb));
+        resolver->reset();
+        req1->cancel();
     }
 
     test.loop->dump();

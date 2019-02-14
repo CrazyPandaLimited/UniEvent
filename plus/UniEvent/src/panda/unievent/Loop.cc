@@ -41,12 +41,14 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
     _impl = backend->new_loop(this, type);
 }
 
-void Loop::destroy () {
+void Loop::on_delete () {
+    _EDTOR();
+    destroy_event(this);
     while (_handles.size()) _handles.front()->destroy();
     delete _impl;
 }
 
-Loop::~Loop () { _EDTOR(); }
+Loop::~Loop () {}
 
 void Loop::delay (const delayed_fn& f, const iptr<Refcnt>& guard) {
     if (!_delay_handle) {
