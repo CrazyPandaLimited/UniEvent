@@ -12,7 +12,7 @@
 //}
 
 TEST_CASE("resolver", "[resolver]") {
-    AsyncTest test(2000, {"r", "r"});
+    AsyncTest test(2000, {});
     ResolverSP resolver = new Resolver(test.loop);
     std::vector<AddrInfo> res;
     auto cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
@@ -22,6 +22,7 @@ TEST_CASE("resolver", "[resolver]") {
         res.push_back(ai);
     };
     auto b = resolver->resolve().node("localhost").on_resolve(cb);
+    int expected_cnt = 2;
 
     SECTION("no cache") {
         b.use_cache(false);
@@ -116,7 +117,7 @@ TEST_CASE("resolver", "[resolver]") {
     }
 
     SECTION("cache limit") {
-        test.expected = {"r", "r", "r"};
+        expected_cnt = 3;
         resolver = new Resolver(test.loop, 500, 2);
         auto b = resolver->resolve().node("localhost").on_resolve(cb);
 
@@ -159,7 +160,7 @@ TEST_CASE("resolver", "[resolver]") {
     }
 
     SECTION("cancel") {
-        test.expected = {"r"};
+        expected_cnt = 1;
 
         auto req = resolver->resolve("tut.by", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
             test.happens("r");
@@ -189,13 +190,16 @@ TEST_CASE("resolver", "[resolver]") {
     };
 
     SECTION("reset") {
-        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
-        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+        auto req = resolver->resolve("lenta.ru", cancel_cb);
+        resolver->resolve("mail.ru", cancel_cb);
 
         SECTION("sync") {
+            expected_cnt = 3;
+            resolver->resolve("localhost", cancel_cb); // in async it may complete earlier than our loop->delay
             resolver->reset();
         }
         SECTION("async") {
+            expected_cnt = 2;
             test.loop->delay([&]{
                 resolver->reset();
             });
@@ -203,17 +207,20 @@ TEST_CASE("resolver", "[resolver]") {
 
         test.run();
 
-        req1->cancel(); // should not die
+        req->cancel(); // should not die
     }
 
     SECTION("resolver destroy") {
-        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
-        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+        auto req = resolver->resolve("lenta.ru", cancel_cb);
+        resolver->resolve("mail.ru", cancel_cb);
 
         SECTION("sync") {
+            expected_cnt = 3;
+            resolver->resolve("localhost", cancel_cb); // in async it may complete earlier than our loop->delay
             resolver = nullptr;
         }
         SECTION("async") {
+            expected_cnt = 2;
             test.loop->delay([&]{
                 resolver = nullptr;
             });
@@ -221,20 +228,23 @@ TEST_CASE("resolver", "[resolver]") {
 
         test.run();
 
-        req1->cancel();
+        req->cancel();
     }
 
     SECTION("loop destroy") {
         LoopSP loop = new Loop();
         resolver = new Resolver(loop);
 
-        auto req1 = resolver->resolve("lenta.ru", cancel_cb);
-        auto req2 = resolver->resolve("mail.ru", cancel_cb);
+        auto req = resolver->resolve("lenta.ru", cancel_cb);
+        resolver->resolve("mail.ru", cancel_cb);
 
         SECTION("sync") {
+            expected_cnt = 3;
+            resolver->resolve("localhost", cancel_cb); // in async it may complete earlier than our loop->delay
             loop = nullptr;
         }
         SECTION("async") {
+            expected_cnt = 2;
             test.loop->delay([&]{
                 loop = nullptr;
             });
@@ -243,8 +253,10 @@ TEST_CASE("resolver", "[resolver]") {
 
         CHECK_THROWS(resolver->resolve("localhost", cancel_cb));
         resolver->reset();
-        req1->cancel();
+        req->cancel();
     }
+
+    while (expected_cnt-- > 0) test.expected.push_back("r");
 
     test.loop->dump();
 

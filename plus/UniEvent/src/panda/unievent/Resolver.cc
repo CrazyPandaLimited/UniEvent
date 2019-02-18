@@ -8,7 +8,7 @@ namespace panda { namespace unievent {
 
 static constexpr const int DNS_ROLL_TIMEOUT = 1000; // [ms]
 
-#define check_alive() { if (!loop) throw Error("Loop has been destroyed and this resolver can not be used anymore"); }
+#define check_alive() { if (destroyed) throw Error("Loop has been destroyed and this resolver can not be used anymore"); }
 
 bool AddrInfo::operator== (const AddrInfo& oth) const {
     if (cur == oth.cur) return true;
@@ -36,7 +36,9 @@ std::ostream& operator<< (std::ostream& os, const AddrInfo& ai) {
     return os;
 }
 
-Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit) : loop(loop.get()), expiration_time(expiration_time), limit(limit) {
+Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit)
+    : loop(loop.get()), expiration_time(expiration_time), limit(limit), destroyed()
+{
     _ECTOR();
     ares_options options;
     int optmask = 0;
@@ -68,12 +70,19 @@ void Resolver::on_delete () {
 }
 
 void Resolver::destroy () {
-    if (!loop) return;
-    loop->destroy_event.remove(on_loop_destroy);
+    if (destroyed) return;
+    _EDEBUGTHIS();
+    destroyed = true;
+
     ares_destroy(channel);
-    dns_roll_timer = nullptr;
-    assert(!requests.size());
     assert(!connections.size());
+
+    for (auto& request : requests) request->cancel();
+    requests.clear();
+
+    loop->destroy_event.remove(on_loop_destroy);
+
+    dns_roll_timer = nullptr;
     loop = nullptr;
 }
 
@@ -94,9 +103,10 @@ ResolveRequestSP Resolver::resolve (const Builder& p) {
     if (p._use_cache) {
         auto ai = find(p._node, service, p._hints);
         if (ai) {
+            auto reqptr = req.get();
             loop->delay([=]{
-                call_now(req, ai, nullptr);
-                this->remove_request(req);
+                call_now(reqptr, ai, nullptr);
+                this->remove_request(reqptr);
             }, this);
             return req;
         }
@@ -116,16 +126,21 @@ ResolveRequestSP Resolver::resolve (const Builder& p) {
     _EDEBUGTHIS("req:%p [%s:%s] loop:%p use_cache:%d", req.get(), node_cstr, service_cstr, loop, p._use_cache);
     ares_addrinfo h = { p._hints.flags, p._hints.family, p._hints.socktype, p._hints.protocol, 0, nullptr, nullptr, nullptr };
     ares_getaddrinfo(channel, node_cstr, service.length() ? service_cstr : nullptr, &h, ares_resolve_cb, req.get());
-    req->async = true;
+    req->ares_async = true;
     return req;
 }
 
 void Resolver::reset () {
-    if (!loop) return;
-    _EDEBUGTHIS("");
+    if (destroyed) return;
+    _EDEBUGTHIS();
+
     dns_roll_timer->stop();
+
     ares_cancel(channel);
     connections.clear();
+
+    for (auto& request : requests) request->cancel();
+    requests.clear();
 }
 
 void Resolver::ares_sockstate_cb (void* data, sock_t sock, int read, int write) {
@@ -153,7 +168,7 @@ void Resolver::ares_sockstate_cb (void* data, sock_t sock, int read, int write) 
 void Resolver::ares_resolve_cb (void* arg, int status, int, ares_addrinfo* ai) {
     auto req      = static_cast<ResolveRequest*>(arg);
     auto resolver = req->resolver;
-    _EDEBUG("req:%p status:%s async:%d ai:%p", req, ares_strerror(status), req->async, ai);
+    _EDEBUG("req:%p status:%s async:%d ai:%p", req, ares_strerror(status), req->ares_async, ai);
 
     if (req->done) {
         _EDEBUG("ignoring cancelled request");
@@ -185,7 +200,7 @@ void Resolver::ares_resolve_cb (void* arg, int status, int, ares_addrinfo* ai) {
             err = CodeError(errc::resolve_error);
     }
 
-    if (req->async) {
+    if (req->ares_async) {
         resolver->call_now(req, addr, err);
         resolver->remove_request(req);
     } else {
@@ -244,7 +259,7 @@ void Resolver::clear_cache () {
     cache.clear();
 }
 
-ResolveRequest::ResolveRequest (resolve_fn callback, Resolver* resolver) : resolver(resolver), async(false), done(false) {
+ResolveRequest::ResolveRequest (resolve_fn callback, Resolver* resolver) : resolver(resolver), done(), ares_async() {
     _ECTOR();
     event.add(callback);
 }

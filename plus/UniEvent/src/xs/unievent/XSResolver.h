@@ -15,21 +15,7 @@ struct XSResolver : Resolver {
     using Resolver::Resolver;
 
 protected:
-    void on_resolve (const ResolveRequestSP& req, const AddrInfo& addr, const CodeError* err) override {
-        _EDEBUGTHIS();
-        auto salistref = Scalar::undef;
-        if (!err) {
-            auto salist = Array::create();
-            for (auto ai = addr; ai; ai = ai.next()) {
-                salist.push(xs::out(ai.addr()));
-            }
-            salistref = Ref::create(salist);
-        }
-        resolve_xscb.call(xs::out<Resolver*>(this), evname_on_resolve, {salistref, xs::out(err)});
-        Resolver::on_resolve(req, addr, err);
-    }
-
-    static const Simple evname_on_resolve;
+    void on_resolve (const ResolveRequestSP& req, const AddrInfo& addr, const CodeError* err) override;
 };
 
 }}

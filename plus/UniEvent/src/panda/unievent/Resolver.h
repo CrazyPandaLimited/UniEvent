@@ -142,8 +142,8 @@ private:
     Resolver*          resolver;
     ResolverCacheKeySP key;
     TimerSP            timer;
-    bool               async;
     bool               done;
+    bool               ares_async;
 };
 
 
@@ -235,6 +235,7 @@ private:
     Connections       connections;
     Requests          requests;
     Loop::destroy_fn  on_loop_destroy;
+    bool              destroyed;
 
     // search in cache, will remove the record if expired
     AddrInfo find (std::string_view node, std::string_view service, const AddrInfoHints& hints);
