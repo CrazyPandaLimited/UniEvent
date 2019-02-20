@@ -11,7 +11,7 @@ struct BackendHandle {
     virtual void set_weak   () = 0;
     virtual void unset_weak () = 0;
 
-    virtual void destroy () = 0;
+    virtual void destroy () noexcept = 0;
 
     virtual ~BackendHandle () {}
 };

@@ -15,7 +15,7 @@ TEST_CASE("resolver", "[resolver]") {
     AsyncTest test(2000, {});
     ResolverSP resolver = new Resolver(test.loop);
     std::vector<AddrInfo> res;
-    auto cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+    auto cb = [&](ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
         test.happens("r");
         CHECK(!err);
         CHECK(ai);
@@ -139,7 +139,7 @@ TEST_CASE("resolver", "[resolver]") {
 
     SECTION("timeout") {
         // will make it in required time
-        resolver->resolve("localhost", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+        resolver->resolve("localhost", [&](ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
             test.happens("r");
             CHECK(!err);
             CHECK(ai);
@@ -148,7 +148,7 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(resolver->cache_size() == 1);
 
         // will not make it
-        resolver->resolve("ya.ru", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+        resolver->resolve("ya.ru", [&](ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
             test.happens("r");
             REQUIRE(err);
             CHECK(err->code() == std::errc::timed_out);
@@ -162,7 +162,7 @@ TEST_CASE("resolver", "[resolver]") {
     SECTION("cancel") {
         expected_cnt = 1;
 
-        auto req = resolver->resolve("tut.by", [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+        auto req = resolver->resolve("tut.by", [&](ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
             test.happens("r");
             REQUIRE(err);
             CHECK(err->code() == std::errc::operation_canceled);
@@ -182,7 +182,7 @@ TEST_CASE("resolver", "[resolver]") {
         req->cancel(); // should be no-op
     }
 
-    auto cancel_cb = [&](ResolverSP, ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
+    auto cancel_cb = [&](ResolveRequestSP, const AddrInfo& ai, const CodeError* err) {
         test.happens("r");
         REQUIRE(err);
         CHECK(err->code() == std::errc::operation_canceled);

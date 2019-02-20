@@ -36,8 +36,7 @@ std::ostream& operator<< (std::ostream& os, const AddrInfo& ai) {
     return os;
 }
 
-Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit)
-    : loop(loop.get()), expiration_time(expiration_time), limit(limit), destroyed()
+Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit) : expiration_time(expiration_time), limit(limit), destroyed()
 {
     _ECTOR();
     ares_options options;
@@ -58,32 +57,13 @@ Resolver::Resolver (const LoopSP& loop, uint32_t expiration_time, size_t limit)
         _EDEBUG("dns roll timer");
         ares_process_fd(channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
     });
-
-    loop->destroy_event.add(on_loop_destroy = [this](const LoopSP&){
-        destroy();
-    });
 }
 
-void Resolver::on_delete () {
+Resolver::~Resolver () {
     _EDTOR();
-    destroy();
-}
-
-void Resolver::destroy () {
-    if (destroyed) return;
-    _EDEBUGTHIS();
-    destroyed = true;
-
-    ares_destroy(channel);
+    assert(!requests.size());
     assert(!connections.size());
-
-    for (auto& request : requests) request->cancel();
-    requests.clear();
-
-    loop->destroy_event.remove(on_loop_destroy);
-
-    dns_roll_timer = nullptr;
-    loop = nullptr;
+    ares_destroy(channel);
 }
 
 ResolveRequestSP Resolver::resolve (const Builder& p) {
@@ -104,7 +84,7 @@ ResolveRequestSP Resolver::resolve (const Builder& p) {
         auto ai = find(p._node, service, p._hints);
         if (ai) {
             auto reqptr = req.get();
-            loop->delay([=]{
+            loop()->delay([=]{
                 call_now(reqptr, ai, nullptr);
                 this->remove_request(reqptr);
             }, this);
@@ -121,9 +101,9 @@ ResolveRequestSP Resolver::resolve (const Builder& p) {
     if (p._timeout) req->timer = Timer::once(p._timeout, [reqp](const TimerSP&) {
         _EDEBUG("timed out req:%p", reqp);
         reqp->resolver->call_now(reqp, nullptr, CodeError(std::errc::timed_out));
-    }, loop);
+    }, loop());
 
-    _EDEBUGTHIS("req:%p [%s:%s] loop:%p use_cache:%d", req.get(), node_cstr, service_cstr, loop, p._use_cache);
+    _EDEBUGTHIS("req:%p [%s:%s] loop:%p use_cache:%d", req.get(), node_cstr, service_cstr, loop().get(), p._use_cache);
     ares_addrinfo h = { p._hints.flags, p._hints.family, p._hints.socktype, p._hints.protocol, 0, nullptr, nullptr, nullptr };
     ares_getaddrinfo(channel, node_cstr, service.length() ? service_cstr : nullptr, &h, ares_resolve_cb, req.get());
     req->ares_async = true;
@@ -152,7 +132,7 @@ void Resolver::ares_sockstate_cb (void* data, sock_t sock, int read, int write) 
 
         if (!conn) {
             if (!resolver->dns_roll_timer->active()) resolver->dns_roll_timer->start(DNS_ROLL_TIMEOUT);
-            conn = new Poll(Poll::Socket{sock}, resolver->loop);
+            conn = new Poll(Poll::Socket{sock}, resolver->loop());
         }
 
         conn->start((read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0), [=](Poll*, int, const CodeError*) {
@@ -204,7 +184,7 @@ void Resolver::ares_resolve_cb (void* arg, int status, int, ares_addrinfo* ai) {
         resolver->call_now(req, addr, err);
         resolver->remove_request(req);
     } else {
-        resolver->loop->delay([=]{
+        resolver->loop()->delay([=]{
             resolver->call_now(req, addr, err);
             resolver->remove_request(req);
         }, resolver);
@@ -212,7 +192,7 @@ void Resolver::ares_resolve_cb (void* arg, int status, int, ares_addrinfo* ai) {
 }
 
 void Resolver::on_resolve (const ResolveRequestSP& req, const AddrInfo& addr, const CodeError* err) {
-    req->event(this, req, addr, err);
+    req->event(req, addr, err);
 }
 
 void Resolver::call_now (const ResolveRequestSP& req, const AddrInfo& addr, const CodeError* err) {

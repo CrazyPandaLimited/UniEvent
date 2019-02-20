@@ -11,7 +11,7 @@ struct Check : virtual Handle {
     CallbackDispatcher<check_fptr> check_event;
 
     Check (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_check(this));
+        _init(loop_impl(loop)->new_check(this));
     }
 
     const HandleType& type () const override;

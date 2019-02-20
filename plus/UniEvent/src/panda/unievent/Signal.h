@@ -12,7 +12,7 @@ struct Signal : virtual Handle {
     CallbackDispatcher<signal_fptr> signal_event;
 
     Signal (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_signal(this));
+        _init(loop_impl(loop)->new_signal(this));
     }
 
     const HandleType& type () const override;

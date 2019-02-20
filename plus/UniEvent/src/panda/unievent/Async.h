@@ -11,7 +11,7 @@ struct Async : virtual Handle {
     CallbackDispatcher<async_fptr> async_event;
 
     Async (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_async(this));
+        _init(loop_impl(loop)->new_async(this));
     }
 
     Async (async_fn cb, Loop* loop = Loop::default_loop()) : Async(loop) {

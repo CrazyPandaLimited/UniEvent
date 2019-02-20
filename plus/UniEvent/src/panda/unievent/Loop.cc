@@ -41,19 +41,20 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
     _impl = backend->new_loop(this, type);
 }
 
-void Loop::on_delete () {
+Loop::~Loop () {
     _EDTOR();
-    destroy_event(this);
-    while (_handles.size()) _handles.front()->destroy();
+    retain(); retain(); retain(); // restore strong ref (prepare & resolver)
+    _delay_handle = nullptr;
+    _resolver     = nullptr;
+    assert(!_handles.size());
     delete _impl;
 }
-
-Loop::~Loop () {}
 
 void Loop::delay (const delayed_fn& f, const iptr<Refcnt>& guard) {
     if (!_delay_handle) {
         _delay_handle = new Prepare(this);
         _delay_handle->prepare_event.add([this](Prepare*) { _call_delayed(); });
+        release(); // custom weak ref prepare -> loop
     }
     if (!_delayed_callbacks.size()) _delay_handle->start();
 
@@ -85,9 +86,12 @@ void Loop::dump () const {
     }
 }
 
-ResolverSP& Loop::resolver () {
-    if (!_resolver) _resolver = new Resolver(this);
-    return _resolver;
+Resolver* Loop::resolver () {
+    if (!_resolver) {
+        _resolver = new Resolver(this);
+        release(); // custom weak ref resolver -> loop
+    }
+    return _resolver.get();
 }
 
 }}

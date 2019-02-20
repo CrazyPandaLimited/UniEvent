@@ -5,28 +5,25 @@ static const size_t MIN_ALLOC_SIZE = 1024;
 
 const HandleType Handle::UNKNOWN_TYPE("unknown");
 
+Handle::~Handle () {
+    _loop->unregister_handle(this);
+    _impl->destroy();
+}
+
 string Handle::buf_alloc (size_t cap) {
     if (buf_alloc_callback) return buf_alloc_callback(this, cap);
     string ret(cap);
     return ret;
 }
 
-void Handle::destroy () {
-    if (!_impl) return;
-    _EDEBUGTHIS("%s", type().name);
+//void Handle::destroy () {
+//    _EDEBUGTHIS("%s", type().name);
 //    if (async_locked()) {
 //        asyncq_push(new CommandCloseDelete());
 //        return;
 //    }
 //    if (!asyncq_empty()) asyncq_cancel();
-    loop()->unregister_handle(this);
-    _impl->destroy();
-    _impl = nullptr;
-}
-
-void Handle::on_delete () {
-    if (_impl) destroy();
-}
+//}
 
 //void Handle::uvx_on_buf_alloc (uv_handle_t* handle, size_t size, uv_buf_t* uvbuf) {
 //    if (size < MIN_ALLOC_SIZE) size = MIN_ALLOC_SIZE;

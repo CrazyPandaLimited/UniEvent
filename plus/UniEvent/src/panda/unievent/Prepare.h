@@ -11,8 +11,10 @@ struct Prepare : virtual Handle {
     CallbackDispatcher<prepare_fptr> prepare_event;
 
     Prepare (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_prepare(this));
+        _init(loop_impl(loop)->new_prepare(this));
     }
+
+    ~Prepare () { _EDTOR(); }
 
     const HandleType& type () const override;
 

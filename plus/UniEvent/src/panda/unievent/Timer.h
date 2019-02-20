@@ -13,7 +13,7 @@ struct Timer : virtual Handle {
     CallbackDispatcher<timer_fptr> timer_event;
 
     Timer (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_timer(this));
+        _init(loop_impl(loop)->new_timer(this));
     }
 
     const HandleType& type () const override;

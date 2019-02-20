@@ -125,7 +125,7 @@ struct ResolveRequest;
 using ResolveRequestSP = iptr<ResolveRequest>;
 
 struct ResolveRequest : panda::lib::IntrusiveChainNode<ResolveRequestSP>, Refcnt, panda::lib::AllocatedObject<ResolveRequest, true> {
-    using resolve_fptr = void(const ResolverSP&, const ResolveRequestSP&, const AddrInfo& address, const CodeError* err);
+    using resolve_fptr = void(const ResolveRequestSP&, const AddrInfo& address, const CodeError* err);
     using resolve_fn   = function<resolve_fptr>;
 
     ~ResolveRequest ();
@@ -185,6 +185,8 @@ struct Resolver : virtual Refcntd {
     Resolver (Resolver& other) = delete;
     Resolver& operator= (Resolver& other) = delete;
 
+    const LoopSP& loop () const { return dns_roll_timer->loop(); }
+
     Builder resolve () { return Builder(this); }
 
     ResolveRequestSP resolve (std::string_view node, resolve_fn callback, uint64_t timeout = DEFAULT_RESOLVE_TIMEOUT) {
@@ -212,10 +214,8 @@ protected:
     virtual ResolveRequestSP resolve (const Builder&);
 
     virtual void on_resolve (const ResolveRequestSP&, const AddrInfo&, const CodeError* = nullptr);
-    
-    virtual void on_delete () override;
 
-    ~Resolver () {}
+    ~Resolver ();
 
 private:
     struct Connection {
@@ -226,7 +226,6 @@ private:
     using Connections = std::map<sock_t, PollSP>;
     using Requests    = panda::lib::IntrusiveChain<ResolveRequestSP>;
 
-    Loop*             loop;
     ares_channel      channel;
     TimerSP           dns_roll_timer;
     ResolverCacheType cache;
@@ -234,15 +233,12 @@ private:
     size_t            limit;
     Connections       connections;
     Requests          requests;
-    Loop::destroy_fn  on_loop_destroy;
     bool              destroyed;
 
     // search in cache, will remove the record if expired
     AddrInfo find (std::string_view node, std::string_view service, const AddrInfoHints& hints);
 
     void remove_request (ResolveRequest* req);
-
-    void destroy ();
 
     static void ares_resolve_cb (void* arg, int status, int timeouts, ares_addrinfo* ai);
     static void ares_sockstate_cb (void* data, sock_t sock, int read, int write);

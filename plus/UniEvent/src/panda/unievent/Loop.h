@@ -11,13 +11,11 @@ namespace panda { namespace unievent {
 backend::Backend* default_backend     ();
 void              set_default_backend (backend::Backend* backend);
 
-struct Loop : Refcntd {
+struct Loop : Refcnt {
     using Backend      = backend::Backend;
     using BackendLoop  = backend::BackendLoop;
     using Handles      = panda::lib::IntrusiveChain<Handle*>;
     using delayed_fn   = function<void()>;
-    using destroy_fptr = void(const LoopSP&);
-    using destroy_fn   = function<destroy_fptr>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -28,8 +26,6 @@ struct Loop : Refcntd {
         if (!_default_loop) _init_default_loop();
         return _default_loop;
     }
-
-    CallbackDispatcher<destroy_fptr> destroy_event;
 
     Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
 
@@ -54,13 +50,9 @@ struct Loop : Refcntd {
 
     void dump () const;
 
-    ResolverSP& resolver ();
-
-    BackendLoop* impl () const { return _impl; }
+    Resolver* resolver ();
 
 protected:
-    virtual void on_delete () override;
-
     ~Loop ();
 
 private:
@@ -84,7 +76,7 @@ private:
         _handles.push_back(h);
     }
 
-    void unregister_handle (Handle* h) {
+    void unregister_handle (Handle* h) noexcept {
         _handles.erase(h);
     }
 
@@ -96,8 +88,8 @@ private:
     static void _init_global_loop ();
     static void _init_default_loop ();
 
+    friend Handle;
     friend void set_default_backend (backend::Backend*);
-    friend class Handle;
 };
 
 }}

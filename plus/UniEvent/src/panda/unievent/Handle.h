@@ -19,17 +19,17 @@ struct HandleType {
 };
 std::ostream& operator<< (std::ostream& out, const HandleType&);
 
-struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcntd, panda::lib::AllocatedObject<Handle> {
+struct Handle : panda::lib::IntrusiveChainNode<Handle*>, Refcnt, panda::lib::AllocatedObject<Handle> {
     using BackendHandle = backend::BackendHandle;
     using buf_alloc_fn  = panda::function<string(Handle* h, size_t cap)>;
 
     buf_alloc_fn buf_alloc_callback;
 
-    Loop* loop () const { return _impl ? _impl->loop()->frontend() : nullptr; }
+    const LoopSP& loop () const { return _loop; }
 
     virtual const HandleType& type () const = 0;
 
-    bool active () const { return _impl ? _impl->active() : false; }
+    bool active () const { return _impl->active(); }
     bool weak   () const { return _weak; }
     
     void weak (bool value) {
@@ -98,21 +98,17 @@ protected:
         //asyncq.head = asyncq.tail = nullptr;
     }
 
-    ~Handle () {}
+    ~Handle ();
 
     void _init (BackendHandle* impl) {
         _impl = impl;
-        loop()->register_handle(this);
+        _loop = impl->loop()->frontend();
+        _loop->register_handle(this);
     }
 
-    BackendHandle* impl () const {
-        if (!_impl) throw Error("Loop has been destroyed and this handle can not be used anymore");
-        return _impl;
-    }
+    BackendHandle* impl () const { return _impl; }
 
-    virtual void destroy ();
-
-    virtual void on_delete () override;
+    static backend::BackendLoop* loop_impl (Loop* l) { return l->_impl; }
 
 //    struct InUserCallbackLock {
 //        Handle* h;
@@ -182,6 +178,7 @@ protected:
 
 private:
     BackendHandle* _impl;
+    LoopSP         _loop;
     bool           _weak;
 
 //    void close_delete ();

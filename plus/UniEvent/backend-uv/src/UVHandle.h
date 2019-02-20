@@ -30,7 +30,7 @@ protected:
         uv_ref(uvhp);
     }
 
-    void destroy () override {
+    void destroy () noexcept override {
         _EDEBUGTHIS("%s", uvx_type_name(uvhp));
         this->template frontend = nullptr;
         uv_close(uvhp, uvx_on_close);

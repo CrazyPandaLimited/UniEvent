@@ -1,8 +1,11 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
+catch_run('[loop]');
 
-my ($h, $err, @hlist, $var);
+if (0) {
+    
+    my ($h, $err, @hlist, $var);
 
 subtest 'basic' => sub {
     my $loop = UniEvent::Loop->new();
@@ -143,5 +146,7 @@ subtest 'stop before run' => sub {
     $loop->run_nowait;
     is $i, 1, "run works";
 };
+
+}
 
 done_testing();

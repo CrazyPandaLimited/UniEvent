@@ -20,12 +20,12 @@ struct Poll : virtual Handle {
 
     Poll (Socket sock, Loop* loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop->impl()->new_poll_sock(this, sock.val));
+        _init(loop_impl(loop)->new_poll_sock(this, sock.val));
     }
 
     Poll (Fd fd, Loop* loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop->impl()->new_poll_fd(this, fd.val));
+        _init(loop_impl(loop)->new_poll_fd(this, fd.val));
     }
 
     ~Poll () {

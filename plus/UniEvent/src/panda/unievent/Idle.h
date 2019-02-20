@@ -11,7 +11,7 @@ struct Idle : virtual Handle {
     CallbackDispatcher<idle_fptr> idle_event;
 
     Idle (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_idle(this));
+        _init(loop_impl(loop)->new_idle(this));
     }
 
     const HandleType& type () const override;
