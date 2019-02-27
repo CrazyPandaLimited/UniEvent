@@ -271,3 +271,15 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
     test.wait(30);
     test.happens("done");
 }
+
+TEST_CASE("SRV-1273 #1", "[tcp]") {
+    AsyncTest test(500, {});
+    SockAddr addr = test.get_refused_addr();
+
+    TCPSP client = new TCP(test.loop);
+    client->connect().to(addr);
+    client->reset();
+    client->connect().to(addr);
+    client->reset();
+    REQUIRE(client->async_locked());
+}

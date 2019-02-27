@@ -89,9 +89,14 @@ void Handle::_close() {
 }
 
 void Handle::asyncq_cancel () {
-    async_lock();
+    bool was_locked = async_locked();
+    if (!was_locked) {
+        async_lock();
+    }
     _asyncq_cancel();
-    async_unlock(); // will trigger commands if cancel callbacks created anything
+    if (!was_locked) {
+        async_unlock(); // will trigger commands if cancel callbacks created anything
+    }
 }
 
 void Handle::_asyncq_cancel() {
