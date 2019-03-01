@@ -69,7 +69,7 @@ void TCP::do_connect(TCPConnectRequest* req) {
                     resolve_request.reset();
                     if (err) {
                         int errcode = err->code();
-                        Prepare::call_soon([=] { filters_.on_connect(CodeError(errcode), req); }, loop());
+                        call_soon_or_on_reset([=] { filters_.on_connect(CodeError(errcode), req); });
                         return;
                     }
                     req->sa = address->head->ai_addr;
@@ -77,14 +77,16 @@ void TCP::do_connect(TCPConnectRequest* req) {
                 }, cached_resolver);
             return;
         } catch (...) {
-            Prepare::call_soon([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); }, loop());
+            call_soon_or_on_reset([=] { filters_.on_connect(CodeError(ERRNO_RESOLVE), req); });
             return;
         }
     }
 
     int err = uv_tcp_connect(_pex_(req), &uvh, req->sa.get(), Stream::uvx_on_connect);
     if (err) {
-        Prepare::call_soon([=] { filters_.on_connect(CodeError(err), req); }, loop());
+        call_soon_or_on_reset([=] {
+            filters_.on_connect(CodeError(err), req);
+        });
         return;
     }
 }

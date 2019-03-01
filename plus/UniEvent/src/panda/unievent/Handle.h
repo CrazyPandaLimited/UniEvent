@@ -102,6 +102,8 @@ protected:
     uint32_t     flags;
     uint32_t     in_user_callback;
 
+    std::vector<function<void()>> delayed;
+
     struct InUserCallbackLock {
         Handle* h;
         InUserCallbackLock(Handle* h) : h(h){
@@ -177,8 +179,12 @@ protected:
         uv_send_buffer_size(uvhp, &value);
     }
 
+    void call_soon_or_on_reset(function<void()>&& fn);
+    void call_delayed();
+
     // private dtor prevents creating Handles on the stack / statically / etc.
     virtual ~Handle ();
+
 
 public:
     // clang restricts friendliness forwarding via derived classes as of example in 11.4

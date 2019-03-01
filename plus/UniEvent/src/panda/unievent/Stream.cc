@@ -28,6 +28,7 @@ void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
 
 void Stream::do_on_connect (const CodeError* err, ConnectRequest* connect_request) {
     _EDEBUGTHIS("do_on_connect, err: %d, stream: %p, request: %p", err ? err->code() : 0, this, connect_request);
+//    panda_log_debug(static_cast<Handle*>(this) << (err ? err->what() : "NO_ERROR") <<":" << connect_request);
     bool unlock = !(err && err->code() == ERRNO_ECANCELED);
     set_connected(!err);
     connect_request->release_timer();

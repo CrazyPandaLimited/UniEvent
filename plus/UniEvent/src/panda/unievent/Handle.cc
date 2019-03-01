@@ -1,4 +1,5 @@
 #include "Handle.h"
+#include "Prepare.h"
 using namespace panda::unievent;
 
 static const size_t MIN_ALLOC_SIZE = 1024;
@@ -65,6 +66,7 @@ void Handle::close_delete () {
 }
 
 void Handle::close_reinit (bool keep_asyncq) {
+    call_delayed();
     _EDEBUGTHIS("close_reinit, keep_asyncq: %d, in_user_callback: %d, asyncq_empty(): %d ", keep_asyncq, in_user_callback, asyncq_empty());
     if (!keep_asyncq && in_user_callback) {
         if (!asyncq_empty()) _asyncq_cancel(); // do not lock and unlock here
@@ -108,6 +110,25 @@ void Handle::_asyncq_cancel() {
         delete cmd;
         cmd = next_cmd;
     }
+}
+
+void Handle::call_soon_or_on_reset(function<void ()>&& fn) {
+    if (delayed.empty()) {
+        Prepare::call_soon([&](){
+            call_delayed();
+        }, loop());
+    }
+    delayed.push_back(fn);
+}
+
+void Handle::call_delayed() {
+    std::vector<function<void()>> tmp;
+    std::swap(tmp, delayed);
+    for (auto f : tmp) {
+        f();
+    }
+    std::swap(tmp, delayed); // swap back to reuse memory
+    delayed.clear();
 }
 
 Handle::~Handle() { _EDTOR(); }

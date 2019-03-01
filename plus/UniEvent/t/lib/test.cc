@@ -23,7 +23,7 @@ SSL_CTX* get_ssl_ctx() {
 TCPSP make_basic_server (Loop* loop, const SockAddr& sa) {
     TCPSP server = new TCP(loop);
     server->bind(sa);
-    server->listen(1);
+    server->listen(100);
     return server;
 }
 
