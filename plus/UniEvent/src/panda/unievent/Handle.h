@@ -9,6 +9,7 @@
 #include "Loop.h"
 #include "Debug.h"
 #include "Command.h"
+//#include "test/Trace.h"
 
 namespace panda { namespace unievent {
 
@@ -70,11 +71,14 @@ struct Handle : virtual Refcnt {
 
     void async_lock   () { 
         _EDEBUG("lock");
+//        panda_log_debug("lock:" << this << ":" << async_locked());
+//        panda_debug_v(debug::get_trace());
         flags |= HF_BUSY; 
     }
 
     void async_unlock () {
         _EDEBUG("unlock");
+//        panda_debug_v(debug::get_trace());
         async_unlock_noresume();
         asyncq_resume();
     }

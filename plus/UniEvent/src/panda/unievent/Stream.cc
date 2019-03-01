@@ -299,6 +299,7 @@ void Stream::_close () {
 
 void Stream::cancel_connect () {
     _EDEBUGTHIS("cancel_connect");
+    call_delayed();
     _close();
 }
 

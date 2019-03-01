@@ -314,7 +314,7 @@ TEST_CASE("SRV-1273 #1", "[tcp]") {
 
 //    PrepareSP tick = new Prepare(test.loop);
 //    tick->prepare_event.add([](PrepareSP) {
-////        panda_log_debug("tick");
+//        panda_log_debug("tick");
 //    });
 //    tick->start();
 
