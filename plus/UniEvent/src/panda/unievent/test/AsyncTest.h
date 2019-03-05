@@ -24,7 +24,7 @@ struct AsyncTest {
     static SockAddr get_refused_addr   ();
     static SockAddr get_blackhole_addr ();
 
-    AsyncTest (uint64_t timeout, const std::vector<string>& expected);
+    AsyncTest (uint64_t timeout, const std::vector<string>& expected = {}, const LoopSP& loop = nullptr);
     virtual ~AsyncTest() noexcept(false);
 
     void run        ();

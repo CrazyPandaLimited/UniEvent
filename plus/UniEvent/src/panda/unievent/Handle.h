@@ -108,8 +108,6 @@ protected:
 
     BackendHandle* impl () const { return _impl; }
 
-    static backend::BackendLoop* loop_impl (Loop* l) { return l->_impl; }
-
 //    struct InUserCallbackLock {
 //        Handle* h;
 //        InUserCallbackLock(Handle* h) : h(h){

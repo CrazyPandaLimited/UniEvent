@@ -1,34 +1,35 @@
 use 5.012;
 use lib 't/lib';
 use MyTest;
-#catch_run('[resolver]');
+
+catch_run('[resolver]');
 
 my $l = UniEvent::Loop->default_loop();
 
-subtest 'not cached' => sub {
-    my $resolver = new UniEvent::Resolver();
-    
-    $resolver->resolve({
-        node      => 'localhost',
-        use_cache => 0,
-        on_resolve => sub {
-            my ($resolver, $addr, $err) = @_;
-            die "CB";
-            ok !$err;
-            ok $addr;
-            use Data::Dumper;
-            warn Dumper($addr);
-        },
-    });
-    
-    warn "AFTER RES CALL";
-    
-    eval {
-        $resolver = undef;
-    };
-    
-    warn "RES UNDEF";
-};
+#subtest 'not cached' => sub {
+#    my $resolver = new UniEvent::Resolver();
+#    
+#    $resolver->resolve({
+#        node      => 'localhost',
+#        use_cache => 0,
+#        on_resolve => sub {
+#            my ($resolver, $addr, $err) = @_;
+#            die "CB";
+#            ok !$err;
+#            ok $addr;
+#            use Data::Dumper;
+#            warn Dumper($addr);
+#        },
+#    });
+#    
+#    warn "AFTER RES CALL";
+#    
+#    eval {
+#        $resolver = undef;
+#    };
+#    
+#    warn "RES UNDEF";
+#};
 
 #sub test_cached_resolver { 
 #    my ($check_ip, $check_port) = ('8.8.8.8', 53);

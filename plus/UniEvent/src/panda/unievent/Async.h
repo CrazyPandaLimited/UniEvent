@@ -4,14 +4,14 @@
 
 namespace panda { namespace unievent {
 
-struct Async : virtual Handle {
+struct Async : virtual Handle, private backend::IAsyncListener {
     using async_fptr = void(Async*);
     using async_fn   = function<async_fptr>;
     
     CallbackDispatcher<async_fptr> async_event;
 
     Async (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_async(this));
+        _init(loop->impl()->new_async(this));
     }
 
     Async (async_fn cb, Loop* loop = Loop::default_loop()) : Async(loop) {
@@ -29,7 +29,7 @@ struct Async : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_async ();
+    void on_async () override;
 
     backend::BackendAsync* impl () const { return static_cast<backend::BackendAsync*>(Handle::impl()); }
 };

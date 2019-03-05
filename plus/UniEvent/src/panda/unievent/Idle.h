@@ -4,14 +4,14 @@
 
 namespace panda { namespace unievent {
 
-struct Idle : virtual Handle {
+struct Idle : virtual Handle, private backend::IIdleListener {
     using idle_fptr = void(Idle*);
     using idle_fn   = function<idle_fptr>;
     
     CallbackDispatcher<idle_fptr> idle_event;
 
     Idle (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_idle(this));
+        _init(loop->impl()->new_idle(this));
     }
 
     const HandleType& type () const override;
@@ -26,7 +26,7 @@ struct Idle : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_idle ();
+    void on_idle () override;
 
     backend::BackendIdle* impl () const { return static_cast<backend::BackendIdle*>(Handle::impl()); }
 };

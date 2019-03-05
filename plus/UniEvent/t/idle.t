@@ -2,6 +2,8 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
+catch_run('[idle]');
+
 my $l = UniEvent::Loop->default_loop;
 
 subtest 'start/stop/reset' => sub {
@@ -64,19 +66,6 @@ subtest 'call_now' => sub {
     $h->idle_callback(sub { $i++ });
     $h->call_now for 1..5;
     is $i, 5;
-};
-
-subtest 'zombie mode' => sub {
-    my $l = new UniEvent::Loop;
-    my $h = new UniEvent::Idle($l);
-    $h->idle_callback(sub { fail("must not get called") });
-    $h->start;
-    undef $l;
-    is $h->loop, undef, "loop";
-    dies_ok { $h->start } "start";
-    dies_ok { $h->stop  } "stop";
-    dies_ok { $h->reset } "reset";
-    undef $h;
 };
 
 done_testing();

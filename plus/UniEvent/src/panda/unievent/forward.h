@@ -1,6 +1,6 @@
 #pragma once
 #include <panda/refcnt.h>
-#include <panda/function.h>
+//#include <panda/function.h>
 
 // Forward declarations only
 
@@ -36,6 +36,9 @@ using PollSP = iptr<Poll>;
 struct Resolver;
 using ResolverSP = iptr<Resolver>;
 
+struct Request;
+using RequestSP = iptr<Request>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
 //
@@ -50,8 +53,6 @@ using ResolverSP = iptr<Resolver>;
 //
 //struct Pipe;
 //using PipeSP = iptr<Pipe>;
-//
-//struct Request;
 //
 //struct ConnectRequest;
 //using ConnectRequestSP = iptr<ConnectRequest>;

@@ -39,39 +39,15 @@ Loop::Loop (Backend* backend, BackendLoop::Type type) {
     if (!backend) backend = default_backend();
     _backend = backend;
     _impl = backend->new_loop(this, type);
+    delayer.loop = _impl;
 }
 
 Loop::~Loop () {
     _EDTOR();
-    retain(); retain(); retain(); // restore strong ref (prepare & resolver)
-    _delay_handle = nullptr;
-    _resolver     = nullptr;
+    _resolver = nullptr;
+    delayer.reset();
     assert(!_handles.size());
     delete _impl;
-}
-
-void Loop::delay (const delayed_fn& f, const iptr<Refcnt>& guard) {
-    if (!_delay_handle) {
-        _delay_handle = new Prepare(this);
-        _delay_handle->prepare_event.add([this](Prepare*) { _call_delayed(); });
-        release(); // custom weak ref prepare -> loop
-    }
-    if (!_delayed_callbacks.size()) _delay_handle->start();
-
-    _delayed_callbacks.push_back({f, guard});
-}
-
-void Loop::_call_delayed () {
-    assert(!_delayed_callbacks_reserve.size());
-    std::swap(_delayed_callbacks, _delayed_callbacks_reserve);
-
-    for (auto& row : _delayed_callbacks_reserve) {
-        if (row.guard.weak_count() && !row.guard) continue; // skip callbacks with guard destroyed
-        if (row.cb) row.cb();
-    }
-
-    _delayed_callbacks_reserve.clear();
-    if (!_delayed_callbacks.size()) _delay_handle->stop();
 }
 
 void Loop::dump () const {
@@ -87,11 +63,49 @@ void Loop::dump () const {
 }
 
 Resolver* Loop::resolver () {
-    if (!_resolver) {
-        _resolver = new Resolver(this);
-        release(); // custom weak ref resolver -> loop
-    }
+    if (!_resolver) _resolver = Resolver::create_loop_resolver(this); // does not hold strong backref to loop
     return _resolver.get();
+}
+
+void Loop::Delayer::reset () {
+    if (tick) {
+        tick->destroy();
+        tick = nullptr;
+    }
+}
+
+uint64_t Loop::Delayer::add (const delayed_fn& f, const iptr<Refcnt>& guard) {
+    if (!tick) tick = loop->new_tick(this);
+    if (!callbacks.size()) tick->start();
+    callbacks.push_back({++lastid, f, guard});
+    return lastid;
+}
+
+template <class T>
+static inline bool _delayer_cancel (T& list, uint64_t id) {
+    if (!list.size()) return false;
+    if (id < list.front().id) return false;
+    size_t idx = id - list.front().id;
+    if (idx >= list.size()) return false;
+    list[idx].cb = nullptr;
+    return true;
+}
+
+bool Loop::Delayer::cancel (uint64_t id) {
+    return _delayer_cancel(callbacks, id) || _delayer_cancel(reserve, id);
+}
+
+void Loop::Delayer::on_tick () {
+    assert(!reserve.size());
+    std::swap(callbacks, reserve);
+
+    for (auto& row : reserve) {
+        if (row.guard.weak_count() && !row.guard) continue; // skip callbacks with guard destroyed
+        if (row.cb) row.cb();
+    }
+
+    reserve.clear();
+    if (!callbacks.size()) tick->stop();
 }
 
 }}

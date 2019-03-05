@@ -2,6 +2,7 @@
 #include "inc.h"
 #include "forward.h"
 #include "backend/Backend.h"
+#include "backend/BackendTick.h"
 #include <panda/CallbackDispatcher.h>
 #include <panda/lib/intrusive_chain.h>
 #include <vector>
@@ -14,8 +15,38 @@ void              set_default_backend (backend::Backend* backend);
 struct Loop : Refcnt {
     using Backend      = backend::Backend;
     using BackendLoop  = backend::BackendLoop;
+    using BackendTick  = backend::BackendTick;
     using Handles      = panda::lib::IntrusiveChain<Handle*>;
     using delayed_fn   = function<void()>;
+
+    struct Delayer : private backend::ITickListener {
+        Delayer () : loop(), tick(), lastid(0) {}
+
+        uint64_t add    (const delayed_fn& f, const iptr<Refcnt>& guard = {});
+        bool     cancel (uint64_t id);
+
+    private:
+        struct Callback {
+            size_t            id;
+            delayed_fn        cb;
+            weak_iptr<Refcnt> guard;
+        };
+        using Callbacks = std::vector<Callback>;
+
+        BackendLoop* loop;
+        BackendTick* tick;
+        Callbacks    callbacks;
+        Callbacks    reserve;
+        uint64_t     lastid;
+
+        void on_tick () override;
+
+        void reset ();
+
+        friend Loop;
+    };
+
+    Delayer delayer;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -46,29 +77,22 @@ struct Loop : Refcnt {
 
     const Handles& handles () const { return _handles; }
 
-    void delay (const delayed_fn& f, const iptr<Refcnt>& guard = {});
-
-    void dump () const;
+    uint64_t delay (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return delayer.add(f, guard); }
 
     Resolver* resolver ();
+
+    BackendLoop* impl () { return _impl; }
+
+    void dump () const;
 
 protected:
     ~Loop ();
 
 private:
-    struct DelayedCallback {
-        delayed_fn        cb;
-        weak_iptr<Refcnt> guard;
-    };
-    using DelayedCallbacks = std::vector<DelayedCallback>;
-
-    Backend*         _backend;
-    BackendLoop*     _impl;
-    Handles          _handles;
-    PrepareSP        _delay_handle;
-    DelayedCallbacks _delayed_callbacks;
-    DelayedCallbacks _delayed_callbacks_reserve;
-    ResolverSP       _resolver;
+    Backend*     _backend;
+    BackendLoop* _impl;
+    Handles      _handles;
+    ResolverSP   _resolver;
 
     Loop (Backend*, BackendLoop::Type);
 
@@ -79,8 +103,6 @@ private:
     void unregister_handle (Handle* h) noexcept {
         _handles.erase(h);
     }
-
-    void _call_delayed ();
 
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;

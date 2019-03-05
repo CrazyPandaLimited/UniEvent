@@ -2,6 +2,8 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
+catch_run('[handle]');
+
 subtest 'CLONE_SKIP' => sub {
     ok(UniEvent::Handle::CLONE_SKIP());
     ok(UniEvent::Handle->CLONE_SKIP());

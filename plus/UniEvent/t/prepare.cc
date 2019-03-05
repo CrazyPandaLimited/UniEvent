@@ -1,0 +1,36 @@
+#include "lib/test.h"
+
+TEST_CASE("prepare", "[prepare]") {
+    auto l = Loop::default_loop();
+    AsyncTest test(100, {}, l);
+    int cnt = 0;
+
+    SECTION("start/stop/reset") {
+        PrepareSP h = new Prepare;
+        CHECK(h->type() == Prepare::TYPE);
+
+        h->prepare_event.add([&](const PrepareSP&){ cnt++; });
+        h->start();
+        CHECK(l->run_nowait());
+        CHECK(cnt == 1);
+
+        h->stop();
+        CHECK(!l->run_nowait());
+        CHECK(cnt == 1);
+
+        h->start();
+        CHECK(l->run_nowait());
+        CHECK(cnt == 2);
+
+        h->reset();
+        CHECK(!l->run_nowait());
+        CHECK(cnt == 2);
+    }
+
+    SECTION("call_now") {
+        PrepareSP h = new Prepare;
+        h->prepare_event.add([&](const PrepareSP&){ cnt++; });
+        for (int i = 0; i < 5; ++i) h->call_now();
+        CHECK(cnt == 5);
+    };
+}

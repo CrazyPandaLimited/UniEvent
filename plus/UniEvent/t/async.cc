@@ -11,7 +11,7 @@ TEST_CASE("async", "[async]") {
 
         SECTION("from this thread") {
             SECTION("after run") {
-                test.loop->delay([&]{
+                test.loop->delayer.add([&]{
                     async->send();
                 });
             }
@@ -43,15 +43,5 @@ TEST_CASE("async", "[async]") {
         SECTION("call_now") {
             async->call_now();
         }
-    }
-
-    SECTION("zombie mode") {
-        LoopSP loop = new Loop();
-        AsyncSP async = new Async([](Async*){
-            FAIL("should not be called");
-        }, loop);
-        loop.reset();
-
-        REQUIRE_THROWS( async->send() );
     }
 }

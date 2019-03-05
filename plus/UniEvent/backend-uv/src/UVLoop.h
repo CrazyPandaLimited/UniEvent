@@ -1,6 +1,7 @@
 #pragma once
 #include "inc.h"
 #include "UVIdle.h"
+#include "UVTick.h"
 #include "UVPoll.h"
 #include "UVTimer.h"
 #include "UVCheck.h"
@@ -48,15 +49,16 @@ struct UVLoop : BackendLoop {
         if (err) throw uvx_code_error(err);
     }
 
-    BackendTimer*   new_timer  (Timer*   frontend) override { return new UVTimer  (_uvloop, frontend); }
-    BackendPrepare* new_prepare(Prepare* frontend) override { return new UVPrepare(_uvloop, frontend); }
-    BackendCheck*   new_check  (Check*   frontend) override { return new UVCheck  (_uvloop, frontend); }
-    BackendIdle*    new_idle   (Idle*    frontend) override { return new UVIdle   (_uvloop, frontend); }
-    BackendAsync*   new_async  (Async*   frontend) override { return new UVAsync  (_uvloop, frontend); }
-    BackendSignal*  new_signal (Signal*  frontend) override { return new UVSignal (_uvloop, frontend); }
+    BackendTimer*   new_timer  (ITimerListener*   l) override { return new UVTimer  (_uvloop, l); }
+    BackendPrepare* new_prepare(IPrepareListener* l) override { return new UVPrepare(_uvloop, l); }
+    BackendCheck*   new_check  (ICheckListener*   l) override { return new UVCheck  (_uvloop, l); }
+    BackendIdle*    new_idle   (IIdleListener*    l) override { return new UVIdle   (_uvloop, l); }
+    BackendAsync*   new_async  (IAsyncListener*   l) override { return new UVAsync  (_uvloop, l); }
+    BackendSignal*  new_signal (ISignalListener*  l) override { return new UVSignal (_uvloop, l); }
+    BackendTick*    new_tick   (ITickListener*    l) override { return new UVTick   (_uvloop, l); }
 
-    BackendPoll* new_poll_sock (Poll* frontend, sock_t sock) override { return new UVPoll(_uvloop, frontend, sock); }
-    BackendPoll* new_poll_fd   (Poll* frontend, int    fd  ) override { return new UVPoll(_uvloop, frontend, fd, nullptr); }
+    BackendPoll* new_poll_sock (IPollListener* l, sock_t sock) override { return new UVPoll(_uvloop, l, sock); }
+    BackendPoll* new_poll_fd   (IPollListener* l, int    fd  ) override { return new UVPoll(_uvloop, l, fd, nullptr); }
 
 private:
     uv_loop_t  _uvloop_body;

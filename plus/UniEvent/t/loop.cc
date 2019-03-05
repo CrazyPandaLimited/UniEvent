@@ -123,7 +123,7 @@ TEST_CASE("loop", "[loop]") {
     SECTION("loop doesn't leak when it has internal prepare and resolver") {
         loop = new MyLoop();
         loop->delay([]{});
-        loop->resolver()->resolve("localhost", [](const ResolveRequestSP&, const AddrInfo&, const CodeError*){});
+        loop->resolver()->resolve("localhost", [](const Resolver::RequestSP&, const AddrInfo&, const CodeError*){});
         loop->run();
         loop = nullptr;
         CHECK(dcnt == 1);
@@ -146,6 +146,29 @@ TEST_CASE("loop", "[loop]") {
             for (int i = 0; i < 3; ++i) loop->run_nowait();
             CHECK(n == 111);
         }
+        SECTION("doesn't block") {
+            TimeGuard guard(100_ms);
+            loop->delay([&]{
+                n++;
+                loop->delay([&]{
+                    n++;
+                    loop->delay([&]{ n++; });
+                });
+            });
+            CHECK(!loop->run());
+            CHECK(n == 3);
+        }
+        SECTION("events dont supress delay") {
+            TimeGuard guard(100_ms);
+            PrepareSP h = new Prepare;
+            h->start([&](const PrepareSP&){ n += 10; });
+            loop->delay([&]{
+                n++;
+                loop->delay([&]{ n++; loop->stop(); });
+            });
+            CHECK(loop->run());
+            CHECK(n == 22);
+        }
     }
 
     SECTION("stop before run") {
@@ -155,6 +178,7 @@ TEST_CASE("loop", "[loop]") {
         loop->stop();
         loop->run_nowait();
         CHECK(n == 1);
+        loop = nullptr;
     }
 
     if (ccnt != dcnt) CHECK(ccnt == dcnt);

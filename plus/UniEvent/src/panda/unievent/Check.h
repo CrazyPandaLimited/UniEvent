@@ -4,14 +4,14 @@
 
 namespace panda { namespace unievent {
 
-struct Check : virtual Handle {
+struct Check : virtual Handle, private backend::ICheckListener {
     using check_fptr = void(Check*);
     using check_fn   = function<check_fptr>;
 
     CallbackDispatcher<check_fptr> check_event;
 
     Check (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_check(this));
+        _init(loop->impl()->new_check(this));
     }
 
     const HandleType& type () const override;
@@ -26,7 +26,7 @@ struct Check : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_check ();
+    void on_check () override;
 
     backend::BackendCheck* impl () const { return static_cast<backend::BackendCheck*>(Handle::impl()); }
 };

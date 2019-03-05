@@ -3,13 +3,17 @@
 
 namespace panda { namespace unievent { namespace backend {
 
+struct IPollListener {
+    virtual void on_poll (int events, const CodeError* err) = 0;
+};
+
 struct BackendPoll : BackendHandle {
-    BackendPoll (Poll* frontend) : frontend(frontend) {}
+    BackendPoll (IPollListener* l) : listener(l) {}
 
     virtual void start (int events) = 0;
     virtual void stop  ()           = 0;
 
-    Poll* frontend;
+    IPollListener* listener;
 };
 
 }}}

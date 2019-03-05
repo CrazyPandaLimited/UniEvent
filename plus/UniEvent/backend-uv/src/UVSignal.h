@@ -1,13 +1,12 @@
 #pragma once
 #include "inc.h"
 #include "UVHandle.h"
-#include <panda/unievent/Signal.h>
 #include <panda/unievent/backend/BackendSignal.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVSignal : UVHandle<BackendSignal> {
-    UVSignal (uv_loop_t* loop, Signal* frontend) : UVHandle<BackendSignal>(frontend) {
+    UVSignal (uv_loop_t* loop, ISignalListener* lst) : UVHandle<BackendSignal>(lst) {
         int err = uv_signal_init(loop, &uvh);
         if (err) throw uvx_code_error(err);
         _init(&uvh);
@@ -35,7 +34,7 @@ private:
 
     static void _call (uv_signal_t* p, int signum) {
         auto h = get_handle<UVSignal*>(p);
-        if (h->frontend) h->frontend->call_now(signum);
+        if (h->listener) h->listener->on_signal(signum);
     }
 };
 

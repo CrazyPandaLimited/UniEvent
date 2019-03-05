@@ -3,12 +3,16 @@
 
 namespace panda { namespace unievent { namespace backend {
 
+struct IAsyncListener {
+    virtual void on_async () = 0;
+};
+
 struct BackendAsync : BackendHandle {
-    BackendAsync (Async* frontend) : frontend(frontend) {}
+    BackendAsync (IAsyncListener* l) : listener(l) {}
 
     virtual void send () = 0;
 
-    Async* frontend;
+    IAsyncListener* listener;
 };
 
 }}}

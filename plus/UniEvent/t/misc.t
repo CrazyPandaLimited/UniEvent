@@ -3,6 +3,8 @@ use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent;
 
+catch_run('[misc]');
+
 subtest 'constants' => sub {
     cmp_ok(AF_INET + AF_INET6 + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + PF_INET + PF_INET6, '>', 0);
 };

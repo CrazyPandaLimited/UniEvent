@@ -4,14 +4,14 @@
 
 namespace panda { namespace unievent {
 
-struct Prepare : virtual Handle {
+struct Prepare : virtual Handle, private backend::IPrepareListener {
     using prepare_fptr = void(Prepare*);
     using prepare_fn   = function<prepare_fptr>;
 
     CallbackDispatcher<prepare_fptr> prepare_event;
 
     Prepare (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_prepare(this));
+        _init(loop->impl()->new_prepare(this));
     }
 
     ~Prepare () { _EDTOR(); }
@@ -28,7 +28,7 @@ struct Prepare : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_prepare ();
+    void on_prepare () override;
 
     backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(Handle::impl()); }
 };

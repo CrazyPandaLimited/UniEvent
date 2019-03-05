@@ -137,22 +137,6 @@ subtest 'reset' => sub {
     check_mark(0.02, "reset works");
 };
 
-subtest 'zombie mode' => sub {
-    my $l = new UniEvent::Loop;
-    my $t = new UniEvent::Timer($l);
-    $t->timer_callback(sub { fail("must not get called") });
-    $t->start(0.01);
-    undef $l;
-    is $t->loop, undef, "loop";
-    dies_ok { $t->start(0.01)  } "start";
-    dies_ok { $t->stop         } "stop";
-    dies_ok { $t->reset        } "reset";
-    dies_ok { $t->again        } "again";
-    dies_ok { $t->repeat(0.01) } "repeat";
-    dies_ok { $t->once(0.01)   } "once";
-    undef $t;
-};
-
 done_testing();
 
 my $cnt;

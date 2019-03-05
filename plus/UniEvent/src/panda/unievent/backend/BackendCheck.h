@@ -3,13 +3,17 @@
 
 namespace panda { namespace unievent { namespace backend {
 
+struct ICheckListener {
+    virtual void on_check () = 0;
+};
+
 struct BackendCheck : BackendHandle {
-    BackendCheck (Check* frontend) : frontend(frontend) {}
+    BackendCheck (ICheckListener* l) : listener(l) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;
 
-    Check* frontend;
+    ICheckListener* listener;
 };
 
 }}}

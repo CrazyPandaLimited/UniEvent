@@ -38,8 +38,8 @@ SockAddr AsyncTest::get_blackhole_addr () {
     return res->ai_addr;
 }
 
-AsyncTest::AsyncTest(uint64_t timeout, const std::vector<string>& expected)
-    : loop(new Loop())
+AsyncTest::AsyncTest(uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
+    : loop(loop ? loop : LoopSP(new Loop()))
     , expected(expected)
     , timer(create_timeout(timeout))
 {}

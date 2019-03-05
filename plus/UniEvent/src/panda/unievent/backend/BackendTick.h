@@ -3,17 +3,17 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IIdleListener {
-    virtual void on_idle () = 0;
+struct ITickListener {
+    virtual void on_tick () = 0;
 };
 
-struct BackendIdle : BackendHandle {
-    BackendIdle (IIdleListener* l) : listener(l) {}
+struct BackendTick : BackendHandle {
+    BackendTick (ITickListener* l) : listener(l) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;
 
-    IIdleListener* listener;
+    ITickListener* listener;
 };
 
 }}}

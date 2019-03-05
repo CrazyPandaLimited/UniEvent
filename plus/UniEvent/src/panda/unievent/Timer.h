@@ -6,14 +6,14 @@
 namespace panda { namespace unievent {
 
 // All the values are in milliseconds.
-struct Timer : virtual Handle {
+struct Timer : virtual Handle, private backend::ITimerListener {
     using timer_fptr = void(Timer* handle);
     using timer_fn = function<timer_fptr>;
     
     CallbackDispatcher<timer_fptr> timer_event;
 
     Timer (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_timer(this));
+        _init(loop->impl()->new_timer(this));
     }
 
     const HandleType& type () const override;
@@ -36,7 +36,7 @@ struct Timer : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_timer ();
+    void on_timer () override;
 
     backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(Handle::impl()); }
 };

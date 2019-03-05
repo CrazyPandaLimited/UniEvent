@@ -5,14 +5,14 @@
 
 namespace panda { namespace unievent {
 
-struct Signal : virtual Handle {
+struct Signal : virtual Handle, private backend::ISignalListener {
     using signal_fptr = void(Signal* handle, int signum);
     using signal_fn = function<signal_fptr>;
     
     CallbackDispatcher<signal_fptr> signal_event;
 
     Signal (Loop* loop = Loop::default_loop()) {
-        _init(loop_impl(loop)->new_signal(this));
+        _init(loop->impl()->new_signal(this));
     }
 
     const HandleType& type () const override;
@@ -33,7 +33,7 @@ struct Signal : virtual Handle {
     static const string& signame (int signum);
 
 protected:
-    virtual void on_signal (int signum);
+    void on_signal (int signum) override;
 
     backend::BackendSignal* impl () const { return static_cast<backend::BackendSignal*>(Handle::impl()); }
 };

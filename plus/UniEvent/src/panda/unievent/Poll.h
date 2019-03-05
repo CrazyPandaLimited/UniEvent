@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent {
 
-struct Poll : virtual Handle {
+struct Poll : virtual Handle, private backend::IPollListener {
     using poll_fptr = void(Poll* handle, int events, const CodeError* err);
     using poll_fn = panda::function<poll_fptr>;
 
@@ -20,12 +20,12 @@ struct Poll : virtual Handle {
 
     Poll (Socket sock, Loop* loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop_impl(loop)->new_poll_sock(this, sock.val));
+        _init(loop->impl()->new_poll_sock(this, sock.val));
     }
 
     Poll (Fd fd, Loop* loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop_impl(loop)->new_poll_fd(this, fd.val));
+        _init(loop->impl()->new_poll_fd(this, fd.val));
     }
 
     ~Poll () {
@@ -44,7 +44,7 @@ struct Poll : virtual Handle {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_poll (int events, const CodeError* err);
+    void on_poll (int events, const CodeError* err) override;
 
     backend::BackendPoll* impl () const { return static_cast<backend::BackendPoll*>(Handle::impl()); }
 };
