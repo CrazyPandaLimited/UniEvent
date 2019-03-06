@@ -271,3 +271,76 @@
 //    test.wait(30);
 //    test.happens("done");
 //}
+//
+//TEST_CASE("SRV-1273 #1", "[tcp]") {
+//    AsyncTest test(500, {});
+//    SockAddr addr = test.get_refused_addr();
+//
+//    TCPSP client = new TCP(test.loop);
+//    client->connect().to(addr);
+//    client->reset();
+//    client->connect().to(addr);
+//    client->reset();
+//    REQUIRE(client->async_locked());
+//}
+//
+////TEST_CASE("wrong callback order", "[tcp]") {
+////    //Behavior is wrong, callback order is opposite, but it always worked this way
+////    AsyncTest test(900, {"write", "connect"});
+////    TCPSP server = make_basic_server(test.loop);
+////    SockAddr addr = server->get_sockaddr();
+//
+////    TCPSP client = new TCP(test.loop);
+////    client->connect().to(addr.ip(), addr.port()).callback([&](Stream*, const CodeError*, ConnectRequest*){
+////        test.happens("connect");
+////    });
+////    client->write("123", [&](Stream*, const CodeError*, WriteRequest*) {
+////        test.happens("write");
+////    });
+////    client->reset();
+////    test.await(client->connect_event);
+////}
+//
+////TEST_CASE("SRV-1273 #2", "[tcp]") {
+////    AsyncTest test(90000, {});
+////    TCPSP server = make_basic_server(test.loop);
+////    SockAddr addr = server->get_sockaddr();
+////    std::vector<TCPSP> clients;
+//
+////    auto connect = [&](TCPSP client) {
+////        client->connect().to(addr.ip(), addr.port());
+//////        client->connect().to(addr);
+////    };
+//
+////    PrepareSP tick = new Prepare(test.loop);
+////    tick->prepare_event.add([](PrepareSP) {
+////        panda_log_debug("tick");
+////    });
+////    tick->start();
+//
+////    TimerSP creator = Timer::start(10, [&](TimerSP) {
+////        TCPSP client = new TCP(test.loop);
+////        client->read_start();
+////        connect(client);
+////        client->write("123", [&](Stream* s, const CodeError* err, WriteRequest*) {
+////            TCPSP client = dyn_cast<TCP*>(s);
+////            //connect(client);
+////            client->connect().to(addr.ip(), addr.port()+1).timeout(5);
+////            client->write("123");
+////        });
+////        clients.push_back(client);
+////    },test.loop);
+//
+////    TimerSP timer = Timer::start(200, [&](TimerSP) {
+////        for (TCPSP c : clients) {
+////            c->reset();
+////            connect(c);
+////            c->write("123");
+////            c->disconnect();
+////        }
+////    },test.loop);
+//
+////    test.loop->run();
+////    clients.clear();
+////}
+//
