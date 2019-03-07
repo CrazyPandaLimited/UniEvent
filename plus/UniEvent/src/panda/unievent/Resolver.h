@@ -138,6 +138,7 @@ private:
     BTimer*  dns_roll_timer;
     Workers  workers;
     Requests queue;
+    Requests cache_delayed;
     Cache    cache;
     time_t   expiration_time;
     size_t   limit;
@@ -156,9 +157,9 @@ private:
 struct Resolver::Request : Refcnt, panda::lib::IntrusiveChainNode<Resolver::RequestSP>, panda::lib::AllocatedObject<Resolver::Request> {
     CallbackDispatcher<resolve_fptr> event;
 
-    Request (const ResolverSP& r = {}) : resolver(r), _port(0), _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), worker(), delayed(), running() {
-        _ECTOR();
-    }
+    Request (const ResolverSP& r = {});
+
+    const ResolverSP& resolver () const { return _resolver; }
 
     RequestSP node       (string val)               { _node      = val; return this; }
     RequestSP service    (string val)               { _service   = val; return this; }
@@ -170,7 +171,7 @@ struct Resolver::Request : Refcnt, panda::lib::IntrusiveChainNode<Resolver::Requ
 
     RequestSP run () {
         RequestSP self = this;
-        resolver->resolve(self);
+        _resolver->resolve(self);
         return self;
     }
 
@@ -182,8 +183,8 @@ protected:
 private:
     friend Resolver;
 
-    LoopSP        loop;     // keep loop (for loop resolvers where resolver doesn't have strong ref to loop)
-    ResolverSP    resolver; // keep resolver
+    LoopSP        loop;      // keep loop (for loop resolvers where resolver doesn't have strong ref to loop)
+    ResolverSP    _resolver; // keep resolver
     string        _node;
     string        _service;
     uint16_t      _port;
@@ -195,6 +196,7 @@ private:
     Worker*       worker;
     uint64_t      delayed;
     bool          running;
+    bool          queued;
 };
 
 inline Resolver::RequestSP Resolver::resolve () { return new Request(this); }

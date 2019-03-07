@@ -1,13 +1,14 @@
 #include "lib/test.h"
 
-static int dcnt = 0;
-static int ccnt = 0;
+namespace {
+    static int dcnt = 0;
+    static int ccnt = 0;
 
-struct MyLoop : Loop {
-    MyLoop  () { ++ccnt; }
-    ~MyLoop () { ++dcnt; }
-};
-
+    struct MyLoop : Loop {
+        MyLoop  () { ++ccnt; }
+        ~MyLoop () { ++dcnt; }
+    };
+}
 
 TEST_CASE("loop", "[loop]") {
     LoopSP loop;

@@ -180,13 +180,14 @@ void Resolver::add_worker () {
 void Resolver::resolve (const RequestSP& req) {
     if (req->_port) req->_service = string::from_number(req->_port);
     _EDEBUGTHIS("use_cache: %d", req->_use_cache);
-    req->resolver = this;
-    req->running  = true;
-    req->loop     = _loop; // keep loop (for loop resolvers)
+    req->_resolver = this;
+    req->running   = true;
+    req->loop      = _loop; // keep loop (for loop resolvers)
 
     if (req->_use_cache) {
         auto ai = find(req->_node, req->_service, req->_hints);
         if (ai) {
+            cache_delayed.push_back(req);
             req->delayed = loop()->delayer.add([=]{
                 req->delayed = 0;
                 finish_resolve(req, ai, nullptr);
@@ -197,6 +198,7 @@ void Resolver::resolve (const RequestSP& req) {
     }
 
     if (queue.size()) {
+        req->queued = true;
         queue.push_back(req);
         return;
     }
@@ -212,6 +214,7 @@ void Resolver::resolve (const RequestSP& req) {
         add_worker();
         workers.back()->resolve(req);
     } else {
+        req->queued = true;
         queue.push_back(req);
     }
 }
@@ -219,16 +222,19 @@ void Resolver::resolve (const RequestSP& req) {
 void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError* err) {
     if (!req->running) return;
     _EDEBUGTHIS("request:%p err:%d use_cache:%d", req.get(), err ? err->code().value() : 0, (bool)req->key);
-    req->running = false;
 
-    if (req->delayed) loop()->delayer.cancel(req->delayed);
+    if (req->delayed) {
+        loop()->delayer.cancel(req->delayed);
+        req->delayed = 0;
+    }
 
     auto worker = req->worker;
-
     if (worker) {
         worker->cancel();
-    } else {
+    } else if (req->queued) {
         queue.erase(req);
+    } else {
+        cache_delayed.erase(req);
     }
 
     if (!err && req->key) {
@@ -239,9 +245,10 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
         cache.emplace(*req->key, CachedAddress{addr});
     }
 
-    on_resolve(req, addr, err);
+    req->queued  = false;
+    req->running = false;
 
-    req->loop = nullptr; // release loop (for loop resolvers)
+    on_resolve(req, addr, err);
 
     if (worker && !worker->request) { // worker might have been used again in callback
         if (queue.size()) {
@@ -267,14 +274,22 @@ void Resolver::reset () {
 
     dns_roll_timer->stop();
 
-    if (queue.size()) { // cancel only till last as cancel() might add new requests
-        auto last = queue.back();
-        while (queue.front() != last) queue.front()->cancel();
-        last->cancel();
-    }
+    // cancel only till last as cancel() might add new requests
+    auto last_cached = cache_delayed.back();
+    auto last_queued = queue.back();
 
     // some workers may start new resolve on cancel() because new request might be added on cancel()
     for (auto& w : workers) if (w->request) w->request->cancel();
+
+    if (last_cached) {
+        while (cache_delayed.front() != last_cached) cache_delayed.front()->cancel();
+        last_cached->cancel();
+    }
+
+    if (last_queued) {
+        while (queue.front() != last_queued) queue.front()->cancel();
+        last_queued->cancel();
+    }
 }
 
 AddrInfo Resolver::find (const string& node, const string& service, const AddrInfoHints& hints) {
@@ -296,10 +311,17 @@ void Resolver::clear_cache () {
     cache.clear();
 }
 
+Resolver::Request::Request (const ResolverSP& r)
+    : _resolver(r), _port(0), _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), worker(), delayed(), running(), queued()
+{
+    _ECTOR();
+}
+
 Resolver::Request::~Request () { _EDTOR(); }
 
 void Resolver::Request::cancel () {
-    if (resolver) resolver->finish_resolve(this, nullptr, CodeError(std::errc::operation_canceled));
+    _EDEBUG("calling resolver finish_resolve");
+    if (_resolver) _resolver->finish_resolve(this, nullptr, CodeError(std::errc::operation_canceled));
 }
 
 }}

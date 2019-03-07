@@ -20,7 +20,7 @@ struct Loop : Refcnt {
     using delayed_fn   = function<void()>;
 
     struct Delayer : private backend::ITickListener {
-        Delayer () : loop(), tick(), lastid(0) {}
+        Delayer (Loop* l) : loop(l), tick(), lastid(0) {}
 
         uint64_t add    (const delayed_fn& f, const iptr<Refcnt>& guard = {});
         bool     cancel (uint64_t id);
@@ -33,7 +33,7 @@ struct Loop : Refcnt {
         };
         using Callbacks = std::vector<Callback>;
 
-        BackendLoop* loop;
+        Loop*        loop;
         BackendTick* tick;
         Callbacks    callbacks;
         Callbacks    reserve;
@@ -69,11 +69,11 @@ struct Loop : Refcnt {
     void     update_time ()       { _impl->update_time(); }
     bool     alive       () const { return _impl->alive(); }
 
-    virtual bool run         () { return _impl->run(); }
-    virtual bool run_once    () { return _impl->run_once(); }
-    virtual bool run_nowait  () { return _impl->run_nowait(); }
-    virtual void stop        () { _impl->stop(); }
-    virtual void handle_fork () { _impl->handle_fork(); }
+    virtual bool run         ();
+    virtual bool run_once    ();
+    virtual bool run_nowait  ();
+    virtual void stop        ();
+    virtual void handle_fork ();
 
     const Handles& handles () const { return _handles; }
 

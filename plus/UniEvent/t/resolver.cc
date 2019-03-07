@@ -3,6 +3,21 @@
 #include <sstream>
 #include <set>
 
+namespace {
+    static int dcnt = 0;
+    static int ccnt = 0;
+
+    struct MyLoop : Loop {
+        MyLoop  () { ++ccnt; }
+        ~MyLoop () override { ++dcnt; }
+    };
+
+    struct MyResolver : Resolver {
+        MyResolver (const LoopSP& loop) : Resolver(loop) { ++ccnt; }
+        ~MyResolver () { ++dcnt; }
+    };
+}
+
 TEST_CASE("resolver", "[resolver]") {
     AsyncTest test(2000, {});
     ResolverSP resolver = new Resolver(test.loop);
@@ -13,6 +28,7 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(ai);
         res.push_back(ai);
     };
+    auto noop_cb = [&](const Resolver::RequestSP&, const AddrInfo&, const CodeError*) {};
     auto req = resolver->resolve()->node("localhost")->on_resolve(success_cb);
     int expected_cnt = 2;
 
@@ -160,7 +176,6 @@ TEST_CASE("resolver", "[resolver]") {
 
     SECTION("cancel") {
         expected_cnt = 1;
-
         Resolver::RequestSP req;
 
         SECTION("not cached") {
@@ -181,86 +196,107 @@ TEST_CASE("resolver", "[resolver]") {
                     req->cancel();
                 }
                 SECTION("async") {
-                    test.loop->delay([=]{
+                    test.loop->delay([&]{
                         req->cancel();
                     });
                     req = resolver->resolve("localhost", canceled_cb);
                 }
             }
         }
+
+        SECTION("cached") {
+            resolver->resolve("localhost", noop_cb);
+            test.run();
+            CHECK(resolver->cache_size() == 1);
+
+            SECTION("sync") {
+                req = resolver->resolve("localhost", canceled_cb);
+                req->cancel();
+            }
+            SECTION("async") {
+                test.loop->delay([&]{
+                    req->cancel();
+                });
+                req = resolver->resolve("localhost", canceled_cb);
+            }
+        }
+
         test.run();
 
         req->cancel(); // should be no-op
     }
 
     SECTION("reset") {
-        expected_cnt = 3;
-        auto req = resolver->resolve("lenta.ru", canceled_cb);
-        resolver->resolve("mail.ru", canceled_cb);
+        Resolver::RequestSP req;
 
-        SECTION("sync") {
-            resolver->resolve("localhost", canceled_cb);
-            resolver->reset();
-        }
-        SECTION("async") {
-            test.loop->delay([&]{
+        SECTION("not cached") {
+            expected_cnt = 3;
+            req = resolver->resolve("lenta.ru", canceled_cb);
+            resolver->resolve("mail.ru", canceled_cb);
+
+            SECTION("sync") {
+                resolver->resolve("localhost", canceled_cb);
                 resolver->reset();
-            });
-            resolver->resolve("localhost", canceled_cb); // our delay must be the first
+            }
+            SECTION("async") {
+                test.loop->delay([&]{
+                    resolver->reset();
+                });
+                resolver->resolve("localhost", canceled_cb); // our delay must be the first
+            }
+        }
+
+        SECTION("cached") {
+            expected_cnt = 1;
+            resolver->resolve("localhost", noop_cb);
+            test.run();
+            CHECK(resolver->cache_size() == 1);
+            SECTION("sync") {
+                req = resolver->resolve("localhost", canceled_cb);
+                resolver->reset();
+            }
+            SECTION("async") {
+                test.loop->delay([&]{
+                    resolver->reset();
+                });
+                req = resolver->resolve("localhost", canceled_cb);
+            }
         }
 
         test.run();
-
         req->cancel(); // should not die
     }
 
-//    SECTION("resolver destroy") {
-//        auto req = resolver->resolve("lenta.ru", cancel_cb);
-//        resolver->resolve("mail.ru", cancel_cb);
-//
-//        SECTION("sync") {
-//            expected_cnt = 3;
-//            resolver->resolve("localhost", cancel_cb); // in async it may complete earlier than our loop->delay
-//            resolver = nullptr;
-//        }
-//        SECTION("async") {
-//            expected_cnt = 2;
-//            test.loop->delay([&]{
-//                resolver = nullptr;
-//            });
-//        }
-//
-//        test.run();
-//
-//        req->cancel();
-//    }
+    ccnt = dcnt = 0;
 
-//    SECTION("loop destroy") {
-//        LoopSP loop = new Loop();
-//        resolver = new Resolver(loop);
-//
-//        auto req = resolver->resolve("lenta.ru", cancel_cb);
-//        resolver->resolve("mail.ru", cancel_cb);
-//
-//        SECTION("sync") {
-//            expected_cnt = 3;
-//            resolver->resolve("localhost", cancel_cb); // in async it may complete earlier than our loop->delay
-//            loop = nullptr;
-//        }
-//        SECTION("async") {
-//            expected_cnt = 2;
-//            test.loop->delay([&]{
-//                loop = nullptr;
-//            });
-//            test.run();
-//        }
-//
-//        CHECK_THROWS(resolver->resolve("localhost", cancel_cb));
-//        resolver->reset();
-//        req->cancel();
-//    }
-//
+    SECTION("hold resolver while active request") {
+        expected_cnt = 1;
+        resolver = new MyResolver(test.loop);
+        resolver->resolve("localhost", [&test](const Resolver::RequestSP& req, const AddrInfo&, const CodeError* err) {
+            test.happens("r");
+            CHECK(!err);
+            CHECK(req->resolver()->loop());
+        });
+        resolver = nullptr;
+        CHECK(dcnt == 0);
+        test.run();
+        CHECK(dcnt == 1);
+    }
+
+    SECTION("hold loop while active request (for loop resolver)") {
+        expected_cnt = 1;
+        LoopSP loop = new MyLoop();
+        Loop* l = loop.get();
+        loop->resolver()->resolve("localhost", [&test](const Resolver::RequestSP& req, const AddrInfo&, const CodeError* err) {
+            test.happens("r");
+            CHECK(!err);
+            CHECK(req->resolver()->loop()->resolver());
+        });
+        loop = nullptr;
+        CHECK(dcnt == 0);
+        l->run();
+        CHECK(dcnt == 1);
+    }
+
     while (expected_cnt-- > 0) test.expected.push_back("r");
-
-    test.loop->dump();
 }

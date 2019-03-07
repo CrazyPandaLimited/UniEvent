@@ -6,6 +6,8 @@
 #include <panda/unievent/backend/uv.h>
 #include <thread>
 
+#define HOLD(l) LoopSP hold = l; (void)hold;
+
 namespace panda { namespace unievent {
 
 static std::thread::id main_thread_id = std::this_thread::get_id();
@@ -34,12 +36,11 @@ void Loop::_init_default_loop () {
     else _default_loop = new Loop(nullptr, BackendLoop::Type::DEFAULT);
 }
 
-Loop::Loop (Backend* backend, BackendLoop::Type type) {
+Loop::Loop (Backend* backend, BackendLoop::Type type) : delayer(this) {
     _ECTOR();
     if (!backend) backend = default_backend();
     _backend = backend;
     _impl = backend->new_loop(this, type);
-    delayer.loop = _impl;
 }
 
 Loop::~Loop () {
@@ -49,6 +50,13 @@ Loop::~Loop () {
     assert(!_handles.size());
     delete _impl;
 }
+
+bool Loop::run         () { HOLD(this); return _impl->run(); }
+bool Loop::run_once    () { HOLD(this); return _impl->run_once(); }
+bool Loop::run_nowait  () { HOLD(this); return _impl->run_nowait(); }
+void Loop::stop        () { _impl->stop(); }
+void Loop::handle_fork () { _impl->handle_fork(); }
+
 
 void Loop::dump () const {
     for (auto h : _handles) {
@@ -75,7 +83,7 @@ void Loop::Delayer::reset () {
 }
 
 uint64_t Loop::Delayer::add (const delayed_fn& f, const iptr<Refcnt>& guard) {
-    if (!tick) tick = loop->new_tick(this);
+    if (!tick) tick = loop->impl()->new_tick(this);
     if (!callbacks.size()) tick->start();
     callbacks.push_back({++lastid, f, guard});
     return lastid;
@@ -96,6 +104,7 @@ bool Loop::Delayer::cancel (uint64_t id) {
 }
 
 void Loop::Delayer::on_tick () {
+    HOLD(loop);
     assert(!reserve.size());
     std::swap(callbacks, reserve);
 
