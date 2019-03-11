@@ -6,46 +6,58 @@ catch_run('[resolver]');
 
 my $l = UniEvent::Loop->default_loop();
 
-subtest 'not cached' => sub {
+subtest 'not cached' => \&test_resolve, 0;
+subtest 'cached'     => \&test_resolve, 1;
+
+sub test_resolve {
+    my $cached = shift;
     my $resolver = new UniEvent::Resolver();
+    my $host = "ya.ru";
+    
+    my $i = 0;
     
     $resolver->resolve({
-        node      => 'localhost',
-        use_cache => 0,
+        node       => $host,
+        use_cache  => $cached,
         on_resolve => sub {
-            my ($resolver, $addr, $err) = @_;
-            #die "CB";
+            my ($addr, $err, $req) = @_;
             ok !$err;
-            ok $addr;
-            use Data::Dumper;
-            warn Dumper($addr);
+            ok $addr, "@$addr";
+            ok $req;
+            $i++;
         },
     });
     
-};
-
-#sub test_cached_resolver { 
-#    my ($check_ip, $check_port) = ('8.8.8.8', 53);
-#    my $r = new UniEvent::Resolver($l);
-#    my $sa1;
-#    # not in cacne, async call
-#    $r->resolve('google-public-dns-a.google.com', 'domain', sub { (my $r, $sa1, my $err) = @_; }, {"family" => UniEvent::AF_INET});
-#    
-#    $l->run();
-#    
-#    is($sa1->[0]->ip, $check_ip, 'Google public DNS IP resolution');
-#    is($sa1->[0]->port, $check_port, 'Google public DNS port resolution');
-#    
-#    my $sa2;
-#    # in cache, sync call
-#    $r->resolve('google-public-dns-a.google.com', 'domain', sub { (my $r, $sa2, my $err) = @_; }, {"family" => UniEvent::AF_INET});
-#    
-#    $l->run_nowait();
-#
-#    is($sa2->[0]->ip, $check_ip, 'Google public DNS IP resolution');
-#    is($sa2->[0]->port, $check_port, 'Google public DNS port resolution');
-#}
-#
-#test_cached_resolver();
+    $resolver->resolve({
+        node       => 'localhost',
+        use_cache  => $cached,
+        hints      => {family => UniEvent::AF_INET},
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            ok !$err;
+            ok $addr, "@$addr";
+            ok $req;
+            is $addr->[0]->ip, "127.0.0.1";
+            $i += 2;
+        },
+    });
+    
+    $l->run;
+    
+    is $i, 3;
+    
+    if ($cached) {
+        $resolver->resolve({
+            node       => $host,
+            on_resolve => sub {
+                my ($addr, $err, $req) = @_;
+                ok !$err;
+                $i += 10;
+            },
+        });
+        $l->run_nowait;
+        is $i, 13;
+    }
+}
 
 done_testing();
