@@ -319,6 +319,7 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
                     cmd->type == CommandBase::Type::USER_CALLBACK) continue; // allowed before reconnect
                 if (cmd->type != CommandBase::Type::CONNECT || !static_cast<const CommandConnect*>(cmd)->is_reconnect()) break; // no reconnect
                 found = true;
+                panda_log_debug("reconnect found");
                 break;
             }
         }
@@ -331,7 +332,7 @@ void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
     }
 
     // reconnect not found -> clear write requests, shutdowns, etc till first disconnect
-    while (asyncq.head && asyncq.head->type != CommandBase::Type::CLOSE_DELETE && asyncq.head->type != CommandBase::Type::CLOSE_REINIT) {
+    while (asyncq.head && asyncq.head->type != CommandBase::Type::CLOSE_DELETE && asyncq.head->type != CommandBase::Type::CLOSE_REINIT && asyncq.head->type != CommandBase::Type::CONNECT) {
         CommandBase* cmd = asyncq.head;
         asyncq.head = cmd->next;
         cmd->cancel();
