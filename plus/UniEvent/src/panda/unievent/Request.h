@@ -1,14 +1,10 @@
 #pragma once
 #include "inc.h"
-#include "forward.h"
-//#include "Error.h"
-//#include "Debug.h"
-//#include <functional>
-//#include <panda/log.h>
+#include "Handle.h"
+#include <vector>
+#include <panda/string.h>
 #include <panda/refcnt.h>
-#include <panda/lib/memory.h>
 #include <panda/lib/intrusive_chain.h>
-//#include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent {
 
@@ -16,40 +12,57 @@ struct Request;
 using RequestSP = iptr<Request>;
 
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt {
-    Request () : _canceled() {}
-
-    void cancel () {
-        if (_canceled) return;
-        _canceled = true;
-        do_cancel();
-    }
-
-    bool canceled () const { return _canceled; }
-
-    virtual void exec () = 0;
+    Request () : _impl(), delay_id(0) {}
 
 protected:
-    virtual void do_cancel () = 0;
+    using BackendRequest = backend::BackendRequest;
+    friend struct Queue;
 
-private:
-    bool _canceled;
+    HandleSP        _handle;
+    BackendRequest* _impl;
+    uint64_t        delay_id;
+
+    void set (Handle* h, BackendRequest* impl) {
+        _handle = h;
+        _impl = impl;
+    }
+
+    virtual void exec      () = 0;
+    virtual void on_cancel () = 0;
+
+    // abort request, calling user callbacks with canceled status, if request is active in backend, backend will not call callback second time
+    // this is a private API not intended by use of user, as it won't start processing the next request in queue
+    void abort () {
+        if (delay_id) {
+            _handle->loop()->cancel_delay(delay_id);
+            delay_id = 0;
+        }
+        _impl->destroy();
+        _impl = nullptr;
+        on_cancel();
+    }
+
+    ~Request () {
+        if (_impl) _impl->destroy();
+    }
 };
 
-//using panda::lib::AllocatedObject;
-//struct Handle; struct UDP; struct Stream; struct Timer;
+struct BufferRequest : Request {
+    std::vector<string> bufs;
 
-//struct Request : virtual Refcnt {
-//    Request () : uvrp(nullptr) {}
-//
-//protected:
-//    void _init (void* reqptr) {
-//        uvrp = static_cast<uv_req_t*>(reqptr);
-//        uvrp->data = this;
-//    }
-//
-//    uv_req_t* uvrp;
-//};
-//
+    BufferRequest () {}
+
+    BufferRequest (const string& data) {
+        bufs.push_back(data);
+    }
+
+    template <class It>
+    BufferRequest (It begin, It end) {
+        bufs.reserve(end - begin);
+        for (; begin != end; ++begin) bufs.push_back(*begin);
+    }
+};
+
 //struct CancelableRequest : Request {
 //    CancelableRequest () : canceled_(false) {}
 //
@@ -117,24 +130,6 @@ private:
 //    uv_shutdown_t uvr;
 //};
 //
-//
-//struct BufferRequest : Request {
-//    std::vector<string> bufs;
-//
-//    BufferRequest () {}
-//
-//    BufferRequest (const string& data) {
-//        bufs.push_back(data);
-//    }
-//
-//    template <class It>
-//    BufferRequest (It begin, It end) {
-//        bufs.reserve(end - begin);
-//        for (; begin != end; ++begin) bufs.push_back(*begin);
-//    }
-//};
-//
-//
 //struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
 //    using write_fptr = void(Stream* handle, const CodeError* err, WriteRequest* req);
 //    using write_fn = function<write_fptr>;
@@ -177,49 +172,5 @@ private:
 //private:
 //    uv_write_t uvr;
 //};
-//
-//
-//struct SendRequest : BufferRequest, AllocatedObject<SendRequest, true> {
-//    using send_fptr = void(UDP* handle, const CodeError* err, SendRequest* req);
-//    using send_fn = function<send_fptr>;
-//
-//    CallbackDispatcher<send_fptr> event;
-//
-//    SendRequest (send_fn callback = {}) : BufferRequest() {
-//        if(callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//    }
-//
-//    SendRequest (const string& data, send_fn callback = {}) : BufferRequest(data) {
-//        if(callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//    }
-//
-//    template <class It>
-//    SendRequest (It begin, It end, send_fn callback = {}) : BufferRequest(begin, end) {
-//        if(callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//    }
-//
-//    Handle* handle () const { return static_cast<Handle*>(uvr.handle->data); }
-//
-//    virtual ~SendRequest () {}
-//    friend uv_udp_send_t* _pex_ (SendRequest*);
-//
-//private:
-//    uv_udp_send_t uvr;
-//
-//};
-//
-//inline uv_connect_t*  _pex_(ConnectRequest*  req) { return &req->uvr; }
-//inline uv_shutdown_t* _pex_(ShutdownRequest* req) { return &req->uvr; }
-//inline uv_write_t*    _pex_(WriteRequest*    req) { return &req->uvr; }
-//inline uv_udp_send_t* _pex_(SendRequest*     req) { return &req->uvr; }
 
 }}

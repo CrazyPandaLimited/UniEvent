@@ -2,10 +2,9 @@
 #include "inc.h"
 #include "forward.h"
 #include "backend/Backend.h"
-#include "backend/BackendTick.h"
+#include <vector>
 #include <panda/CallbackDispatcher.h>
 #include <panda/lib/intrusive_chain.h>
-#include <vector>
 
 namespace panda { namespace unievent {
 
@@ -13,40 +12,10 @@ backend::Backend* default_backend     ();
 void              set_default_backend (backend::Backend* backend);
 
 struct Loop : Refcnt {
-    using Backend      = backend::Backend;
-    using BackendLoop  = backend::BackendLoop;
-    using BackendTick  = backend::BackendTick;
-    using Handles      = panda::lib::IntrusiveChain<Handle*>;
-    using delayed_fn   = function<void()>;
-
-    struct Delayer : private backend::ITickListener {
-        Delayer (Loop* l) : loop(l), tick(), lastid(0) {}
-
-        uint64_t add    (const delayed_fn& f, const iptr<Refcnt>& guard = {});
-        bool     cancel (uint64_t id);
-
-    private:
-        struct Callback {
-            size_t            id;
-            delayed_fn        cb;
-            weak_iptr<Refcnt> guard;
-        };
-        using Callbacks = std::vector<Callback>;
-
-        Loop*        loop;
-        BackendTick* tick;
-        Callbacks    callbacks;
-        Callbacks    reserve;
-        uint64_t     lastid;
-
-        void on_tick () override;
-
-        void reset ();
-
-        friend Loop;
-    };
-
-    Delayer delayer;
+    using Backend     = backend::Backend;
+    using BackendLoop = backend::BackendLoop;
+    using Handles     = panda::lib::IntrusiveChain<Handle*>;
+    using RunMode     = BackendLoop::RunMode;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -60,7 +29,7 @@ struct Loop : Refcnt {
 
     Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
 
-    const Backend* backend () const { return _backend; }
+    Backend* backend () const { return _backend; }
 
     bool is_default () const { return _default_loop == this; }
     bool is_global  () const { return _global_loop == this; }
@@ -69,15 +38,22 @@ struct Loop : Refcnt {
     void     update_time ()       { _impl->update_time(); }
     bool     alive       () const { return _impl->alive(); }
 
-    virtual bool run         ();
-    virtual bool run_once    ();
-    virtual bool run_nowait  ();
+    virtual bool run         (RunMode = RunMode::DEFAULT);
     virtual void stop        ();
     virtual void handle_fork ();
 
+    bool run_once   () { return run(RunMode::ONCE); }
+    bool run_nowait () { return run(RunMode::NOWAIT); }
+
     const Handles& handles () const { return _handles; }
 
-    uint64_t delay (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return delayer.add(f, guard); }
+    uint64_t delay (const BackendLoop::delayed_fn& f, const iptr<Refcnt>& guard = {}) {
+        return impl()->delay(f, guard);
+    }
+
+    void cancel_delay (uint64_t id) noexcept {
+        impl()->cancel_delay(id);
+    }
 
     Resolver* resolver ();
 

@@ -11,7 +11,7 @@ TEST_CASE("async", "[async]") {
 
         SECTION("from this thread") {
             SECTION("after run") {
-                test.loop->delayer.add([&]{
+                test.loop->delay([&]{
                     async->send();
                 });
             }

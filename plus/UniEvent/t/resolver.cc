@@ -22,13 +22,13 @@ TEST_CASE("resolver", "[resolver]") {
     AsyncTest test(2000, {});
     ResolverSP resolver = new Resolver(test.loop);
     std::vector<AddrInfo> res;
-    auto success_cb = [&](const Resolver::RequestSP&, const AddrInfo& ai, const CodeError* err) {
+    auto success_cb = [&](const AddrInfo& ai, const CodeError* err, const Resolver::RequestSP&) {
         test.happens("r");
         CHECK(!err);
         CHECK(ai);
         res.push_back(ai);
     };
-    auto noop_cb = [&](const Resolver::RequestSP&, const AddrInfo&, const CodeError*) {};
+    auto noop_cb = [&](const AddrInfo&, const CodeError*, const Resolver::RequestSP&) {};
     auto req = resolver->resolve()->node("localhost")->on_resolve(success_cb);
     int expected_cnt = 2;
 
@@ -147,7 +147,7 @@ TEST_CASE("resolver", "[resolver]") {
 
     SECTION("timeout") {
         // will make it in required time
-        resolver->resolve("localhost", [&](Resolver::RequestSP, const AddrInfo& ai, const CodeError* err) {
+        resolver->resolve("localhost", [&](const AddrInfo& ai, const CodeError* err, const Resolver::RequestSP&) {
             test.happens("r");
             CHECK(!err);
             CHECK(ai);
@@ -156,7 +156,7 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(resolver->cache_size() == 1);
 
         // will not make it
-        resolver->resolve("ya.ru", [&](Resolver::RequestSP, const AddrInfo& ai, const CodeError* err) {
+        resolver->resolve("ya.ru", [&](const AddrInfo& ai, const CodeError* err, Resolver::RequestSP) {
             test.happens("r");
             REQUIRE(err);
             CHECK(err->code() == std::errc::timed_out);
@@ -167,7 +167,7 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(resolver->cache_size() == 1);
     }
 
-    auto canceled_cb = [&](Resolver::RequestSP, const AddrInfo& ai, const CodeError* err) {
+    auto canceled_cb = [&](const AddrInfo& ai, const CodeError* err, const Resolver::RequestSP&) {
         test.happens("r");
         REQUIRE(err);
         CHECK(err->code() == std::errc::operation_canceled);
@@ -272,7 +272,7 @@ TEST_CASE("resolver", "[resolver]") {
     SECTION("hold resolver while active request") {
         expected_cnt = 1;
         resolver = new MyResolver(test.loop);
-        resolver->resolve("localhost", [&test](const Resolver::RequestSP& req, const AddrInfo&, const CodeError* err) {
+        resolver->resolve("localhost", [&test](const AddrInfo&, const CodeError* err, const Resolver::RequestSP& req) {
             test.happens("r");
             CHECK(!err);
             CHECK(req->resolver()->loop());
@@ -287,7 +287,7 @@ TEST_CASE("resolver", "[resolver]") {
         expected_cnt = 1;
         LoopSP loop = new MyLoop();
         Loop* l = loop.get();
-        loop->resolver()->resolve("localhost", [&test](const Resolver::RequestSP& req, const AddrInfo&, const CodeError* err) {
+        loop->resolver()->resolve("localhost", [&test](const AddrInfo&, const CodeError* err, const Resolver::RequestSP& req) {
             test.happens("r");
             CHECK(!err);
             CHECK(req->resolver()->loop()->resolver());

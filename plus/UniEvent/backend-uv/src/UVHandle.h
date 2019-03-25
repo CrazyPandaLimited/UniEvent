@@ -14,7 +14,7 @@ protected:
         uvhp->data = static_cast<BackendHandle*>(this);
     }
 
-    BackendLoop* loop () const override {
+    BackendLoop* loop () const noexcept override {
         return reinterpret_cast<BackendLoop*>(uvhp->loop->data);
     }
 
@@ -22,12 +22,40 @@ protected:
         return uv_is_active(uvhp);
     }
 
-    virtual void set_weak () override {
+    void set_weak () override {
         uv_unref(uvhp);
     }
 
-    virtual void unset_weak () override {
+    void unset_weak () override {
         uv_ref(uvhp);
+    }
+
+    optional<fd_t> fileno () const override {
+        uv_os_fd_t fd; //should be compatible type
+        int err = uv_fileno(uvhp, &fd);
+        if (!err) return {fd};
+        if (err == UV_EBADF) return {};
+        throw uvx_code_error(err);
+    }
+
+    int recv_buffer_size () const override {
+        int ret = 0;
+        uvx_strict(uv_recv_buffer_size(uvhp, &ret));
+        return ret;
+    }
+
+    void recv_buffer_size (int value) override {
+        uvx_strict(uv_recv_buffer_size(uvhp, &value));
+    }
+
+    int send_buffer_size () const override {
+        int ret = 0;
+        uvx_strict(uv_send_buffer_size(uvhp, &ret));
+        return ret;
+    }
+
+    void send_buffer_size (int value) override {
+        uvx_strict(uv_send_buffer_size(uvhp, &value));
     }
 
     void destroy () noexcept override {

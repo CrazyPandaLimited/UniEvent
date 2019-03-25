@@ -10,8 +10,8 @@ struct Idle : virtual Handle, private backend::IIdleListener {
     
     CallbackDispatcher<idle_fptr> idle_event;
 
-    Idle (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_idle(this));
+    Idle (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_idle(this));
     }
 
     const HandleType& type () const override;
@@ -26,9 +26,12 @@ struct Idle : virtual Handle, private backend::IIdleListener {
     static const HandleType TYPE;
 
 protected:
-    void on_idle () override;
+    virtual void on_idle ();
 
-    backend::BackendIdle* impl () const { return static_cast<backend::BackendIdle*>(Handle::impl()); }
+private:
+    void handle_idle () override;
+
+    backend::BackendIdle* impl () const { return static_cast<backend::BackendIdle*>(_impl); }
 };
 
 }}

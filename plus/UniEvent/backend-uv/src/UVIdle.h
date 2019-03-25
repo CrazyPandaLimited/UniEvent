@@ -12,7 +12,9 @@ struct UVIdle : UVHandle<BackendIdle> {
     }
 
     void start () override {
-        uv_idle_start(&uvh, _call);
+        uv_idle_start(&uvh, [](uv_idle_t* p) {
+            get_handle<UVIdle*>(p)->handle_idle();
+        });
     }
 
     void stop () override {
@@ -21,11 +23,6 @@ struct UVIdle : UVHandle<BackendIdle> {
 
 protected:
     uv_idle_t uvh;
-
-    static void _call (uv_idle_t* p) {
-        auto h = get_handle<UVIdle*>(p);
-        if (h->listener) h->listener->on_idle();
-    }
 };
 
 }}}}

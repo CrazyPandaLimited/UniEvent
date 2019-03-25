@@ -12,7 +12,9 @@ struct UVPrepare : UVHandle<BackendPrepare> {
     }
 
     void start () override {
-        uv_prepare_start(&uvh, _call);
+        uv_prepare_start(&uvh, [](uv_prepare_t* p) {
+            get_handle<UVPrepare*>(p)->handle_prepare();
+        });
     }
 
     void stop () override {
@@ -21,11 +23,6 @@ struct UVPrepare : UVHandle<BackendPrepare> {
 
 private:
     uv_prepare_t uvh;
-
-    static void _call (uv_prepare_t* p) {
-        auto h = get_handle<UVPrepare*>(p);
-        if (h->listener) h->listener->on_prepare();
-    }
 };
 
 }}}}

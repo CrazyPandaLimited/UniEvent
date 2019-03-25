@@ -14,6 +14,9 @@ void Async::send () {
 void Async::reset () {}
 
 void Async::on_async () {
-    if (async_event.has_listeners()) async_event(this);
-    else throw ImplRequiredError("Async::on_async");
+    async_event(this);
+}
+
+void Async::handle_async () {
+    on_async();
 }

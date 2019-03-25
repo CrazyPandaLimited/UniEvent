@@ -71,8 +71,11 @@ void Signal::stop () {
 void Signal::reset () { stop(); }
 
 void Signal::on_signal (int signum) {
-    if (signal_event.has_listeners()) signal_event(this, signum);
-    else throw ImplRequiredError("Signal::on_signal");
+    signal_event(this, signum);
+}
+
+void Signal::handle_signal (int signum) {
+    on_signal(signum);
 }
 
 const string& Signal::signame (int signum) {

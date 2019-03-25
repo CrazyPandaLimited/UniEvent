@@ -21,6 +21,9 @@ void Idle::reset () {
 }
 
 void Idle::on_idle () {
-    if (idle_event.has_listeners()) idle_event(this);
-    else throw ImplRequiredError("Idle::on_idle");
+    idle_event(this);
+}
+
+void Idle::handle_idle () {
+    on_idle();
 }

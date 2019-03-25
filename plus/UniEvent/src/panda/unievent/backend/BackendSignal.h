@@ -4,7 +4,7 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct ISignalListener {
-    virtual void on_signal (int signum) = 0;
+    virtual void handle_signal (int signum) = 0;
 };
 
 struct BackendSignal : BackendHandle {
@@ -15,6 +15,10 @@ struct BackendSignal : BackendHandle {
     virtual void start (int signum) = 0;
     virtual void once  (int signum) = 0;
     virtual void stop  ()           = 0;
+
+    void handle_signal (int signum) noexcept {
+        ltry([&]{ listener->handle_signal(signum); });
+    }
 
     ISignalListener* listener;
 };

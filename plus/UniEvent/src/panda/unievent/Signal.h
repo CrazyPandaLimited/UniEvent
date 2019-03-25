@@ -11,8 +11,8 @@ struct Signal : virtual Handle, private backend::ISignalListener {
     
     CallbackDispatcher<signal_fptr> signal_event;
 
-    Signal (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_signal(this));
+    Signal (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_signal(this));
     }
 
     const HandleType& type () const override;
@@ -33,9 +33,12 @@ struct Signal : virtual Handle, private backend::ISignalListener {
     static const string& signame (int signum);
 
 protected:
-    void on_signal (int signum) override;
+    virtual void on_signal (int signum);
 
-    backend::BackendSignal* impl () const { return static_cast<backend::BackendSignal*>(Handle::impl()); }
+private:
+    void handle_signal (int signum) override;
+
+    backend::BackendSignal* impl () const { return static_cast<backend::BackendSignal*>(_impl); }
 };
 
 }}

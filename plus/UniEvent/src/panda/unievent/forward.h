@@ -39,6 +39,9 @@ using ResolverSP = iptr<Resolver>;
 struct Request;
 using RequestSP = iptr<Request>;
 
+struct Udp;
+using UdpSP = iptr<Udp>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
 //

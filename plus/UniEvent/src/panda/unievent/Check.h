@@ -10,8 +10,8 @@ struct Check : virtual Handle, private backend::ICheckListener {
 
     CallbackDispatcher<check_fptr> check_event;
 
-    Check (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_check(this));
+    Check (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_check(this));
     }
 
     const HandleType& type () const override;
@@ -26,9 +26,12 @@ struct Check : virtual Handle, private backend::ICheckListener {
     static const HandleType TYPE;
 
 protected:
-    void on_check () override;
+    virtual void on_check ();
 
-    backend::BackendCheck* impl () const { return static_cast<backend::BackendCheck*>(Handle::impl()); }
+private:
+    void handle_check () override;
+
+    backend::BackendCheck* impl () const { return static_cast<backend::BackendCheck*>(_impl); }
 };
 
 }}

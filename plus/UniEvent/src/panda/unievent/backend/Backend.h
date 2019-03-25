@@ -8,7 +8,7 @@ struct Backend {
 
     panda::string name () const { return _name; }
 
-    virtual BackendLoop* new_loop (Loop* frontend, BackendLoop::Type type) = 0;
+    virtual BackendLoop* new_loop (BackendLoop::Type type) = 0;
 
     virtual ~Backend () {}
 

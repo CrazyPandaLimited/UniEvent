@@ -10,8 +10,8 @@ struct Prepare : virtual Handle, private backend::IPrepareListener {
 
     CallbackDispatcher<prepare_fptr> prepare_event;
 
-    Prepare (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_prepare(this));
+    Prepare (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_prepare(this));
     }
 
     ~Prepare () { _EDTOR(); }
@@ -28,9 +28,12 @@ struct Prepare : virtual Handle, private backend::IPrepareListener {
     static const HandleType TYPE;
 
 protected:
-    void on_prepare () override;
+    virtual void on_prepare ();
 
-    backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(Handle::impl()); }
+private:
+    void handle_prepare () override;
+
+    backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(_impl); }
 };
 
 }}

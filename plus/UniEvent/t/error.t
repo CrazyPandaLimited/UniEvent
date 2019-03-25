@@ -127,14 +127,6 @@ subtest "Error" => sub {
     is $c, $e, "clone ok";
 };
 
-subtest "ImplRequiredError" => sub {
-    my $e = new_ok "UniEvent::ImplRequiredError" => ["message"];
-    like $e->what, qr/message/;
-    my $c = $e->clone;
-    isa_ok $c, ref($e);
-    is $c, $e, "clone ok";
-};
-
 subtest "CodeError" => sub {
     for my $row ([EACCES, UniEvent::CodeError::generic_category()], [ESSL, UniEvent::CodeError::unievent_category()]) {
         my $e = new_ok "UniEvent::CodeError" => $row;

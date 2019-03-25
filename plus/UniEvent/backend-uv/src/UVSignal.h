@@ -33,8 +33,7 @@ private:
     uv_signal_t uvh;
 
     static void _call (uv_signal_t* p, int signum) {
-        auto h = get_handle<UVSignal*>(p);
-        if (h->listener) h->listener->on_signal(signum);
+        get_handle<UVSignal*>(p)->handle_signal(signum);
     }
 };
 

@@ -15,7 +15,7 @@ struct UVTimer : UVHandle<BackendTimer> {
         uv_timer_start(&uvh, _call, initial, repeat);
     }
 
-    void stop () override {
+    void stop () noexcept override {
         uv_timer_stop(&uvh);
     }
 
@@ -36,8 +36,7 @@ private:
     uv_timer_t uvh;
 
     static void _call (uv_timer_t* p) {
-        auto h = get_handle<UVTimer*>(p);
-        if (h->listener) h->listener->on_timer();
+        get_handle<UVTimer*>(p)->handle_timer();
     }
 };
 

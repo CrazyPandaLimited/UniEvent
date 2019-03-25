@@ -53,11 +53,6 @@ protected:
     virtual string _mkwhat () const;
 };
 
-struct ImplRequiredError : Error {
-    ImplRequiredError (const string& what);
-    virtual ImplRequiredError* clone () const override;
-};
-
 struct CodeError : Error {
     CodeError () {}
     CodeError (errc code);
@@ -79,8 +74,7 @@ struct CodeError : Error {
 
 protected:
     std::error_code _code;
-    string          _name;
-    string          _descr;
+
     string _mkwhat () const override;
 };
 

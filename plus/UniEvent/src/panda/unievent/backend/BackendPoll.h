@@ -4,7 +4,7 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct IPollListener {
-    virtual void on_poll (int events, const CodeError* err) = 0;
+    virtual void handle_poll (int events, const CodeError* err) = 0;
 };
 
 struct BackendPoll : BackendHandle {
@@ -12,6 +12,10 @@ struct BackendPoll : BackendHandle {
 
     virtual void start (int events) = 0;
     virtual void stop  ()           = 0;
+
+    void handle_poll (int events, const CodeError* err) noexcept {
+        ltry([&]{ listener->handle_poll(events, err); });
+    }
 
     IPollListener* listener;
 };

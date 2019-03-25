@@ -12,8 +12,8 @@ struct Timer : virtual Handle, private backend::ITimerListener {
     
     CallbackDispatcher<timer_fptr> timer_event;
 
-    Timer (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_timer(this));
+    Timer (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_timer(this));
     }
 
     const HandleType& type () const override;
@@ -36,9 +36,12 @@ struct Timer : virtual Handle, private backend::ITimerListener {
     static const HandleType TYPE;
 
 protected:
-    void on_timer () override;
+    virtual void on_timer ();
 
-    backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(Handle::impl()); }
+private:
+    void handle_timer () override;
+
+    backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(_impl); }
 };
 
 }}

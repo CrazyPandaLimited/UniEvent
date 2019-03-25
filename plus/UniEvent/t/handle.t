@@ -18,11 +18,6 @@ subtest 'loop()' => sub {
     ok($t->loop->is_default, "handle belongs to default loop");
 };
 
-subtest 'with_callbacks' => sub {
-    my $t = new UniEvent::Timer;
-    ok($t->with_callbacks, "from-perl created objects are with callbacks");
-};
-
 subtest 'type' => sub {
     my $t = new UniEvent::Timer;
     is($t->type, UniEvent::Timer::TYPE, "type works");

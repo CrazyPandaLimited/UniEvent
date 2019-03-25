@@ -10,8 +10,8 @@ struct Async : virtual Handle, private backend::IAsyncListener {
     
     CallbackDispatcher<async_fptr> async_event;
 
-    Async (Loop* loop = Loop::default_loop()) {
-        _init(loop->impl()->new_async(this));
+    Async (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_async(this));
     }
 
     Async (async_fn cb, Loop* loop = Loop::default_loop()) : Async(loop) {
@@ -29,9 +29,12 @@ struct Async : virtual Handle, private backend::IAsyncListener {
     static const HandleType TYPE;
 
 protected:
-    void on_async () override;
+    virtual void on_async ();
 
-    backend::BackendAsync* impl () const { return static_cast<backend::BackendAsync*>(Handle::impl()); }
+private:
+    void handle_async () override;
+
+    backend::BackendAsync* impl () const { return static_cast<backend::BackendAsync*>(_impl); }
 };
 
 }}

@@ -53,7 +53,7 @@ void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
     poll->start((read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0));
 }
 
-void Resolver::Worker::on_poll (int, const CodeError*) {
+void Resolver::Worker::handle_poll (int, const CodeError*) {
     ares_process_fd(channel, sock, sock);
 }
 
@@ -85,7 +85,7 @@ void Resolver::Worker::resolve (const RequestSP& req) {
     ares_async = true;
 }
 
-void Resolver::Worker::on_timer () {
+void Resolver::Worker::handle_timer () {
     _EDEBUG("timed out req:%p", request.get());
     finish_resolve(nullptr, CodeError(std::errc::timed_out));
 }
@@ -121,7 +121,7 @@ void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
     if (ares_async) {
         finish_resolve(addr, err);
     } else {
-        request->delayed = resolver->loop()->delayer.add([=]{
+        request->delayed = resolver->loop()->delay([=]{
             request->delayed = 0;
             finish_resolve(addr, err);
         });
@@ -166,7 +166,7 @@ Resolver::~Resolver () {
     dns_roll_timer->destroy();
 }
 
-void Resolver::on_timer () {
+void Resolver::handle_timer () {
     _EDEBUG("dns roll timer");
     for (auto& w : workers) if (w && w->request) ares_process_fd(w->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
 }
@@ -188,7 +188,7 @@ void Resolver::resolve (const RequestSP& req) {
         auto ai = find(req->_node, req->_service, req->_hints);
         if (ai) {
             cache_delayed.push_back(req);
-            req->delayed = loop()->delayer.add([=]{
+            req->delayed = loop()->delay([=]{
                 req->delayed = 0;
                 finish_resolve(req, ai, nullptr);
             });
@@ -224,7 +224,7 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     _EDEBUGTHIS("request:%p err:%d use_cache:%d", req.get(), err ? err->code().value() : 0, (bool)req->key);
 
     if (req->delayed) {
-        loop()->delayer.cancel(req->delayed);
+        loop()->cancel_delay(req->delayed);
         req->delayed = 0;
     }
 
@@ -248,25 +248,27 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     req->queued  = false;
     req->running = false;
 
-    on_resolve(req, addr, err);
-
-    if (worker && !worker->request) { // worker might have been used again in callback
-        if (queue.size()) {
-            worker->resolve(queue.front());
-            queue.pop_front();
-        } else { // worker became free, check if any requests left
-            bool busy = false;
-            for (auto& w : workers) if (w->request) {
-                busy = true;
-                break;
+    scope_guard([&]{
+        on_resolve(addr, err, req);
+    }, [&]{
+        if (worker && !worker->request) { // worker might have been used again in callback
+            if (queue.size()) {
+                worker->resolve(queue.front());
+                queue.pop_front();
+            } else { // worker became free, check if any requests left
+                bool busy = false;
+                for (auto& w : workers) if (w->request) {
+                    busy = true;
+                    break;
+                }
+                if (!busy) dns_roll_timer->stop();
             }
-            if (!busy) dns_roll_timer->stop();
         }
-    }
+    });
 }
 
-void Resolver::on_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError* err) {
-    req->event(req, addr, err);
+void Resolver::on_resolve (const AddrInfo& addr, const CodeError* err, const RequestSP& req) {
+    req->event(addr, err, req);
 }
 
 void Resolver::reset () {

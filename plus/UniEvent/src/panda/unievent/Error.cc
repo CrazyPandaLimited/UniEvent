@@ -43,15 +43,6 @@ const string& Error::whats   () const         { if (!_what) _what = _mkwhat(); r
 Error*        Error::clone   () const         { return new Error(_what); }
 
 
-ImplRequiredError::ImplRequiredError (const string& what) : Error(what + ": callback implementation required") {}
-
-ImplRequiredError* ImplRequiredError::clone () const {
-    auto ret = new ImplRequiredError({});
-    ret->_what = _what;
-    return ret;
-}
-
-
 ErrorCategory CodeError::category;
 
 CodeError::CodeError (errc      value) : _code(std::error_code((int)value, category)) {}

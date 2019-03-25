@@ -4,7 +4,7 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct ICheckListener {
-    virtual void on_check () = 0;
+    virtual void handle_check () = 0;
 };
 
 struct BackendCheck : BackendHandle {
@@ -12,6 +12,10 @@ struct BackendCheck : BackendHandle {
 
     virtual void start () = 0;
     virtual void stop  () = 0;
+
+    void handle_check () noexcept {
+        ltry([&]{ listener->handle_check(); });
+    }
 
     ICheckListener* listener;
 };

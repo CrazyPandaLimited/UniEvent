@@ -12,7 +12,9 @@ struct UVCheck : UVHandle<BackendCheck> {
     }
 
     void start () override {
-        uv_check_start(&uvh, _call);
+        uv_check_start(&uvh, [](uv_check_t* p) {
+            get_handle<UVCheck*>(p)->handle_check();
+        });
     }
 
     void stop () override {
@@ -21,11 +23,6 @@ struct UVCheck : UVHandle<BackendCheck> {
 
 private:
     uv_check_t uvh;
-
-    static void _call (uv_check_t* p) {
-        auto h = get_handle<UVCheck*>(p);
-        if (h->listener) h->listener->on_check();
-    }
 };
 
 }}}}

@@ -33,4 +33,21 @@ TEST_CASE("prepare", "[prepare]") {
         for (int i = 0; i < 5; ++i) h->call_now();
         CHECK(cnt == 5);
     };
+
+    SECTION("exception safety") {
+        PrepareSP h = new Prepare;
+        h->prepare_event.add([&](const PrepareSP&){ cnt++; if (cnt == 1) throw 10; });
+        h->start();
+        try {
+            l->run_nowait();
+        }
+        catch (int err) {
+            CHECK(err == 10);
+            cnt++;
+        }
+        CHECK(cnt == 2);
+
+        l->run_nowait();
+        CHECK(cnt == 3);
+    }
 }

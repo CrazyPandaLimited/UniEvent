@@ -4,7 +4,7 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct IIdleListener {
-    virtual void on_idle () = 0;
+    virtual void handle_idle () = 0;
 };
 
 struct BackendIdle : BackendHandle {
@@ -12,6 +12,10 @@ struct BackendIdle : BackendHandle {
 
     virtual void start () = 0;
     virtual void stop  () = 0;
+
+    void handle_idle () noexcept {
+        ltry([&]{ listener->handle_idle(); });
+    }
 
     IIdleListener* listener;
 };

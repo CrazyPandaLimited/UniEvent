@@ -19,7 +19,9 @@ struct UVPoll : UVHandle<BackendPoll> {
     }
 
     void start (int events) override {
-        int err = uv_poll_start(&uvh, events, _call);
+        int err = uv_poll_start(&uvh, events, [](uv_poll_t* p, int status, int events) {
+            get_handle<UVPoll*>(p)->handle_poll(events, uvx_status2err(status));
+        });
         if (err) throw uvx_code_error(err);
     }
 
@@ -30,11 +32,6 @@ struct UVPoll : UVHandle<BackendPoll> {
 
 private:
     uv_poll_t uvh;
-
-    static void _call (uv_poll_t* p, int status, int events) {
-        auto h = get_handle<UVPoll*>(p);
-        if (h->listener) h->listener->on_poll(events, uvx_status2err(status));
-    }
 };
 
 }}}}

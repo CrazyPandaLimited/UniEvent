@@ -18,14 +18,14 @@ struct Poll : virtual Handle, private backend::IPollListener {
 
     CallbackDispatcher<poll_fptr> poll_event;
 
-    Poll (Socket sock, Loop* loop = Loop::default_loop()) {
+    Poll (Socket sock, const LoopSP& loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop->impl()->new_poll_sock(this, sock.val));
+        _init(loop, loop->impl()->new_poll_sock(this, sock.val));
     }
 
-    Poll (Fd fd, Loop* loop = Loop::default_loop()) {
+    Poll (Fd fd, const LoopSP& loop = Loop::default_loop()) {
         _ECTOR();
-        _init(loop->impl()->new_poll_fd(this, fd.val));
+        _init(loop, loop->impl()->new_poll_fd(this, fd.val));
     }
 
     ~Poll () {
@@ -41,12 +41,17 @@ struct Poll : virtual Handle, private backend::IPollListener {
 
     void call_now (int events, const CodeError* err) { on_poll(events, err); }
 
+    using Handle::fileno;
+
     static const HandleType TYPE;
 
 protected:
-    void on_poll (int events, const CodeError* err) override;
+    virtual void on_poll (int events, const CodeError* err);
 
-    backend::BackendPoll* impl () const { return static_cast<backend::BackendPoll*>(Handle::impl()); }
+private:
+    void handle_poll (int events, const CodeError* err) override;
+
+    backend::BackendPoll* impl () const { return static_cast<backend::BackendPoll*>(_impl); }
 };
 
 }}

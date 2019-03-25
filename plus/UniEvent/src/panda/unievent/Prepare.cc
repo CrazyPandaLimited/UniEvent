@@ -21,6 +21,9 @@ void Prepare::reset () {
 }
 
 void Prepare::on_prepare () {
-    if (prepare_event.has_listeners()) prepare_event(this);
-    else throw ImplRequiredError("Prepare::on_prepare");
+    prepare_event(this);
+}
+
+void Prepare::handle_prepare () {
+    on_prepare();
 }

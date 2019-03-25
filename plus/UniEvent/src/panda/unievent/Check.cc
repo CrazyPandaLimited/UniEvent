@@ -21,6 +21,9 @@ void Check::reset () {
 }
 
 void Check::on_check () {
-    if (check_event.has_listeners()) check_event(this);
-    else throw ImplRequiredError("Check::on_check");
+    check_event(this);
+}
+
+void Check::handle_check () {
+    on_check();
 }

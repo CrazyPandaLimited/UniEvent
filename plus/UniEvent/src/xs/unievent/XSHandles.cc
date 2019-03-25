@@ -88,6 +88,23 @@ void XSSignal::on_signal (int signum) {
     if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 }
 
+void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError* err) {
+    auto obj = xs::out<Udp*>(aTHX_ this);
+    receive_xscb.call(obj, evname_on_receive, {
+        err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
+        xs::out(&sa),
+        Simple(flags),
+        xs::out(err)
+    });
+    Udp::on_receive(buf, sa, flags, err);
+}
+
+void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
+    auto obj = xs::out<Udp*>(aTHX_ this);
+    send_xscb.call(obj, evname_on_send, { xs::out(err) });
+    Udp::on_send(err, req);
+}
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
@@ -149,22 +166,6 @@ void XSSignal::on_signal (int signum) {
 //    xs::out<TCP*>(ret.get());
 //    return ret;
 //}
-//
-//void XSUDP::on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) {
-//    auto obj = xs::out<UDP*>(aTHX_ this);
-//    if (!receive_xscb.call(obj, evname_on_receive, {
-//        err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-//        xs::out(&sa),
-//        Simple(flags),
-//        xs::out(err)
-//    })) UDP::on_receive(buf, sa, flags, err);
-//}
-//
-//void XSUDP::on_send (const CodeError* err, SendRequest* req) {
-//    auto obj = xs::out<UDP*>(aTHX_ this);
-//    if (!send_xscb.call(obj, evname_on_send, { xs::out(err) })) UDP::on_send(err, req);
-//}
-//
 //StreamSP XSPipe::on_create_connection () {
 //    PipeSP ret = make_backref<XSPipe>(ipc, loop());
 //    xs::out<Pipe*>(ret.get());

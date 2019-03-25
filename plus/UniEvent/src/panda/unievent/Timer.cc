@@ -46,6 +46,9 @@ TimerSP Timer::start (uint64_t repeat, timer_fn cb, Loop* loop) {
 }
 
 void Timer::on_timer () {
-    if (timer_event.has_listeners()) timer_event(this);
-    else throw ImplRequiredError("Timer::on_timer");
+    timer_event(this);
+}
+
+void Timer::handle_timer () {
+    on_timer();
 }
