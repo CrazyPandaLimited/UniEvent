@@ -284,6 +284,30 @@
 //    REQUIRE(client->async_locked());
 //}
 //
+//TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
+//    AsyncTest test(500, {});
+//    SockAddr addr = test.get_refused_addr();
+//
+//    TCPSP client = new TCP(test.loop);
+//
+//
+//    size_t counter = 0;
+//    client->connect_event.add([&](Stream*, const CodeError*, ConnectRequest*) {
+//        if (++counter < 10) {
+//            client->connect().to(addr.ip(), addr.port());
+//            client->write("123");
+//        } else {
+//            test.loop->stop();
+//        }
+//    });
+//
+//    client->connect().to(addr.ip(), addr.port());
+//    client->write("123");
+//
+//    test.loop->run();
+//    REQUIRE(counter == 10);
+//}
+//
 ////TEST_CASE("wrong callback order", "[tcp]") {
 ////    //Behavior is wrong, callback order is opposite, but it always worked this way
 ////    AsyncTest test(900, {"write", "connect"});
