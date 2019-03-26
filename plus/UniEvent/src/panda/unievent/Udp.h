@@ -24,16 +24,17 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
 
         using BufferRequest::BufferRequest;
 
+        void set (Udp* h) {
+            handle = h;
+            BufferRequest::set(h, h->loop()->impl()->new_send_request(this));
+        }
+
     private:
         friend Udp;
         Udp* handle;
 
         backend::BackendSendRequest* impl () const { return static_cast<backend::BackendSendRequest*>(_impl); }
 
-        void set (Udp* h) {
-            handle = h;
-            BufferRequest::set(h, h->loop()->impl()->new_send_request(this));
-        }
 
         void exec        () override;
         void on_cancel   () override;
@@ -44,7 +45,7 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     CallbackDispatcher<receive_fptr> receive_event;
     CallbackDispatcher<send_fptr>    send_event;
 
-    Udp (const LoopSP& loop, int domain = AF_UNSPEC) : domain(domain) {
+    Udp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC) : domain(domain) {
         _ECTOR();
         _init(loop, loop->impl()->new_udp(this, domain));
     }

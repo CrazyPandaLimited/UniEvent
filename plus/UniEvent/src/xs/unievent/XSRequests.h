@@ -64,15 +64,4 @@
 //    static void _cb (Stream* handle, const CodeError* err, WriteRequest* req);
 //};
 //
-//
-//struct XSSendRequest : SendRequest {
-//    XSCallback xscb;
-//    XSSendRequest (pTHX_ SV* callback) : SendRequest(callback ? _cb : send_fn(nullptr)) {
-//        xscb.set(callback);
-//    }
-//private:
-//    static void _cb (UDP* handle, const CodeError* err, SendRequest* req);
-//};
-//
-//
 //}}

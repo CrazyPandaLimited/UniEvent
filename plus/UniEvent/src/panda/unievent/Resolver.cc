@@ -55,6 +55,7 @@ void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
 
 void Resolver::Worker::handle_poll (int, const CodeError*) {
     ares_process_fd(channel, sock, sock);
+    if (exc) std::rethrow_exception(std::move(exc));
 }
 
 void Resolver::Worker::resolve (const RequestSP& req) {
@@ -92,7 +93,7 @@ void Resolver::Worker::handle_timer () {
 
 void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
     _EDEBUG("req:%p status:%s async:%d ai:%p", request.get(), ares_strerror(status), ares_async, ai);
-    if (!request) return;
+    if (!request) return; // canceled
 
     CodeError err;
     AddrInfo  addr;
@@ -119,7 +120,13 @@ void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
     }
 
     if (ares_async) {
-        finish_resolve(addr, err);
+        try {
+            finish_resolve(addr, err);
+        } catch (...) {
+            // we need to transfer exception through ares code otherwise it would be in an undefined state
+            // there are 2 ways to get here via ares - from poll event and from dns roll timer event
+            exc = std::current_exception();
+        }
     } else {
         request->delayed = resolver->loop()->delay([=]{
             request->delayed = 0;
@@ -168,7 +175,10 @@ Resolver::~Resolver () {
 
 void Resolver::handle_timer () {
     _EDEBUG("dns roll timer");
-    for (auto& w : workers) if (w && w->request) ares_process_fd(w->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+    for (auto& w : workers) if (w && w->request) {
+        ares_process_fd(w->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+        if (w->exc) std::rethrow_exception(std::move(w->exc));
+    }
 }
 
 void Resolver::add_worker () {

@@ -10,7 +10,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
-inline CodeError uvx_ce     (int err) { return err ? CodeError() : uvx_code_error(err); }
+inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
 
 template <class T = BackendHandle*, class X>
 inline T get_handle (X* uvhp) {

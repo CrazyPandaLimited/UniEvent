@@ -20,7 +20,3 @@
 //void XSWriteRequest::_cb (Stream* handle, const CodeError* err, WriteRequest* req) {
 //    static_cast<XSWriteRequest*>(req)->xscb.call(xs::out(handle), nullptr, { xs::out(err) });
 //}
-//
-//void XSSendRequest::_cb (UDP* handle, const CodeError* err, SendRequest* req) {
-//    static_cast<XSSendRequest*>(req)->xscb.call(xs::out(handle), nullptr, { xs::out(err) });
-//}

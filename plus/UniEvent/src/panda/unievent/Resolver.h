@@ -102,9 +102,9 @@ private:
     };
 
     using CacheKeySP = iptr<CacheKey>;
-    using Cache = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
-    using BTimer = backend::BackendTimer;
-    using BPoll  = backend::BackendPoll;
+    using Cache      = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
+    using BTimer     = backend::BackendTimer;
+    using BPoll      = backend::BackendPoll;
 
     struct Worker : private backend::ITimerListener, private backend::IPollListener {
         Worker  (Resolver*);
@@ -121,13 +121,14 @@ private:
         void handle_timer () override;
         void handle_poll  (int, const CodeError*) override;
 
-        Resolver*    resolver;
-        ares_channel channel;
-        sock_t       sock;
-        BPoll*       poll;
-        BTimer*      timer;
-        RequestSP    request;
-        bool         ares_async;
+        Resolver*          resolver;
+        ares_channel       channel;
+        sock_t             sock;
+        BPoll*             poll;
+        BTimer*            timer;
+        RequestSP          request;
+        bool               ares_async;
+        std::exception_ptr exc;
     };
 
     using Requests = panda::lib::IntrusiveChain<RequestSP>;

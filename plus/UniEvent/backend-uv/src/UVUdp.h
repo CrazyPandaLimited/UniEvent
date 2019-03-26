@@ -6,7 +6,7 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVSendRequest : UVRequest<BackendSendRequest> {
+struct UVSendRequest : UVRequest<BackendSendRequest>, panda::lib::AllocatedObject<UVSendRequest> {
     UVSendRequest (ISendListener* l) : UVRequest<BackendSendRequest>(l) {
         _init(&uvr);
     }
