@@ -55,12 +55,12 @@ const HandleType& Signal::type () const {
 }
 
 void Signal::start (int signum, signal_fn callback) {
-    if (callback) signal_event.add(callback);
+    if (callback) event.add(callback);
     impl()->start(signum);
 }
 
 void Signal::once (int signum, signal_fn callback) {
-    if (callback) signal_event.add(callback);
+    if (callback) event.add(callback);
     impl()->once(signum);
 }
 
@@ -71,7 +71,7 @@ void Signal::stop () {
 void Signal::reset () { stop(); }
 
 void Signal::on_signal (int signum) {
-    signal_event(this, signum);
+    event(this, signum);
 }
 
 void Signal::handle_signal (int signum) {

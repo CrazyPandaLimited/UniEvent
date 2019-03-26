@@ -8,7 +8,7 @@ struct Check : virtual Handle, private backend::ICheckListener {
     using check_fptr = void(Check*);
     using check_fn   = function<check_fptr>;
 
-    CallbackDispatcher<check_fptr> check_event;
+    CallbackDispatcher<check_fptr> event;
 
     Check (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_check(this));

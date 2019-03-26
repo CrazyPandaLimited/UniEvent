@@ -8,7 +8,7 @@ const HandleType& Check::type () const {
 }
 
 void Check::start (check_fn callback) {
-    if (callback) check_event.add(callback);
+    if (callback) event.add(callback);
     impl()->start();
 }
 
@@ -21,7 +21,7 @@ void Check::reset () {
 }
 
 void Check::on_check () {
-    check_event(this);
+    event(this);
 }
 
 void Check::handle_check () {

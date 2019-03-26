@@ -32,7 +32,7 @@ void Timer::repeat (uint64_t repeat) {
 
 TimerSP Timer::once (uint64_t initial, timer_fn cb, Loop* loop) {
     TimerSP timer = new Timer(loop);
-    timer->timer_event.add(cb);
+    timer->event.add(cb);
     timer->once(initial);
     return timer;
 }
@@ -40,13 +40,13 @@ TimerSP Timer::once (uint64_t initial, timer_fn cb, Loop* loop) {
 TimerSP Timer::start (uint64_t repeat, timer_fn cb, Loop* loop) {
     //loop->update_time();
     TimerSP timer = new Timer(loop);
-    timer->timer_event.add(cb);
+    timer->event.add(cb);
     timer->start(repeat);
     return timer;
 }
 
 void Timer::on_timer () {
-    timer_event(this);
+    event(this);
 }
 
 void Timer::handle_timer () {

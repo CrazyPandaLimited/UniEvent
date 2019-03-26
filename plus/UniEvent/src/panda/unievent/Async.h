@@ -8,14 +8,14 @@ struct Async : virtual Handle, private backend::IAsyncListener {
     using async_fptr = void(Async*);
     using async_fn   = function<async_fptr>;
     
-    CallbackDispatcher<async_fptr> async_event;
+    CallbackDispatcher<async_fptr> event;
 
     Async (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_async(this));
     }
 
     Async (async_fn cb, Loop* loop = Loop::default_loop()) : Async(loop) {
-        if (cb) async_event.add(cb);
+        if (cb) event.add(cb);
     }
 
     const HandleType& type () const override;

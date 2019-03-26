@@ -14,7 +14,7 @@ void Async::send () {
 void Async::reset () {}
 
 void Async::on_async () {
-    async_event(this);
+    event(this);
 }
 
 void Async::handle_async () {

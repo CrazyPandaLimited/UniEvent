@@ -8,7 +8,7 @@ const HandleType& Idle::type () const {
 }
 
 void Idle::start (idle_fn callback) {
-    if (callback) idle_event.add(callback);
+    if (callback) event.add(callback);
     impl()->start();
 }
 
@@ -21,7 +21,7 @@ void Idle::reset () {
 }
 
 void Idle::on_idle () {
-    idle_event(this);
+    event(this);
 }
 
 void Idle::handle_idle () {

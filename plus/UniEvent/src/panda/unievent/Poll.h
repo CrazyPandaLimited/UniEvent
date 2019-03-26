@@ -16,7 +16,7 @@ struct Poll : virtual Handle, private backend::IPollListener {
     struct Socket { sock_t val; };
     struct Fd     { int    val; };
 
-    CallbackDispatcher<poll_fptr> poll_event;
+    CallbackDispatcher<poll_fptr> event;
 
     Poll (Socket sock, const LoopSP& loop = Loop::default_loop()) {
         _ECTOR();

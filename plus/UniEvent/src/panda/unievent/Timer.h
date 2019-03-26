@@ -10,7 +10,7 @@ struct Timer : virtual Handle, private backend::ITimerListener {
     using timer_fptr = void(Timer* handle);
     using timer_fn = function<timer_fptr>;
     
-    CallbackDispatcher<timer_fptr> timer_event;
+    CallbackDispatcher<timer_fptr> event;
 
     Timer (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_timer(this));

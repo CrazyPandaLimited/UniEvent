@@ -18,7 +18,7 @@ TEST_CASE("handle", "[handle]") {
 
     SECTION("active") {
         TimerSP t = new Timer(l);
-        t->timer_event.add([](const TimerSP& t){ t->stop(); });
+        t->event.add([](const TimerSP& t){ t->stop(); });
         CHECK(!t->active());
         t->start(0.01);
         CHECK(t->active());
@@ -29,7 +29,7 @@ TEST_CASE("handle", "[handle]") {
     SECTION("weak") {
         PrepareSP h = new Prepare(l);
         int cnt = 0;
-        h->prepare_event.add([&](const PrepareSP& h){
+        h->event.add([&](const PrepareSP& h){
             h->loop()->stop();
             ++cnt;
         });

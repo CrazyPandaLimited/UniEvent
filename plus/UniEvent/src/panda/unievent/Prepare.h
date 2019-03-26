@@ -8,7 +8,7 @@ struct Prepare : virtual Handle, private backend::IPrepareListener {
     using prepare_fptr = void(Prepare*);
     using prepare_fn   = function<prepare_fptr>;
 
-    CallbackDispatcher<prepare_fptr> prepare_event;
+    CallbackDispatcher<prepare_fptr> event;
 
     Prepare (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_prepare(this));

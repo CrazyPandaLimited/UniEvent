@@ -9,7 +9,7 @@ TEST_CASE("idle", "[idle]") {
         IdleSP h = new Idle;
         CHECK(h->type() == Idle::TYPE);
 
-        h->idle_event.add([&](const IdleSP&){ cnt++; });
+        h->event.add([&](const IdleSP&){ cnt++; });
         h->start();
         CHECK(l->run_nowait());
         CHECK(cnt == 1);
@@ -29,7 +29,7 @@ TEST_CASE("idle", "[idle]") {
 
     SECTION("runs rarely when loop is high loaded") {
         TimerSP t = new Timer;
-        t->timer_event.add([](const TimerSP& t){
+        t->event.add([](const TimerSP& t){
             static int j = 0;
             if (++j % 10 == 0) t->loop()->stop();
         });
@@ -46,7 +46,7 @@ TEST_CASE("idle", "[idle]") {
         std::vector<TimerSP> v;
         while (v.size() < 10000) {
             v.push_back(new Timer);
-            v.back()->timer_event.add([](const TimerSP&){});
+            v.back()->event.add([](const TimerSP&){});
             v.back()->start(1);
         }
 
@@ -62,7 +62,7 @@ TEST_CASE("idle", "[idle]") {
 
     SECTION("call_now") {
         IdleSP h = new Idle;
-        h->idle_event.add([&](const IdleSP&){ cnt++; });
+        h->event.add([&](const IdleSP&){ cnt++; });
         for (int i = 0; i < 5; ++i) h->call_now();
         CHECK(cnt == 5);
     }

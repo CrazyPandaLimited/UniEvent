@@ -8,7 +8,7 @@ const HandleType& Poll::type () const {
 }
 
 void Poll::start (int events, poll_fn callback) {
-    if (callback) poll_event.add(callback);
+    if (callback) event.add(callback);
     impl()->start(events);
 }
 
@@ -19,7 +19,7 @@ void Poll::stop () {
 void Poll::reset () { stop(); }
 
 void Poll::on_poll (int events, const CodeError* err) {
-    poll_event(this, events, err);
+    event(this, events, err);
 }
 
 void Poll::handle_poll (int events, const CodeError* err) {

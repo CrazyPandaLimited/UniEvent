@@ -8,7 +8,7 @@ struct Idle : virtual Handle, private backend::IIdleListener {
     using idle_fptr = void(Idle*);
     using idle_fn   = function<idle_fptr>;
     
-    CallbackDispatcher<idle_fptr> idle_event;
+    CallbackDispatcher<idle_fptr> event;
 
     Idle (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_idle(this));

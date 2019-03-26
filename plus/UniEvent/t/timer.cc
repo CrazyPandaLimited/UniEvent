@@ -22,7 +22,7 @@ TEST_CASE("Timer static once", "[timer]") {
         test.happens("timer");
         REQUIRE_ELAPSED(t0, timeout);
     }, test.loop);
-    test.await(timer->timer_event);
+    test.await(timer->event);
 }
 
 TEST_CASE("Timer static repeat", "[timer]") {

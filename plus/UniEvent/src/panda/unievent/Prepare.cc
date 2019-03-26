@@ -8,7 +8,7 @@ const HandleType& Prepare::type () const {
 }
 
 void Prepare::start (prepare_fn callback) {
-    if (callback) prepare_event.add(callback);
+    if (callback) event.add(callback);
     impl()->start();
 }
 
@@ -21,7 +21,7 @@ void Prepare::reset () {
 }
 
 void Prepare::on_prepare () {
-    prepare_event(this);
+    event(this);
 }
 
 void Prepare::handle_prepare () {

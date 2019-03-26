@@ -36,7 +36,7 @@ struct AsyncTest {
     static TimerSP timer_once (uint64_t timeout, Loop* loop, F&& f) {
         TimerSP timer = new Timer(loop);
         timer->once(timeout);
-        timer->timer_event.add([f](Timer* t) {
+        timer->event.add([f](Timer* t) {
             t->stop();
             f();
         });

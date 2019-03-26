@@ -9,7 +9,7 @@ TEST_CASE("prepare", "[prepare]") {
         PrepareSP h = new Prepare;
         CHECK(h->type() == Prepare::TYPE);
 
-        h->prepare_event.add([&](const PrepareSP&){ cnt++; });
+        h->event.add([&](const PrepareSP&){ cnt++; });
         h->start();
         CHECK(l->run_nowait());
         CHECK(cnt == 1);
@@ -29,14 +29,14 @@ TEST_CASE("prepare", "[prepare]") {
 
     SECTION("call_now") {
         PrepareSP h = new Prepare;
-        h->prepare_event.add([&](const PrepareSP&){ cnt++; });
+        h->event.add([&](const PrepareSP&){ cnt++; });
         for (int i = 0; i < 5; ++i) h->call_now();
         CHECK(cnt == 5);
     };
 
     SECTION("exception safety") {
         PrepareSP h = new Prepare;
-        h->prepare_event.add([&](const PrepareSP&){ cnt++; if (cnt == 1) throw 10; });
+        h->event.add([&](const PrepareSP&){ cnt++; if (cnt == 1) throw 10; });
         h->start();
         try {
             l->run_nowait();

@@ -7,7 +7,7 @@ TEST_CASE("async_test simple", "[async_test]") {
     auto timer = test.timer_once(10, [&]() {
         called = true;
     });
-    auto res = test.await(timer->timer_event, "timer");
+    auto res = test.await(timer->event, "timer");
     REQUIRE(called);
     REQUIRE(std::get<0>(res) == timer.get());
 }

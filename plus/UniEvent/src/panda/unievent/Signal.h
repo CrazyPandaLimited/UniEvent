@@ -9,7 +9,7 @@ struct Signal : virtual Handle, private backend::ISignalListener {
     using signal_fptr = void(Signal* handle, int signum);
     using signal_fn = function<signal_fptr>;
     
-    CallbackDispatcher<signal_fptr> signal_event;
+    CallbackDispatcher<signal_fptr> event;
 
     Signal (const LoopSP& loop = Loop::default_loop()) {
         _init(loop, loop->impl()->new_signal(this));

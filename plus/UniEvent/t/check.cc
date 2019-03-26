@@ -9,7 +9,7 @@ TEST_CASE("check", "[check]") {
         CheckSP h = new Check;
         CHECK(h->type() == Check::TYPE);
 
-        h->check_event.add([&](const CheckSP&){ cnt++; });
+        h->event.add([&](const CheckSP&){ cnt++; });
         h->start();
         CHECK(l->run_nowait());
         CHECK(cnt == 1);
@@ -41,7 +41,7 @@ TEST_CASE("check", "[check]") {
 
     SECTION("call_now") {
         CheckSP h = new Check;
-        h->check_event.add([&](const CheckSP&){ cnt++; });
+        h->event.add([&](const CheckSP&){ cnt++; });
         for (int i = 0; i < 5; ++i) h->call_now();
         CHECK(cnt == 5);
     };
