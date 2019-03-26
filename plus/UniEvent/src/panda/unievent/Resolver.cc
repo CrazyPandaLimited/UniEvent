@@ -69,7 +69,6 @@ void Resolver::Worker::resolve (const RequestSP& req) {
 
     PEXS_NULL_TERMINATE(req->_node, node_cstr);
     PEXS_NULL_TERMINATE(req->_service, service_cstr);
-    _EDEBUGTHIS("req:%p [%s:%s] use_cache:%d", req.get(), node_cstr, service_cstr, req->_use_cache);
 
     ares_addrinfo h = { req->_hints.flags, req->_hints.family, req->_hints.socktype, req->_hints.protocol, 0, nullptr, nullptr, nullptr };
     ares_async = false;
@@ -189,7 +188,7 @@ void Resolver::add_worker () {
 
 void Resolver::resolve (const RequestSP& req) {
     if (req->_port) req->_service = string::from_number(req->_port);
-    _EDEBUGTHIS("use_cache: %d", req->_use_cache);
+    _EDEBUGTHIS("req:%p [%s:%s] use_cache:%d", req.get(), req->_node.c_str(), req->_service.c_str(), req->_use_cache);
     req->_resolver = this;
     req->running   = true;
     req->loop      = _loop; // keep loop (for loop resolvers)
@@ -197,6 +196,7 @@ void Resolver::resolve (const RequestSP& req) {
     if (req->_use_cache) {
         auto ai = find(req->_node, req->_service, req->_hints);
         if (ai) {
+            req->_use_cache = false;
             cache_delayed.push_back(req);
             req->delayed = loop()->delay([=]{
                 req->delayed = 0;
@@ -204,7 +204,6 @@ void Resolver::resolve (const RequestSP& req) {
             });
             return;
         }
-        req->key = new CacheKey(req->_node, req->_service, req->_hints);
     }
 
     if (queue.size()) {
@@ -231,7 +230,7 @@ void Resolver::resolve (const RequestSP& req) {
 
 void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError* err) {
     if (!req->running) return;
-    _EDEBUGTHIS("request:%p err:%d use_cache:%d", req.get(), err ? err->code().value() : 0, (bool)req->key);
+    _EDEBUGTHIS("request:%p err:%d", req.get(), err ? err->code().value() : 0);
 
     if (req->delayed) {
         loop()->cancel_delay(req->delayed);
@@ -247,12 +246,12 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
         cache_delayed.erase(req);
     }
 
-    if (!err && req->key) {
+    if (!err && req->_use_cache) {
         if (cache.size() >= limit) {
             _EDEBUG("cleaning cache %p %ld", this, cache.size());
             cache.clear();
         }
-        cache.emplace(*req->key, CachedAddress{addr});
+        cache.emplace(CacheKey(req->_node, req->_service, req->_hints), CachedAddress{addr});
     }
 
     req->queued  = false;

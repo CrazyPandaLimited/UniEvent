@@ -101,10 +101,9 @@ private:
         }
     };
 
-    using CacheKeySP = iptr<CacheKey>;
-    using Cache      = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
-    using BTimer     = backend::BackendTimer;
-    using BPoll      = backend::BackendPoll;
+    using Cache  = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
+    using BTimer = backend::BackendTimer;
+    using BPoll  = backend::BackendPoll;
 
     struct Worker : private backend::ITimerListener, private backend::IPollListener {
         Worker  (Resolver*);
@@ -193,7 +192,6 @@ private:
     resolve_fn    _callback;
     bool          _use_cache;
     uint64_t      _timeout;
-    CacheKeySP    key;
     Worker*       worker;
     uint64_t      delayed;
     bool          running;
