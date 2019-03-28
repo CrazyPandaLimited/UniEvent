@@ -67,8 +67,8 @@ void Resolver::Worker::resolve (const RequestSP& req) {
         timer->start(0, req->_timeout);
     }
 
-    PEXS_NULL_TERMINATE(req->_node, node_cstr);
-    PEXS_NULL_TERMINATE(req->_service, service_cstr);
+    UE_NULL_TERMINATE(req->_node, node_cstr);
+    UE_NULL_TERMINATE(req->_service, service_cstr);
 
     ares_addrinfo h = { req->_hints.flags, req->_hints.family, req->_hints.socktype, req->_hints.protocol, 0, nullptr, nullptr, nullptr };
     ares_async = false;

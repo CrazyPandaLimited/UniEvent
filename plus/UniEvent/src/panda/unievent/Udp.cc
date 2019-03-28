@@ -13,8 +13,12 @@ const HandleType& Udp::type () const {
     return TYPE;
 }
 
-string Udp::buf_alloc (size_t cap) {
-    return buf_alloc_callback ? buf_alloc_callback(cap) : string(cap);
+string Udp::buf_alloc (size_t cap) noexcept {
+    try {
+        return buf_alloc_callback ? buf_alloc_callback(cap) : string(cap);
+    } catch (...) {
+        return {};
+    }
 }
 
 void Udp::open (sock_t socket) {

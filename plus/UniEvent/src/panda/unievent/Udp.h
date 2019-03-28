@@ -52,7 +52,7 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
 
     const HandleType& type () const override;
 
-    string buf_alloc (size_t cap) override;
+    string buf_alloc (size_t cap) noexcept override;
 
     virtual void open       (sock_t socket);
     virtual void bind       (const net::SockAddr&, unsigned flags = 0);

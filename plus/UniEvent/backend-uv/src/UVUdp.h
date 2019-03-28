@@ -53,8 +53,8 @@ struct UVUdp : UVHandle<BackendUdp> {
             case Membership::LEAVE_GROUP : uvmemb = UV_LEAVE_GROUP; break;
             case Membership::JOIN_GROUP  : uvmemb = UV_JOIN_GROUP;  break;
         }
-        PEXS_NULL_TERMINATE(multicast_addr, multicast_addr_cstr);
-        PEXS_NULL_TERMINATE(interface_addr, interface_addr_cstr);
+        UE_NULL_TERMINATE(multicast_addr, multicast_addr_cstr);
+        UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
         uvx_strict(uv_udp_set_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, uvmemb));
     }
 
@@ -67,7 +67,7 @@ struct UVUdp : UVHandle<BackendUdp> {
     }
 
     void set_multicast_interface (std::string_view interface_addr) override {
-        PEXS_NULL_TERMINATE(interface_addr, interface_addr_cstr);
+        UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
         uvx_strict(uv_udp_set_multicast_interface(&uvh, interface_addr_cstr));
     }
 

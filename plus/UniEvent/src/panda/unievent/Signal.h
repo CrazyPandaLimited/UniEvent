@@ -6,7 +6,7 @@
 namespace panda { namespace unievent {
 
 struct Signal : virtual Handle, private backend::ISignalListener {
-    using signal_fptr = void(Signal* handle, int signum);
+    using signal_fptr = void(const SignalSP& handle, int signum);
     using signal_fn = function<signal_fptr>;
     
     CallbackDispatcher<signal_fptr> event;

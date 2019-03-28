@@ -39,6 +39,7 @@ struct BackendLoop {
     virtual BackendPoll*    new_poll_sock (IPollListener*, sock_t sock) = 0;
     virtual BackendPoll*    new_poll_fd   (IPollListener*, int fd)      = 0;
     virtual BackendUdp*     new_udp       (IUdpListener*, int domain)   = 0;
+    virtual BackendPipe*    new_pipe      (IStreamListener*, bool ipc)  = 0;
 
     virtual BackendSendRequest* new_send_request (ISendListener*) = 0;
 

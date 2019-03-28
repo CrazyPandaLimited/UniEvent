@@ -5,7 +5,7 @@
 namespace panda { namespace unievent {
 
 struct Check : virtual Handle, private backend::ICheckListener {
-    using check_fptr = void(Check*);
+    using check_fptr = void(const CheckSP&);
     using check_fn   = function<check_fptr>;
 
     CallbackDispatcher<check_fptr> event;

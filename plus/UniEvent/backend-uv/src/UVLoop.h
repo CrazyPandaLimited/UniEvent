@@ -3,6 +3,7 @@
 #include "UVUdp.h"
 #include "UVIdle.h"
 #include "UVPoll.h"
+#include "UVPipe.h"
 #include "UVTimer.h"
 #include "UVCheck.h"
 #include "UVAsync.h"
@@ -73,6 +74,7 @@ struct UVLoop : BackendLoop {
     BackendPoll*    new_poll_sock (IPollListener* l, sock_t sock) override { return new UVPoll(_uvloop, l, sock); }
     BackendPoll*    new_poll_fd   (IPollListener* l, int fd)      override { return new UVPoll(_uvloop, l, fd, nullptr); }
     BackendUdp*     new_udp       (IUdpListener* l, int domain)   override { return new UVUdp(_uvloop, l, domain); }
+    BackendPipe*    new_pipe      (IStreamListener* l, bool ipc)  override { return new UVPipe(_uvloop, l, ipc); }
 
     BackendSendRequest* new_send_request (ISendListener* l) override { return new UVSendRequest(l); }
 

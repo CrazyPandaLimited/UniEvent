@@ -85,6 +85,46 @@ private:
     Sv io_sv;
 };
 
+struct XSStream : virtual Stream {
+    XSCallback connection_xscb;
+    XSCallback read_xscb;
+    XSCallback write_xscb;
+    XSCallback shutdown_xscb;
+    XSCallback eof_xscb;
+    XSCallback connect_xscb;
+    XSCallback create_connection_xscb;
+
+    XSStream () {}
+
+protected:
+//    void on_connection (StreamSP, const CodeError*) override;
+//    void on_connect    (const CodeError*, ConnectRequest*) override;
+//    void on_read       (string&, const CodeError*) override;
+//    void on_write      (const CodeError*, WriteRequest*) override;
+//    void on_shutdown   (const CodeError*, ShutdownRequest*) override;
+//    void on_eof        () override;
+};
+
+struct XSPipe : Pipe, XSStream {
+    XSPipe (Loop* loop, bool ipc) : Pipe(loop, ipc) {}
+
+//    StreamSP on_create_connection () override;
+//
+//    void open (const Sv& sv) {
+//        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
+//        io_sv = sv;
+//        Pipe::open((file_t)PerlIO_fileno(IoIFP(xs::in<IO*>(aTHX_ sv))));
+//    }
+//
+//    void open (file_t sock) override {
+//        io_sv.reset();
+//        Pipe::open(sock);
+//    }
+//
+//private:
+//    Sv io_sv;
+};
+
 //struct XSFSEvent : FSEvent, XSHandle {
 //    XSCallback fs_event_xscb;
 //    XSFSEvent (Loop* loop) : FSEvent(loop) {}
@@ -99,27 +139,6 @@ private:
 //    XSFSPoll (Loop* loop) : FSPoll(loop), stat_as_hash(false) {}
 //protected:
 //    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) override;
-//};
-//
-//
-//struct XSStream : virtual Stream, XSHandle {
-//    XSCallback connection_xscb;
-//    XSCallback read_xscb;
-//    XSCallback write_xscb;
-//    XSCallback shutdown_xscb;
-//    XSCallback eof_xscb;
-//    XSCallback connect_xscb;
-//    XSCallback create_connection_xscb;
-//
-//    XSStream () {}
-//
-//protected:
-//    void on_connection (StreamSP, const CodeError*) override;
-//    void on_connect    (const CodeError*, ConnectRequest*) override;
-//    void on_read       (string&, const CodeError*) override;
-//    void on_write      (const CodeError*, WriteRequest*) override;
-//    void on_shutdown   (const CodeError*, ShutdownRequest*) override;
-//    void on_eof        () override;
 //};
 //
 //struct XSTCP : TCP, XSStream {
@@ -145,25 +164,6 @@ private:
 //        } else {
 //            return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
 //        }
-//    }
-//
-//private:
-//    Sv io_sv;
-//};
-//struct XSPipe : Pipe, XSStream {
-//    XSPipe (bool ipc, Loop* loop) : Pipe(ipc, loop) {}
-//
-//    StreamSP on_create_connection () override;
-//
-//    void open (const Sv& sv) {
-//        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-//        io_sv = sv;
-//        Pipe::open((file_t)PerlIO_fileno(IoIFP(xs::in<IO*>(aTHX_ sv))));
-//    }
-//
-//    void open (file_t sock) override {
-//        io_sv.reset();
-//        Pipe::open(sock);
 //    }
 //
 //private:
@@ -218,6 +218,16 @@ template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<
     panda::string package () { return "UniEvent::Signal"; }
 };
 
+template <class TYPE> struct Typemap <panda::unievent::Udp*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::Udp"; }
+};
+
+template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
+
+template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+    panda::string package () { return "UniEvent::Pipe"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }
 //};
@@ -226,22 +236,12 @@ template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<
 //    panda::string package () { return "UniEvent::FSPoll"; }
 //};
 //
-//template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
-//
 //template <class TYPE> struct Typemap <panda::unievent::TCP*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
 //    panda::string package () { return "UniEvent::TCP"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-//    panda::string package () { return "UniEvent::Pipe"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::TTY*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
 //    panda::string package () { return "UniEvent::TTY"; }
 //};
-
-template <class TYPE> struct Typemap <panda::unievent::Udp*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Udp"; }
-};
 
 }

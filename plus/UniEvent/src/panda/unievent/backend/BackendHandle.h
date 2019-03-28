@@ -1,5 +1,6 @@
 #pragma once
 #include "BackendLoop.h"
+#include <panda/string.h>
 #include <panda/optional.h>
 
 namespace panda { namespace unievent { namespace backend {
@@ -47,6 +48,12 @@ struct BackendHandle {
     virtual void destroy () noexcept = 0;
 
     virtual ~BackendHandle () {}
+
+    template <class T>
+    static string buf_alloc (size_t size, T allocator) noexcept {
+        if (size < MIN_ALLOC_SIZE) size = MIN_ALLOC_SIZE;
+        return allocator->buf_alloc(size);
+    }
 };
 
 }}}

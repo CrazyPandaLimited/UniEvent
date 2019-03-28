@@ -68,25 +68,30 @@ void XSPrepare::on_prepare () {
     if (!prepare_xscb.call(obj, evname_on_prepare)) Prepare::on_prepare();
 }
 
+
 void XSCheck::on_check () {
     auto obj = xs::out<Check*>(aTHX_ this);
     if (!check_xscb.call(obj, evname_on_check)) Check::on_check();
 }
+
 
 void XSIdle::on_idle () {
     auto obj = xs::out<Idle*>(aTHX_ this);
     if (!idle_xscb.call(obj, evname_on_idle)) Idle::on_idle();
 }
 
+
 void XSTimer::on_timer () {
     auto obj = xs::out<Timer*>(aTHX_ this);
     if (!timer_xscb.call(obj, evname_on_timer)) Timer::on_timer();
 }
 
+
 void XSSignal::on_signal (int signum) {
     auto obj = xs::out<Signal*>(aTHX_ this);
     if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
 }
+
 
 void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError* err) {
     auto obj = xs::out<Udp*>(aTHX_ this);
@@ -105,6 +110,52 @@ void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
     Udp::on_send(err, req);
 }
 
+
+//void XSStream::on_connection (StreamSP stream, const CodeError* err) {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream.get()), xs::out(err) })) Stream::on_connection(stream, err);
+//}
+
+//void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!connect_xscb.call(obj, evname_on_connect, { xs::out(err) })) Stream::on_connect(err, req);
+//}
+
+//void XSStream::on_read (string& buf, const CodeError* err) {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!read_xscb.call(obj, evname_on_read, {
+//        err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
+//        xs::out(err)
+//    })) Stream::on_read(buf, err);
+//}
+
+//void XSStream::on_write (const CodeError* err, WriteRequest* req) {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!write_xscb.call(obj, evname_on_write, { xs::out(err) })) Stream::on_write(err, req);
+//}
+
+//void XSStream::on_shutdown (const CodeError* err, ShutdownRequest* req) {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!shutdown_xscb.call(obj, evname_on_shutdown, { xs::out(err) })) Stream::on_shutdown(err, req);
+//}
+
+//void XSStream::on_eof () {
+//    _EDEBUGTHIS();
+//    auto obj = xs::out<Stream*>(aTHX_ this);
+//    if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
+//}
+
+//StreamSP XSPipe::on_create_connection () {
+//    PipeSP ret = make_backref<XSPipe>(ipc, loop());
+//    xs::out<Pipe*>(ret.get());
+//    return ret;
+//}
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
@@ -122,53 +173,9 @@ void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
 //    })) FSPoll::on_fs_poll(prev, curr, err);
 //}
 //
-//void XSStream::on_connection (StreamSP stream, const CodeError* err) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!connection_xscb.call(obj, evname_on_connection, { xs::out(stream.get()), xs::out(err) })) Stream::on_connection(stream, err);
-//}
-//
-//void XSStream::on_connect (const CodeError* err, ConnectRequest* req) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!connect_xscb.call(obj, evname_on_connect, { xs::out(err) })) Stream::on_connect(err, req);
-//}
-//
-//void XSStream::on_read (string& buf, const CodeError* err) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!read_xscb.call(obj, evname_on_read, {
-//        err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-//        xs::out(err)
-//    })) Stream::on_read(buf, err);
-//}
-//
-//void XSStream::on_write (const CodeError* err, WriteRequest* req) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!write_xscb.call(obj, evname_on_write, { xs::out(err) })) Stream::on_write(err, req);
-//}
-//
-//void XSStream::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!shutdown_xscb.call(obj, evname_on_shutdown, { xs::out(err) })) Stream::on_shutdown(err, req);
-//}
-//
-//void XSStream::on_eof () {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!eof_xscb.call(obj, evname_on_eof)) Stream::on_eof();
-//}
-//
 //StreamSP XSTCP::on_create_connection () {
 //    TCPSP ret = make_backref<XSTCP>(loop());
 //    xs::out<TCP*>(ret.get());
-//    return ret;
-//}
-//StreamSP XSPipe::on_create_connection () {
-//    PipeSP ret = make_backref<XSPipe>(ipc, loop());
-//    xs::out<Pipe*>(ret.get());
 //    return ret;
 //}
 //
@@ -181,19 +188,19 @@ void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
 Stash perl_class_for_handle (Handle* h) {
     auto& ca = _perl_handle_classes;
     if (!ca.size()) {
-//        ca[Check::Type]   = Stash("UniEvent::Check",   GV_ADD);
+        ca[Prepare::TYPE] = Stash("UniEvent::Prepare", GV_ADD);
+        ca[Check::TYPE]   = Stash("UniEvent::Check",   GV_ADD);
+        ca[Idle::TYPE]    = Stash("UniEvent::Idle",    GV_ADD);
+        ca[Timer::TYPE]   = Stash("UniEvent::Timer",   GV_ADD);
+        ca[Signal::TYPE]  = Stash("UniEvent::Signal",  GV_ADD);
+        ca[Poll::TYPE]    = Stash("UniEvent::Poll",    GV_ADD);
+        ca[Udp::TYPE]     = Stash("UniEvent::UDP",     GV_ADD);
+        ca[Pipe::TYPE]    = Stash("UniEvent::Pipe",    GV_ADD);
 //        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
 //        ca[FSPoll::Type]  = Stash("UniEvent::FSPoll",  GV_ADD);
-//        ca[Idle::Type]    = Stash("UniEvent::Idle",    GV_ADD);
-//        ca[Pipe::Type]    = Stash("UniEvent::Pipe",    GV_ADD);
-//        ca[Poll::Type]    = Stash("UniEvent::Poll",    GV_ADD);
-        ca[Prepare::TYPE] = Stash("UniEvent::Prepare", GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
 //        ca[TCP::Type]     = Stash("UniEvent::TCP",     GV_ADD);
-        ca[Timer::TYPE]   = Stash("UniEvent::Timer",   GV_ADD);
 //        ca[TTY::Type]     = Stash("UniEvent::TTY",     GV_ADD);
-//        ca[UDP::Type]     = Stash("UniEvent::UDP",     GV_ADD);
-//        ca[Signal::Type]  = Stash("UniEvent::Signal",  GV_ADD);
 //        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);
     }
     return ca.at(h->type());

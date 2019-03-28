@@ -37,6 +37,8 @@ struct BackendUdp : BackendHandle {
 
     BackendUdp (IUdpListener* l) : listener(l) {}
 
+    string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
+
     virtual void open (sock_t sock) = 0;
     virtual void bind (const net::SockAddr& addr, unsigned flags) = 0;
 
@@ -55,16 +57,6 @@ struct BackendUdp : BackendHandle {
     virtual void recv_stop  () = 0;
 
     virtual BackendSendRequest* new_send_request (ISendListener*) = 0;
-
-    string buf_alloc (size_t size) noexcept {
-        if (size < MIN_ALLOC_SIZE) size = MIN_ALLOC_SIZE;
-        try {
-            return listener->buf_alloc(size);
-        }
-        catch (...) {
-            return {};
-        }
-    }
 
     void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError* err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });

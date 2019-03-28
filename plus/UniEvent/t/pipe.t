@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use lib 't/lib'; use MyTest;
-plan skip_all => 'disabled';
+
 use constant PIPE_PATH => MyTest::var 'pipe';
 
 my $l = UniEvent::Loop->default_loop;

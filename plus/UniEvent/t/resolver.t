@@ -1,6 +1,7 @@
 use 5.012;
 use lib 't/lib';
 use MyTest;
+use UniEvent::Error;
 
 catch_run('[resolver]');
 
@@ -8,6 +9,24 @@ my $l = UniEvent::Loop->default_loop();
 
 subtest 'not cached' => \&test_resolve, 0;
 subtest 'cached'     => \&test_resolve, 1;
+
+subtest 'cancel' => sub {
+    my $resolver = new UniEvent::Resolver();
+    my $i;
+    my $req = $resolver->resolve({
+        node       => 'ya.ru',
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            is $err->code, ECANCELED;
+            $i++;
+        },
+    });
+    
+    $req->cancel;
+    is $i, 1;
+    
+    $l->run;
+};
 
 sub test_resolve {
     my $cached = shift;

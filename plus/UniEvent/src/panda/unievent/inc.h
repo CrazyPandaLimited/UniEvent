@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 
-#define PEXS_NULL_TERMINATE(what, to)            \
+#define UE_NULL_TERMINATE(what, to)              \
     char to[what.length()+1];                    \
     std::memcpy(to, what.data(), what.length()); \
     to[what.length()] = 0;

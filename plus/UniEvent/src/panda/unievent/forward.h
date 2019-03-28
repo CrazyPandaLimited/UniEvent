@@ -42,11 +42,11 @@ using RequestSP = iptr<Request>;
 struct Udp;
 using UdpSP = iptr<Udp>;
 
+struct Stream;
+using StreamSP = iptr<Stream>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
-//
-//struct Stream;
-//using StreamSP = iptr<Stream>;
 //
 //struct StreamFilter;
 //using StreamFilterSP = iptr<StreamFilter>;
@@ -68,8 +68,6 @@ using UdpSP = iptr<Udp>;
 //
 //struct Socks;
 //using SocksSP = iptr<Socks>;
-//
-//struct CodeError;
 //
 //struct TCPConnectAutoBuilder;
 
