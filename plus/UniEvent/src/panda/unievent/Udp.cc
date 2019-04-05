@@ -7,7 +7,16 @@ const HandleType Udp::TYPE("udp");
 
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, AddrInfoHints::PASSIVE);
 
-static SyncLoop sloop;
+static AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, const AddrInfoHints& hints) {
+    auto l = SyncLoop::get(be);
+    AddrInfo ai;
+    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->on_resolve([&ai](const AddrInfo& res, const CodeError* err, const Resolver::RequestSP) {
+        if (err) throw *err;
+        ai = res;
+    })->run();
+    l->run();
+    return ai;
+}
 
 const HandleType& Udp::type () const {
     return TYPE;
@@ -30,15 +39,17 @@ void Udp::bind (const net::SockAddr& sa, unsigned flags) {
 }
 
 void Udp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
-    auto l = sloop.get(loop()->backend());
-    AddrInfo ai;
-    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->on_resolve([&ai](const AddrInfo& res, const CodeError* err, const Resolver::RequestSP) {
-        if (err) throw *err;
-        ai = res;
-    })->run();
-    l->run();
-
+    auto ai = sync_resolve(loop()->backend(), host, port, hints);
     bind(ai.addr(), flags);
+}
+
+void Udp::connect (const net::SockAddr& addr) {
+    impl()->connect(addr);
+}
+
+void Udp::connect (string_view host, uint16_t port, const AddrInfoHints& hints) {
+    auto ai = sync_resolve(loop()->backend(), host, port, hints);
+    connect(ai.addr());
 }
 
 void Udp::set_membership (std::string_view multicast_addr, std::string_view interface_addr, Membership membership) {
@@ -80,8 +91,9 @@ void Udp::send (const SendRequestSP& req) {
 }
 
 void Udp::SendRequest::exec () {
+    Request::exec();
     auto err = handle->impl()->send(bufs, addr, impl());
-    if (err) delay_id = handle->loop()->delay([=]{ handle_send(err); });
+    if (err) delay([=]{ handle_send(err); });
 }
 
 void Udp::SendRequest::on_cancel () {
@@ -89,9 +101,13 @@ void Udp::SendRequest::on_cancel () {
 }
 
 void Udp::SendRequest::handle_send (const CodeError* err) {
-    SendRequestSP self = this;
-    handle->queue.next();
-    handle->on_send(err, self);
+    queue.done(this, [&] {
+        handle->on_send(err, self);
+    });
+    scope_guard([&] {
+    }, [&] {
+        handle->queue.resume();
+    });
 }
 
 void Udp::on_send (const CodeError* err, const SendRequestSP& r) {

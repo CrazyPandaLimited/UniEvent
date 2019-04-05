@@ -5,10 +5,9 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVPipe : UVStream<BackendPipe> {
-    UVPipe (uv_loop_t* loop, IStreamListener* lst, bool ipc) : UVStream<BackendPipe>(lst) {
+struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
+    UVPipe (uv_loop_t* loop, IStreamListener* lst, bool ipc) : UVStream<BackendPipe, uv_pipe_t>(lst) {
         uvx_strict(uv_pipe_init(loop, &uvh, ipc));
-        _init(&uvh);
     }
 
     virtual void bind (std::string_view name) override {
@@ -16,8 +15,13 @@ struct UVPipe : UVStream<BackendPipe> {
         uvx_strict(uv_pipe_bind(&uvh, name_str));
     }
 
-private:
-    uv_pipe_t uvh;
+    virtual CodeError connect (std::string_view name, BackendConnectRequest* _req) override {
+        UE_NULL_TERMINATE(name, name_str);
+        auto req = static_cast<UVConnectRequest*>(_req);
+        uv_pipe_connect(&req->uvr, &uvh, name_str, on_connect);
+        req->active = true;
+        return {};
+    }
 };
 
 }}}}

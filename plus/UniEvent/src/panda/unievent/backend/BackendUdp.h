@@ -39,10 +39,12 @@ struct BackendUdp : BackendHandle {
 
     string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
 
-    virtual void open (sock_t sock) = 0;
-    virtual void bind (const net::SockAddr& addr, unsigned flags) = 0;
+    virtual void open    (sock_t sock) = 0;
+    virtual void bind    (const net::SockAddr&, unsigned flags) = 0;
+    virtual void connect (const net::SockAddr&) = 0;
 
-    virtual net::SockAddr get_sockaddr () = 0;
+    virtual net::SockAddr sockaddr () = 0;
+    virtual net::SockAddr peeraddr () = 0;
 
     virtual void set_membership          (std::string_view multicast_addr, std::string_view interface_addr, Membership m) = 0;
     virtual void set_multicast_loop      (bool on) = 0;

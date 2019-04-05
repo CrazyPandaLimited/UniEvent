@@ -7,9 +7,10 @@ struct SyncLoop {
     using Backend = backend::Backend;
 
     static const LoopSP& get (Backend* b) {
-        for (const auto& row : loops) if (row.backend == b) return row.loop;
-        loops.push_back({b, new Loop(b)});
-        return loops.back().loop;
+        auto& list = loops;
+        for (const auto& row : list) if (row.backend == b) return row.loop;
+        list.push_back({b, new Loop(b)});
+        return list.back().loop;
     }
 
 private:

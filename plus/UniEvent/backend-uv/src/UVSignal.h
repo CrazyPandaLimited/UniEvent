@@ -5,33 +5,26 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVSignal : UVHandle<BackendSignal> {
-    UVSignal (uv_loop_t* loop, ISignalListener* lst) : UVHandle<BackendSignal>(lst) {
-        int err = uv_signal_init(loop, &uvh);
-        if (err) throw uvx_code_error(err);
-        _init(&uvh);
+struct UVSignal : UVHandle<BackendSignal, uv_signal_t> {
+    UVSignal (uv_loop_t* loop, ISignalListener* lst) : UVHandle<BackendSignal, uv_signal_t>(lst) {
+        uvx_strict(uv_signal_init(loop, &uvh));
     }
 
     int signum () const override { return uvh.signum; }
 
     void start (int signum) override {
-        int err = uv_signal_start(&uvh, _call, signum);
-        if (err) throw uvx_code_error(err);
+        uvx_strict(uv_signal_start(&uvh, _call, signum));
     }
 
     void once (int signum) override {
-        int err = uv_signal_start_oneshot(&uvh, _call, signum);
-        if (err) throw uvx_code_error(err);
+        uvx_strict(uv_signal_start_oneshot(&uvh, _call, signum));
     }
 
     void stop () override {
-        int err = uv_signal_stop(&uvh);
-        if (err) throw uvx_code_error(err);
+        uvx_strict(uv_signal_stop(&uvh));
     }
 
 private:
-    uv_signal_t uvh;
-
     static void _call (uv_signal_t* p, int signum) {
         get_handle<UVSignal*>(p)->handle_signal(signum);
     }

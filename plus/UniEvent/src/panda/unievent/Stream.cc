@@ -19,7 +19,7 @@ string Stream::buf_alloc (size_t cap) noexcept {
     }
 }
 
-void Stream::listen (int backlog, connection_fn callback) {
+void Stream::listen (connection_fn callback, int backlog) {
 //    auto filter = get_filter<ssl::SSLFilter>();
 //    if (filter && filter->is_client()) throw Error("Programming error, use server certificate");
     if (callback) connection_event.add(callback);
@@ -53,6 +53,53 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
 void Stream::on_connection (const StreamSP& client, const CodeError* err) {
     connection_event(this, client, err);
 }
+
+void Stream::ConnectRequest::exec () {
+    _EDEBUGTHIS();
+    handle->set_connecting();
+
+    if (timeout) {
+        timer = new Timer(handle->loop());
+        timer->event.add([this](const TimerSP&){
+            handle_connect(CodeError(std::errc::timed_out));
+        });
+        timer->once(timeout);
+    }
+}
+
+void Stream::ConnectRequest::handle_connect (const CodeError* err) {
+    _EDEBUGTHIS();
+}
+
+void Stream::ConnectRequest::on_cancel () {
+    CodeError err(std::errc::operation_canceled);
+    ConnectRequestSP self = this;
+    event(handle, err, self);
+    handle->on_connect(err, self);
+}
+
+void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
+    connect_event(this, err, req);
+}
+
+//ConnectRequest::~ConnectRequest() {
+//    release_timer();
+//}
+//
+//void ConnectRequest::set_timer(Timer* timer) {
+//    timer_ = timer;
+//    timer_->retain();
+//    _EDEBUGTHIS("set timer %p", timer_);
+//}
+//
+//void ConnectRequest::release_timer() {
+//    _EDEBUGTHIS("%p", timer_);
+//    if(timer_) {
+//        timer_->stop();
+//        timer_->release();
+//        timer_ = nullptr;
+//    }
+//}
 
 //void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
 //    ConnectRequest* r = rcast<ConnectRequest*>(uvreq);
@@ -340,10 +387,6 @@ void Stream::reset () {
 //        cmd->cancel();
 //        delete cmd;
 //    }
-//}
-//
-//void Stream::on_connect (const CodeError* err, ConnectRequest* req) {
-//    connect_event(this, err, req);
 //}
 //
 //void Stream::on_read (string& buf, const CodeError* err) {

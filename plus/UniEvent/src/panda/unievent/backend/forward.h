@@ -31,7 +31,11 @@ struct IUdpListener;
 struct ISendListener;
 struct BackendSendRequest;
 
+struct BackendStream;
 struct IStreamListener;
+struct IConnectListener;
+struct BackendConnectRequest;
+
 struct BackendPipe;
 
 }}};

@@ -18,11 +18,8 @@ TODO: {
 sub test_serv_read_shuffling {
     use Devel::Peek;
     my $client;
-    $acceptor->create_connection_callback(sub {
-        unless ($client) {
-            $client = new UniEvent::Pipe;
-        }
-        return $client;
+    $acceptor->connection_factory(sub {
+        return $client ||= new UniEvent::Pipe;
     });
     $acceptor->connection_callback(sub {
         my ($srv, undef, $err) = @_;

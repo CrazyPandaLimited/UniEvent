@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include "forward.h"
+#include <vector>
 #include <exception>
 #include <panda/function.h>
 
@@ -11,7 +12,7 @@ struct BackendLoop {
     enum class Type    { LOCAL, GLOBAL, DEFAULT };
     enum class RunMode { DEFAULT, ONCE, NOWAIT };
 
-    std::exception_ptr _exception;
+    std::vector<std::exception_ptr> _exceptions;
 
     BackendLoop () {}
 
@@ -21,7 +22,7 @@ struct BackendLoop {
 
     bool run (RunMode mode) {
         bool ret = _run(mode);
-        if (_exception) std::rethrow_exception(std::move(_exception));
+        if (_exceptions.size()) throw_exceptions();
         return ret;
     }
 
@@ -41,18 +42,14 @@ struct BackendLoop {
     virtual BackendUdp*     new_udp       (IUdpListener*, int domain)   = 0;
     virtual BackendPipe*    new_pipe      (IStreamListener*, bool ipc)  = 0;
 
-    virtual BackendSendRequest* new_send_request (ISendListener*) = 0;
+    virtual BackendSendRequest*    new_send_request    (ISendListener*)    = 0;
+    virtual BackendConnectRequest* new_connect_request (IConnectListener*) = 0;
 
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;
     virtual void     cancel_delay (uint64_t id) noexcept = 0;
 
-//    template <class Func>
-//    void ltry (Func&& f) {
-//        try { f(); }
-//        catch (...) { capture_exception(); }
-//    }
-
     void capture_exception ();
+    void throw_exceptions  ();
 
     virtual ~BackendLoop () {}
 };

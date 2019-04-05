@@ -12,6 +12,13 @@ struct Queue {
         if (requests.size() == 1 && !recurse) req->exec();
     }
 
+    RequestSP done (Request* check) {
+        auto ret = std::move(requests.front());
+        assert(ret == check);
+        requests.pop_front();
+        return ret;
+    }
+
     void next () {
         requests.pop_front();
         resume();

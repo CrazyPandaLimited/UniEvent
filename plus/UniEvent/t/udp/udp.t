@@ -75,7 +75,7 @@ $p->start(sub {
        ($small_prime, $big_prime) = @{$creds{$magic}};
     }
     my $receiver = $udp_by_num{$small_prime};
-    $udp_by_num{$big_prime}->send($magic, $receiver->get_sockaddr);
+    $udp_by_num{$big_prime}->send($magic, $receiver->sockaddr);
 });
 
 $l->run();

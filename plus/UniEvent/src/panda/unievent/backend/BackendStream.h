@@ -9,19 +9,19 @@ struct IStreamListener {
     virtual void   handle_connection (const CodeError*) = 0;
 };
 
-//struct ISendListener {
-//    virtual void handle_send (const CodeError*) = 0;
-//};
+struct IConnectListener {
+    virtual void handle_connect (const CodeError*) = 0;
+};
 
-//struct BackendSendRequest : BackendRequest {
-//    BackendSendRequest (ISendListener* l) : listener(l) {}
-//
-//    void handle_send (const CodeError* err) noexcept {
-//        ltry([&]{ listener->handle_send(err); });
-//    }
-//
-//    ISendListener* listener;
-//};
+struct BackendConnectRequest : BackendRequest {
+    BackendConnectRequest (IConnectListener* l) : listener(l) {}
+
+    void handle_connect (const CodeError* err) noexcept {
+        ltry([&]{ listener->handle_connect(err); });
+    }
+
+    IConnectListener* listener;
+};
 
 struct BackendStream : BackendHandle {
     BackendStream (IStreamListener* l) : listener(l) {}
@@ -34,7 +34,7 @@ struct BackendStream : BackendHandle {
     virtual void      listen (int backlog) = 0;
     virtual CodeError accept (BackendStream* client) = 0;
 
-    void handle_connection (const CodeError* err) {
+    void handle_connection (const CodeError* err) noexcept {
         ltry([&]{ listener->handle_connection(err); });
     }
 

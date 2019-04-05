@@ -5,10 +5,9 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVPrepare : UVHandle<BackendPrepare> {
-    UVPrepare (uv_loop_t* loop, IPrepareListener* lst) : UVHandle<BackendPrepare>(lst) {
+struct UVPrepare : UVHandle<BackendPrepare, uv_prepare_t> {
+    UVPrepare (uv_loop_t* loop, IPrepareListener* lst) : UVHandle<BackendPrepare, uv_prepare_t>(lst) {
         uv_prepare_init(loop, &uvh);
-        _init(&uvh);
     }
 
     void start () override {
@@ -20,9 +19,6 @@ struct UVPrepare : UVHandle<BackendPrepare> {
     void stop () override {
         uv_prepare_stop(&uvh);
     }
-
-private:
-    uv_prepare_t uvh;
 };
 
 }}}}

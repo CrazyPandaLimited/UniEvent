@@ -12,19 +12,26 @@ struct Request;
 using RequestSP = iptr<Request>;
 
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt {
-    Request () : _impl(), delay_id(0) {}
+    Request () : _impl(), _delay_id(0), _active() {}
 
 protected:
     using BackendRequest = backend::BackendRequest;
     friend struct Queue;
 
-    HandleSP        _handle;
     BackendRequest* _impl;
-    uint64_t        delay_id;
+
+    bool active () const { return _active; }
 
     void set (Handle* h, BackendRequest* impl) {
+        _active = false;
         _handle = h;
-        _impl = impl;
+        _impl   = impl;
+    }
+
+    template <class Func>
+    void delay (Func&& f) {
+        if (_delay_id) _handle->loop()->cancel_delay(_delay_id);
+        _delay_id = _handle->loop()->delay(f);
     }
 
     virtual void exec      () = 0;
@@ -33,9 +40,9 @@ protected:
     // abort request, calling user callbacks with canceled status, if request is active in backend, backend will not call callback second time
     // this is a private API not intended by use of user, as it won't start processing the next request in queue
     void abort () {
-        if (delay_id) {
-            _handle->loop()->cancel_delay(delay_id);
-            delay_id = 0;
+        if (_delay_id) {
+            _handle->loop()->cancel_delay(_delay_id);
+            _delay_id = 0;
         }
         _impl->destroy();
         _impl = nullptr;
@@ -45,7 +52,17 @@ protected:
     ~Request () {
         if (_impl) _impl->destroy();
     }
+
+private:
+    HandleSP _handle;
+    uint64_t _delay_id;
+    bool     _active;
+
 };
+
+inline void Request::exec () {
+    _active = true;
+}
 
 struct BufferRequest : Request {
     std::vector<string> bufs;
@@ -82,39 +99,8 @@ struct BufferRequest : Request {
 //    bool canceled_;
 //};
 //
-//struct ConnectRequest : Request, AllocatedObject<ConnectRequest, true> {
-//    using connect_fptr = void(Stream* handle, const CodeError* err, ConnectRequest* req);
-//    using connect_fn = function<connect_fptr>;
-//
-//    CallbackDispatcher<connect_fptr> event;
-//    bool is_reconnect;
-//
-//    ConnectRequest (connect_fn callback = {}, bool is_reconnect = false) : is_reconnect(is_reconnect), timer_(nullptr) {
-//        _EDEBUGTHIS("callback %d", (bool)callback);
-//        if (callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//    }
-//
-//    virtual ~ConnectRequest();
-//
-//    void set_timer(Timer* timer);
-//
-//    void release_timer();
-//
-//    Handle* handle () { return static_cast<Handle*>(uvr.handle->data); }
-//    friend uv_connect_t* _pex_ (ConnectRequest*);
-//
-//private:
-//    uv_connect_t uvr;
-//    Timer* timer_;
-//};
 //
 //struct ShutdownRequest : Request, AllocatedObject<ShutdownRequest, true> {
-//    using shutdown_fptr = void(Stream* handle, const CodeError* err, ShutdownRequest* req);
-//    using shutdown_fn = function<shutdown_fptr>;
-//
 //    CallbackDispatcher<shutdown_fptr> event;
 //
 //    ShutdownRequest (shutdown_fn callback = {}) {
@@ -131,9 +117,6 @@ struct BufferRequest : Request {
 //};
 //
 //struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
-//    using write_fptr = void(Stream* handle, const CodeError* err, WriteRequest* req);
-//    using write_fn = function<write_fptr>;
-//
 //    CallbackDispatcher<write_fptr> event;
 //
 //    WriteRequest (write_fn callback = {}) {

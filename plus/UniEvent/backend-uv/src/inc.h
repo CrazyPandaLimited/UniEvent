@@ -9,6 +9,8 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
+using panda::lib::AllocatedObject;
+
 inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
 inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
 
@@ -17,7 +19,7 @@ inline T get_handle (X* uvhp) {
     return static_cast<T>(reinterpret_cast<BackendHandle*>(uvhp->data));
 }
 
-template <class T, class X>
+template <class T = BackendRequest*, class X>
 inline T get_request (X* uvrp) {
     return static_cast<T>(reinterpret_cast<BackendRequest*>(uvrp->data));
 }
@@ -41,6 +43,18 @@ inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
     auto buf_ptr = (string*)(uvbuf->base + uvbuf->len);
     string ret = *buf_ptr;
     buf_ptr->~string();
+    return ret;
+}
+
+template <class Handle, class Func>
+inline net::SockAddr uvx_sockaddr (Handle uvhp, Func f) {
+    net::SockAddr ret;
+    int sz = sizeof(ret);
+    int err = f(uvhp, ret.get(), &sz);
+    if (err) {
+        if (err == UV_ENOTCONN) return {};
+        throw uvx_code_error(err);
+    }
     return ret;
 }
 

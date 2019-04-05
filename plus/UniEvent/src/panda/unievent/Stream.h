@@ -1,4 +1,6 @@
 #pragma once
+#include "Queue.h"
+#include "Timer.h"
 #include "Handle.h"
 #include "forward.h"
 #include "Request.h"
@@ -15,51 +17,54 @@ struct ssl_st;        typedef ssl_st SSL;
 namespace panda { namespace unievent {
 
 struct Stream : virtual Handle, protected backend::IStreamListener {
+    struct ConnectRequest;  using ConnectRequestSP  = iptr<ConnectRequest>;
+    struct ShutdownRequest; using ShutdownRequestSP = iptr<ShutdownRequest>;
+    struct WriteRequest;    using WriteRequestSP    = iptr<WriteRequest>;
+
     using BackendStream   = backend::BackendStream;
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
+    using conn_factory_fn = function<StreamSP()>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError* err);
+    using connection_fn   = function<connection_fptr>;
+    using connect_fptr    = void(const StreamSP& handle, const CodeError* err, const ConnectRequestSP& req);
+    using connect_fn      = function<connect_fptr>;
     using read_fptr       = void(const StreamSP& handle, string& buf, const CodeError* err);
+    using read_fn         = function<read_fptr>;
+    using write_fptr      = void(const StreamSP& handle, const CodeError* err, const WriteRequestSP& req);
+    using write_fn        = function<write_fptr>;
+    using shutdown_fptr   = void(const StreamSP& handle, const CodeError* err, const ShutdownRequestSP& req);
+    using shutdown_fn     = function<shutdown_fptr>;
     using eof_fptr        = void(const StreamSP& handle);
-//    using connect_fptr  = ConnectRequest::connect_fptr;
-//    using write_fptr    = WriteRequest::write_fptr;
-//    using shutdown_fptr = ShutdownRequest::shutdown_fptr;
-
-    using connection_factory_fn = function<StreamSP()>;
-    using connection_fn         = function<connection_fptr>;
-//    using connect_fn            = function<connect_fptr>;
-//    using read_fn               = function<read_fptr>;
-//    using write_fn              = function<write_fptr>;
-//    using shutdown_fn           = function<shutdown_fptr>;
-    using eof_fn                = function<eof_fptr>;
+    using eof_fn          = function<eof_fptr>;
 
     static const int DEFAULT_BACKLOG = 128;
 
     buf_alloc_fn                        buf_alloc_callback;
-    connection_factory_fn               connection_factory;
+    conn_factory_fn                     connection_factory;
     CallbackDispatcher<connection_fptr> connection_event;
+    CallbackDispatcher<connect_fptr>    connect_event;
     CallbackDispatcher<read_fptr>       read_event;
-//    CallbackDispatcher<write_fptr>          write_event;
-//    CallbackDispatcher<shutdown_fptr>       shutdown_event;
-//    CallbackDispatcher<connect_fptr>        connect_event;
+    CallbackDispatcher<write_fptr>      write_event;
+    CallbackDispatcher<shutdown_fptr>   shutdown_event;
     CallbackDispatcher<eof_fptr>        eof_event;
 
     string buf_alloc (size_t cap) noexcept override;
 
     bool   readable         () const { return impl()->readable(); }
     bool   writable         () const { return impl()->writable(); }
+    bool   listening        () const { return flags & LISTENING; }
     bool   connecting       () const { return flags & CONNECTING; }
     bool   connected        () const { return flags & CONNECTED; }
+    bool   wantread         () const { return flags & WANTREAD; }
     bool   shutting_down    () const { return flags & SHUTTING; }
     bool   is_shut_down     () const { return flags & SHUT; }
-    bool   wantread         () const { return flags & WANTREAD; }
-    bool   listening        () const { return flags & LISTENING; }
 //    size_t write_queue_size () const { return uvsp_const()->write_queue_size; }
 
 //    virtual void read_start (read_fn callback = nullptr);
 //    virtual void read_stop  ();
 
-    void         listen     (connection_fn callback) { listen(DEFAULT_BACKLOG, callback); }
-    virtual void listen     (int backlog = DEFAULT_BACKLOG, connection_fn callback = nullptr);
+    void         listen     (int backlog) { listen(nullptr, backlog); }
+    virtual void listen     (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
     virtual void accept     (const StreamSP& stream);
 //    virtual void shutdown   (ShutdownRequest* req = nullptr);
 //    virtual void write      (WriteRequest* req);
@@ -106,7 +111,6 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 //
 //    void do_write (WriteRequest* req);
 //
-//    virtual void     on_connect           (const CodeError* err, ConnectRequest* req);
 //    virtual void     on_read              (string& buf, const CodeError* err);
 //    virtual void     on_write             (const CodeError* err, WriteRequest* req);
 //    virtual void     on_shutdown          (const CodeError* err, ShutdownRequest* req);
@@ -117,6 +121,8 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     using Handle::send_buffer_size;
 
 protected:
+    Queue queue;
+
     Stream () : flags()/*, filters_(this)*/ {
         _ECTOR();
     }
@@ -125,7 +131,8 @@ protected:
 
     virtual StreamSP create_connection () = 0;
 
-    virtual void     on_connection        (const StreamSP& client, const CodeError* err);
+    virtual void on_connection (const StreamSP& client, const CodeError* err);
+    virtual void on_connect    (const CodeError* err, const ConnectRequestSP& req);
 
 //    void set_shutting   ()             { flags &= ~SF_SHUT; flags |= SF_SHUTTING; }
 //    void set_shutdown   (bool success) { flags &= ~SF_SHUTTING; flags = success ? flags | SF_SHUT : flags & ~SF_SHUT; }
@@ -178,6 +185,39 @@ private:
 //        set_connected(false);
 //        on_eof();
 //    }
+};
+
+struct Stream::ConnectRequest : Request, private backend::IConnectListener {
+    CallbackDispatcher<Stream::connect_fptr> event;
+
+protected:
+    ConnectRequest (Stream::connect_fn callback, uint64_t timeout = 0) : timeout(timeout), handle(nullptr) {
+        _ECTOR();
+        if (callback) event.add(callback);
+    }
+
+    backend::BackendConnectRequest* impl () const { return static_cast<backend::BackendConnectRequest*>(_impl); }
+
+    //    ~ConnectRequest ();
+    //
+    //    void set_timer(Timer* timer);
+    //
+    //    void release_timer();
+
+    void set (Stream* h) {
+        handle = h;
+        Request::set(h, h->loop()->impl()->new_connect_request(this));
+    }
+
+    void exec           () override;
+    void handle_connect (const CodeError*) override;
+
+private:
+    uint64_t timeout;
+    TimerSP  timer;
+    Stream*  handle;
+
+    void on_cancel () override;
 };
 
 }}

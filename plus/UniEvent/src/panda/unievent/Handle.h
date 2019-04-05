@@ -64,6 +64,12 @@ protected:
     int  send_buffer_size () const    { return _impl->send_buffer_size(); }
     void send_buffer_size (int value) { _impl->send_buffer_size(value); }
 
+    template <class Func>
+    void ltry (Func&& f) {
+        try { f(); }
+        catch (...) { _impl->capture_exception(); }
+    }
+
 private:
     LoopSP _loop;
     bool   _weak;

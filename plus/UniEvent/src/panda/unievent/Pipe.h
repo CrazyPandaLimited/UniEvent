@@ -7,6 +7,25 @@ namespace panda { namespace unievent {
 using std::string_view;
 
 struct Pipe : virtual Stream {
+    struct ConnectRequest : Stream::ConnectRequest, panda::lib::AllocatedObject<ConnectRequest> {
+        string name;
+
+        ConnectRequest (const string& name, Stream::connect_fn callback = nullptr)
+            : Stream::ConnectRequest(callback), name(name) {}
+
+    private:
+        friend Pipe;
+        Pipe* handle;
+
+        void set (Pipe* h) {
+            handle = h;
+            Stream::ConnectRequest::set(h);
+        }
+
+        void exec () override;
+    };
+    using ConnectRequestSP = iptr<ConnectRequest>;
+
     Pipe (Loop* loop = Loop::default_loop(), bool ipc = false) : ipc(ipc) {
         _ECTOR();
         _init(loop, loop->impl()->new_pipe(this, ipc));
@@ -14,18 +33,17 @@ struct Pipe : virtual Stream {
 
     Pipe (bool ipc) : Pipe(Loop::default_loop(), ipc) {}
 
-    ~Pipe () override { _EDTOR(); }
+    ~Pipe () { _EDTOR(); }
 
     const HandleType& type () const override;
 
 //    virtual void open              (file_t file);
-    virtual void bind              (string_view name);
-//    virtual void connect           (const string& name, ConnectRequest* req = nullptr);
+    virtual void bind    (string_view name);
+    virtual void connect (const ConnectRequestSP& req);
+
+    void connect (const string& name, connect_fn callback = nullptr) { connect(new ConnectRequest(name, callback)); }
+
 //    virtual void pending_instances (int count);
-//
-//    void connect (const string& name, connect_fn callback = nullptr) {
-//        connect(name, new ConnectRequest(callback));
-//    }
 //
 //    size_t getsocknamelen () const {
 //        return getsockname(nullptr, 0);
@@ -58,9 +76,6 @@ struct Pipe : virtual Stream {
 //        getpeername(str.buf(), (size_t)-1);
 //        return str;
 //    }
-//
-//    using Handle::set_recv_buffer_size;
-//    using Handle::set_send_buffer_size;
 
     static const HandleType TYPE;
 

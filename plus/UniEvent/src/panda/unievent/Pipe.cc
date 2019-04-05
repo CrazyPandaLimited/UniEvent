@@ -17,29 +17,19 @@ void Pipe::bind (string_view name) {
     impl()->bind(name);
 }
 
-//void Pipe::connect (const string& name, ConnectRequest* req) {
-//    if (!req) req = new ConnectRequest();
-//    _pex_(req)->handle = _pex_(this);
-//
-//    if (async_locked()) {
-//        asyncq_push(new CommandConnectPipe(this, name, req));
-//        return;
-//    }
-//
-//    req->retain();
-//    if (connecting()) {
-//        req->release();
-//        throw CodeError(UV_EALREADY);
-//    }
-//
-//    UE_NULL_TERMINATE(name, name_str);
-//    uv_pipe_connect(_pex_(req), &uvh, name_str, Stream::uvx_on_connect);
-//
-//    set_connecting();
-//    async_lock();
-//    retain();
-//}
-//
+void Pipe::connect (const ConnectRequestSP& req) {
+    req->set(this);
+    queue.push(req);
+}
+
+void Pipe::ConnectRequest::exec () {
+    Stream::ConnectRequest::exec();
+
+    auto err = handle->impl()->connect(name, impl());
+
+    if (err) return delay([=]{ handle_connect(err); });
+}
+
 //void Pipe::pending_instances (int count) {
 //    uv_pipe_pending_instances(&uvh, count);
 //}

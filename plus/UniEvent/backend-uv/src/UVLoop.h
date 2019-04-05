@@ -76,7 +76,8 @@ struct UVLoop : BackendLoop {
     BackendUdp*     new_udp       (IUdpListener* l, int domain)   override { return new UVUdp(_uvloop, l, domain); }
     BackendPipe*    new_pipe      (IStreamListener* l, bool ipc)  override { return new UVPipe(_uvloop, l, ipc); }
 
-    BackendSendRequest* new_send_request (ISendListener* l) override { return new UVSendRequest(l); }
+    BackendSendRequest*    new_send_request    (ISendListener* l)   override  { return new UVSendRequest(l); }
+    BackendConnectRequest* new_connect_request (IConnectListener* l) override { return new UVConnectRequest(l); }
 
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return _delayer.add(f, guard); }
     void     cancel_delay (uint64_t id) noexcept                                { _delayer.cancel(id); }

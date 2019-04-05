@@ -3,19 +3,29 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-template <class Base>
+template <class Base, class UvReq>
 struct UVRequest : Base {
-    bool active;
+    bool  active;
+    UvReq uvr;
 
-protected:
-    using Base::Base;
+    template <class...Args>
+    UVRequest (Args&&...args) : Base(args...), active() {
+        uvr.data = static_cast<BackendRequest*>(this);
+    }
 
-    uv_req_t* uvrp;
+    BackendHandle* handle () const noexcept override {
+        return get_handle(uvr.handle);
+    }
 
-    void _init (void* p) {
-        uvrp = static_cast<uv_req_t*>(p);
-        uvrp->data = static_cast<BackendRequest*>(this);
-        active = false;
+    void destroy () noexcept override {
+        if (active) set_stub(&uvr.cb); // cant make uv request stop, so remove as it completes
+        else delete this;
+    }
+
+private:
+    template <class...Args>
+    static inline void set_stub (void (**cbptr)(UvReq*, Args...)) {
+        *cbptr = [](UvReq* p, Args...) { delete get_request(p); };
     }
 };
 

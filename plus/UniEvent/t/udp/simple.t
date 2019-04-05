@@ -7,7 +7,7 @@ my $udp = new UniEvent::Udp;
 is($udp->type, UniEvent::Udp::TYPE, "new udp object type");
 
 $udp->bind_sa(SA_LOOPBACK_ANY);
-my $sa = $udp->get_sockaddr;
+my $sa = $udp->sockaddr;
 
 ok($sa->port, "Bound to port");
 

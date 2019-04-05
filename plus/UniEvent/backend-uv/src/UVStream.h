@@ -6,10 +6,13 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-template <class T>
-struct UVStream : UVHandle<T> {
-    UVStream (IStreamListener* lst) : UVHandle<T>(lst) {
-    }
+struct UVConnectRequest : UVRequest<BackendConnectRequest, uv_connect_t>, AllocatedObject<UVConnectRequest> {
+    UVConnectRequest (IConnectListener* l) : UVRequest<BackendConnectRequest, uv_connect_t>(l) {}
+};
+
+template <class Base, class UvReq>
+struct UVStream : UVHandle<Base, UvReq> {
+    UVStream (IStreamListener* lst) : UVHandle<Base, UvReq>(lst) {}
 
     bool readable () const noexcept override { return uv_is_readable(uvsp()); }
     bool writable () const noexcept override { return uv_is_writable(uvsp()); }
@@ -25,14 +28,20 @@ struct UVStream : UVHandle<T> {
         return uvx_ce(uv_accept(uvsp(), client->uvsp()));
     }
 
+protected:
+    static void on_connect (uv_connect_t* p, int status) {
+        auto req = get_request<UVConnectRequest*>(p);
+        req->active = false;
+        req->handle_connect(uvx_status2err(status));
+    }
+
 private:
-    uv_stream_t* uvsp () const { return reinterpret_cast<uv_stream_t*>(this->template uvhp); }
+    uv_stream_t* uvsp () const { return (uv_stream_t*)&this->template uvh; }
 
     static void _buf_alloc (uv_handle_t* p, size_t size, uv_buf_t* uvbuf) {
         auto buf = get_handle<UVStream*>(p)->buf_alloc(size);
         uvx_buf_alloc(buf, uvbuf);
     }
-
 };
 
 }}}}
