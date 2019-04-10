@@ -23,6 +23,10 @@ struct BackendRequest {
 struct BackendHandle {
     static constexpr const size_t MIN_ALLOC_SIZE = 1024;
 
+    uint64_t id;
+
+    BackendHandle () : id(++last_id) {}
+
     virtual BackendLoop* loop () const noexcept = 0;
 
     virtual bool active () const = 0;
@@ -54,6 +58,10 @@ struct BackendHandle {
         if (size < MIN_ALLOC_SIZE) size = MIN_ALLOC_SIZE;
         return allocator->buf_alloc(size);
     }
+
+private:
+    static uint64_t last_id;
+
 };
 
 }}}

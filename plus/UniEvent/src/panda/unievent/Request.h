@@ -12,18 +12,16 @@ struct Request;
 using RequestSP = iptr<Request>;
 
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt {
-    Request () : _impl(), _delay_id(0), _active() {}
-
 protected:
     using BackendRequest = backend::BackendRequest;
     friend struct Queue;
 
     BackendRequest* _impl;
 
-    bool active () const { return _active; }
+    Request () : _impl(), _delay_id(0) {}
 
     void set (Handle* h, BackendRequest* impl) {
-        _active = false;
+        assert(!_impl);
         _handle = h;
         _impl   = impl;
     }
@@ -34,35 +32,35 @@ protected:
         _delay_id = _handle->loop()->delay(f);
     }
 
-    virtual void exec      () = 0;
-    virtual void on_cancel () = 0;
+    virtual void exec () = 0;
 
-    // abort request, calling user callbacks with canceled status, if request is active in backend, backend will not call callback second time
-    // this is a private API not intended by use of user, as it won't start processing the next request in queue
-    void abort () {
+    /* this is private API, as there is no way of stopping request inside backend in general case. usually called during reset()
+       If called separately by user, will only do "visible" cancellation (user callback being called with canceled status),
+       but backend will continue to run the request and the next request will only be started afterwards */
+    virtual void cancel () {
         if (_delay_id) {
             _handle->loop()->cancel_delay(_delay_id);
             _delay_id = 0;
         }
+        detach();
+    }
+
+    // detach from backend. Backend won't call the callback then request is completed
+    void detach () {
         _impl->destroy();
         _impl = nullptr;
-        on_cancel();
     }
 
     ~Request () {
+        assert(!_impl);
         if (_impl) _impl->destroy();
     }
 
 private:
     HandleSP _handle;
     uint64_t _delay_id;
-    bool     _active;
 
 };
-
-inline void Request::exec () {
-    _active = true;
-}
 
 struct BufferRequest : Request {
     std::vector<string> bufs;

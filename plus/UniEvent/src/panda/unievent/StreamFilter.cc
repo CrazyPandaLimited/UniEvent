@@ -34,14 +34,13 @@ void StreamFilter::handle_connection (const StreamSP& client, const CodeError* e
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
+void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP& req) {
+    invoke(prev, &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, req);
+}
+
 //void StreamFilter::connect (ConnectRequest* req) {
 //    if (next_) next_->connect(req);
 //    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
-//}
-//
-//void StreamFilter::on_connect (const CodeError* err, ConnectRequest* req) {
-//    if (prev_) prev_->on_connect(err, req);
-//    else       handle->do_on_connect(err, req);
 //}
 //
 //void StreamFilter::write (WriteRequest* req) {
@@ -72,6 +71,10 @@ void StreamFilter::handle_connection (const StreamSP& client, const CodeError* e
 //void StreamFilter::on_reinit () {
 //    if (prev_) prev_->on_reinit();
 //}
+
+void StreamFilter::reset () {
+    next->reset();
+}
 
 //void StreamFilters::connect (ConnectRequest* req) {
 //    if (size()) front()->connect(req);

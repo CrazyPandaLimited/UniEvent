@@ -45,6 +45,15 @@ TimerSP Timer::start (uint64_t repeat, timer_fn cb, Loop* loop) {
     return timer;
 }
 
+void Timer::reset () {
+    stop();
+}
+
+void Timer::clear () {
+    stop();
+    event.remove_all();
+}
+
 void Timer::on_timer () {
     event(this);
 }

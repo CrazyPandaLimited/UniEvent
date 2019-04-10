@@ -25,6 +25,7 @@ struct Signal : virtual Handle, private backend::ISignalListener {
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
     void call_now (int signum) { on_signal(signum); }
 

@@ -20,6 +20,7 @@ struct Check : virtual Handle, private backend::ICheckListener {
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
     void call_now () { on_check(); }
 

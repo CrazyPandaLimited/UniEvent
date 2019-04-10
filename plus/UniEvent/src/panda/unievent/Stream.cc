@@ -54,7 +54,7 @@ void Stream::on_connection (const StreamSP& client, const CodeError* err) {
     connection_event(this, client, err);
 }
 
-void Stream::ConnectRequest::exec () {
+void ConnectRequest::exec () {
     _EDEBUGTHIS();
     handle->set_connecting();
 
@@ -67,15 +67,37 @@ void Stream::ConnectRequest::exec () {
     }
 }
 
-void Stream::ConnectRequest::handle_connect (const CodeError* err) {
+void ConnectRequest::handle_connect (const CodeError* err) {
     _EDEBUGTHIS();
+    handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
 }
 
-void Stream::ConnectRequest::on_cancel () {
-    CodeError err(std::errc::operation_canceled);
-    ConnectRequestSP self = this;
-    event(handle, err, self);
-    handle->on_connect(err, self);
+void Stream::finalize_handle_connect (const CodeError* err, const ConnectRequestSP& req) {
+    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+
+    req->timer = nullptr;
+    set_connected(!err);
+
+    if (!err) {
+        queue.done(req, [&]{
+            req->event(this, err, req);
+            on_connect(err, req);
+        });
+    }
+    else {
+        queue.cancel([&]{
+            queue.done(req, [&]{
+                req->event(this, err, req);
+                on_connect(err, req);
+            });
+        }, [&]{
+            do_reset();
+        });
+    }
+}
+
+void ConnectRequest::cancel () {
+    handle_connect(CodeError(std::errc::operation_canceled));
 }
 
 void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
@@ -110,35 +132,7 @@ void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
 //    h->filters_.on_connect(err, r);
 //}
 //
-//void Stream::do_on_connect (const CodeError* err, ConnectRequest* connect_request) {
-//    _EDEBUGTHIS("do_on_connect, err: %d, stream: %p, request: %p", err ? err->code() : 0, this, connect_request);
-////    panda_log_debug(static_cast<Handle*>(this) << (err ? err->what() : "NO_ERROR") <<":" << connect_request);
-//    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
-//    set_connected(!err);
-//    connect_request->release_timer();
-//    if (asyncq_empty()) {
-//        if (unlock) {
-//            async_unlock_noresume();
-//        }
-//        {
-//            auto guard = lock_in_callback();
-//            connect_request->event(this, err, connect_request);
-//            on_connect(err, connect_request);
-//        }
-//        connect_request->release();
-//    } else {
-//        CommandBase* last_tail = asyncq.tail;
-//        {
-//            auto guard = lock_in_callback();
-//            connect_request->event(this, err, connect_request);
-//            on_connect(err, connect_request);
-//        }
-//        connect_request->release();
-//        if (err) asyncq_cancel_connect(last_tail); // remove writes, shutdowns, etc - till first disconnect - only if no reconnect
-//        if (unlock) async_unlock();
-//    }
-//    release();
-//}
+
 //
 //void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
 //    Stream* h = hcast<Stream*>(stream);
@@ -289,9 +283,28 @@ void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
 //void Stream::disconnect () { close_reinit(asyncq_empty() && connecting() ? false : true); }
 
 void Stream::reset () {
-    //close_reinit(false);
+    queue.cancel([&]{ do_reset(); });
+}
+
+void Stream::do_reset () {
+    Handle::reset();
+    if (_filters.size()) _filters.front()->reset();
     flags &= WANTREAD; // clear flags except WANTREAD
-    throw "danuna";
+}
+
+void Stream::clear () {
+    queue.cancel([&]{
+        Handle::clear();
+        flags = WANTREAD;
+        buf_alloc_callback = nullptr;
+        connection_factory = nullptr;
+        connection_event.remove_all();
+        connect_event.remove_all();
+        read_event.remove_all();
+        write_event.remove_all();
+        shutdown_event.remove_all();
+        eof_event.remove_all();
+    });
 }
 
 //void Stream::on_handle_reinit () {

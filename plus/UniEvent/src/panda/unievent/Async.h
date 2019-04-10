@@ -22,7 +22,8 @@ struct Async : virtual Handle, private backend::IAsyncListener {
 
     virtual void send ();
 
-    void reset () override;
+    void reset () override {}
+    void clear () override {}
 
     void call_now () { on_async(); }
 

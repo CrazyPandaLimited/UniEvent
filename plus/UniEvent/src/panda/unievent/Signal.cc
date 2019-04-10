@@ -68,7 +68,14 @@ void Signal::stop () {
     impl()->stop();
 }
 
-void Signal::reset () { stop(); }
+void Signal::reset () {
+    stop();
+}
+
+void Signal::clear () {
+    stop();
+    event.remove_all();
+}
 
 void Signal::on_signal (int signum) {
     event(this, signum);

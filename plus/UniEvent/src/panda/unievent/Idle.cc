@@ -20,6 +20,11 @@ void Idle::reset () {
     impl()->stop();
 }
 
+void Idle::clear () {
+    impl()->stop();
+    event.remove_all();
+}
+
 void Idle::on_idle () {
     event(this);
 }

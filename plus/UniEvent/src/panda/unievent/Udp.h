@@ -8,8 +8,6 @@
 namespace panda { namespace unievent {
 
 struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
-    struct SendRequest;
-    using SendRequestSP = iptr<SendRequest>;
     using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError* err);
     using receive_fn    = function<receive_fptr>;
     using send_fptr     = void(const UdpSP& handle, const CodeError* err, const SendRequestSP& req);
@@ -17,28 +15,6 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     using BackendUdp    = backend::BackendUdp;
     using Flags         = BackendUdp::Flags;
     using Membership    = BackendUdp::Membership;
-
-    struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest>, private backend::ISendListener {
-        CallbackDispatcher<send_fptr> event;
-        net::SockAddr                 addr;
-
-        using BufferRequest::BufferRequest;
-
-        void set (Udp* h) {
-            handle = h;
-            BufferRequest::set(h, h->loop()->impl()->new_send_request(this));
-        }
-
-    private:
-        friend Udp;
-        Udp* handle;
-
-        backend::BackendSendRequest* impl () const { return static_cast<backend::BackendSendRequest*>(_impl); }
-
-        void exec        () override;
-        void on_cancel   () override;
-        void handle_send (const CodeError*) override;
-    };
 
     buf_alloc_fn                     buf_alloc_callback;
     CallbackDispatcher<receive_fptr> receive_event;
@@ -61,22 +37,11 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     virtual void recv_start (receive_fn callback = nullptr);
     virtual void recv_stop  ();
     virtual void reset      () override;
+    virtual void clear      () override;
     virtual void send       (const SendRequestSP& req);
-
-    void send (const string& data, const net::SockAddr& sa, send_fn callback = {}) {
-        auto rp = new SendRequest(data);
-        rp->addr = sa;
-        if (callback) rp->event.add(callback);
-        send(rp);
-    }
-
+    /*INL*/ void send       (const string& data, const net::SockAddr& sa, send_fn callback = {});
     template <class It>
-    void send (It begin, It end, const net::SockAddr& sa, send_fn callback = nullptr) {
-        auto rp = new SendRequest(begin, end);
-        rp->addr = sa;
-        if (callback) rp->event.add(callback);
-        send(rp);
-    }
+    /*INL*/ void send       (It begin, It end, const net::SockAddr& sa, send_fn callback = {});
 
     net::SockAddr sockaddr () const { return impl()->sockaddr(); }
     net::SockAddr peeraddr () const { return impl()->peeraddr(); }
@@ -98,15 +63,58 @@ protected:
     virtual void on_send    (const CodeError* err, const SendRequestSP& req);
     virtual void on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err);
 
-    BackendUdp* impl () const { return static_cast<BackendUdp*>(_impl); }
-
 private:
     friend SendRequest;
-    int domain;
+
+    int   domain;
     Queue queue;
+
     static AddrInfoHints defhints;
+
+    BackendUdp* impl () const { return static_cast<BackendUdp*>(Handle::impl()); }
+
+    BackendHandle* new_impl () override;
 
     void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err) override;
 };
+
+
+struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest>, private backend::ISendListener {
+    CallbackDispatcher<Udp::send_fptr> event;
+    net::SockAddr                      addr;
+
+    using BufferRequest::BufferRequest;
+
+    void set (Udp* h) {
+        handle = h;
+        BufferRequest::set(h, h->loop()->impl()->new_send_request(this));
+    }
+
+private:
+    friend Udp;
+    Udp* handle;
+
+    backend::BackendSendRequest* impl () const { return static_cast<backend::BackendSendRequest*>(_impl); }
+
+    void exec        () override;
+    void cancel      () override;
+    void handle_send (const CodeError*) override;
+};
+
+
+inline void Udp::send (const string& data, const net::SockAddr& sa, send_fn callback) {
+    auto rp = new SendRequest(data);
+    rp->addr = sa;
+    if (callback) rp->event.add(callback);
+    send(rp);
+}
+
+template <class It>
+inline void Udp::send (It begin, It end, const net::SockAddr& sa, send_fn callback) {
+    auto rp = new SendRequest(begin, end);
+    rp->addr = sa;
+    if (callback) rp->event.add(callback);
+    send(rp);
+}
 
 }}

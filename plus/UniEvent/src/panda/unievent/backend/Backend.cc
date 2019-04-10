@@ -3,15 +3,17 @@
 
 using namespace panda::unievent::backend;
 
+uint64_t BackendHandle::last_id;
+
 void BackendLoop::capture_exception () {
-    _exceptions.push_back(std::current_exception());
-    assert(_exceptions.back());
+    _exception = std::current_exception();
+    assert(_exception);
     stop();
 }
 
-void BackendLoop::throw_exceptions () {
-    auto list = std::move(_exceptions);
-    std::rethrow_exception(list[0]); // TODO: throw all exceptions as nested
+void BackendLoop::throw_exception () {
+    auto exc = std::move(_exception);
+    std::rethrow_exception(exc);
 }
 
 void BackendHandle::capture_exception () {

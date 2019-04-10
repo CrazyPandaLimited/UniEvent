@@ -11,8 +11,6 @@ void Async::send () {
     impl()->send();
 }
 
-void Async::reset () {}
-
 void Async::on_async () {
     event(this);
 }

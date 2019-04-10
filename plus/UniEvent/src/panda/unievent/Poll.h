@@ -38,6 +38,7 @@ struct Poll : virtual Handle, private backend::IPollListener {
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
     void call_now (int events, const CodeError* err) { on_poll(events, err); }
 

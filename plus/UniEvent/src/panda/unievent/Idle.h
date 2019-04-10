@@ -20,6 +20,7 @@ struct Idle : virtual Handle, private backend::IIdleListener {
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
     void call_now () { on_idle(); }
 

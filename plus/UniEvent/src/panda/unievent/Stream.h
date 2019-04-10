@@ -17,10 +17,6 @@ struct ssl_st;        typedef ssl_st SSL;
 namespace panda { namespace unievent {
 
 struct Stream : virtual Handle, protected backend::IStreamListener {
-    struct ConnectRequest;  using ConnectRequestSP  = iptr<ConnectRequest>;
-    struct ShutdownRequest; using ShutdownRequestSP = iptr<ShutdownRequest>;
-    struct WriteRequest;    using WriteRequestSP    = iptr<WriteRequest>;
-
     using BackendStream   = backend::BackendStream;
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
@@ -71,6 +67,7 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 //    virtual void disconnect ();
 
     void reset () override;
+    void clear () override;
 
 //    void shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
 //
@@ -146,7 +143,7 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter;
+    friend StreamFilter; friend ConnectRequest;
 
     static const uint32_t CONNECTING = 1;
     static const uint32_t CONNECTED  = 2;
@@ -165,13 +162,16 @@ private:
     void set_connected  (bool success) { flags &= ~CONNECTING; flags = success ? flags | CONNECTED : flags & ~CONNECTED; }
 
     template <class T1, class T2, class...Args>
-    void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args...args) {
-        if (filter) (filter->*filter_method)(args...);
-        else        (this->*my_method)(args...);
+    void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
+        if (filter) (filter->*filter_method)(std::forward<Args>(args)...);
+        else        (this->*my_method)(std::forward<Args>(args)...);
     }
 
     void handle_connection          (const CodeError*) override;
-    void finalize_handle_connection (const StreamSP& client, const CodeError* err);
+    void finalize_handle_connection (const StreamSP& client, const CodeError*);
+    void finalize_handle_connect    (const CodeError*, const ConnectRequestSP&);
+
+    void do_reset ();
 
 //    CodeError _read_start ();
 //
@@ -187,7 +187,7 @@ private:
 //    }
 };
 
-struct Stream::ConnectRequest : Request, private backend::IConnectListener {
+struct ConnectRequest : Request, private backend::IConnectListener {
     CallbackDispatcher<Stream::connect_fptr> event;
 
 protected:
@@ -213,11 +213,13 @@ protected:
     void handle_connect (const CodeError*) override;
 
 private:
+    friend Stream;
+
     uint64_t timeout;
     TimerSP  timer;
     Stream*  handle;
 
-    void on_cancel () override;
+    void cancel () override;
 };
 
 }}

@@ -20,6 +20,11 @@ void Prepare::reset () {
     impl()->stop();
 }
 
+void Prepare::clear () {
+    impl()->stop();
+    event.remove_all();
+}
+
 void Prepare::on_prepare () {
     event(this);
 }

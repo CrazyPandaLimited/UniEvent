@@ -15,10 +15,12 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
     virtual bool is_secure ();
 
     virtual void handle_connection (const StreamSP&, const CodeError*);
+    virtual void handle_connect    (const CodeError*, const ConnectRequestSP&);
+
+    virtual void reset ();
 
 //    virtual void connect       (ConnectRequest*);
 //    virtual void write         (WriteRequest*);
-//    virtual void on_connect    (const CodeError*, ConnectRequest*);
 //    virtual void on_write      (const CodeError*, WriteRequest*);
 //    virtual void on_read       (string&, const CodeError*);
 //    virtual void on_shutdown   (const CodeError*, ShutdownRequest*);
@@ -47,9 +49,9 @@ private:
     const double _priority;
 
     template <class T1, class T2, class...Args>
-    inline void invoke (const StreamFilterSP& obj, T1 smeth, T2 hmeth, Args...args) {
-        if (obj) (obj->*smeth)(args...);
-        else     (handle->*hmeth)(args...);
+    inline void invoke (const StreamFilterSP& obj, T1 smeth, T2 hmeth, Args&&...args) {
+        if (obj) (obj->*smeth)(std::forward<Args>(args)...);
+        else     (handle->*hmeth)(std::forward<Args>(args)...);
     }
 };
 

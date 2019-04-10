@@ -42,8 +42,26 @@ using RequestSP = iptr<Request>;
 struct Udp;
 using UdpSP = iptr<Udp>;
 
+struct SendRequest;
+using SendRequestSP = iptr<SendRequest>;
+
 struct Stream;
 using StreamSP = iptr<Stream>;
+
+struct ConnectRequest;
+using ConnectRequestSP = iptr<ConnectRequest>;
+
+struct WriteRequest;
+using WriteRequestSP = iptr<WriteRequest>;
+
+struct ShutdownRequest;
+using ShutdownRequestSP = iptr<ShutdownRequest>;
+
+struct Pipe;
+using PipeSP = iptr<Pipe>;
+
+struct PipeConnectRequest;
+using PipeConnectRequestSP = iptr<PipeConnectRequest>;
 
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
@@ -53,12 +71,6 @@ using StreamSP = iptr<Stream>;
 //
 //struct TCP;
 //using TCPSP = iptr<TCP>;
-//
-//struct Pipe;
-//using PipeSP = iptr<Pipe>;
-//
-//struct ConnectRequest;
-//using ConnectRequestSP = iptr<ConnectRequest>;
 //
 //struct TCPConnectRequest;
 //using TCPConnectRequestSP = iptr<TCPConnectRequest>;

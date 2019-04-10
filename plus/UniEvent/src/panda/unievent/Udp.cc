@@ -18,6 +18,10 @@ static AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t p
     return ai;
 }
 
+backend::BackendHandle* Udp::new_impl () {
+    return loop()->impl()->new_udp(this, domain);
+}
+
 const HandleType& Udp::type () const {
     return TYPE;
 }
@@ -90,23 +94,19 @@ void Udp::send (const SendRequestSP& req) {
     queue.push(req);
 }
 
-void Udp::SendRequest::exec () {
-    Request::exec();
+void SendRequest::exec () {
     auto err = handle->impl()->send(bufs, addr, impl());
     if (err) delay([=]{ handle_send(err); });
 }
 
-void Udp::SendRequest::on_cancel () {
-    handle->on_send(CodeError(std::errc::operation_canceled), this);
+void SendRequest::cancel () {
+    Request::cancel();
+    handle_send(CodeError(std::errc::operation_canceled));
 }
 
-void Udp::SendRequest::handle_send (const CodeError* err) {
-    queue.done(this, [&] {
-        handle->on_send(err, self);
-    });
-    scope_guard([&] {
-    }, [&] {
-        handle->queue.resume();
+void SendRequest::handle_send (const CodeError* err) {
+    handle->queue.done(this, [&] {
+        handle->on_send(err, this);
     });
 }
 
@@ -115,12 +115,15 @@ void Udp::on_send (const CodeError* err, const SendRequestSP& r) {
 }
 
 void Udp::reset () {
-    scope_guard([&] {
-        queue.abort();
-        impl()->destroy();
-        _impl = loop()->impl()->new_udp(this, domain);
-    }, [&] {
-        queue.resume();
+    queue.cancel([&]{ Handle::reset(); });
+}
+
+void Udp::clear () {
+    queue.cancel([&]{
+        Handle::clear();
+        buf_alloc_callback = nullptr;
+        receive_event.remove_all();
+        send_event.remove_all();
     });
 }
 

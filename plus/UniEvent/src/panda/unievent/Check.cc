@@ -20,6 +20,11 @@ void Check::reset () {
     impl()->stop();
 }
 
+void Check::clear () {
+    impl()->stop();
+    event.remove_all();
+}
+
 void Check::on_check () {
     event(this);
 }

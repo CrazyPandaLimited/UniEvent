@@ -22,6 +22,7 @@ struct Prepare : virtual Handle, private backend::IPrepareListener {
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
     void call_now () { on_prepare(); }
 

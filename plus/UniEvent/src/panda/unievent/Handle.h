@@ -25,17 +25,18 @@ struct Handle : Refcnt, panda::lib::IntrusiveChainNode<Handle*> {
 
     virtual const HandleType& type () const = 0;
 
-    bool active () const { return _impl->active(); }
+    bool active () const { return _impl ? _impl->active() : false; }
     bool weak   () const { return _weak; }
     
     void weak (bool value) {
         if (_weak == value) return;
-        if (value) _impl->set_weak();
-        else       _impl->unset_weak();
+        if (value) impl()->set_weak();
+        else       impl()->unset_weak();
         _weak = value;
     }
 
-    virtual void reset () = 0;
+    virtual void reset () = 0; // cancel everything in handle, leaving it in initial state, except for settings and callbacks which is held
+    virtual void clear () = 0; // full reset, return to initial state (as if handle has been just created via new())
 
     static const HandleType UNKNOWN_TYPE;
 
@@ -43,36 +44,53 @@ protected:
     friend Loop;
     using buf_alloc_fn = function<string(size_t cap)>;
 
-    BackendHandle* _impl;
+    mutable BackendHandle* _impl;
 
-    Handle () : _weak(false) {
+    Handle () : _impl(), _weak(false) {
         _ECTOR();
     }
 
     ~Handle ();
 
-    void _init (const LoopSP& loop, BackendHandle* impl) {
+    void _init (const LoopSP& loop, BackendHandle* impl = nullptr) {
         _impl = impl;
         _loop = loop;
         _loop->register_handle(this);
     }
 
-    optional<fd_t> fileno () const { return _impl->fileno(); }
+    optional<fd_t> fileno () const { return _impl ? _impl->fileno() : optional<fd_t>(); }
 
-    int  recv_buffer_size () const    { return _impl->recv_buffer_size(); }
-    void recv_buffer_size (int value) { _impl->recv_buffer_size(value); }
-    int  send_buffer_size () const    { return _impl->send_buffer_size(); }
-    void send_buffer_size (int value) { _impl->send_buffer_size(value); }
+    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
+    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
+    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
+    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
 
-    template <class Func>
-    void ltry (Func&& f) {
-        try { f(); }
-        catch (...) { _impl->capture_exception(); }
+    virtual BackendHandle* new_impl () { abort(); }
+
+    BackendHandle* impl () const {
+        if (!_impl) {
+            _impl = const_cast<Handle*>(this)->new_impl();
+            if (_weak) _impl->set_weak(); // preserve weak
+        }
+        return _impl;
     }
 
 private:
     LoopSP _loop;
     bool   _weak;
 };
+
+inline void Handle::reset () {
+    if (!_impl) return;
+    _impl->destroy();
+    _impl = new_impl();
+    if (_weak) _impl->set_weak(); // preserve weak
+}
+
+inline void Handle::clear () {
+    if (!_impl) return;
+    _impl->destroy();
+    _impl = nullptr;
+}
 
 }}

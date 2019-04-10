@@ -17,16 +17,14 @@ void Pipe::bind (string_view name) {
     impl()->bind(name);
 }
 
-void Pipe::connect (const ConnectRequestSP& req) {
+void Pipe::connect (const PipeConnectRequestSP& req) {
     req->set(this);
     queue.push(req);
 }
 
-void Pipe::ConnectRequest::exec () {
-    Stream::ConnectRequest::exec();
-
+void PipeConnectRequest::exec () {
+    ConnectRequest::exec();
     auto err = handle->impl()->connect(name, impl());
-
     if (err) return delay([=]{ handle_connect(err); });
 }
 

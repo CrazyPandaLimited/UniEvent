@@ -12,7 +12,7 @@ struct BackendLoop {
     enum class Type    { LOCAL, GLOBAL, DEFAULT };
     enum class RunMode { DEFAULT, ONCE, NOWAIT };
 
-    std::vector<std::exception_ptr> _exceptions;
+    std::exception_ptr _exception;
 
     BackendLoop () {}
 
@@ -22,7 +22,7 @@ struct BackendLoop {
 
     bool run (RunMode mode) {
         bool ret = _run(mode);
-        if (_exceptions.size()) throw_exceptions();
+        if (_exception) throw_exception();
         return ret;
     }
 
@@ -49,7 +49,7 @@ struct BackendLoop {
     virtual void     cancel_delay (uint64_t id) noexcept = 0;
 
     void capture_exception ();
-    void throw_exceptions  ();
+    void throw_exception   ();
 
     virtual ~BackendLoop () {}
 };

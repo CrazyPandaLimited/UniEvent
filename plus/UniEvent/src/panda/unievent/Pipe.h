@@ -4,28 +4,7 @@
 
 namespace panda { namespace unievent {
 
-using std::string_view;
-
 struct Pipe : virtual Stream {
-    struct ConnectRequest : Stream::ConnectRequest, panda::lib::AllocatedObject<ConnectRequest> {
-        string name;
-
-        ConnectRequest (const string& name, Stream::connect_fn callback = nullptr)
-            : Stream::ConnectRequest(callback), name(name) {}
-
-    private:
-        friend Pipe;
-        Pipe* handle;
-
-        void set (Pipe* h) {
-            handle = h;
-            Stream::ConnectRequest::set(h);
-        }
-
-        void exec () override;
-    };
-    using ConnectRequestSP = iptr<ConnectRequest>;
-
     Pipe (Loop* loop = Loop::default_loop(), bool ipc = false) : ipc(ipc) {
         _ECTOR();
         _init(loop, loop->impl()->new_pipe(this, ipc));
@@ -39,9 +18,8 @@ struct Pipe : virtual Stream {
 
 //    virtual void open              (file_t file);
     virtual void bind    (string_view name);
-    virtual void connect (const ConnectRequestSP& req);
-
-    void connect (const string& name, connect_fn callback = nullptr) { connect(new ConnectRequest(name, callback)); }
+    virtual void connect (const PipeConnectRequestSP& req);
+            void connect (const string& name, connect_fn callback = nullptr); // BOTTOM-INLINE
 
 //    virtual void pending_instances (int count);
 //
@@ -85,9 +63,36 @@ protected:
     StreamSP create_connection () override;
 
 private:
+    friend PipeConnectRequest;
+
     bool ipc;
 
     backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(_impl); }
 };
+
+
+struct PipeConnectRequest : ConnectRequest, panda::lib::AllocatedObject<PipeConnectRequest> {
+    string name;
+
+    PipeConnectRequest (const string& name, Stream::connect_fn callback = nullptr)
+        : ConnectRequest(callback), name(name) {}
+
+private:
+    friend Pipe;
+    Pipe* handle;
+
+    void set (Pipe* h) {
+        handle = h;
+        ConnectRequest::set(h);
+    }
+
+    void exec () override;
+};
+
+
+inline void Pipe::connect (const string& name, connect_fn callback) {
+    connect(new PipeConnectRequest(name, callback));
+}
+
 
 }}

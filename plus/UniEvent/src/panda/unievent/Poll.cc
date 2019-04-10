@@ -16,7 +16,14 @@ void Poll::stop () {
     impl()->stop();
 }
 
-void Poll::reset () { stop(); }
+void Poll::reset () {
+    stop();
+}
+
+void Poll::clear () {
+    stop();
+    event.remove_all();
+}
 
 void Poll::on_poll (int events, const CodeError* err) {
     event(this, events, err);
