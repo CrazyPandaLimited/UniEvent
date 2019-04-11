@@ -146,6 +146,9 @@ struct FSRequest : CancelableRequest, AllocatedObject<FSRequest, true> {
         _write(offset, callback);
     }
 
+protected:
+    virtual ~FSRequest ();
+
 private:
     uv_fs_t             _uvr;
     State               _state;
@@ -153,14 +156,14 @@ private:
     std::vector<string> _bufs;
     string              _read_buf;
 
-    union {
+    //    union {
         fn          _callback;
         open_fn     _open_callback;
         stat_fn     _stat_callback;
         read_fn     _read_callback;
         scandir_fn  _scandir_callback;
         sendfile_fn _sendfile_callback;
-    };
+	//    };
 
     void _write (int64_t offset, fn callback);
 
@@ -184,8 +187,6 @@ private:
         cleanup();
     }
 
-    // private, no stack/member allocations, because fs requests can't be freed until request is completed
-    virtual ~FSRequest ();
 
     static void uvx_on_complete          (uv_fs_t*);
     static void uvx_on_open_complete     (uv_fs_t*);

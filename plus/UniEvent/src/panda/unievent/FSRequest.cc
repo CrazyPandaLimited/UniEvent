@@ -288,6 +288,7 @@ void FSRequest::open (string_view path, int flags, int mode, open_fn callback) {
     set_busy();
     _open_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_open(_uvr.loop, &_uvr, path_str, flags, mode, uvx_on_open_complete);
 }
 
@@ -302,6 +303,7 @@ void FSRequest::uvx_on_complete (uv_fs_t* uvreq) {
 void FSRequest::close (fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_close(_uvr.loop, &_uvr, _file, uvx_on_complete);
 }
 
@@ -320,12 +322,14 @@ void FSRequest::stat (string_view path, stat_fn callback) {
     set_busy();
     _stat_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_stat(_uvr.loop, &_uvr, path_str, uvx_on_stat_complete);
 }
 
 void FSRequest::stat (stat_fn callback) {
     set_busy();
     _stat_callback = callback;
+    retain();
     uv_fs_fstat(_uvr.loop, &_uvr, _file, uvx_on_stat_complete);
 }
 
@@ -333,24 +337,28 @@ void FSRequest::lstat (string_view path, stat_fn callback) {
     set_busy();
     _stat_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_lstat(_uvr.loop, &_uvr, path_str, uvx_on_stat_complete);
 }
 
 void FSRequest::sync (fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_fsync(_uvr.loop, &_uvr, _file, uvx_on_complete);
 }
 
 void FSRequest::datasync (fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_fdatasync(_uvr.loop, &_uvr, _file, uvx_on_complete);
 }
 
 void FSRequest::truncate (int64_t offset, fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_ftruncate(_uvr.loop, &_uvr, _file, offset, uvx_on_complete);
 }
 
@@ -358,12 +366,14 @@ void FSRequest::chmod (string_view path, int mode, fn callback) {
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_chmod(_uvr.loop, &_uvr, path_str, mode, uvx_on_complete);
 }
 
 void FSRequest::chmod (int mode, fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_fchmod(_uvr.loop, &_uvr, _file, mode, uvx_on_complete);
 }
 
@@ -371,12 +381,14 @@ void FSRequest::utime (string_view path, double atime, double mtime, fn callback
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_utime(_uvr.loop, &_uvr, path_str, atime, mtime, uvx_on_complete);
 }
 
 void FSRequest::utime (double atime, double mtime, fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_futime(_uvr.loop, &_uvr, _file, atime, mtime, uvx_on_complete);
 }
 
@@ -384,12 +396,14 @@ void FSRequest::chown (string_view path, uid_t uid, gid_t gid, fn callback) {
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_chown(_uvr.loop, &_uvr, path_str, uid, gid, uvx_on_complete);
 }
 
 void FSRequest::chown (uid_t uid, gid_t gid, fn callback) {
     set_busy();
     _callback = callback;
+    retain();
     uv_fs_fchown(_uvr.loop, &_uvr, _file, uid, gid, uvx_on_complete);
 }
 
@@ -397,6 +411,7 @@ void FSRequest::unlink (string_view path, fn callback) {
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_unlink(_uvr.loop, &_uvr, path_str, uvx_on_complete);
 }
 
@@ -404,6 +419,7 @@ void FSRequest::mkdir (string_view path, int mode, fn callback) {
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_mkdir(_uvr.loop, &_uvr, path_str, mode, uvx_on_complete);
 }
 
@@ -411,6 +427,7 @@ void FSRequest::rmdir (string_view path, fn callback) {
     set_busy();
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_rmdir(_uvr.loop, &_uvr, path_str, uvx_on_complete);
 }
 
@@ -436,6 +453,7 @@ void FSRequest::scandir (string_view path, int flags, scandir_fn callback) {
     set_busy();
     _scandir_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_scandir(_uvr.loop, &_uvr, path_str, flags, uvx_on_scandir_complete);
 }
 
@@ -444,6 +462,7 @@ void FSRequest::rename (string_view path, string_view new_path, fn callback) {
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
     PEXS_NULL_TERMINATE(new_path, new_path_str);
+    retain();
     uv_fs_rename(_uvr.loop, &_uvr, path_str, new_path_str, uvx_on_complete);
 }
 
@@ -461,6 +480,7 @@ void FSRequest::uvx_on_sendfile_complete (uv_fs_t* uvreq) {
 void FSRequest::sendfile (file_t out_fd, file_t in_fd, int64_t in_offset, size_t length, sendfile_fn callback) {
     set_busy();
     _sendfile_callback = callback;
+    retain();
     uv_fs_sendfile(_uvr.loop, &_uvr, out_fd, in_fd, in_offset, length, uvx_on_sendfile_complete);
 }
 
@@ -469,6 +489,7 @@ void FSRequest::link (string_view path, string_view new_path, fn callback) {
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
     PEXS_NULL_TERMINATE(new_path, new_path_str);
+    retain();
     uv_fs_link(_uvr.loop, &_uvr, path_str, new_path_str, uvx_on_complete);
 }
 
@@ -477,6 +498,7 @@ void FSRequest::symlink (string_view path, string_view new_path, SymlinkFlags fl
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
     PEXS_NULL_TERMINATE(new_path, new_path_str);
+    retain();
     uv_fs_symlink(_uvr.loop, &_uvr, path_str, new_path_str, (int)flags, uvx_on_complete);
 }
 
@@ -495,6 +517,7 @@ void FSRequest::readlink (string_view path, read_fn callback) {
     set_busy();
     _read_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_readlink(_uvr.loop, &_uvr, path_str, uvx_on_readlink_complete);
 }
 
@@ -513,6 +536,7 @@ void FSRequest::realpath (string_view path, read_fn callback) {
     set_busy();
     _read_callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
+    retain();
     uv_fs_realpath(_uvr.loop, &_uvr, path_str, uvx_on_realpath_complete);
 }
 
@@ -521,6 +545,7 @@ void FSRequest::copyfile (string_view path, string_view new_path, CopyFileFlags 
     _callback = callback;
     PEXS_NULL_TERMINATE(path, path_str);
     PEXS_NULL_TERMINATE(new_path, new_path_str);
+    retain();
     uv_fs_copyfile(_uvr.loop, &_uvr, path_str, new_path_str, (int)flags, uvx_on_complete);
 }
 
@@ -543,6 +568,7 @@ void FSRequest::read (size_t size, int64_t offset, read_fn callback) {
     uv_buf_t uvbuf;
     uvbuf.base = ptr;
     uvbuf.len  = size;
+    retain();
     uv_fs_read(_uvr.loop, &_uvr, _file, &uvbuf, 1, offset, uvx_on_read_complete);
 }
 
@@ -557,6 +583,7 @@ void FSRequest::_write (int64_t offset, fn callback) {
         ptr->len  = str.length();
         ++ptr;
     }
+    retain();
     uv_fs_write(_uvr.loop, &_uvr, _file, uvbufs, nbufs, offset, uvx_on_complete);
 }
 
