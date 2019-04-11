@@ -65,31 +65,36 @@ static const auto evname_on_create_connection = Simple::shared("on_create_connec
 
 void XSPrepare::on_prepare () {
     auto obj = xs::out<Prepare*>(aTHX_ this);
-    if (!prepare_xscb.call(obj, evname_on_prepare)) Prepare::on_prepare();
+    prepare_xscb.call(obj, evname_on_prepare);
+    Prepare::on_prepare();
 }
 
 
 void XSCheck::on_check () {
     auto obj = xs::out<Check*>(aTHX_ this);
-    if (!check_xscb.call(obj, evname_on_check)) Check::on_check();
+    check_xscb.call(obj, evname_on_check);
+    Check::on_check();
 }
 
 
 void XSIdle::on_idle () {
     auto obj = xs::out<Idle*>(aTHX_ this);
-    if (!idle_xscb.call(obj, evname_on_idle)) Idle::on_idle();
+    idle_xscb.call(obj, evname_on_idle);
+    Idle::on_idle();
 }
 
 
 void XSTimer::on_timer () {
     auto obj = xs::out<Timer*>(aTHX_ this);
-    if (!timer_xscb.call(obj, evname_on_timer)) Timer::on_timer();
+    timer_xscb.call(obj, evname_on_timer);
+    Timer::on_timer();
 }
 
 
 void XSSignal::on_signal (int signum) {
     auto obj = xs::out<Signal*>(aTHX_ this);
-    if (!signal_xscb.call(obj, evname_on_signal, { Simple(signum) })) Signal::on_signal(signum);
+    signal_xscb.call(obj, evname_on_signal, { Simple(signum) });
+    Signal::on_signal(signum);
 }
 
 

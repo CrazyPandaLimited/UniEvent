@@ -5,6 +5,16 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
+template <class Func>
+static inline panda::string uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
+    size_t len = 0;
+    int err = f(uvhp, nullptr, &len);
+    if (err && err != UV_ENOBUFS) throw uvx_code_error(err);
+    panda::string ret(len);
+    uvx_strict(f(uvhp, ret.buf(), &len));
+    return ret;
+}
+
 struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
     UVPipe (uv_loop_t* loop, IStreamListener* lst, bool ipc) : UVStream<BackendPipe, uv_pipe_t>(lst) {
         uvx_strict(uv_pipe_init(loop, &uvh, ipc));
@@ -22,6 +32,9 @@ struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
         req->active = true;
         return {};
     }
+
+    panda::string sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
+    panda::string peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
 };
 
 }}}}

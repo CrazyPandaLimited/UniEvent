@@ -19,41 +19,12 @@ struct Pipe : virtual Stream {
 //    virtual void open              (file_t file);
     virtual void bind    (string_view name);
     virtual void connect (const PipeConnectRequestSP& req);
-            void connect (const string& name, connect_fn callback = nullptr); // BOTTOM-INLINE
+    /*INL*/ void connect (const string& name, connect_fn callback = nullptr);
 
 //    virtual void pending_instances (int count);
-//
-//    size_t getsocknamelen () const {
-//        return getsockname(nullptr, 0);
-//    }
-//
-//    size_t getpeernamelen () const {
-//        return getpeername(nullptr, 0);
-//    }
-//
-//    size_t getsockname (char* name, size_t namelen) const {
-//        int err = uv_pipe_getsockname(&uvh, name, &namelen);
-//        if (err && err != UV_ENOBUFS) throw CodeError(err);
-//        return namelen;
-//    }
-//
-//    size_t getpeername (char* name, size_t namelen) const {
-//        int err = uv_pipe_getpeername(&uvh, name, &namelen);
-//        if (err && err != UV_ENOBUFS) throw CodeError(err);
-//        return namelen;
-//    }
-//
-//    panda::string getsockname () const {
-//        panda::string str(getsocknamelen());
-//        getsockname(str.buf(), (size_t)-1);
-//        return str;
-//    }
-//
-//    panda::string getpeername () const {
-//        panda::string str(getpeernamelen());
-//        getpeername(str.buf(), (size_t)-1);
-//        return str;
-//    }
+
+    panda::string sockname () const { return impl()->sockname(); }
+    panda::string peername () const { return impl()->peername(); }
 
     static const HandleType TYPE;
 
@@ -67,7 +38,7 @@ private:
 
     bool ipc;
 
-    backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(_impl); }
+    backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(Handle::impl()); }
 };
 
 

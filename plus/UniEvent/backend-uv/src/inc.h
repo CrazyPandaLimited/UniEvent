@@ -47,7 +47,7 @@ inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
 }
 
 template <class Handle, class Func>
-inline net::SockAddr uvx_sockaddr (Handle uvhp, Func f) {
+inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
     net::SockAddr ret;
     int sz = sizeof(ret);
     int err = f(uvhp, ret.get(), &sz);

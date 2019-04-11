@@ -9,6 +9,9 @@ struct BackendPipe : BackendStream {
     virtual void bind (std::string_view name) = 0;
 
     virtual CodeError connect (std::string_view name, BackendConnectRequest* req) = 0;
+
+    virtual panda::string sockname () const = 0;
+    virtual panda::string peername () const = 0;
 };
 
 }}}
