@@ -17,7 +17,6 @@ struct ssl_st;        typedef ssl_st SSL;
 namespace panda { namespace unievent {
 
 struct Stream : virtual Handle, protected backend::IStreamListener {
-    using BackendStream   = backend::BackendStream;
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError* err);
@@ -50,26 +49,33 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     bool   writable         () const { return impl()->writable(); }
     bool   listening        () const { return flags & LISTENING; }
     bool   connecting       () const { return flags & CONNECTING; }
+    bool   established      () const { return flags & ESTABLISHED; }
     bool   connected        () const { return flags & CONNECTED; }
-    bool   wantread         () const { return flags & WANTREAD; }
+    bool   wantread         () const { return !(flags & DONTREAD); }
     bool   shutting_down    () const { return flags & SHUTTING; }
     bool   is_shut_down     () const { return flags & SHUT; }
 //    size_t write_queue_size () const { return uvsp_const()->write_queue_size; }
 
-//    virtual void read_start (read_fn callback = nullptr);
-//    virtual void read_stop  ();
-
-    void         listen     (int backlog) { listen(nullptr, backlog); }
-    virtual void listen     (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
-    virtual void accept     (const StreamSP& stream);
-//    virtual void shutdown   (ShutdownRequest* req = nullptr);
+    void         listen   (int backlog) { listen(nullptr, backlog); }
+    virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
+    virtual void accept   (const StreamSP& stream);
 //    virtual void write      (WriteRequest* req);
+    virtual void shutdown (const ShutdownRequestSP& req);
+    /*INL*/ void shutdown (shutdown_fn callback = {});
+
+    void read_start () {
+        set_wantread(true);
+        auto err = _read_start();
+        if (err) throw err;
+    }
+
+    void read_stop ();
+
 //    virtual void disconnect ();
 
     void reset () override;
     void clear () override;
 
-//    void shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
 //
 //    void write (const string& buf, write_fn callback = nullptr) { write(new WriteRequest(buf, callback)); }
 //
@@ -104,14 +110,10 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     Filters& filters () { return _filters; }
 
 //    void _close () override;
-//    void cancel_connect ();
 //
 //    void do_write (WriteRequest* req);
 //
-//    virtual void     on_read              (string& buf, const CodeError* err);
 //    virtual void     on_write             (const CodeError* err, WriteRequest* req);
-//    virtual void     on_shutdown          (const CodeError* err, ShutdownRequest* req);
-//    virtual void     on_eof               ();
 
     using Handle::fileno;
     using Handle::recv_buffer_size;
@@ -120,7 +122,7 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 protected:
     Queue queue;
 
-    Stream () : flags()/*, filters_(this)*/ {
+    Stream () : flags() {
         _ECTOR();
     }
 
@@ -130,36 +132,41 @@ protected:
 
     virtual void on_connection (const StreamSP& client, const CodeError* err);
     virtual void on_connect    (const CodeError* err, const ConnectRequestSP& req);
+    virtual void on_read       (string& buf, const CodeError* err);
+    virtual void on_eof        ();
+    virtual void on_shutdown   (const CodeError* err, const ShutdownRequestSP& req);
 
-//    void set_shutting   ()             { flags &= ~SF_SHUT; flags |= SF_SHUTTING; }
-//    void set_shutdown   (bool success) { flags &= ~SF_SHUTTING; flags = success ? flags | SF_SHUT : flags & ~SF_SHUT; }
-//    void set_reading    ()             { flags |= SF_READING; }
-//    void clear_reading  ()             { flags &= ~SF_READING; }
-//    void set_wantread   ()             { flags |= SF_WANTREAD; }
-//    void clear_wantread ()             { flags &= ~SF_WANTREAD; }
-//
 //    void on_handle_reinit () override;
 
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest;
+    friend StreamFilter; friend ConnectRequest; friend ShutdownRequest;
 
-    static const uint32_t CONNECTING = 1;
-    static const uint32_t CONNECTED  = 2;
-    static const uint32_t SHUTTING   = 4;
-    static const uint32_t SHUT       = 8;
-    static const uint32_t WANTREAD   = 16;
-    static const uint32_t LISTENING  = 32;
+    static const uint32_t LISTENING   = 1;
+    static const uint32_t CONNECTING  = 2;
+    static const uint32_t ESTABLISHED = 4; // physically connected
+    static const uint32_t CONNECTED   = 8; // logically connected
+    static const uint32_t DONTREAD    = 16;
+    static const uint32_t READING     = 32;
+    static const uint32_t SHUTTING    = 64;
+    static const uint32_t SHUT        = 128;
 
     uint8_t flags;
     Filters _filters;
 
-    BackendStream* impl () const { return static_cast<BackendStream*>(_impl); }
+    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(_impl); }
 
-    void set_listening  ()             { flags |= LISTENING; }
-    void set_connecting ()             { flags &= ~CONNECTED; flags |= CONNECTING; }
-    void set_connected  (bool success) { flags &= ~CONNECTING; flags = success ? flags | CONNECTED : flags & ~CONNECTED; }
+    bool reading () const { return flags & READING; }
+
+    void set_listening   ()        { flags |= LISTENING; }
+    void set_connecting  ()        { flags |= CONNECTING; }
+    void set_established ()        { flags |= ESTABLISHED; }
+    void set_connected   (bool ok) { flags &= ~CONNECTING; ok ? (flags |= CONNECTED) : (flags &= ~CONNECTED); }
+    void set_wantread    (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
+    void set_reading     (bool on) { on ? (flags |= READING) : (flags &= ~READING); }
+    void set_shutting    ()        { flags |= SHUTTING; }
+    void set_shutdown    (bool ok) { flags &= ~SHUTTING; ok ? (flags |= SHUT) : (flags &= ~SHUT); }
 
     template <class T1, class T2, class...Args>
     void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
@@ -170,21 +177,17 @@ private:
     void handle_connection          (const CodeError*) override;
     void finalize_handle_connection (const StreamSP& client, const CodeError*);
     void finalize_handle_connect    (const CodeError*, const ConnectRequestSP&);
+    void handle_read                (string&, const CodeError*) override;
+    void finalize_handle_read       (string& buf, const CodeError* err) { on_read(buf, err); }
+    void handle_eof                 () override;
+    void finalize_handle_eof        () { set_connected(false); on_eof(); }
+    void finalize_handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
 
     void do_reset ();
 
-//    CodeError _read_start ();
-//
-//    void asyncq_cancel_connect (CommandBase* last_tail);
-//
-//    void do_on_connect    (const CodeError*, ConnectRequest*);
-//    void do_on_read       (string& buf, const CodeError* err) { on_read(buf, err); }
+    CodeError _read_start ();
+
 //    void do_on_write      (const CodeError* err, WriteRequest* write_request);
-//    void do_on_shutdown   (const CodeError* err, ShutdownRequest* shutdown_request);
-//    void do_on_eof        () {
-//        set_connected(false);
-//        on_eof();
-//    }
 };
 
 struct ConnectRequest : Request, private backend::IConnectListener {
@@ -221,5 +224,33 @@ private:
 
     void cancel () override;
 };
+
+struct ShutdownRequest : Request, private backend::IShutdownListener {
+    CallbackDispatcher<Stream::shutdown_fptr> event;
+
+    ShutdownRequest (Stream::shutdown_fn callback = {}) {
+        _ECTOR();
+        if (callback) event.add(callback);
+    }
+
+private:
+    friend Stream;
+
+    Stream* handle;
+
+    void set (Stream* h) {
+        handle = h;
+        Request::set(h, h->loop()->impl()->new_shutdown_request(this));
+    }
+
+    backend::BackendShutdownRequest* impl () const { return static_cast<backend::BackendShutdownRequest*>(_impl); }
+
+    void exec            () override;
+    void cancel          () override;
+    void handle_shutdown (const CodeError*) override;
+};
+
+
+inline void Stream::shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
 
 }}

@@ -16,15 +16,15 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
 
     virtual void handle_connection (const StreamSP&, const CodeError*);
     virtual void handle_connect    (const CodeError*, const ConnectRequestSP&);
+    virtual void handle_read       (string&, const CodeError*);
+    virtual void handle_eof        ();
+    virtual void handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
 
     virtual void reset ();
 
 //    virtual void connect       (ConnectRequest*);
 //    virtual void write         (WriteRequest*);
 //    virtual void on_write      (const CodeError*, WriteRequest*);
-//    virtual void on_read       (string&, const CodeError*);
-//    virtual void on_shutdown   (const CodeError*, ShutdownRequest*);
-//    virtual void on_eof        ();
 //    virtual void on_reinit     ();
 
 protected:
@@ -54,30 +54,5 @@ private:
         else     (handle->*hmeth)(std::forward<Args>(args)...);
     }
 };
-
-//struct StreamFilters : panda::lib::IntrusiveChain<StreamFilterSP> {
-//    StreamFilters (Stream* h) : handle(h) {}
-//
-//    template <class T = Stream>
-//    void handle_connection (const StreamSP& client, const CodeError* err) {
-//        if (size()) back()->handle_connection(client, err);
-//        else        ((T*)handle)->finalize_handle_connection(stream, err);
-//    }
-
-//    void connect       (ConnectRequest*);
-//    void on_connect    (const CodeError*, ConnectRequest*);
-
-//    void write         (WriteRequest*);
-//    void on_write      (const CodeError*, WriteRequest*);
-//    void on_read       (string&, const CodeError*);
-//    void on_shutdown   (const CodeError*, ShutdownRequest*);
-//    void on_eof        ();
-//    void on_reinit     () {
-//        if (size()) back()->on_reinit();
-//    }
-
-//private:
-//    Stream* handle;
-//};
 
 }}

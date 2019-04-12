@@ -1,6 +1,4 @@
 #include "Stream.h"
-//#include "Timer.h"
-//#include "Prepare.h"
 //#include "ssl/SSLFilter.h"
 //#include <chrono>
 //#include <algorithm>
@@ -19,6 +17,7 @@ string Stream::buf_alloc (size_t cap) noexcept {
     }
 }
 
+// ===================== CONNECTION ===============================
 void Stream::listen (connection_fn callback, int backlog) {
 //    auto filter = get_filter<ssl::SSLFilter>();
 //    if (filter && filter->is_client()) throw Error("Programming error, use server certificate");
@@ -40,7 +39,11 @@ void Stream::accept () {
 void Stream::accept (const StreamSP& client) {
     _EDEBUGTHIS("client=%p", client.get());
     auto err = impl()->accept(client->impl());
-    if (!err) client->set_connecting();
+    if (!err) {
+        client->set_connecting();
+        client->set_established();
+        if (client->wantread()) err = client->_read_start();
+    }
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
@@ -54,6 +57,7 @@ void Stream::on_connection (const StreamSP& client, const CodeError* err) {
     connection_event(this, client, err);
 }
 
+// ===================== CONNECT ===============================
 void ConnectRequest::exec () {
     _EDEBUGTHIS();
     handle->set_connecting();
@@ -67,8 +71,16 @@ void ConnectRequest::exec () {
     }
 }
 
+void ConnectRequest::cancel () {
+    handle_connect(CodeError(std::errc::operation_canceled));
+}
+
 void ConnectRequest::handle_connect (const CodeError* err) {
     _EDEBUGTHIS();
+    if (!err) {
+        handle->set_established();
+        if (handle->wantread()) err = handle->_read_start();
+    }
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
 }
 
@@ -96,12 +108,76 @@ void Stream::finalize_handle_connect (const CodeError* err, const ConnectRequest
     }
 }
 
-void ConnectRequest::cancel () {
-    handle_connect(CodeError(std::errc::operation_canceled));
-}
-
 void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
     connect_event(this, err, req);
+}
+
+// ===================== READ ===============================
+CodeError Stream::_read_start () {
+    if (reading() || !established()) return CodeError();
+    auto err = impl()->read_start();
+    if (!err) set_reading(true);
+    return err;
+}
+
+void Stream::read_stop () {
+    set_wantread(false);
+    if (!reading()) return;
+    impl()->read_stop();
+    set_reading(false);
+}
+
+void Stream::handle_read (string& buf, const CodeError* err) {
+    invoke(_filters.back(), &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
+}
+
+void Stream::on_read (string& buf, const CodeError* err) {
+    read_event(this, buf, err);
+}
+
+// ===================== EOF ===============================
+void Stream::handle_eof () {
+    invoke(_filters.back(), &StreamFilter::handle_eof, &Stream::finalize_handle_eof);
+}
+
+void Stream::on_eof () {
+    eof_event(this);
+}
+
+// ===================== SHUTDOWN ===============================
+void Stream::shutdown (const ShutdownRequestSP& req) {
+    _EDEBUGTHIS("req: %p", req.get());
+    req->set(this);
+    queue.push(req);
+}
+
+void ShutdownRequest::exec () {
+    _EDEBUGTHIS();
+    handle->set_shutting();
+    auto err = handle->impl()->shutdown(impl());
+    if (err) return delay([=]{ handle_shutdown(err); });
+}
+
+void ShutdownRequest::cancel () {
+    handle_shutdown(CodeError(std::errc::operation_canceled));
+}
+
+void ShutdownRequest::handle_shutdown (const CodeError* err) {
+    _EDEBUGTHIS();
+    handle->invoke(handle->_filters.back(), &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, this);
+}
+
+void Stream::finalize_handle_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+    set_shutdown(!err);
+    queue.done(req, [&]{
+        req->event(this, err, req);
+        on_shutdown(err, req);
+    });
+}
+
+void Stream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+    shutdown_event(this, err, req);
 }
 
 //ConnectRequest::~ConnectRequest() {
@@ -122,43 +198,6 @@ void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
 //        timer_ = nullptr;
 //    }
 //}
-
-//void Stream::uvx_on_connect (uv_connect_t* uvreq, int status) {
-//    ConnectRequest* r = rcast<ConnectRequest*>(uvreq);
-//    Stream* h = hcast<Stream*>(uvreq->handle);
-//    _EDEBUG("[%p] uvx_on_connect, req: %p", h, r);
-//    CodeError err(status);
-//    if (!err && (h->wantread())) err = h->_read_start();
-//    h->filters_.on_connect(err, r);
-//}
-//
-
-//
-//void Stream::uvx_on_read (uv_stream_t* stream, ssize_t nread, const uv_buf_t* uvbuf) {
-//    Stream* h = hcast<Stream*>(stream);
-//    _EDEBUG("[%p] uvx_on_read, nread: %ld", h, nread);
-//    CodeError err(nread < 0 ? nread : 0);
-//    if (err.code() == ERRNO_EOF) {
-//        h->filters_.on_eof();
-//        nread = 0;
-//    }
-//
-//    // in some cases of eof it may be no buffer
-//    string buf;
-//    if (uvbuf->base) {
-//        string* buf_ptr = (string*)(uvbuf->base + uvbuf->len);
-//        buf = *buf_ptr;
-//        buf_ptr->~string();
-//    }
-//
-//    // UV just wants to release the buf
-//    if (nread == 0) {
-//        return;
-//    }
-//
-//    buf.length(nread > 0 ? nread : 0); // set real buf len
-//    h->filters_.on_read(buf, err);
-//}
 //
 //void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
 //    WriteRequest* r = rcast<WriteRequest*>(uvreq);
@@ -176,52 +215,6 @@ void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
 //    }
 //    write_request->release();
 //    release();
-//}
-//
-//void Stream::uvx_on_shutdown (uv_shutdown_t* uvreq, int status) {
-//    //assert(!uv_is_closing(reinterpret_cast<uv_handle_t *>(uvreq->handle))); // COMMENTED OUT - TO REFACTOR - ����� ������ ����� Front. ��������� ����� ����� shutdown() ������� reset()
-//    ShutdownRequest* r = rcast<ShutdownRequest*>(uvreq);
-//    Stream* h = hcast<Stream*>(uvreq->handle);
-//    _EDEBUG("[%p] uvx_on_shutdown, err: %d", h, status);
-//    h->filters_.on_shutdown(CodeError(status), r);
-//}
-//
-//void Stream::do_on_shutdown (const CodeError* err, ShutdownRequest* shutdown_request) {
-//    _EDEBUGTHIS("on_shutdown");
-//    bool unlock = !(err && err->code() == ERRNO_ECANCELED);
-//    set_shutdown(!err);
-//    {
-//        auto guard = lock_in_callback();
-//        shutdown_request->event(this, err, shutdown_request);
-//        on_shutdown(err, shutdown_request);
-//    }
-//    shutdown_request->release();
-//    if (unlock) async_unlock();
-//    release();
-//}
-//void Stream::read_start (read_fn callback) {
-//    if (callback) read_event.add(callback);
-//    set_wantread();
-//    auto err = _read_start();
-//    if (err) throw err;
-//}
-//
-//CodeError Stream::_read_start () {
-//    if (reading()) return CodeError(); // uv_read_start has already been called
-//    os_fd_t fd;
-//    int fderr = uv_fileno(uvhp, &fd);
-//    if (fderr) return CodeError();
-//    int uverr = uv_read_start(uvsp(), Handle::uvx_on_buf_alloc, uvx_on_read);
-//    if (uverr) return CodeError(uverr);
-//    set_reading();
-//    return CodeError();
-//}
-//
-//void Stream::read_stop () {
-//    clear_wantread();
-//    if (!reading()) return; // uv_read_start has not been called
-//    clear_reading();
-//    uv_read_stop(uvsp());
 //}
 //
 //void Stream::write (WriteRequest* req) {
@@ -256,29 +249,6 @@ void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
 //    }
 //}
 //
-//void Stream::shutdown (ShutdownRequest* req) {
-//    _EDEBUGTHIS("shutdown, req: %p, locked: %d", req, (int)async_locked());
-//    if (!req) req = new ShutdownRequest();
-//
-//    if (async_locked()) {
-//        asyncq_push(new CommandShutdown(this, req));
-//        return;
-//    }
-//
-//    req->retain();
-//    set_shutting();
-//    async_lock();
-//    retain();
-//
-//    int err = uv_shutdown(_pex_(req), uvsp(), uvx_on_shutdown);
-//    if (err) {
-//        Prepare::call_soon([=] {
-//            filters_.on_shutdown(CodeError(err), req);
-//        }, loop());
-//        return;
-//    }
-//
-//}
 //
 //void Stream::disconnect () { close_reinit(asyncq_empty() && connecting() ? false : true); }
 
@@ -289,13 +259,13 @@ void Stream::reset () {
 void Stream::do_reset () {
     Handle::reset();
     if (_filters.size()) _filters.front()->reset();
-    flags &= WANTREAD; // clear flags except WANTREAD
+    flags &= DONTREAD; // clear flags except DONTREAD
 }
 
 void Stream::clear () {
     queue.cancel([&]{
         Handle::clear();
-        flags = WANTREAD;
+        flags = 0;
         buf_alloc_callback = nullptr;
         connection_factory = nullptr;
         connection_event.remove_all();
@@ -359,61 +329,6 @@ void Stream::clear () {
 //    Handle::_close();
 //}
 //
-//void Stream::cancel_connect () {
-//    _EDEBUGTHIS("cancel_connect");
-//    call_delayed();
-//    _close();
-//}
-//
-//void Stream::asyncq_cancel_connect (CommandBase* last_tail) {
-//    _EDEBUGTHIS("asyncq_cancel_connect");
-//    if (asyncq.tail != last_tail) { // reconnect possible
-//        // now ensure that last_tail is still in async queue (reset hasn't been called)
-//        bool found = false;
-//        for (const CommandBase* cmd = asyncq.head; cmd; cmd = cmd->next) if (cmd == last_tail) {
-//            found = true;
-//            break;
-//        }
-//        if (found) {
-//            found = false;
-//            for (const CommandBase* cmd = last_tail->next; cmd; cmd = cmd->next) {
-//                if (cmd->type == CommandBase::Type::CLOSE_REINIT || cmd->type == CommandBase::Type::SHUTDOWN ||
-//                    cmd->type == CommandBase::Type::USER_CALLBACK) continue; // allowed before reconnect
-//                if (cmd->type != CommandBase::Type::CONNECT || !static_cast<const CommandConnect*>(cmd)->is_reconnect()) break; // no reconnect
-//                found = true;
-//                panda_log_debug("reconnect found");
-//                break;
-//            }
-//        }
-//        if (found) { // reconnect found, move everything below last_tail to the top of async queue
-//            asyncq.tail->next = asyncq.head;
-//            asyncq.head = last_tail->next;
-//            last_tail->next = nullptr;
-//            return;
-//        }
-//    }
-//
-//    // reconnect not found -> clear write requests, shutdowns, etc till first disconnect
-//    while (asyncq.head && asyncq.head->type != CommandBase::Type::CLOSE_DELETE && asyncq.head->type != CommandBase::Type::CLOSE_REINIT && asyncq.head->type != CommandBase::Type::CONNECT) {
-//        CommandBase* cmd = asyncq.head;
-//        asyncq.head = cmd->next;
-//        cmd->cancel();
-//        delete cmd;
-//    }
-//}
-//
-//void Stream::on_read (string& buf, const CodeError* err) {
-//    if (read_event.has_listeners()) read_event(this, buf, err);
-//}
-//
 //void Stream::on_write (const CodeError* err, WriteRequest* req) {
 //    write_event(this, err, req);
-//}
-//
-//void Stream::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-//    shutdown_event(this, err, req);
-//}
-//
-//void Stream::on_eof () {
-//    eof_event(this);
 //}

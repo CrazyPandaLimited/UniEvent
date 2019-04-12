@@ -100,7 +100,7 @@ private:
     static void _on_send (uv_udp_send_t* p, int status) {
         auto req = get_request<UVSendRequest*>(p);
         req->active = false;
-        req->handle_send(uvx_status2err(status));
+        req->handle_send(uvx_ce(status));
     }
 
     static void _buf_alloc (uv_handle_t* p, size_t size, uv_buf_t* uvbuf) {
@@ -109,19 +109,16 @@ private:
     }
 
     static void _on_receive (uv_udp_t* p, ssize_t nread, const uv_buf_t* uvbuf, const struct sockaddr* addr, unsigned flags) {
+        auto h   = get_handle<UVUdp*>(p);
         auto buf = uvx_detach_buf(uvbuf);
 
         if (!nread && !addr) return; // nothing to read
 
-        int status = 0;
-        if (nread < 0) {
-            status = nread;
-            nread = 0;
-        }
-
+        ssize_t err = 0;
+        if (nread < 0) std::swap(err, nread);
         buf.length(nread); // set real buf len
 
-        get_handle<UVUdp*>(p)->handle_receive(buf, addr, flags, uvx_status2err(status));
+        h->handle_receive(buf, addr, flags, uvx_ce(err));
     }
 };
 

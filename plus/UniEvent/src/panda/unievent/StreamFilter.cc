@@ -38,6 +38,18 @@ void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP&
     invoke(prev, &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, req);
 }
 
+void StreamFilter::handle_read (string& buf, const CodeError* err) {
+    invoke(prev, &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
+}
+
+void StreamFilter::handle_eof () {
+    invoke(prev, &StreamFilter::handle_eof, &Stream::finalize_handle_eof);
+}
+
+void StreamFilter::handle_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+    invoke(prev, &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, req);
+}
+
 //void StreamFilter::connect (ConnectRequest* req) {
 //    if (next_) next_->connect(req);
 //    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
@@ -53,20 +65,6 @@ void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP&
 //    else       handle->do_on_write(err, req);
 //}
 //
-//void StreamFilter::on_read (string& buf, const CodeError* err) {
-//    if (prev_) prev_->on_read(buf, err);
-//    else       handle->do_on_read(buf, err);
-//}
-//
-//void StreamFilter::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-//    if (prev_) prev_->on_shutdown(err, req);
-//    else       handle->do_on_shutdown(err, req);
-//}
-//
-//void StreamFilter::on_eof () {
-//    if (prev_) prev_->on_eof();
-//    else       handle->do_on_eof();
-//}
 //
 //void StreamFilter::on_reinit () {
 //    if (prev_) prev_->on_reinit();
@@ -75,39 +73,3 @@ void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP&
 void StreamFilter::reset () {
     next->reset();
 }
-
-//void StreamFilters::connect (ConnectRequest* req) {
-//    if (size()) front()->connect(req);
-//    else        dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
-//}
-//
-//void StreamFilters::on_connect (const CodeError* err, ConnectRequest* req) {
-//    if (size()) back()->on_connect(err, req);
-//    else        handle->do_on_connect(err, req);
-//}
-//
-//void StreamFilters::write (WriteRequest* req) {
-//    if (size()) front()->write(req);
-//    else        handle->do_write(req);
-//}
-//
-//void StreamFilters::on_write (const CodeError* err, WriteRequest* req) {
-//    if (size()) back()->on_write(err, req);
-//    else        handle->do_on_write(err, req);
-//}
-//
-//void StreamFilters::on_read (string& buf, const CodeError* err) {
-//    if (size()) back()->on_read(buf, err);
-//    else        handle->do_on_read(buf, err);
-//}
-//
-//void StreamFilters::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-//    if (size()) back()->on_shutdown(err, req);
-//    else        handle->do_on_shutdown(err, req);
-//
-//}
-//
-//void StreamFilters::on_eof () {
-//    if (size()) back()->on_eof();
-//    else        handle->do_on_eof();
-//}

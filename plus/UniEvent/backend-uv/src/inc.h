@@ -5,8 +5,6 @@
 #include <panda/unievent/Error.h>
 #include <panda/unievent/backend/BackendHandle.h>
 
-#define uvx_status2err(status) (status ? static_cast<const CodeError*>(uvx_code_error(status)) : nullptr)
-
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 using panda::lib::AllocatedObject;
@@ -40,6 +38,7 @@ inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {
 }
 
 inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
+    if (!uvbuf->base) return {}; // in some cases of eof there may be no buffer
     auto buf_ptr = (string*)(uvbuf->base + uvbuf->len);
     string ret = *buf_ptr;
     buf_ptr->~string();

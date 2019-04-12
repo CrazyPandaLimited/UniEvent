@@ -35,6 +35,8 @@ struct BackendStream;
 struct IStreamListener;
 struct IConnectListener;
 struct BackendConnectRequest;
+struct IShutdownListener;
+struct BackendShutdownRequest;
 
 struct BackendPipe;
 

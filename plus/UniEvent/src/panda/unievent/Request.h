@@ -97,23 +97,6 @@ struct BufferRequest : Request {
 //    bool canceled_;
 //};
 //
-//
-//struct ShutdownRequest : Request, AllocatedObject<ShutdownRequest, true> {
-//    CallbackDispatcher<shutdown_fptr> event;
-//
-//    ShutdownRequest (shutdown_fn callback = {}) {
-//        if (callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//    }
-//
-//    Handle* handle () { return static_cast<Handle*>(uvr.handle->data); }
-//    friend uv_shutdown_t* _pex_ (ShutdownRequest*);
-//private:
-//    uv_shutdown_t uvr;
-//};
-//
 //struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
 //    CallbackDispatcher<write_fptr> event;
 //

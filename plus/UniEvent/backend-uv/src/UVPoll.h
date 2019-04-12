@@ -16,7 +16,7 @@ struct UVPoll : UVHandle<BackendPoll, uv_poll_t> {
 
     void start (int events) override {
         uvx_strict(uv_poll_start(&uvh, events, [](uv_poll_t* p, int status, int events) {
-            get_handle<UVPoll*>(p)->handle_poll(events, uvx_status2err(status));
+            get_handle<UVPoll*>(p)->handle_poll(events, uvx_ce(status));
         }));
     }
 

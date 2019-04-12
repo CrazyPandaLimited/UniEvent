@@ -42,8 +42,9 @@ struct BackendLoop {
     virtual BackendUdp*     new_udp       (IUdpListener*, int domain)   = 0;
     virtual BackendPipe*    new_pipe      (IStreamListener*, bool ipc)  = 0;
 
-    virtual BackendSendRequest*    new_send_request    (ISendListener*)    = 0;
-    virtual BackendConnectRequest* new_connect_request (IConnectListener*) = 0;
+    virtual BackendSendRequest*     new_send_request     (ISendListener*)    = 0;
+    virtual BackendConnectRequest*  new_connect_request  (IConnectListener*) = 0;
+    virtual BackendShutdownRequest* new_shutdown_request (IShutdownListener*) = 0;
 
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;
     virtual void     cancel_delay (uint64_t id) noexcept = 0;

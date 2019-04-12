@@ -35,11 +35,14 @@ sub test_serv_read_shuffling {
     });
     $p->start(sub {
 	    my $cl = new UniEvent::Pipe;
-	    $cl->connect(PIPE_PATH);
-	    $cl->shutdown();
-	    $cl->shutdown_callback(sub {
-	    	#diag "client on_shutdown @_";
+	    $cl->connect(PIPE_PATH, sub {
+	        #diag "on_connect";
+            die $_[1] if $_[1];
 	    });
+	    $cl->shutdown(sub {
+            #diag "client on_shutdown";
+            die $_[1] if $_[1];
+        });
 	    $p->stop();
 	});
     $l->run();
