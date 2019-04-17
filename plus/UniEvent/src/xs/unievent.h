@@ -136,19 +136,11 @@ struct XSPipe : Pipe, XSStream {
 
     StreamSP create_connection () override;
 
-//    void open (const Sv& sv) {
-//        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-//        io_sv = sv;
-//        Pipe::open((file_t)PerlIO_fileno(IoIFP(xs::in<IO*>(aTHX_ sv))));
-//    }
-//
-//    void open (file_t sock) override {
-//        io_sv.reset();
-//        Pipe::open(sock);
-//    }
-//
-//private:
-//    Sv io_sv;
+    void open (const Sv& sv);
+    void open (file_t sock) override;
+
+private:
+    Sv io_sv;
 };
 
 //struct XSFSEvent : FSEvent, XSHandle {

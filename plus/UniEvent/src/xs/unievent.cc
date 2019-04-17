@@ -251,6 +251,18 @@ StreamSP XSPipe::create_connection () {
     return ret;
 }
 
+void XSPipe::open (const Sv& sv) {
+    if (!sv.is_ref()) return open((file_t)SvUV(sv));
+    auto io = xs::in<IO*>(sv);
+    io_sv = (SV*)io;
+    Pipe::open((file_t)PerlIO_fileno(IoIFP(io)));
+}
+
+void XSPipe::open (file_t sock) {
+    io_sv.reset();
+    Pipe::open(sock);
+}
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
