@@ -63,14 +63,14 @@ using PipeSP = iptr<Pipe>;
 struct PipeConnectRequest;
 using PipeConnectRequestSP = iptr<PipeConnectRequest>;
 
+struct Tcp;
+using TcpSP = iptr<Tcp>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
 //
 //struct StreamFilter;
 //using StreamFilterSP = iptr<StreamFilter>;
-//
-//struct TCP;
-//using TCPSP = iptr<TCP>;
 //
 //struct TCPConnectRequest;
 //using TCPConnectRequestSP = iptr<TCPConnectRequest>;

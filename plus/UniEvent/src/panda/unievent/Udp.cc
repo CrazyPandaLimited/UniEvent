@@ -1,22 +1,10 @@
 #include "Udp.h"
-#include "SyncLoop.h"
-#include "Resolver.h"
+#include "util.h"
 using namespace panda::unievent;
 
 const HandleType Udp::TYPE("udp");
 
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, AddrInfoHints::PASSIVE);
-
-static AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, const AddrInfoHints& hints) {
-    auto l = SyncLoop::get(be);
-    AddrInfo ai;
-    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->on_resolve([&ai](const AddrInfo& res, const CodeError* err, const Resolver::RequestSP) {
-        if (err) throw *err;
-        ai = res;
-    })->run();
-    l->run();
-    return ai;
-}
 
 backend::BackendHandle* Udp::new_impl () {
     return loop()->impl()->new_udp(this, domain);
@@ -121,6 +109,7 @@ void Udp::reset () {
 void Udp::clear () {
     queue.cancel([&]{
         Handle::clear();
+        domain = AF_UNSPEC;
         buf_alloc_callback = nullptr;
         receive_event.remove_all();
         send_event.remove_all();

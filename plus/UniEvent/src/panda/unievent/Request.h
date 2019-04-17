@@ -47,13 +47,15 @@ protected:
             _handle->loop()->cancel_delay(_delay_id);
             _delay_id = 0;
         }
-        _impl->destroy();
-        _impl = nullptr;
+        if (_impl) {
+            _impl->destroy();
+            _impl = nullptr;
+        }
     }
 
     ~Request () {
         assert(!_impl);
-        if (_impl) _impl->destroy();
+        //if (_impl) _impl->destroy();
     }
 
 private:

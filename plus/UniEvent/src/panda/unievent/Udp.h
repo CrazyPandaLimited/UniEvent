@@ -68,11 +68,10 @@ protected:
 
 private:
     friend SendRequest;
+    static AddrInfoHints defhints;
 
     int   domain;
     Queue queue;
-
-    static AddrInfoHints defhints;
 
     BackendUdp* impl () const { return static_cast<BackendUdp*>(Handle::impl()); }
 

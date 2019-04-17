@@ -5,6 +5,8 @@
 namespace panda { namespace unievent {
 
 struct Pipe : virtual Stream {
+    static const HandleType TYPE;
+
     Pipe (Loop* loop = Loop::default_loop(), bool ipc = false) : _ipc(ipc) {
         _ECTOR();
         _init(loop, loop->impl()->new_pipe(this, ipc));
@@ -27,8 +29,6 @@ struct Pipe : virtual Stream {
 
     optional<string> sockname () const { return impl()->sockname(); }
     optional<string> peername () const { return impl()->peername(); }
-
-    static const HandleType TYPE;
 
 protected:
     StreamSP create_connection () override;

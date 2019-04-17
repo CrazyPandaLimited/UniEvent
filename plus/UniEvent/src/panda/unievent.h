@@ -10,9 +10,9 @@
 #include <panda/unievent/Poll.h>
 #include <panda/unievent/Udp.h>
 #include <panda/unievent/Pipe.h>
+#include <panda/unievent/Tcp.h>
 //#include <panda/unievent/FSEvent.h>
 //#include <panda/unievent/FSPoll.h>
-//#include <panda/unievent/TCP.h>
 //#include <panda/unievent/TTY.h>
 //#include <panda/unievent/Work.h>
 //#include <panda/unievent/FSRequest.h>

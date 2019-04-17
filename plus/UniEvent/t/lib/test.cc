@@ -20,34 +20,34 @@ Variation variation;
 //    return ctx;
 //}
 
-//TCPSP make_basic_server (Loop* loop, const SockAddr& sa) {
-//    TCPSP server = new TCP(loop);
-//    server->bind(sa);
-//    server->listen(1);
-//    return server;
-//}
-//
-//TCPSP make_server (Loop* loop, const SockAddr& sa) {
-//    TCPSP server = new TCP(loop);
-//    server->bind(sa);
-//    if (variation.ssl) server->use_ssl(get_ssl_ctx());
-//    server->listen(10000);
-//    return server;
-//}
-//
-//TCPSP make_client (Loop* loop, bool cached_resolver) {
-//    TCPSP client = new TCP(loop, cached_resolver);
-//
-//    if (variation.ssl) client->use_ssl();
-//
-//    if (variation.buf) {
-//        client->set_recv_buffer_size(1);
-//        client->set_send_buffer_size(1);
-//    }
-//
-//    return client;
-//}
-//
+TcpSP make_basic_server (Loop* loop, const SockAddr& sa) {
+    TcpSP server = new Tcp(loop);
+    server->bind(sa);
+    server->listen(1);
+    return server;
+}
+
+TcpSP make_server (Loop* loop, const SockAddr& sa) {
+    TcpSP server = new Tcp(loop);
+    server->bind(sa);
+    //if (variation.ssl) server->use_ssl(get_ssl_ctx());
+    server->listen(10000);
+    return server;
+}
+
+TcpSP make_client (Loop* loop, bool cached_resolver) {
+    TcpSP client = new Tcp(loop, cached_resolver);
+
+    //if (variation.ssl) client->use_ssl();
+
+    if (variation.buf) {
+        client->recv_buffer_size(1);
+        client->send_buffer_size(1);
+    }
+
+    return client;
+}
+
 //TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout) {
 //    TimerSP timer = new Timer(stream->loop());
 //    _EDEBUG("read timer %p", static_cast<Handle*>(timer.get()));

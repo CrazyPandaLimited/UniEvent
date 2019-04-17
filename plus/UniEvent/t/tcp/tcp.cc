@@ -1,31 +1,31 @@
-//#include "../lib/test.h"
-//
-//TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
-//    AsyncTest test(2000, {"error"});
-//    auto sa = test.get_refused_addr();
-//
-//    TCPSP client = make_client(test.loop);
-//    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-//        REQUIRE(err);
-//        _pex_(client)->type = UV_TCP;
-//
-//        SECTION("disconnect") {
-//            client->disconnect();
-//        }
-//        SECTION("just go") {}
-//    });
-//
-//    client->connect(sa.ip(), sa.port());
-//    _pex_(client)->type = UV_HANDLE; // make uv_handle invalid for sync error after resolving
-//
-//    client->write("123");
-//    client->disconnect();
-//
-//    auto res = test.await(client->write_event, "error");
-//    auto err = std::get<1>(res);
-//    REQUIRE(err.code() == ERRNO_ECANCELED);
-//}
-//
+#include "../lib/test.h"
+
+TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
+    AsyncTest test(2000, {"error"});
+    auto sa = test.get_refused_addr();
+
+    TcpSP client = make_client(test.loop);
+    client->connect_event.add([&](const StreamSP&, const CodeError* err, const ConnectRequestSP&) {
+        REQUIRE(err);
+        //_pex_(client)->type = UV_TCP;
+
+        SECTION("disconnect") {
+            client->disconnect();
+        }
+        SECTION("just go") {}
+    });
+
+    client->connect(sa.ip(), sa.port());
+    //_pex_(client)->type = UV_HANDLE; // make uv_handle invalid for sync error after resolving
+
+    client->write("123");
+    client->disconnect();
+
+    auto res = test.await(client->write_event, "error");
+    auto err = std::get<1>(res);
+    REQUIRE(err.code() == std::errc::operation_canceled);
+}
+
 //TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
 //    AsyncTest test(2000, {"error"});
 //    TCPSP server = make_server(test.loop);
@@ -367,4 +367,3 @@
 ////    test.loop->run();
 ////    clients.clear();
 ////}
-//

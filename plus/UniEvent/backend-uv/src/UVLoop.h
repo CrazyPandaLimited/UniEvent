@@ -58,16 +58,17 @@ struct UVLoop : BackendLoop {
         if (err) throw uvx_code_error(err);
     }
 
-    BackendTimer*   new_timer     (ITimerListener* l)             override;
-    BackendPrepare* new_prepare   (IPrepareListener* l)           override;
-    BackendCheck*   new_check     (ICheckListener* l)             override;
-    BackendIdle*    new_idle      (IIdleListener* l)              override;
-    BackendAsync*   new_async     (IAsyncListener* l)             override;
-    BackendSignal*  new_signal    (ISignalListener* l)            override;
-    BackendPoll*    new_poll_sock (IPollListener* l, sock_t sock) override;
-    BackendPoll*    new_poll_fd   (IPollListener* l, int fd)      override;
-    BackendUdp*     new_udp       (IUdpListener* l, int domain)   override;
-    BackendPipe*    new_pipe      (IStreamListener* l, bool ipc)  override;
+    BackendTimer*   new_timer     (ITimerListener*)              override;
+    BackendPrepare* new_prepare   (IPrepareListener*)            override;
+    BackendCheck*   new_check     (ICheckListener*)              override;
+    BackendIdle*    new_idle      (IIdleListener*)               override;
+    BackendAsync*   new_async     (IAsyncListener*)              override;
+    BackendSignal*  new_signal    (ISignalListener*)             override;
+    BackendPoll*    new_poll_sock (IPollListener*, sock_t sock)  override;
+    BackendPoll*    new_poll_fd   (IPollListener*, int fd)       override;
+    BackendUdp*     new_udp       (IUdpListener*, int domain)    override;
+    BackendPipe*    new_pipe      (IStreamListener*, bool ipc)   override;
+    BackendTcp*     new_tcp       (IStreamListener*, int domain) override;
 
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return _delayer.add(f, guard); }
     void     cancel_delay (uint64_t id) noexcept                                { _delayer.cancel(id); }

@@ -1,5 +1,4 @@
 #pragma once
-#include "inc.h"
 #include "UVHandle.h"
 #include <panda/unievent/backend/BackendPrepare.h>
 

@@ -90,6 +90,8 @@ struct Queue {
         if (req && !locked) req->exec();
     }
 
+    size_t size () const { return requests.size(); }
+
 private:
     using Requests = panda::lib::IntrusiveChain<RequestSP>;
     Requests  requests;

@@ -1,7 +1,5 @@
 #include <xs/unievent.h>
 #include "test.h"
-#include <panda/unievent/Loop.h>
-//#include <panda/unievent/Resolver.h>
 
 MODULE = MyTest                PACKAGE = MyTest
 PROTOTYPES: DISABLE

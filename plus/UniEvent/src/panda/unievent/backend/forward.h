@@ -41,5 +41,6 @@ struct IShutdownListener;
 struct BackendShutdownRequest;
 
 struct BackendPipe;
+struct BackendTcp;
 
 }}};

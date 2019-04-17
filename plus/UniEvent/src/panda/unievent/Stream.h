@@ -70,21 +70,11 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 
     void read_stop ();
 
-//    virtual void disconnect ();
+    virtual void disconnect ();
 
     void reset () override;
     void clear () override;
 
-//    void attach (WriteRequest* request) {
-//        // filters may hide initial request and replace it by it's own, so that initial request is never passed to uv_stream_write
-//        // and therefore won't have 'handle' property set which is required to be set before passed to 'do_on_write'
-//        _pex_(request)->handle = uvsp();
-//    }
-//
-//    void attach (ConnectRequest* request) {
-//        _pex_(request)->handle = uvsp();
-//    }
-//
 //    void use_ssl (SSL_CTX* context);
 //    void use_ssl (const SSL_METHOD* method = nullptr);
 //
@@ -101,8 +91,6 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 //    void push_behind_filter (const StreamFilterSP& filter) { filters_.insert(filters_.end(), filter); }
 
     Filters& filters () { return _filters; }
-
-//    void _close () override;
 
     optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
 
@@ -130,8 +118,6 @@ protected:
     virtual void on_eof        ();
     virtual void on_shutdown   (const CodeError* err, const ShutdownRequestSP& req);
 
-//    void on_handle_reinit () override;
-
     void set_listening   ()        { flags |= LISTENING; }
     void set_connecting  ()        { flags |= CONNECTING; }
     void set_established ()        { flags |= ESTABLISHED; }
@@ -154,7 +140,7 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest;
 
     static const uint32_t LISTENING   = 1;
     static const uint32_t CONNECTING  = 2;
@@ -194,6 +180,7 @@ private:
     CodeError _read_start ();
 };
 
+
 struct ConnectRequest : Request, private backend::IConnectListener {
     CallbackDispatcher<Stream::connect_fptr> event;
 
@@ -223,6 +210,7 @@ private:
     void cancel () override;
 };
 
+
 struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest>, private backend::IWriteListener {
     CallbackDispatcher<Stream::write_fptr> event;
 
@@ -243,6 +231,7 @@ private:
     void cancel       () override;
     void handle_write (const CodeError*) override;
 };
+
 
 struct ShutdownRequest : Request, private backend::IShutdownListener {
     CallbackDispatcher<Stream::shutdown_fptr> event;
@@ -267,6 +256,17 @@ private:
     void cancel          () override;
     void handle_shutdown (const CodeError*) override;
 };
+
+
+struct DisconnectRequest : Request {
+    DisconnectRequest (Stream* h) : handle(h) { set(h, nullptr); }
+
+private:
+    Stream* handle;
+
+    void exec () override;
+};
+
 
 inline void Stream::write (const string& data, write_fn callback) {
     auto req = new WriteRequest(data);

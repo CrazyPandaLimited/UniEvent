@@ -12,6 +12,7 @@ using namespace panda::unievent;
 using namespace panda::unievent::test;
 using ms  = std::chrono::milliseconds;
 using sec = std::chrono::seconds;
+using panda::net::SockAddr;
 
 constexpr std::chrono::milliseconds operator""_ms (unsigned long long val) { return std::chrono::milliseconds(val); }
 constexpr std::chrono::seconds      operator""_s  (unsigned long long val) { return std::chrono::seconds(val); }
@@ -46,9 +47,9 @@ void time_guard (const std::chrono::milliseconds& tmt, T fn) {
     fn();
 }
 
-//TCPSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-//TCPSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-//TCPSP make_client       (Loop* loop, bool cached_resolver = true);
+TcpSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP make_client       (Loop* loop, bool cached_resolver = true);
 
 //SSL_CTX* get_ssl_ctx ();
 

@@ -1,7 +1,19 @@
 #include "util.h"
+#include "Resolver.h"
 #include <uv.h>
 
 namespace panda { namespace unievent {
+
+AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, const AddrInfoHints& hints, bool use_cache) {
+    auto l = SyncLoop::get(be);
+    AddrInfo ai;
+    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->use_cache(use_cache)->on_resolve([&ai](const AddrInfo& res, const CodeError* err, const Resolver::RequestSP) {
+        if (err) throw *err;
+        ai = res;
+    })->run();
+    l->run();
+    return ai;
+}
 
 string hostname () {
     string ret(20);

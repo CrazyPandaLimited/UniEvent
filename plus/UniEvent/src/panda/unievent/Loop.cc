@@ -3,7 +3,6 @@
 #include "Handle.h"
 #include "Prepare.h"
 #include "Resolver.h"
-#include "SyncLoop.h"
 #include <panda/unievent/backend/uv.h>
 #include <thread>
 

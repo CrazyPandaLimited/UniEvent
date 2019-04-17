@@ -2,10 +2,13 @@
 #include "inc.h"
 #include "Error.h"
 #include "Handle.h"
+#include "AddrInfo.h"
 #include <vector>
 #include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent {
+
+AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port = 0, const AddrInfoHints& hints = {}, bool use_cache = true);
 
 panda::string hostname         ();
 size_t        get_rss          ();
@@ -64,7 +67,6 @@ struct ResourceUsage {
 };
 
 ResourceUsage get_rusage ();
-
 
 const HandleType& guess_type (file_t);
 

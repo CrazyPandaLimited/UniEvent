@@ -215,7 +215,16 @@ void Stream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
     shutdown_event(this, err, req);
 }
 
-//void Stream::disconnect () { close_reinit(asyncq_empty() && connecting() ? false : true); }
+// ===================== DISCONNECT/RESET/CLEAR ===============================
+void Stream::disconnect () {
+    if (!queue.size()) do_reset();
+    else if (queue.size() == 1 && connecting()) reset();
+    else queue.push(new DisconnectRequest(this));
+}
+
+void DisconnectRequest::exec () {
+    handle->queue.done(this, [&]{ handle->do_reset(); });
+}
 
 void Stream::reset () {
     queue.cancel([&]{ do_reset(); });
@@ -242,14 +251,6 @@ void Stream::clear () {
     });
 }
 
-//void Stream::on_handle_reinit () {
-//    _EDEBUGTHIS("on_handle_reinit");
-//    filters_.on_reinit();
-//    bool wanted_read = wantread();
-//    Handle::on_handle_reinit();
-//    if (wanted_read) set_wantread();
-//}
-//
 //void Stream::add_filter (const StreamFilterSP& filter) {
 //    assert(filter);
 //    auto it = filters_.begin();
@@ -288,9 +289,5 @@ void Stream::clear () {
 //SSL* Stream::get_ssl () const {
 //    auto filter = get_filter<ssl::SSLFilter>();
 //    return filter ? filter->get_ssl() : nullptr;
-//}
-//
-//void Stream::_close () {
-//    Handle::_close();
 //}
 //
