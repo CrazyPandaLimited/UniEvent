@@ -6,12 +6,12 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVPoll : UVHandle<BackendPoll, uv_poll_t> {
-    UVPoll (uv_loop_t* loop, IPollListener* lst, sock_t sock) : UVHandle<BackendPoll, uv_poll_t>(lst) {
-        uvx_strict(uv_poll_init_socket(loop, &uvh, sock));
+    UVPoll (UVLoop* loop, IPollListener* lst, sock_t sock) : UVHandle<BackendPoll, uv_poll_t>(loop, lst) {
+        uvx_strict(uv_poll_init_socket(loop->uvloop, &uvh, sock));
     }
 
-    UVPoll (uv_loop_t* loop, IPollListener* lst, int fd, std::nullptr_t) : UVHandle<BackendPoll, uv_poll_t>(lst) {
-        uvx_strict(uv_poll_init(loop, &uvh, fd));
+    UVPoll (UVLoop* loop, IPollListener* lst, int fd, std::nullptr_t) : UVHandle<BackendPoll, uv_poll_t>(loop, lst) {
+        uvx_strict(uv_poll_init(loop->uvloop, &uvh, fd));
     }
 
     void start (int events) override {
@@ -23,6 +23,8 @@ struct UVPoll : UVHandle<BackendPoll, uv_poll_t> {
     void stop () override {
         uvx_strict(uv_poll_stop(&uvh));
     }
+
+    optional<fd_t> fileno () const override { return uvx_fileno(uvhp()); }
 };
 
 }}}}

@@ -35,7 +35,7 @@ struct Handle : Refcnt, panda::lib::IntrusiveChainNode<Handle*> {
         _weak = value;
     }
 
-    virtual void reset () = 0; // cancel everything in handle, leaving it in initial state, except for settings and callbacks which is held
+    virtual void reset () = 0; // cancel everything in handle, leaving it in initial state, except for callbacks which is held
     virtual void clear () = 0; // full reset, return to initial state (as if handle has been just created via new())
 
     static const HandleType UNKNOWN_TYPE;
@@ -58,13 +58,6 @@ protected:
         _loop->register_handle(this);
     }
 
-    optional<fd_t> fileno () const { return _impl ? _impl->fileno() : optional<fd_t>(); }
-
-    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
-    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
-    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
-    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
-
     virtual BackendHandle* new_impl () { abort(); }
 
     BackendHandle* impl () const {
@@ -83,7 +76,7 @@ private:
 inline void Handle::reset () {
     if (!_impl) return;
     _impl->destroy();
-    _impl = new_impl();
+    _impl = nullptr;
     if (_weak) _impl->set_weak(); // preserve weak
 }
 

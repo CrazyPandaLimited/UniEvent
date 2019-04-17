@@ -34,12 +34,24 @@ void StreamFilter::handle_connection (const StreamSP& client, const CodeError* e
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
+//void StreamFilter::tcp_connect (const TCPConnectRequestSP& req) {
+//    invoke(next, &StreamFilter::tcp_connect, &TCP::finalize_connect, req);
+//}
+
 void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP& req) {
     invoke(prev, &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, req);
 }
 
 void StreamFilter::handle_read (string& buf, const CodeError* err) {
     invoke(prev, &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
+}
+
+void StreamFilter::write (const WriteRequestSP& req) {
+    invoke(next, &StreamFilter::write, &Stream::finalize_write, req);
+}
+
+void StreamFilter::handle_write (const CodeError* err, const WriteRequestSP& req) {
+    invoke(prev, &StreamFilter::handle_write, &Stream::finalize_handle_write, err, req);
 }
 
 void StreamFilter::handle_eof () {
@@ -54,17 +66,6 @@ void StreamFilter::handle_shutdown (const CodeError* err, const ShutdownRequestS
 //    if (next_) next_->connect(req);
 //    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
 //}
-//
-//void StreamFilter::write (WriteRequest* req) {
-//    if (next_) next_->write(req);
-//    else       handle->do_write(req);
-//}
-//
-//void StreamFilter::on_write (const CodeError* err, WriteRequest* req) {
-//    if (prev_) prev_->on_write(err, req);
-//    else       handle->do_on_write(err, req);
-//}
-//
 //
 //void StreamFilter::on_reinit () {
 //    if (prev_) prev_->on_reinit();

@@ -7,12 +7,12 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVSendRequest : UVRequest<BackendSendRequest, uv_udp_send_t>, AllocatedObject<UVSendRequest> {
-    UVSendRequest (ISendListener* l) : UVRequest<BackendSendRequest, uv_udp_send_t>(l) {}
+    UVSendRequest (BackendHandle* h, ISendListener* l) : UVRequest<BackendSendRequest, uv_udp_send_t>(h, l) {}
 };
 
 struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
-    UVUdp (uv_loop_t* loop, IUdpListener* lst, int domain) : UVHandle<BackendUdp, uv_udp_t>(lst) {
-        uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop, &uvh) : uv_udp_init_ex(loop, &uvh, domain));
+    UVUdp (UVLoop* loop, IUdpListener* lst, int domain) : UVHandle<BackendUdp, uv_udp_t>(loop, lst) {
+        uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop->uvloop, &uvh) : uv_udp_init_ex(loop->uvloop, &uvh, domain));
     }
 
     void open (sock_t sock) override {
@@ -30,6 +30,22 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         uvx_strict(uv_udp_connect(&uvh, addr ? addr.get() : nullptr));
     }
 
+    void recv_start () override {
+        uvx_strict(uv_udp_recv_start(&uvh, _buf_alloc, on_receive));
+    }
+
+    void recv_stop  () override {
+        uvx_strict(uv_udp_recv_stop(&uvh));
+    }
+
+    CodeError send (const std::vector<string>& bufs, const net::SockAddr& addr, BackendSendRequest* _req) override {
+        auto req = static_cast<UVSendRequest*>(_req);
+        UVX_FILL_BUFS(bufs, uvbufs);
+        auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.get(), on_send);
+        if (!err) req->active = true;
+        return uvx_ce(err);
+    }
+
     net::SockAddr sockaddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getsockname);
     }
@@ -37,6 +53,13 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
     net::SockAddr peeraddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getpeername);
     }
+
+    optional<fd_t> fileno () const override { return uvx_fileno(uvhp()); }
+
+    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(uvhp()); }
+    void recv_buffer_size (int value) override { uvx_recv_buffer_size(uvhp(), value); }
+    int  send_buffer_size ()    const override { return uvx_send_buffer_size(uvhp()); }
+    void send_buffer_size (int value) override { uvx_send_buffer_size(uvhp(), value); }
 
     void set_membership (std::string_view multicast_addr, std::string_view interface_addr, Membership membership) override {
         uv_membership uvmemb = uv_membership();
@@ -70,34 +93,10 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         uvx_strict(uv_udp_set_ttl(&uvh, ttl));
     }
 
-    CodeError send (const std::vector<string>& bufs, const net::SockAddr& addr, BackendSendRequest* _req) override {
-        auto nbufs = bufs.size();
-        uv_buf_t uvbufs[nbufs];
-        uv_buf_t* ptr = uvbufs;
-        for (const auto& str : bufs) {
-            ptr->base = (char*)str.data();
-            ptr->len  = str.length();
-            ++ptr;
-        }
-
-        auto req = static_cast<UVSendRequest*>(_req);
-        auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, nbufs, addr.get(), _on_send);
-        if (!err) req->active = true;
-        return uvx_ce(err);
-    }
-
-    void recv_start () override {
-        uvx_strict(uv_udp_recv_start(&uvh, _buf_alloc, _on_receive));
-    }
-
-    void recv_stop  () override {
-        uvx_strict(uv_udp_recv_stop(&uvh));
-    }
-
-    BackendSendRequest* new_send_request (ISendListener* l) override { return new UVSendRequest(l); }
+    BackendSendRequest* new_send_request (ISendListener* l) override { return new UVSendRequest(this, l); }
 
 private:
-    static void _on_send (uv_udp_send_t* p, int status) {
+    static void on_send (uv_udp_send_t* p, int status) {
         auto req = get_request<UVSendRequest*>(p);
         req->active = false;
         req->handle_send(uvx_ce(status));
@@ -108,7 +107,7 @@ private:
         uvx_buf_alloc(buf, uvbuf);
     }
 
-    static void _on_receive (uv_udp_t* p, ssize_t nread, const uv_buf_t* uvbuf, const struct sockaddr* addr, unsigned flags) {
+    static void on_receive (uv_udp_t* p, ssize_t nread, const uv_buf_t* uvbuf, const struct sockaddr* addr, unsigned flags) {
         auto h   = get_handle<UVUdp*>(p);
         auto buf = uvx_detach_buf(uvbuf);
 

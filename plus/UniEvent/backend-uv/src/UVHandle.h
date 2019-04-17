@@ -14,10 +14,6 @@ protected:
         uvh.data = static_cast<BackendHandle*>(this);
     }
 
-    BackendLoop* loop () const noexcept override {
-        return reinterpret_cast<BackendLoop*>(uvh.loop->data);
-    }
-
     bool active () const override {
         return uv_is_active(uvhp());
     }
@@ -30,43 +26,16 @@ protected:
         uv_ref(uvhp());
     }
 
-    optional<fd_t> fileno () const override {
-        uv_os_fd_t fd; //should be compatible type
-        int err = uv_fileno(uvhp(), &fd);
-        if (!err) return {fd};
-        if (err == UV_EBADF) return {};
-        throw uvx_code_error(err);
-    }
-
-    int recv_buffer_size () const override {
-        int ret = 0;
-        uvx_strict(uv_recv_buffer_size(uvhp(), &ret));
-        return ret;
-    }
-
-    void recv_buffer_size (int value) override {
-        uvx_strict(uv_recv_buffer_size(uvhp(), &value));
-    }
-
-    int send_buffer_size () const override {
-        int ret = 0;
-        uvx_strict(uv_send_buffer_size(uvhp(), &ret));
-        return ret;
-    }
-
-    void send_buffer_size (int value) override {
-        uvx_strict(uv_send_buffer_size(uvhp(), &value));
-    }
-
     void destroy () noexcept override {
         _EDEBUGTHIS("%s", _type_name(uvhp()));
         this->template listener = nullptr;
         uv_close(uvhp(), uvx_on_close);
     }
 
-private:
-    uv_handle_t* uvhp () const { return (uv_handle_t*)&uvh; }
+    const uv_handle_t* uvhp () const { return (const uv_handle_t*)&uvh; }
+          uv_handle_t* uvhp ()       { return (uv_handle_t*)&uvh; }
 
+private:
     static void uvx_on_close (uv_handle_t* p) {
         auto h = get_handle(p);
         _EDEBUG("[%p] %s", h, _type_name(p));

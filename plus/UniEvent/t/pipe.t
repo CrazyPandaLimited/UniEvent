@@ -1,53 +1,87 @@
-use strict;
+use 5.012;
 use warnings;
+use Socket;
 use lib 't/lib'; use MyTest;
 
 use constant PIPE_PATH => MyTest::var 'pipe';
 
-my $l = UniEvent::Loop->default_loop;
-
-my $acceptor = new UniEvent::Pipe;
-$acceptor->bind(PIPE_PATH);
-$acceptor->listen();
-my $p = new UniEvent::Prepare;
-
-TODO: {
-    ok(test_serv_read_shuffling(), "Server reads shuffling");
-}
-
-sub test_serv_read_shuffling {
-    use Devel::Peek;
-    my $client;
-    $acceptor->connection_factory(sub {
-        return $client ||= new UniEvent::Pipe;
-    });
-    $acceptor->connection_callback(sub {
-        my ($srv, undef, $err) = @_;
+subtest 'client-server' => sub {
+    my $l = UniEvent::Loop->new;
+    
+    my $srv = new UniEvent::Pipe($l);
+    $srv->bind(PIPE_PATH);
+    $srv->listen();
+    
+    like($srv->sockname, qr#/pipe#);
+    is $srv->peername, undef;
+    
+    my $conn;
+    
+    $srv->connection_callback(sub {
+        $conn = $_[1];
         #diag "Connection";
-        $client->read_start;
-        $client->eof_callback(sub {
+        $conn->eof_callback(sub {
             #diag "EOF callback started";
-            undef $client;
-            $acceptor->weak(1);
+            $srv->clear;
         });
         #diag "Issuing shutdown() now!";
-        $client->shutdown();
+        $conn->shutdown();
     });
+    
+    my $p = new UniEvent::Prepare($l);
     $p->start(sub {
-	    my $cl = new UniEvent::Pipe;
-	    $cl->connect(PIPE_PATH, sub {
+        #diag "create client";
+	    my $client = new UniEvent::Pipe($l);
+	    $client->connect(PIPE_PATH, sub {
+	        my ($client, $err) = @_;
 	        #diag "on_connect";
-            die $_[1] if $_[1];
+            is $client->sockname, "";
+	        is($client->peername, $srv->sockname);
+            die $err if $err;
 	    });
-	    $cl->shutdown(sub {
+	    $client->shutdown(sub {
             #diag "client on_shutdown";
             die $_[1] if $_[1];
         });
 	    $p->stop();
 	});
+	
     $l->run();
+    
     #diag "That's o'kay";
-    return !$client;
-}
+};
+
+subtest 'open connected socket' => sub {
+    my $l = UniEvent::Loop->new;
+
+    my $srv = new UniEvent::Pipe($l);
+    $srv->bind(PIPE_PATH);
+    $srv->listen();
+    
+    $srv->connection_callback(sub {
+        my ($srv, $conn, $err) = @_;
+        $conn->write("epta");
+        $conn->shutdown();
+    });
+    
+    socket my $sock, AF_UNIX, SOCK_STREAM, 0;
+    my $sa = pack_sockaddr_un PIPE_PATH;
+    connect($sock, $sa) or die "$!";
+    
+    my $client = new UniEvent::Pipe($l);
+    $client->open($sock);
+    
+    my $res;
+    $client->read_callback(sub {
+        my $h = shift;
+        $res = shift;
+        $h->clear;
+        $srv->clear;
+    });
+    
+    $l->run;
+    
+    is $res, "epta";
+} if $^O ne 'MSWin32';
 
 done_testing();

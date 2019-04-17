@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVSignal : UVHandle<BackendSignal, uv_signal_t> {
-    UVSignal (uv_loop_t* loop, ISignalListener* lst) : UVHandle<BackendSignal, uv_signal_t>(lst) {
-        uvx_strict(uv_signal_init(loop, &uvh));
+    UVSignal (UVLoop* loop, ISignalListener* lst) : UVHandle<BackendSignal, uv_signal_t>(loop, lst) {
+        uvx_strict(uv_signal_init(loop->uvloop, &uvh));
     }
 
     int signum () const override { return uvh.signum; }

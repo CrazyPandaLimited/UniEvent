@@ -43,8 +43,15 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     template <class It>
     /*INL*/ void send       (It begin, It end, const net::SockAddr& sa, send_fn callback = {});
 
+    optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
+
     net::SockAddr sockaddr () const { return impl()->sockaddr(); }
     net::SockAddr peeraddr () const { return impl()->peeraddr(); }
+
+    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
+    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
+    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
+    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
 
     void set_membership          (std::string_view multicast_addr, std::string_view interface_addr, Membership membership);
     void set_multicast_loop      (bool on);
@@ -52,10 +59,6 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     void set_multicast_interface (std::string_view interface_addr);
     void set_broadcast           (bool on);
     void set_ttl                 (int ttl);
-
-    using Handle::fileno;
-    using Handle::recv_buffer_size;
-    using Handle::send_buffer_size;
 
     static const HandleType TYPE;
 
@@ -87,7 +90,7 @@ struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest>, private b
 
     void set (Udp* h) {
         handle = h;
-        BufferRequest::set(h, h->loop()->impl()->new_send_request(this));
+        BufferRequest::set(h, h->impl()->new_send_request(this));
     }
 
 private:

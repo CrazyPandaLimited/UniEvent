@@ -8,7 +8,7 @@ struct IPrepareListener {
 };
 
 struct BackendPrepare : BackendHandle {
-    BackendPrepare (IPrepareListener* l) : listener(l) {}
+    BackendPrepare (BackendLoop* loop, IPrepareListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;

@@ -6,15 +6,9 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct BackendRequest {
-    virtual BackendHandle* handle () const noexcept = 0;
+    BackendHandle* handle;
 
-    template <class Func>
-    void ltry (Func&& f) {
-        try { f(); }
-        catch (...) { capture_exception(); }
-    }
-
-    void capture_exception ();
+    BackendRequest (BackendHandle* handle) : handle(handle) {}
 
     virtual void destroy () noexcept = 0;
     virtual ~BackendRequest () {}
@@ -23,31 +17,18 @@ struct BackendRequest {
 struct BackendHandle {
     static constexpr const size_t MIN_ALLOC_SIZE = 1024;
 
-    uint64_t id;
+    uint64_t     id;
+    BackendLoop* loop;
 
-    BackendHandle () : id(++last_id) {}
-
-    virtual BackendLoop* loop () const noexcept = 0;
+    BackendHandle (BackendLoop* loop) : id(++last_id), loop(loop) {}
 
     virtual bool active () const = 0;
 
     virtual void set_weak   () = 0;
     virtual void unset_weak () = 0;
 
-    virtual optional<fd_t> fileno () const = 0;
-
-    virtual int  recv_buffer_size () const    = 0;
-    virtual void recv_buffer_size (int value) = 0;
-    virtual int  send_buffer_size () const    = 0;
-    virtual void send_buffer_size (int value) = 0;
-
     template <class Func>
-    void ltry (Func&& f) {
-        try { f(); }
-        catch (...) { capture_exception(); }
-    }
-
-    void capture_exception ();
+    void ltry (Func&& f) { loop->ltry(f); }
 
     virtual void destroy () noexcept = 0;
 

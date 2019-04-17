@@ -8,7 +8,7 @@ struct ISignalListener {
 };
 
 struct BackendSignal : BackendHandle {
-    BackendSignal (ISignalListener* l) : listener(l) {}
+    BackendSignal (BackendLoop* loop, ISignalListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual int signum () const = 0;
 

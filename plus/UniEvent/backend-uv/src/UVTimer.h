@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVTimer : UVHandle<BackendTimer, uv_timer_t> {
-    UVTimer (uv_loop_t* loop, ITimerListener* lst) : UVHandle<BackendTimer, uv_timer_t>(lst) {
-        uv_timer_init(loop, &uvh);
+    UVTimer (UVLoop* loop, ITimerListener* lst) : UVHandle<BackendTimer, uv_timer_t>(loop, lst) {
+        uv_timer_init(loop->uvloop, &uvh);
     }
 
     void start (uint64_t repeat, uint64_t initial) override {

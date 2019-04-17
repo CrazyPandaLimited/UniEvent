@@ -13,10 +13,6 @@ struct UVRequest : Base {
         uvr.data = static_cast<BackendRequest*>(this);
     }
 
-    BackendHandle* handle () const noexcept override {
-        return get_handle(uvr.handle);
-    }
-
     void destroy () noexcept override {
         if (active) set_stub(&uvr.cb); // cant make uv request stop, so remove as it completes
         else delete this;

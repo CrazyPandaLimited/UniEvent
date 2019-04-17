@@ -5,7 +5,7 @@ const HandleType Handle::UNKNOWN_TYPE("unknown");
 
 Handle::~Handle () {
     _loop->unregister_handle(this);
-    _impl->destroy();
+    if (_impl) _impl->destroy();
 }
 
 std::ostream& operator<< (std::ostream& out, const HandleType& type) {

@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVPrepare : UVHandle<BackendPrepare, uv_prepare_t> {
-    UVPrepare (uv_loop_t* loop, IPrepareListener* lst) : UVHandle<BackendPrepare, uv_prepare_t>(lst) {
-        uv_prepare_init(loop, &uvh);
+    UVPrepare (UVLoop* loop, IPrepareListener* lst) : UVHandle<BackendPrepare, uv_prepare_t>(loop, lst) {
+        uv_prepare_init(loop->uvloop, &uvh);
     }
 
     void start () override {

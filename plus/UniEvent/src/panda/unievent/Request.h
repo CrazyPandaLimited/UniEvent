@@ -38,15 +38,15 @@ protected:
        If called separately by user, will only do "visible" cancellation (user callback being called with canceled status),
        but backend will continue to run the request and the next request will only be started afterwards */
     virtual void cancel () {
-        if (_delay_id) {
-            _handle->loop()->cancel_delay(_delay_id);
-            _delay_id = 0;
-        }
         detach();
     }
 
     // detach from backend. Backend won't call the callback then request is completed
     void detach () {
+        if (_delay_id) {
+            _handle->loop()->cancel_delay(_delay_id);
+            _delay_id = 0;
+        }
         _impl->destroy();
         _impl = nullptr;
     }
@@ -97,44 +97,5 @@ struct BufferRequest : Request {
 //    bool canceled_;
 //};
 //
-//struct WriteRequest : BufferRequest, AllocatedObject<WriteRequest, true> {
-//    CallbackDispatcher<write_fptr> event;
-//
-//    WriteRequest (write_fn callback = {}) {
-//        if(callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//        _ECTOR();
-//    }
-//
-//    WriteRequest (const string& data, write_fn callback = {}) : BufferRequest(data)  {
-//        if (callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//        _ECTOR();
-//    }
-//
-//    template <class It>
-//    WriteRequest (It begin, It end, write_fn callback = {}) : BufferRequest(begin, end) {
-//        if(callback) {
-//            event.add(callback);
-//        }
-//        _init(&uvr);
-//        _ECTOR();
-//    }
-//
-//    Handle* handle () const { return static_cast<Handle*>(uvr.handle->data); }
-//
-//    virtual ~WriteRequest () {
-//        _EDTOR();
-//    }
-//    friend uv_write_t* _pex_ (WriteRequest*);
-//    friend struct Stream;
-//
-//private:
-//    uv_write_t uvr;
-//};
 
 }}

@@ -134,8 +134,8 @@ protected:
 struct XSPipe : Pipe, XSStream {
     XSPipe (Loop* loop, bool ipc) : Pipe(loop, ipc) {}
 
-//    StreamSP on_create_connection () override;
-//
+    StreamSP create_connection () override;
+
 //    void open (const Sv& sv) {
 //        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
 //        io_sv = sv;

@@ -6,9 +6,6 @@
 #include "Request.h"
 #include "StreamFilter.h"
 #include "backend/BackendStream.h"
-//#include <new>
-//#include <algorithm>
-//#include <panda/lib/memory.h>
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
@@ -58,9 +55,11 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 
     void         listen   (int backlog) { listen(nullptr, backlog); }
     virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
-    virtual void accept   (const StreamSP& stream);
-//    virtual void write      (WriteRequest* req);
-    virtual void shutdown (const ShutdownRequestSP& req);
+    virtual void write    (const WriteRequestSP&);
+    /*INL*/ void write    (const string& buf, write_fn callback = nullptr);
+    template <class It>
+    /*INL*/ void write    (It begin, It end, write_fn callback = nullptr);
+    virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
 
     void read_start () {
@@ -76,12 +75,6 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     void reset () override;
     void clear () override;
 
-//
-//    void write (const string& buf, write_fn callback = nullptr) { write(new WriteRequest(buf, callback)); }
-//
-//    template <class It>
-//    void write (It begin, It end, write_fn callback = nullptr) { write(new WriteRequest(begin, end, callback)); }
-//
 //    void attach (WriteRequest* request) {
 //        // filters may hide initial request and replace it by it's own, so that initial request is never passed to uv_stream_write
 //        // and therefore won't have 'handle' property set which is required to be set before passed to 'do_on_write'
@@ -110,14 +103,13 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     Filters& filters () { return _filters; }
 
 //    void _close () override;
-//
-//    void do_write (WriteRequest* req);
-//
-//    virtual void     on_write             (const CodeError* err, WriteRequest* req);
 
-    using Handle::fileno;
-    using Handle::recv_buffer_size;
-    using Handle::send_buffer_size;
+    optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
+
+    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
+    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
+    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
+    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
 
 protected:
     Queue queue;
@@ -126,22 +118,43 @@ protected:
         _ECTOR();
     }
 
-    void accept();
+    virtual void accept ();
+    virtual void accept (const StreamSP& client);
 
     virtual StreamSP create_connection () = 0;
 
     virtual void on_connection (const StreamSP& client, const CodeError* err);
     virtual void on_connect    (const CodeError* err, const ConnectRequestSP& req);
     virtual void on_read       (string& buf, const CodeError* err);
+    virtual void on_write      (const CodeError* err, const WriteRequestSP& req);
     virtual void on_eof        ();
     virtual void on_shutdown   (const CodeError* err, const ShutdownRequestSP& req);
 
 //    void on_handle_reinit () override;
 
+    void set_listening   ()        { flags |= LISTENING; }
+    void set_connecting  ()        { flags |= CONNECTING; }
+    void set_established ()        { flags |= ESTABLISHED; }
+
+    CodeError set_connected   (bool ok) {
+        flags &= ~CONNECTING;
+        if (ok) {
+            flags |= CONNECTED|ESTABLISHED;
+            if (wantread()) return _read_start();
+        }
+        else flags &= ~CONNECTED;
+        return {};
+    }
+
+    void set_wantread (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
+    void set_reading  (bool on) { on ? (flags |= READING) : (flags &= ~READING); }
+    void set_shutting ()        { flags |= SHUTTING; }
+    void set_shutdown (bool ok) { flags &= ~SHUTTING; ok ? (flags |= SHUT) : (flags &= ~SHUT); }
+
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend ShutdownRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest;
 
     static const uint32_t LISTENING   = 1;
     static const uint32_t CONNECTING  = 2;
@@ -159,15 +172,6 @@ private:
 
     bool reading () const { return flags & READING; }
 
-    void set_listening   ()        { flags |= LISTENING; }
-    void set_connecting  ()        { flags |= CONNECTING; }
-    void set_established ()        { flags |= ESTABLISHED; }
-    void set_connected   (bool ok) { flags &= ~CONNECTING; ok ? (flags |= CONNECTED) : (flags &= ~CONNECTED); }
-    void set_wantread    (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
-    void set_reading     (bool on) { on ? (flags |= READING) : (flags &= ~READING); }
-    void set_shutting    ()        { flags |= SHUTTING; }
-    void set_shutdown    (bool ok) { flags &= ~SHUTTING; ok ? (flags |= SHUT) : (flags &= ~SHUT); }
-
     template <class T1, class T2, class...Args>
     void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
         if (filter) (filter->*filter_method)(std::forward<Args>(args)...);
@@ -179,6 +183,8 @@ private:
     void finalize_handle_connect    (const CodeError*, const ConnectRequestSP&);
     void handle_read                (string&, const CodeError*) override;
     void finalize_handle_read       (string& buf, const CodeError* err) { on_read(buf, err); }
+    void finalize_write             (const WriteRequestSP&);
+    void finalize_handle_write      (const CodeError*, const WriteRequestSP&);
     void handle_eof                 () override;
     void finalize_handle_eof        () { set_connected(false); on_eof(); }
     void finalize_handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
@@ -186,8 +192,6 @@ private:
     void do_reset ();
 
     CodeError _read_start ();
-
-//    void do_on_write      (const CodeError* err, WriteRequest* write_request);
 };
 
 struct ConnectRequest : Request, private backend::IConnectListener {
@@ -201,15 +205,9 @@ protected:
 
     backend::BackendConnectRequest* impl () const { return static_cast<backend::BackendConnectRequest*>(_impl); }
 
-    //    ~ConnectRequest ();
-    //
-    //    void set_timer(Timer* timer);
-    //
-    //    void release_timer();
-
     void set (Stream* h) {
         handle = h;
-        Request::set(h, h->loop()->impl()->new_connect_request(this));
+        Request::set(h, h->impl()->new_connect_request(this));
     }
 
     void exec           () override;
@@ -225,6 +223,27 @@ private:
     void cancel () override;
 };
 
+struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest>, private backend::IWriteListener {
+    CallbackDispatcher<Stream::write_fptr> event;
+
+    using BufferRequest::BufferRequest;
+
+private:
+    friend Stream;
+    Stream* handle;
+
+    void set (Stream* h) {
+        handle = h;
+        Request::set(h, h->impl()->new_write_request(this));
+    }
+
+    backend::BackendWriteRequest* impl () const { return static_cast<backend::BackendWriteRequest*>(_impl); }
+
+    void exec         () override;
+    void cancel       () override;
+    void handle_write (const CodeError*) override;
+};
+
 struct ShutdownRequest : Request, private backend::IShutdownListener {
     CallbackDispatcher<Stream::shutdown_fptr> event;
 
@@ -235,12 +254,11 @@ struct ShutdownRequest : Request, private backend::IShutdownListener {
 
 private:
     friend Stream;
-
     Stream* handle;
 
     void set (Stream* h) {
         handle = h;
-        Request::set(h, h->loop()->impl()->new_shutdown_request(this));
+        Request::set(h, h->impl()->new_shutdown_request(this));
     }
 
     backend::BackendShutdownRequest* impl () const { return static_cast<backend::BackendShutdownRequest*>(_impl); }
@@ -250,6 +268,18 @@ private:
     void handle_shutdown (const CodeError*) override;
 };
 
+inline void Stream::write (const string& data, write_fn callback) {
+    auto req = new WriteRequest(data);
+    if (callback) req->event.add(callback);
+    write(req);
+}
+
+template <class It>
+inline void Stream::write (It begin, It end, write_fn callback) {
+    auto req = new WriteRequest(begin, end);
+    if (callback) req->event.add(callback);
+    write(req);
+}
 
 inline void Stream::shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
 

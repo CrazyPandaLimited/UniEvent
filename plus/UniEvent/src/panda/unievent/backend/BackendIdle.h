@@ -8,7 +8,7 @@ struct IIdleListener {
 };
 
 struct BackendIdle : BackendHandle {
-    BackendIdle (IIdleListener* l) : listener(l) {}
+    BackendIdle (BackendLoop* loop, IIdleListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;

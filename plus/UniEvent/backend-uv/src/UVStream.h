@@ -7,19 +7,24 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVConnectRequest : UVRequest<BackendConnectRequest, uv_connect_t>, AllocatedObject<UVConnectRequest> {
-    UVConnectRequest (IConnectListener* l) : UVRequest<BackendConnectRequest, uv_connect_t>(l) {}
+    UVConnectRequest (BackendHandle* h, IConnectListener* l) : UVRequest<BackendConnectRequest, uv_connect_t>(h, l) {}
+};
+
+struct UVWriteRequest : UVRequest<BackendWriteRequest, uv_write_t>, AllocatedObject<UVWriteRequest> {
+    UVWriteRequest (BackendHandle* h, IWriteListener* l) : UVRequest<BackendWriteRequest, uv_write_t>(h, l) {}
 };
 
 struct UVShutdownRequest : UVRequest<BackendShutdownRequest, uv_shutdown_t>, AllocatedObject<UVShutdownRequest> {
-    UVShutdownRequest (IShutdownListener* l) : UVRequest<BackendShutdownRequest, uv_shutdown_t>(l) {}
+    UVShutdownRequest (BackendHandle* h, IShutdownListener* l) : UVRequest<BackendShutdownRequest, uv_shutdown_t>(h, l) {}
 };
 
 template <class Base, class UvReq>
 struct UVStream : UVHandle<Base, UvReq> {
-    UVStream (IStreamListener* lst) : UVHandle<Base, UvReq>(lst) {}
+    UVStream (UVLoop* loop, IStreamListener* lst) : UVHandle<Base, UvReq>(loop, lst) {}
 
-    bool readable () const noexcept override { return uv_is_readable(uvsp()); }
-    bool writable () const noexcept override { return uv_is_writable(uvsp()); }
+    BackendConnectRequest*  new_connect_request  (IConnectListener* l)  override { return new UVConnectRequest(this, l); }
+    BackendWriteRequest*    new_write_request    (IWriteListener* l)    override { return new UVWriteRequest(this, l); }
+    BackendShutdownRequest* new_shutdown_request (IShutdownListener* l) override { return new UVShutdownRequest(this, l); }
 
     void listen (int backlog) override {
         uvx_strict(uv_listen(uvsp(), backlog, on_connection));
@@ -38,12 +43,30 @@ struct UVStream : UVHandle<Base, UvReq> {
         uv_read_stop(uvsp());
     }
 
+    CodeError write (const std::vector<string>& bufs, BackendWriteRequest* _req) {
+        auto req = static_cast<UVWriteRequest*>(_req);
+        UVX_FILL_BUFS(bufs, uvbufs);
+        auto err = uv_write(&req->uvr, uvsp(), uvbufs, bufs.size(), on_write);
+        if (!err) req->active = true;
+        return uvx_ce(err);
+    }
+
     CodeError shutdown (BackendShutdownRequest* _req) {
         auto req = static_cast<UVShutdownRequest*>(_req);
         int err = uv_shutdown(&req->uvr, uvsp(), on_shutdown);
         if (!err) req->active = true;
         return uvx_ce(err);
     }
+
+    optional<fd_t> fileno () const override { return uvx_fileno(this->template uvhp()); }
+
+    bool readable () const noexcept override { return uv_is_readable(uvsp()); }
+    bool writable () const noexcept override { return uv_is_writable(uvsp()); }
+
+    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(this->template uvhp()); }
+    void recv_buffer_size (int value) override { uvx_recv_buffer_size(this->template uvhp(), value); }
+    int  send_buffer_size ()    const override { return uvx_send_buffer_size(this->template uvhp()); }
+    void send_buffer_size (int value) override { uvx_send_buffer_size(this->template uvhp(), value); }
 
 protected:
     static void on_connect (uv_connect_t* p, int status) {
@@ -79,6 +102,12 @@ private:
 
         buf.length(nread); // set real buf len
         h->handle_read(buf, uvx_ce(err));
+    }
+
+    static void on_write (uv_write_t* p, int status) {
+        auto req = get_request<UVWriteRequest*>(p);
+        req->active = false;
+        req->handle_write(uvx_ce(status));
     }
 
     static void on_shutdown (uv_shutdown_t* p, int status) {

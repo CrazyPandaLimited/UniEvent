@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVIdle : UVHandle<BackendIdle, uv_idle_t> {
-    UVIdle (uv_loop_t* loop, IIdleListener* lst) : UVHandle<BackendIdle, uv_idle_t>(lst) {
-        uv_idle_init(loop, &uvh);
+    UVIdle (UVLoop* loop, IIdleListener* lst) : UVHandle<BackendIdle, uv_idle_t>(loop, lst) {
+        uv_idle_init(loop->uvloop, &uvh);
     }
 
     void start () override {

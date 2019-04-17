@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVCheck : UVHandle<BackendCheck, uv_check_t> {
-    UVCheck (uv_loop_t* loop, ICheckListener* lst) : UVHandle<BackendCheck, uv_check_t>(lst) {
-        uv_check_init(loop, &uvh);
+    UVCheck (UVLoop* loop, ICheckListener* lst) : UVHandle<BackendCheck, uv_check_t>(loop, lst) {
+        uv_check_init(loop->uvloop, &uvh);
     }
 
     void start () override {

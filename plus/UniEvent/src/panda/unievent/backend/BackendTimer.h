@@ -8,7 +8,7 @@ struct ITimerListener {
 };
 
 struct BackendTimer : BackendHandle {
-    BackendTimer (ITimerListener* l) : listener(l) {}
+    BackendTimer (BackendLoop* loop, ITimerListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual void     start  (uint64_t repeat, uint64_t initial) = 0;
     virtual void     stop   () noexcept = 0;

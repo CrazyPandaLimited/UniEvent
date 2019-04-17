@@ -6,8 +6,8 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVAsync : UVHandle<BackendAsync, uv_async_t> {
-    UVAsync (uv_loop_t* loop, IAsyncListener* lst) : UVHandle<BackendAsync, uv_async_t>(lst) {
-        int err = uv_async_init(loop, &uvh, [](uv_async_t* p){
+    UVAsync (UVLoop* loop, IAsyncListener* lst) : UVHandle<BackendAsync, uv_async_t>(loop, lst) {
+        int err = uv_async_init(loop->uvloop, &uvh, [](uv_async_t* p){
             get_handle<UVAsync*>(p)->handle_async();
         });
         if (err) throw uvx_code_error(err);

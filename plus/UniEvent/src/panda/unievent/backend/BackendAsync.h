@@ -8,7 +8,7 @@ struct IAsyncListener {
 };
 
 struct BackendAsync : BackendHandle {
-    BackendAsync (IAsyncListener* l) : listener(l) {}
+    BackendAsync (BackendLoop* loop, IAsyncListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual void send () = 0;
 

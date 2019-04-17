@@ -8,7 +8,7 @@ struct ICheckListener {
 };
 
 struct BackendCheck : BackendHandle {
-    BackendCheck (ICheckListener* l) : listener(l) {}
+    BackendCheck (BackendLoop* loop, ICheckListener* lst) : BackendHandle(loop), listener(lst) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;

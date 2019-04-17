@@ -245,11 +245,11 @@ void XSStream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) 
 }
 
 
-//StreamSP XSPipe::on_create_connection () {
-//    PipeSP ret = make_backref<XSPipe>(ipc, loop());
-//    xs::out<Pipe*>(ret.get());
-//    return ret;
-//}
+StreamSP XSPipe::create_connection () {
+    PipeSP ret = make_backref<XSPipe>(loop(), ipc());
+    xs::out(ret.get()); // fill backref
+    return ret;
+}
 
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);

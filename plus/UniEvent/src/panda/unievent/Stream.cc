@@ -42,14 +42,13 @@ void Stream::accept (const StreamSP& client) {
     if (!err) {
         client->set_connecting();
         client->set_established();
-        if (client->wantread()) err = client->_read_start();
     }
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
 void Stream::finalize_handle_connection (const StreamSP& client, const CodeError* err) {
     _EDEBUGTHIS("err: %d, client: %p", err ? err->code().value() : 0, client.get());
-    client->set_connected(!err);
+    err = client->set_connected(!err);
     on_connection(client, err);
 }
 
@@ -77,10 +76,7 @@ void ConnectRequest::cancel () {
 
 void ConnectRequest::handle_connect (const CodeError* err) {
     _EDEBUGTHIS();
-    if (!err) {
-        handle->set_established();
-        if (handle->wantread()) err = handle->_read_start();
-    }
+    if (!err) handle->set_established();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
 }
 
@@ -88,7 +84,7 @@ void Stream::finalize_handle_connect (const CodeError* err, const ConnectRequest
     _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
 
     req->timer = nullptr;
-    set_connected(!err);
+    err = set_connected(!err);
 
     if (!err) {
         queue.done(req, [&]{
@@ -133,6 +129,45 @@ void Stream::handle_read (string& buf, const CodeError* err) {
 
 void Stream::on_read (string& buf, const CodeError* err) {
     read_event(this, buf, err);
+}
+
+// ===================== WRITE ===============================
+void Stream::write (const WriteRequestSP& req) {
+    _EDEBUGTHIS("req: %p", req.get());
+    req->set(this);
+    queue.push(req);
+}
+
+void WriteRequest::exec () {
+    _EDEBUGTHIS();
+    handle->invoke(handle->_filters.front(), &StreamFilter::write, &Stream::finalize_write, this);
+}
+
+void Stream::finalize_write (const WriteRequestSP& req) {
+    _EDEBUGTHIS();
+    auto err = impl()->write(req->bufs, req->impl());
+    if (err) return req->delay([=]{ req->handle_write(err); });
+}
+
+void WriteRequest::cancel () {
+    handle_write(CodeError(std::errc::operation_canceled));
+}
+
+void WriteRequest::handle_write (const CodeError* err) {
+    _EDEBUGTHIS();
+    handle->invoke(handle->_filters.back(), &StreamFilter::handle_write, &Stream::finalize_handle_write, err, this);
+}
+
+void Stream::finalize_handle_write (const CodeError* err, const WriteRequestSP& req) {
+    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+    queue.done(req, [&]{
+        req->event(this, err, req);
+        on_write(err, req);
+    });
+}
+
+void Stream::on_write (const CodeError* err, const WriteRequestSP& req) {
+    write_event(this, err, req);
 }
 
 // ===================== EOF ===============================
@@ -180,76 +215,6 @@ void Stream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
     shutdown_event(this, err, req);
 }
 
-//ConnectRequest::~ConnectRequest() {
-//    release_timer();
-//}
-//
-//void ConnectRequest::set_timer(Timer* timer) {
-//    timer_ = timer;
-//    timer_->retain();
-//    _EDEBUGTHIS("set timer %p", timer_);
-//}
-//
-//void ConnectRequest::release_timer() {
-//    _EDEBUGTHIS("%p", timer_);
-//    if(timer_) {
-//        timer_->stop();
-//        timer_->release();
-//        timer_ = nullptr;
-//    }
-//}
-//
-//void Stream::uvx_on_write (uv_write_t* uvreq, int status) {
-//    WriteRequest* r = rcast<WriteRequest*>(uvreq);
-//    Stream* h = hcast<Stream*>(uvreq->handle);
-//    _EDEBUG("[%p] uvx_on_write, err: %d", h, status);
-//    h->filters_.on_write(CodeError(status), r);
-//}
-//
-//void Stream::do_on_write (const CodeError* err, WriteRequest* write_request) {
-//    _EDEBUGTHIS("on_write, err: %d, handle: %p, request: %p", err ? err->code() : 0, this, write_request);
-//    {
-//        auto guard = lock_in_callback();
-//        write_request->event(this, err, write_request);
-//        on_write(err, write_request);
-//    }
-//    write_request->release();
-//    release();
-//}
-//
-//void Stream::write (WriteRequest* req) {
-//    _EDEBUGTHIS("write, locked %d", (int)async_locked());
-//    if (async_locked()) {
-//        asyncq_push(new CommandWrite(this, req));
-//        return;
-//    }
-//
-//    _pex_(req)->handle = uvsp();
-//    req->retain();
-//    retain();
-//
-//    filters_.write(req);
-//}
-//
-//void Stream::do_write (WriteRequest* req) {
-//    auto nbufs = req->bufs.size();
-//    uv_buf_t uvbufs[nbufs];
-//    uv_buf_t* ptr = uvbufs;
-//    for (const auto& str : req->bufs) {
-//        ptr->base = (char*)str.data();
-//        ptr->len  = str.length();
-//        ++ptr;
-//    }
-//
-//    int err = uv_write(_pex_(req), uvsp(), uvbufs, nbufs, uvx_on_write);
-//    if (err) {
-//        Prepare::call_soon([=] {
-//            filters_.on_write(CodeError(err), req);
-//        }, loop());
-//    }
-//}
-//
-//
 //void Stream::disconnect () { close_reinit(asyncq_empty() && connecting() ? false : true); }
 
 void Stream::reset () {
@@ -329,6 +294,3 @@ void Stream::clear () {
 //    Handle::_close();
 //}
 //
-//void Stream::on_write (const CodeError* err, WriteRequest* req) {
-//    write_event(this, err, req);
-//}
