@@ -35,8 +35,8 @@ TcpSP make_server (Loop* loop, const SockAddr& sa) {
     return server;
 }
 
-TcpSP make_client (Loop* loop, bool cached_resolver) {
-    TcpSP client = new Tcp(loop, cached_resolver);
+TcpSP make_client (Loop* loop) {
+    TcpSP client = new Tcp(loop);
 
     //if (variation.ssl) client->use_ssl();
 

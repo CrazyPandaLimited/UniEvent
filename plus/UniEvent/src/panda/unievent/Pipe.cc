@@ -13,7 +13,10 @@ backend::BackendHandle* Pipe::new_impl () {
 
 void Pipe::open (file_t file) {
     impl()->open(file);
-    if (peername()) set_connected(true);
+    if (peername()) {
+        auto err = set_connect_result(CodeError());
+        if (err) throw err;
+    }
 }
 
 void Pipe::bind (string_view name) {

@@ -20,20 +20,32 @@ struct UVTcp : UVStream<BackendTcp, uv_tcp_t> {
         uvx_strict(uv_tcp_bind(&uvh, addr.get(), uv_flags));
     }
 
-//    virtual CodeError connect (std::string_view name, BackendConnectRequest* _req) override {
-//        UE_NULL_TERMINATE(name, name_str);
-//        auto req = static_cast<UVConnectRequest*>(_req);
-//        uv_pipe_connect(&req->uvr, &uvh, name_str, on_connect);
-//        req->active = true;
-//        return {};
-//    }
-//
-//    optional<string> sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
-//    optional<string> peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
-//
-//    void pending_instances (int count) override {
-//        uv_pipe_pending_instances(&uvh, count);
-//    }
+    virtual CodeError connect (const net::SockAddr& addr, BackendConnectRequest* _req) override {
+        auto req = static_cast<UVConnectRequest*>(_req);
+        auto err = uv_tcp_connect(&req->uvr, &uvh, addr.get(), on_connect);
+        if (!err) req->active = true;
+        return uvx_ce(err);
+    }
+
+    net::SockAddr sockaddr () const override {
+        return uvx_sockaddr(&uvh, &uv_tcp_getsockname);
+    }
+
+    net::SockAddr peeraddr () const override {
+        return uvx_sockaddr(&uvh, &uv_tcp_getpeername);
+    }
+
+    void set_nodelay (bool enable) override {
+        uvx_strict(uv_tcp_nodelay(&uvh, enable));
+    }
+
+    void set_keepalive (bool enable, unsigned delay) override {
+        uvx_strict(uv_tcp_keepalive(&uvh, enable, delay));
+    }
+
+    void set_simultaneous_accepts (bool enable) override {
+        uvx_strict(uv_tcp_simultaneous_accepts(&uvh, enable));
+    }
 };
 
 }}}}

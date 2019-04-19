@@ -66,21 +66,20 @@ using PipeConnectRequestSP = iptr<PipeConnectRequest>;
 struct Tcp;
 using TcpSP = iptr<Tcp>;
 
+struct TcpConnectRequest;
+using TcpConnectRequestSP = iptr<TcpConnectRequest>;
+
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
 //
 //struct StreamFilter;
 //using StreamFilterSP = iptr<StreamFilter>;
-//
-//struct TCPConnectRequest;
-//using TCPConnectRequestSP = iptr<TCPConnectRequest>;
-//
+
 //struct AddressRotator;
 //using AddressRotatorSP = iptr<AddressRotator>;
 //
 //struct Socks;
 //using SocksSP = iptr<Socks>;
 //
-//struct TCPConnectAutoBuilder;
 
 }}

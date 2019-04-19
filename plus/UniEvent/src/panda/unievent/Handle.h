@@ -46,11 +46,11 @@ protected:
 
     mutable BackendHandle* _impl;
 
-    Handle () : _impl(), _weak(false) {
-        _ECTOR();
-    }
-
+    Handle () : _impl(), _weak(false) { _ECTOR(); }
+    Handle (const Handle&) = delete;
     ~Handle ();
+
+    Handle& operator= (const Handle&) = delete;
 
     void _init (const LoopSP& loop, BackendHandle* impl = nullptr) {
         _impl = impl;

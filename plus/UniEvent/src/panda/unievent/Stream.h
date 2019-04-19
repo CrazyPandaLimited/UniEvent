@@ -118,18 +118,20 @@ protected:
     virtual void on_eof        ();
     virtual void on_shutdown   (const CodeError* err, const ShutdownRequestSP& req);
 
-    void set_listening   ()        { flags |= LISTENING; }
-    void set_connecting  ()        { flags |= CONNECTING; }
-    void set_established ()        { flags |= ESTABLISHED; }
+    void set_listening   () { flags |= LISTENING; }
+    void set_connecting  () { flags |= CONNECTING; }
+    void set_established () { flags |= ESTABLISHED; }
 
-    CodeError set_connected   (bool ok) {
+    CodeError set_connect_result (const CodeError* err) {
+        set_connected(!err);
+        if (!err && wantread()) return _read_start();
+        else return *err;
+    }
+
+    void set_connected (bool ok) {
         flags &= ~CONNECTING;
-        if (ok) {
-            flags |= CONNECTED|ESTABLISHED;
-            if (wantread()) return _read_start();
-        }
-        else flags &= ~CONNECTED;
-        return {};
+        if (ok) flags |= CONNECTED|ESTABLISHED;
+        else    flags &= ~CONNECTED;
     }
 
     void set_wantread (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
@@ -154,7 +156,7 @@ private:
     uint8_t flags;
     Filters _filters;
 
-    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(_impl); }
+    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(Handle::impl()); }
 
     bool reading () const { return flags & READING; }
 
@@ -175,7 +177,8 @@ private:
     void finalize_handle_eof        () { set_connected(false); on_eof(); }
     void finalize_handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
 
-    void do_reset ();
+    void _reset ();
+    void _clear ();
 
     CodeError _read_start ();
 };
@@ -185,7 +188,13 @@ struct ConnectRequest : Request, private backend::IConnectListener {
     CallbackDispatcher<Stream::connect_fptr> event;
 
 protected:
-    ConnectRequest (Stream::connect_fn callback, uint64_t timeout = 0) : timeout(timeout), handle(nullptr) {
+    uint64_t timeout;
+    TimerSP  timer;
+    Stream*  handle;
+
+    friend Stream;
+
+    ConnectRequest (Stream::connect_fn callback = {}, uint64_t timeout = 0) : timeout(timeout), handle(nullptr) {
         _ECTOR();
         if (callback) event.add(callback);
     }
@@ -197,17 +206,9 @@ protected:
         Request::set(h, h->impl()->new_connect_request(this));
     }
 
-    void exec           () override;
+    void exec           () override = 0;
+    void cancel         () override;
     void handle_connect (const CodeError*) override;
-
-private:
-    friend Stream;
-
-    uint64_t timeout;
-    TimerSP  timer;
-    Stream*  handle;
-
-    void cancel () override;
 };
 
 
@@ -259,12 +260,16 @@ private:
 
 
 struct DisconnectRequest : Request {
-    DisconnectRequest (Stream* h) : handle(h) { set(h, nullptr); }
+    DisconnectRequest (Stream* h) : handle(h) {
+        _ECTOR();
+        set(h, nullptr);
+    }
 
 private:
     Stream* handle;
 
-    void exec () override;
+    void exec   () override;
+    void cancel () override;
 };
 
 

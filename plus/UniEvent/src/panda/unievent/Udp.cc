@@ -88,7 +88,6 @@ void SendRequest::exec () {
 }
 
 void SendRequest::cancel () {
-    Request::cancel();
     handle_send(CodeError(std::errc::operation_canceled));
 }
 

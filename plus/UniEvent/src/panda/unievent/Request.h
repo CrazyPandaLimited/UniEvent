@@ -37,12 +37,10 @@ protected:
     /* this is private API, as there is no way of stopping request inside backend in general case. usually called during reset()
        If called separately by user, will only do "visible" cancellation (user callback being called with canceled status),
        but backend will continue to run the request and the next request will only be started afterwards */
-    virtual void cancel () {
-        detach();
-    }
+    virtual void cancel () = 0;
 
-    // detach from backend. Backend won't call the callback then request is completed
-    void detach () {
+    // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)
+    void finish_exec () {
         if (_delay_id) {
             _handle->loop()->cancel_delay(_delay_id);
             _delay_id = 0;

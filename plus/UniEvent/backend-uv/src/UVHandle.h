@@ -11,6 +11,7 @@ protected:
 
     template <class...Args>
     UVHandle (Args&&...args) : Base(args...) {
+        _ECTOR();
         uvh.data = static_cast<BackendHandle*>(this);
     }
 

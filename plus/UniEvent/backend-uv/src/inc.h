@@ -60,7 +60,7 @@ inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
     int sz = sizeof(ret);
     int err = f(uvhp, ret.get(), &sz);
     if (err) {
-        if (err == UV_ENOTCONN || err == UV_EBADF) return {};
+        if (err == UV_ENOTCONN || err == UV_EBADF || err == UV_EINVAL) return {};
         throw uvx_code_error(err);
     }
     return ret;

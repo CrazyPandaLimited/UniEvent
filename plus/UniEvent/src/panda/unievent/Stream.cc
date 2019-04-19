@@ -46,9 +46,9 @@ void Stream::accept (const StreamSP& client) {
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
-void Stream::finalize_handle_connection (const StreamSP& client, const CodeError* err) {
-    _EDEBUGTHIS("err: %d, client: %p", err ? err->code().value() : 0, client.get());
-    err = client->set_connected(!err);
+void Stream::finalize_handle_connection (const StreamSP& client, const CodeError* _err) {
+    auto err = client->set_connect_result(_err);
+    _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
     on_connection(client, err);
 }
 
@@ -80,26 +80,27 @@ void ConnectRequest::handle_connect (const CodeError* err) {
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
 }
 
-void Stream::finalize_handle_connect (const CodeError* err, const ConnectRequestSP& req) {
-    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+void Stream::finalize_handle_connect (const CodeError* _err, const ConnectRequestSP& req) {
+    auto err = set_connect_result(_err);
+    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
 
     req->timer = nullptr;
-    err = set_connected(!err);
 
-    if (!err) {
+    // if we are already canceling queue now, do not start recursive cancel
+    if (!err || queue.canceling()) {
         queue.done(req, [&]{
             req->event(this, err, req);
             on_connect(err, req);
         });
     }
-    else {
+    else { // cancel everything till the end of queue, but call connect callback with actual status(err), not with ECANCELED
         queue.cancel([&]{
             queue.done(req, [&]{
                 req->event(this, err, req);
                 on_connect(err, req);
             });
         }, [&]{
-            do_reset();
+            _reset();
         });
     }
 }
@@ -217,38 +218,46 @@ void Stream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
 
 // ===================== DISCONNECT/RESET/CLEAR ===============================
 void Stream::disconnect () {
-    if (!queue.size()) do_reset();
+    if (!queue.size()) _reset();
     else if (queue.size() == 1 && connecting()) reset();
     else queue.push(new DisconnectRequest(this));
 }
 
 void DisconnectRequest::exec () {
-    handle->queue.done(this, [&]{ handle->do_reset(); });
+    _EDEBUGTHIS();
+    handle->queue.done(this, [&]{ handle->_reset(); });
+}
+
+void DisconnectRequest::cancel () {
+    _EDEBUGTHIS();
+    handle->queue.done(this, [&]{});
 }
 
 void Stream::reset () {
-    queue.cancel([&]{ do_reset(); });
+    queue.cancel([&]{ _reset(); });
 }
 
-void Stream::do_reset () {
+void Stream::_reset () {
     Handle::reset();
     if (_filters.size()) _filters.front()->reset();
     flags &= DONTREAD; // clear flags except DONTREAD
 }
 
 void Stream::clear () {
-    queue.cancel([&]{
-        Handle::clear();
-        flags = 0;
-        buf_alloc_callback = nullptr;
-        connection_factory = nullptr;
-        connection_event.remove_all();
-        connect_event.remove_all();
-        read_event.remove_all();
-        write_event.remove_all();
-        shutdown_event.remove_all();
-        eof_event.remove_all();
-    });
+    queue.cancel([&]{ _clear(); });
+}
+
+void Stream::_clear () {
+    Handle::clear();
+    flags = 0;
+    buf_alloc_callback = nullptr;
+    connection_factory = nullptr;
+    connection_event.remove_all();
+    connect_event.remove_all();
+    read_event.remove_all();
+    write_event.remove_all();
+    shutdown_event.remove_all();
+    eof_event.remove_all();
 }
 
 //void Stream::add_filter (const StreamFilterSP& filter) {
