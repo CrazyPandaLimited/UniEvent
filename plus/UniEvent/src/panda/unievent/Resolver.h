@@ -52,7 +52,7 @@ struct Resolver : Refcnt, private backend::ITimerListener {
 
     void cache_limit (size_t val) {
         limit = val;
-        clear_cache();
+        if (cache.size() > limit) clear_cache();
     }
 
     void clear_cache ();

@@ -2,7 +2,7 @@
 #include "util.h"
 //#include "ssl/SSLFilter.h"
 
-using namespace panda::unievent;
+namespace panda { namespace unievent {
 
 const HandleType Tcp::TYPE("tcp");
 
@@ -91,3 +91,5 @@ std::ostream& operator<< (std::ostream& os, const TcpConnectRequest& r) {
     if (r.addr) return os << r.addr;
     else        return os << r.host << ':' << r.port;
 }
+
+}}

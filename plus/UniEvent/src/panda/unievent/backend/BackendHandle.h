@@ -1,4 +1,5 @@
 #pragma once
+#include "../Debug.h"
 #include "BackendLoop.h"
 #include <panda/string.h>
 #include <panda/optional.h>
@@ -8,10 +9,10 @@ namespace panda { namespace unievent { namespace backend {
 struct BackendRequest {
     BackendHandle* handle;
 
-    BackendRequest (BackendHandle* handle) : handle(handle) {}
+    BackendRequest (BackendHandle* handle) : handle(handle) { _ECTOR(); }
 
     virtual void destroy () noexcept = 0;
-    virtual ~BackendRequest () {}
+    virtual ~BackendRequest () { _EDTOR(); }
 };
 
 struct BackendHandle {

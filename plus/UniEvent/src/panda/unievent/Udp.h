@@ -89,14 +89,17 @@ struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest>, private b
 
     void set (Udp* h) {
         handle = h;
-        BufferRequest::set(h, h->impl()->new_send_request(this));
+        BufferRequest::set(h);
     }
 
 private:
     friend Udp;
     Udp* handle;
 
-    backend::BackendSendRequest* impl () const { return static_cast<backend::BackendSendRequest*>(_impl); }
+    backend::BackendSendRequest* impl () {
+        if (!_impl) _impl = handle->impl()->new_send_request(this);
+        return static_cast<backend::BackendSendRequest*>(_impl);
+    }
 
     void exec        () override;
     void cancel      () override;

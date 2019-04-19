@@ -199,11 +199,14 @@ protected:
         if (callback) event.add(callback);
     }
 
-    backend::BackendConnectRequest* impl () const { return static_cast<backend::BackendConnectRequest*>(_impl); }
+    backend::BackendConnectRequest* impl () {
+        if (!_impl) _impl = handle->impl()->new_connect_request(this);
+        return static_cast<backend::BackendConnectRequest*>(_impl);
+    }
 
     void set (Stream* h) {
         handle = h;
-        Request::set(h, h->impl()->new_connect_request(this));
+        Request::set(h);
     }
 
     void exec           () override = 0;
@@ -223,10 +226,13 @@ private:
 
     void set (Stream* h) {
         handle = h;
-        Request::set(h, h->impl()->new_write_request(this));
+        Request::set(h);
     }
 
-    backend::BackendWriteRequest* impl () const { return static_cast<backend::BackendWriteRequest*>(_impl); }
+    backend::BackendWriteRequest* impl () {
+        if (!_impl) _impl = handle->impl()->new_write_request(this);
+        return static_cast<backend::BackendWriteRequest*>(_impl);
+    }
 
     void exec         () override;
     void cancel       () override;
@@ -248,10 +254,13 @@ private:
 
     void set (Stream* h) {
         handle = h;
-        Request::set(h, h->impl()->new_shutdown_request(this));
+        Request::set(h);
     }
 
-    backend::BackendShutdownRequest* impl () const { return static_cast<backend::BackendShutdownRequest*>(_impl); }
+    backend::BackendShutdownRequest* impl () {
+        if (!_impl) _impl = handle->impl()->new_shutdown_request(this);
+        return static_cast<backend::BackendShutdownRequest*>(_impl);
+    }
 
     void exec            () override;
     void cancel          () override;
@@ -262,7 +271,7 @@ private:
 struct DisconnectRequest : Request {
     DisconnectRequest (Stream* h) : handle(h) {
         _ECTOR();
-        set(h, nullptr);
+        set(h);
     }
 
 private:

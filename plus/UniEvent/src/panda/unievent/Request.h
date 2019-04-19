@@ -20,10 +20,8 @@ protected:
 
     Request () : _impl(), _delay_id(0) {}
 
-    void set (Handle* h, BackendRequest* impl) {
-        assert(!_impl);
+    void set (Handle* h) {
         _handle = h;
-        _impl   = impl;
     }
 
     template <class Func>

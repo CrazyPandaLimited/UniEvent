@@ -144,7 +144,6 @@ void Resolver::Worker::cancel () {
 
 void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError* err) {
     if (timer) timer->stop();
-    request->worker = nullptr;
     auto req = std::move(request);
     resolver->finish_resolve(req, addr, err);
 }
@@ -193,7 +192,7 @@ void Resolver::resolve (const RequestSP& req) {
     req->running   = true;
     req->loop      = _loop; // keep loop (for loop resolvers)
 
-    if (req->_use_cache) {
+    if (req->_use_cache && limit) {
         auto ai = find(req->_node, req->_service, req->_hints);
         if (ai) {
             req->_use_cache = false;
@@ -246,7 +245,7 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
         cache_delayed.erase(req);
     }
 
-    if (!err && req->_use_cache) {
+    if (!err && req->_use_cache && limit) {
         if (cache.size() >= limit) {
             _EDEBUG("cleaning cache %p %ld", this, cache.size());
             cache.clear();

@@ -51,12 +51,12 @@ Stash perl_class_for_handle (Handle* h) {
         ca[Timer::TYPE]   = Stash("UniEvent::Timer",   GV_ADD);
         ca[Signal::TYPE]  = Stash("UniEvent::Signal",  GV_ADD);
         ca[Poll::TYPE]    = Stash("UniEvent::Poll",    GV_ADD);
-        ca[Udp::TYPE]     = Stash("UniEvent::UDP",     GV_ADD);
+        ca[Udp::TYPE]     = Stash("UniEvent::Udp",     GV_ADD);
         ca[Pipe::TYPE]    = Stash("UniEvent::Pipe",    GV_ADD);
+        ca[Tcp::TYPE]     = Stash("UniEvent::Tcp",     GV_ADD);
 //        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
 //        ca[FSPoll::Type]  = Stash("UniEvent::FSPoll",  GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
-//        ca[TCP::Type]     = Stash("UniEvent::TCP",     GV_ADD);
 //        ca[TTY::Type]     = Stash("UniEvent::TTY",     GV_ADD);
 //        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);
     }
@@ -199,6 +199,18 @@ void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
     Udp::on_send(err, req);
 }
 
+void XSUdp::open (const Sv& sv) {
+    if (!sv.is_ref()) return open((sock_t)SvUV(sv));
+    auto io = xs::in<IO*>(sv);
+    io_sv = (SV*)io;
+    Udp::open((sock_t)PerlIO_fileno(IoIFP(io)));
+}
+
+void XSUdp::open (sock_t sock) {
+    io_sv.reset();
+    Udp::open(sock);
+}
+
 
 void XSStream::on_connection (const StreamSP& client, const CodeError* err) {
     _EDEBUGTHIS();
@@ -224,11 +236,12 @@ void XSStream::on_read (string& buf, const CodeError* err) {
     Stream::on_read(buf, err);
 }
 
-//void XSStream::on_write (const CodeError* err, WriteRequest* req) {
-//    _EDEBUGTHIS();
-//    auto obj = xs::out<Stream*>(aTHX_ this);
-//    if (!write_xscb.call(obj, evname_on_write, { xs::out(err) })) Stream::on_write(err, req);
-//}
+void XSStream::on_write (const CodeError* err, const WriteRequestSP& req) {
+    _EDEBUGTHIS();
+    auto obj = xs::out<Stream*>(this);
+    write_xscb.call(obj, evname_on_write, { xs::out(err) });
+    Stream::on_write(err, req);
+}
 
 void XSStream::on_eof () {
     _EDEBUGTHIS();
@@ -263,6 +276,26 @@ void XSPipe::open (file_t sock) {
     Pipe::open(sock);
 }
 
+
+StreamSP XSTcp::create_connection () {
+    TcpSP ret = make_backref<XSTcp>(loop());
+    xs::out<Tcp*>(ret.get());
+    return ret;
+}
+
+void XSTcp::open (const Sv& sv) {
+    if (!sv.is_ref()) return open((sock_t)SvUV(sv));
+    auto io = xs::in<IO*>(sv);
+    io_sv = (SV*)io;
+    Tcp::open((sock_t)PerlIO_fileno(IoIFP(io)));
+}
+
+void XSTcp::open (sock_t sock) {
+    io_sv.reset();
+    Tcp::open(sock);
+}
+
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
@@ -278,12 +311,6 @@ void XSPipe::open (file_t sock) {
 //        err ? Scalar::undef : (stat_as_hash ? stat2hvr(curr) : stat2avr(curr)),
 //        xs::out(err)
 //    })) FSPoll::on_fs_poll(prev, curr, err);
-//}
-//
-//StreamSP XSTCP::on_create_connection () {
-//    TCPSP ret = make_backref<XSTCP>(loop());
-//    xs::out<TCP*>(ret.get());
-//    return ret;
 //}
 //
 //StreamSP XSTTY::on_create_connection () {

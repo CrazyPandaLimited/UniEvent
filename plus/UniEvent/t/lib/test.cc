@@ -40,10 +40,10 @@ TcpSP make_client (Loop* loop) {
 
     //if (variation.ssl) client->use_ssl();
 
-    if (variation.buf) {
-        client->recv_buffer_size(1);
-        client->send_buffer_size(1);
-    }
+//    if (variation.buf) {
+//        client->recv_buffer_size(1);
+//        client->send_buffer_size(1);
+//    }
 
     return client;
 }

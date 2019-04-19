@@ -42,7 +42,8 @@ protected:
             while (i < sz) {
                 auto& row = reserve[i++]; // if exception is thrown, "i" must be the next unprocessed item
                 if (!row.cb || (row.guard.weak_count() && !row.guard)) continue; // skip callbacks with guard destroyed
-                row.cb();
+                auto cb = row.cb;
+                cb();
             }
         }, [&] { // return remaining callbacks to pool (if exception is thrown)
             if (i < sz) callbacks.insert(callbacks.begin(), reserve.begin() + (sz-i), reserve.end());

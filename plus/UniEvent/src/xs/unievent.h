@@ -34,20 +34,6 @@ struct XSCallback {
     }
 };
 
-//struct XSCommandCallback : panda::unievent::CommandCallback {
-//    XSCallback xscb;
-//    SV* handle_rv;
-//
-//    XSCommandCallback (pTHX_ SV* handle_rv) : CommandCallback(nullptr), handle_rv(handle_rv) {
-//        SvREFCNT_inc_simple_void_NN(handle_rv);
-//    }
-//
-//    virtual void run    ();
-//    virtual void cancel ();
-//
-//    ~XSCommandCallback ();
-//};
-
 struct XSPrepare : Prepare {
     XSCallback prepare_xscb;
     XSPrepare (Loop* loop) : Prepare(loop) {}
@@ -79,6 +65,7 @@ protected:
     void on_timer () override;
 };
 
+
 struct XSSignal : Signal {
     XSCallback signal_xscb;
     XSSignal (Loop* loop) : Signal(loop) {}
@@ -86,22 +73,15 @@ protected:
     void on_signal (int signum) override;
 };
 
+
 struct XSUdp : Udp {
     XSCallback receive_xscb;
     XSCallback send_xscb;
 
     using Udp::Udp;
 
-    void open (const Sv& sv) {
-        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-        io_sv = sv;
-        Udp::open((sock_t)PerlIO_fileno(IoIFP(xs::in<IO*>(aTHX_ sv))));
-    }
-
-    void open (sock_t sock) override {
-        io_sv.reset();
-        Udp::open(sock);
-    }
+    void open (const Sv& sv);
+    void open (sock_t sock) override;
 
 protected:
     void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError* err) override;
@@ -110,6 +90,7 @@ protected:
 private:
     Sv io_sv;
 };
+
 
 struct XSStream : virtual Stream {
     XSCallback connection_xscb;
@@ -126,7 +107,7 @@ protected:
     void on_connection (const StreamSP&, const CodeError*) override;
     void on_connect    (const CodeError*, const ConnectRequestSP&) override;
     void on_read       (string&, const CodeError*) override;
-//    void on_write      (const CodeError*, WriteRequest*) override;
+    void on_write      (const CodeError*, const WriteRequestSP&) override;
     void on_shutdown   (const CodeError*, const ShutdownRequestSP&) override;
     void on_eof        () override;
 };
@@ -138,6 +119,19 @@ struct XSPipe : Pipe, XSStream {
 
     void open (const Sv& sv);
     void open (file_t sock) override;
+
+private:
+    Sv io_sv;
+};
+
+
+struct XSTcp : Tcp, XSStream {
+    XSTcp (const LoopSP& loop, int domain = AF_UNSPEC) : Tcp(loop, domain) {}
+
+    StreamSP create_connection () override;
+
+    void open (const Sv& sv);
+    void open (sock_t sock) override;
 
 private:
     Sv io_sv;
@@ -159,34 +153,7 @@ private:
 //    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) override;
 //};
 //
-//struct XSTCP : TCP, XSStream {
-//    XSTCP (Loop* loop = Loop::default_loop()) : TCP(loop) {}
-//
-//    StreamSP on_create_connection () override;
-//
-//    void open (const Sv& sv) {
-//        if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-//        io_sv = sv;
-//        TCP::open((sock_t)PerlIO_fileno(IoIFP(xs::in<IO*>(aTHX_ sv))));
-//    }
-//
-//    void open (sock_t sock) override {
-//        io_sv.reset();
-//        TCP::open(sock);
-//    }
-//
-//    template<class Builder>
-//    static Builder construct_connect(SV* host_or_sa, SV* port_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
-//        if (port_or_callback && !SvROK(port_or_callback)) {
-//            return Builder().to(xs::in<string>(host_or_sa), xs::in<uint16_t>(port_or_callback), hints).timeout(timeout).reconnect(reconnect);
-//        } else {
-//            return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
-//        }
-//    }
-//
-//private:
-//    Sv io_sv;
-//};
+
 //
 //struct XSTTY : TTY, XSStream {
 //    XSTTY (Sv io, bool readable = false, Loop* loop = Loop::default_loop()) : TTY(sv2file(io), readable, loop) {
@@ -277,16 +244,16 @@ template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<pa
     panda::string package () { return "UniEvent::Pipe"; }
 };
 
+template <class TYPE> struct Typemap <panda::unievent::Tcp*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+    panda::string package () { return "UniEvent::Tcp"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::FSPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSPoll"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::TCP*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-//    panda::string package () { return "UniEvent::TCP"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::TTY*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
@@ -301,48 +268,3 @@ template <class TYPE> struct Typemap<panda::unievent::Resolver::Request*, TYPE> 
 };
 
 }
-
-//namespace xs { namespace unievent {
-//
-//using xs::my_perl;
-//using namespace panda::unievent;
-//
-//// The following classes are not visible from perl, XS wrappers are just needed for holding perl callback
-//
-//
-//struct XSTCPConnectRequest : TCPConnectRequest {
-//    XSCallback xscb;
-//
-//    XSTCPConnectRequest(
-//        bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, SV* xs_callback)
-//            : TCPConnectRequest(reconnect, sa, host, port, hints, timeout, xs_callback ? _cb : connect_fn(nullptr)) {
-//        xscb.set(xs_callback);
-//    }
-//
-//    struct Builder : BasicBuilder<Builder> {
-//        Builder& callback (SV* xs_callback) { _xs_callback = xs_callback; return *this; }
-//
-//        XSTCPConnectRequest* build () {
-//            return new XSTCPConnectRequest(_reconnect, _sa, _host, _port, _hints, _timeout, _xs_callback);
-//        }
-//
-//    private:
-//        SV* _xs_callback = nullptr;
-//    };
-//
-//private:
-//    static void _cb (Stream* handle, const CodeError* err, ConnectRequest* req);
-//};
-//
-//
-//
-//struct XSWriteRequest : WriteRequest {
-//    XSCallback xscb;
-//    XSWriteRequest (pTHX_ SV* callback) : WriteRequest(callback ? _cb : write_fn(nullptr)) {
-//        xscb.set(callback);
-//    }
-//private:
-//    static void _cb (Stream* handle, const CodeError* err, WriteRequest* req);
-//};
-//
-//}}

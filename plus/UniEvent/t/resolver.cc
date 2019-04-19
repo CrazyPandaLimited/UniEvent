@@ -31,6 +31,7 @@ TEST_CASE("resolver", "[resolver]") {
     auto noop_cb = [&](const AddrInfo&, const CodeError*, const Resolver::RequestSP&) {};
     auto req = resolver->resolve()->node("localhost")->on_resolve(success_cb);
     int expected_cnt = 2;
+    auto full = getenv("TEST_FULL");
 
     SECTION("no cache") {
         req->use_cache(false);
@@ -296,6 +297,24 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(dcnt == 0);
         l->run();
         CHECK(dcnt == 1);
+    }
+
+    SECTION("many requests") {
+        string node;
+        SECTION("local") {
+            node = "localhost";
+            SECTION("cached")     {}
+            SECTION("not cached") { resolver->cache_limit(0); }
+        }
+        if (full) SECTION("remote") {
+            node = "ya.ru";
+            SECTION("cached")     {}
+            SECTION("not cached") { resolver->cache_limit(0); }
+        }
+        expected_cnt = 50;
+        for (int i = 0; i < expected_cnt; ++i) resolver->resolve(node, success_cb);
+        test.run();
+        CHECK(res.size() == expected_cnt);
     }
 
     while (expected_cnt-- > 0) test.expected.push_back("r");
