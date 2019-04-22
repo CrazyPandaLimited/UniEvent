@@ -8,9 +8,9 @@
 namespace panda { namespace unievent {
 
 struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
-    using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError* err);
+    using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
     using receive_fn    = function<receive_fptr>;
-    using send_fptr     = void(const UdpSP& handle, const CodeError* err, const SendRequestSP& req);
+    using send_fptr     = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
     using send_fn       = function<send_fptr>;
     using BackendUdp    = backend::BackendUdp;
     using Flags         = BackendUdp::Flags;
@@ -63,8 +63,8 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     static const HandleType TYPE;
 
 protected:
-    virtual void on_send    (const CodeError* err, const SendRequestSP& req);
-    virtual void on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err);
+    virtual void on_send    (const CodeError& err, const SendRequestSP& req);
+    virtual void on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err);
 
 private:
     friend SendRequest;
@@ -77,7 +77,7 @@ private:
 
     BackendHandle* new_impl () override;
 
-    void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err) override;
+    void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) override;
 };
 
 
@@ -103,7 +103,7 @@ private:
 
     void exec        () override;
     void cancel      () override;
-    void handle_send (const CodeError*) override;
+    void handle_send (const CodeError&) override;
 };
 
 

@@ -15,13 +15,13 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
     virtual bool is_secure ();
 
     //virtual void tcp_connect       (const TCPConnectRequestSP&);
-    virtual void handle_connection (const StreamSP&, const CodeError*);
-    virtual void handle_connect    (const CodeError*, const ConnectRequestSP&);
-    virtual void handle_read       (string&, const CodeError*);
+    virtual void handle_connection (const StreamSP&, const CodeError&);
+    virtual void handle_connect    (const CodeError&, const ConnectRequestSP&);
+    virtual void handle_read       (string&, const CodeError&);
     virtual void write             (const WriteRequestSP&);
-    virtual void handle_write      (const CodeError*, const WriteRequestSP&);
+    virtual void handle_write      (const CodeError&, const WriteRequestSP&);
     virtual void handle_eof        ();
-    virtual void handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
+    virtual void handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
 
     virtual void reset ();
 

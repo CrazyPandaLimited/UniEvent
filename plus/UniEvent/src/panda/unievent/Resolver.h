@@ -23,7 +23,7 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     struct Request;
     using RequestSP = iptr<Request>;
 
-    using resolve_fptr = void(const AddrInfo&, const CodeError*, const RequestSP&);
+    using resolve_fptr = void(const AddrInfo&, const CodeError&, const RequestSP&);
     using resolve_fn   = function<resolve_fptr>;
 
     static ResolverSP create_loop_resolver (const LoopSP& loop, uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
@@ -58,7 +58,7 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     void clear_cache ();
 
 protected:
-    virtual void on_resolve (const AddrInfo&, const CodeError*, const RequestSP&);
+    virtual void on_resolve (const AddrInfo&, const CodeError&, const RequestSP&);
 
     ~Resolver ();
 
@@ -114,11 +114,11 @@ private:
         void resolve    (const RequestSP&);
         void on_resolve (int status, int timeouts, ares_addrinfo* ai);
 
-        void finish_resolve (const AddrInfo&, const CodeError* err);
+        void finish_resolve (const AddrInfo&, const CodeError& err);
         void cancel ();
 
         void handle_timer () override;
-        void handle_poll  (int, const CodeError*) override;
+        void handle_poll  (int, const CodeError&) override;
 
         Resolver*          resolver;
         ares_channel       channel;
@@ -147,7 +147,7 @@ private:
 
     void add_worker ();
 
-    void finish_resolve (const RequestSP&, const AddrInfo&, const CodeError*);
+    void finish_resolve (const RequestSP&, const AddrInfo&, const CodeError&);
 
     void handle_timer () override;
 

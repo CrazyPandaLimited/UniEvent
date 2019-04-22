@@ -53,7 +53,7 @@ void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
     poll->start((read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0));
 }
 
-void Resolver::Worker::handle_poll (int, const CodeError*) {
+void Resolver::Worker::handle_poll (int, const CodeError&) {
     ares_process_fd(channel, sock, sock);
     if (exc) std::rethrow_exception(std::move(exc));
 }
@@ -142,7 +142,7 @@ void Resolver::Worker::cancel () {
     ares_cancel(channel);
 }
 
-void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError* err) {
+void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError& err) {
     if (timer) timer->stop();
     auto req = std::move(request);
     resolver->finish_resolve(req, addr, err);
@@ -199,7 +199,7 @@ void Resolver::resolve (const RequestSP& req) {
             cache_delayed.push_back(req);
             req->delayed = loop()->delay([=]{
                 req->delayed = 0;
-                finish_resolve(req, ai, nullptr);
+                finish_resolve(req, ai, {});
             });
             return;
         }
@@ -227,9 +227,9 @@ void Resolver::resolve (const RequestSP& req) {
     }
 }
 
-void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError* err) {
+void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError& err) {
     if (!req->running) return;
-    _EDEBUGTHIS("request:%p err:%d", req.get(), err ? err->code().value() : 0);
+    _EDEBUGTHIS("request:%p err:%d", req.get(), err.code().value());
 
     if (req->delayed) {
         loop()->cancel_delay(req->delayed);
@@ -275,7 +275,7 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     });
 }
 
-void Resolver::on_resolve (const AddrInfo& addr, const CodeError* err, const RequestSP& req) {
+void Resolver::on_resolve (const AddrInfo& addr, const CodeError& err, const RequestSP& req) {
     req->event(addr, err, req);
 }
 

@@ -8,9 +8,8 @@ TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
     net::SockAddr::Inet4 sa("255.255.255.255", 0); // makes underlying backend connect end with error synchronously
 
     TcpSP client = make_client(test.loop);
-    client->connect_event.add([&](const StreamSP&, const CodeError* err, const ConnectRequestSP&) {
-        REQUIRE(err);
-        REQUIRE(err->code());
+    client->connect_event.add([&](const StreamSP&, const CodeError& err, const ConnectRequestSP&) {
+        REQUIRE(err.code());
 
         SECTION("disconnect") {
             client->disconnect();
@@ -46,18 +45,16 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
 
     SECTION ("write") {
         client->write("2");
-        client->write_event.add([&](Stream*, const CodeError* err, WriteRequest*) {
-            REQUIRE(err);
-            REQUIRE(err->code() == std::errc::bad_file_descriptor);
+        client->write_event.add([&](Stream*, const CodeError& err, WriteRequest*) {
+            REQUIRE(err.code() == std::errc::bad_file_descriptor);
             test.happens("error");
             test.loop->stop();
         });
     }
     SECTION ("shutdown") {
         client->shutdown();
-        client->shutdown_event.add([&](Stream*, const CodeError* err, ShutdownRequest*) {
-            REQUIRE(err);
-            REQUIRE(err->code() == std::errc::not_connected);
+        client->shutdown_event.add([&](Stream*, const CodeError& err, ShutdownRequest*) {
+            REQUIRE(err.code() == std::errc::not_connected);
             test.happens("error");
             test.loop->stop();
         });
@@ -86,7 +83,7 @@ TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
     string body;
     for (size_t i = 0; i < 100; ++i) body += "0123456789";
     size_t write_count = 0;
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
         if (!err) client->disconnect();
 
         client->connect_event.remove_all();
@@ -101,7 +98,7 @@ TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
     });
 
     size_t callback_count = 0;
-    client->write_event.add([&](Stream*, const CodeError*, WriteRequest*){
+    client->write_event.add([&](Stream*, const CodeError&, WriteRequest*){
         callback_count++;
         if (callback_count == write_count) {
             test.loop->stop();
@@ -131,9 +128,8 @@ TEST_CASE("immediate client reset", "[tcp][v-ssl]") {
 
     client->connect(sa);
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        REQUIRE(err);
-        CHECK(err->code() == std::errc::operation_canceled);
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
+        CHECK(err.code() == std::errc::operation_canceled);
         test.happens("error");
     });
 
@@ -146,7 +142,7 @@ TEST_CASE("immediate client write reset", "[tcp][v-ssl][v-buf]") {
     TcpSP server = make_server(test.loop);
     TcpSP client = make_client(test.loop);
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
         test.happens("c");
         REQUIRE_FALSE(err);
         client->reset();
@@ -155,10 +151,9 @@ TEST_CASE("immediate client write reset", "[tcp][v-ssl][v-buf]") {
 
     client->connect(server->sockaddr());
     client->write("123");
-    client->write_event.add([&](Stream*, const CodeError* err, WriteRequest*) {
+    client->write_event.add([&](Stream*, const CodeError& err, WriteRequest*) {
         test.happens("w");
-        REQUIRE(err);
-        CHECK(err->code() == std::errc::operation_canceled);
+        CHECK(err.code() == std::errc::operation_canceled);
     });
 
     test.loop->run();
@@ -169,7 +164,7 @@ TEST_CASE("reset accepted connection", "[tcp][v-ssl]") {
     TcpSP server = make_server(test.loop);
     TcpSP client = make_client(test.loop);
 
-    server->connection_event.add([&](Stream*, Stream* client, const CodeError* err) {
+    server->connection_event.add([&](Stream*, Stream* client, const CodeError& err) {
         test.happens("a");
         REQUIRE_FALSE(err);
         client->reset();
@@ -203,11 +198,11 @@ TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
     TcpSP server = make_server(test.loop);
 
     StreamSP session;
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError* err) {
+    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
         test.happens("c");
         REQUIRE_FALSE(err);
         session = s;
-        session->read_event.add([&](Stream*, string& str, const CodeError* err){
+        session->read_event.add([&](Stream*, string& str, const CodeError& err){
             test.happens("r");
             REQUIRE_FALSE(err);
             REQUIRE(str == "123");
@@ -234,14 +229,14 @@ TEST_CASE("UniEvent SRV-1273", "[tcp][v-ssl]") {
             test.loop->stop();
         }
         TcpSP client = new Tcp(test.loop);
-        client->connect_event.add([](Stream* s, const CodeError* err, ConnectRequest*){
+        client->connect_event.add([](Stream* s, const CodeError& err, ConnectRequest*){
             REQUIRE(err);
             s->reset();
         });
 
         client->connect(addr.ip(), addr.port());
         for (size_t i = 0; i < 2; ++i) {
-            client->write("123", ([](Stream* s, const CodeError* err, WriteRequest*){
+            client->write("123", ([](Stream* s, const CodeError& err, WriteRequest*){
                 REQUIRE(err);
                 s->reset();
             }));
@@ -268,7 +263,7 @@ TEST_CASE("UniEvent SRV-1273", "[tcp][v-ssl]") {
 //
 //    bool destroyed = false;
 //
-//    server->connection_event.add([&](Stream*, StreamSP, const CodeError*) {
+//    server->connection_event.add([&](Stream*, StreamSP, const CodeError&) {
 //        REQUIRE_FALSE(destroyed);
 //    });
 //
@@ -293,7 +288,7 @@ TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
     TcpSP client = new Tcp(test.loop);
 
     size_t counter = 0;
-    client->connect_event.add([&](Stream*, const CodeError*, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError&, ConnectRequest*) {
         if (++counter < 10) {
             client->connect()->to(addr.ip(), addr.port())->run();
             client->write("123");
@@ -315,10 +310,10 @@ TEST_CASE("correct callback order", "[tcp]") {
     SockAddr addr = server->sockaddr();
 
     TcpSP client = new Tcp(test.loop);
-    client->connect()->to(addr.ip(), addr.port())->on_connect([&](Stream*, const CodeError*, ConnectRequest*){
+    client->connect()->to(addr.ip(), addr.port())->on_connect([&](Stream*, const CodeError&, ConnectRequest*){
         test.happens("connect");
     })->run();
-    client->write("123", [&](Stream*, const CodeError*, WriteRequest*) {
+    client->write("123", [&](Stream*, const CodeError&, WriteRequest*) {
         test.happens("write");
     });
     client->reset();

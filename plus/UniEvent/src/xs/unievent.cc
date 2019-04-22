@@ -182,20 +182,20 @@ void XSSignal::on_signal (int signum) {
 }
 
 
-void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError* err) {
+void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) {
     auto obj = xs::out<Udp*>(this);
     receive_xscb.call(obj, evname_on_receive, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
         xs::out(&sa),
         Simple(flags),
-        xs::out(err)
+        xs::out<const CodeError&>(err)
     });
     Udp::on_receive(buf, sa, flags, err);
 }
 
-void XSUdp::on_send (const CodeError* err, const SendRequestSP& req) {
+void XSUdp::on_send (const CodeError& err, const SendRequestSP& req) {
     auto obj = xs::out<Udp*>(this);
-    send_xscb.call(obj, evname_on_send, { xs::out(err) });
+    send_xscb.call(obj, evname_on_send, { xs::out<const CodeError&>(err) });
     Udp::on_send(err, req);
 }
 
@@ -212,34 +212,34 @@ void XSUdp::open (sock_t sock) {
 }
 
 
-void XSStream::on_connection (const StreamSP& client, const CodeError* err) {
+void XSStream::on_connection (const StreamSP& client, const CodeError& err) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    connection_xscb.call(self, evname_on_connection, { xs::out(client.get()), xs::out(err) });
+    connection_xscb.call(self, evname_on_connection, { xs::out(client.get()), xs::out<const CodeError&>(err) });
     Stream::on_connection(client, err);
 }
 
-void XSStream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
+void XSStream::on_connect (const CodeError& err, const ConnectRequestSP& req) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    connect_xscb.call(self, evname_on_connect, { xs::out(err) });
+    connect_xscb.call(self, evname_on_connect, { xs::out<const CodeError&>(err) });
     Stream::on_connect(err, req);
 }
 
-void XSStream::on_read (string& buf, const CodeError* err) {
+void XSStream::on_read (string& buf, const CodeError& err) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
     read_xscb.call(self, evname_on_read, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-        xs::out(err)
+        xs::out<const CodeError&>(err)
     });
     Stream::on_read(buf, err);
 }
 
-void XSStream::on_write (const CodeError* err, const WriteRequestSP& req) {
+void XSStream::on_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(this);
-    write_xscb.call(obj, evname_on_write, { xs::out(err) });
+    write_xscb.call(obj, evname_on_write, { xs::out<const CodeError&>(err) });
     Stream::on_write(err, req);
 }
 
@@ -250,10 +250,10 @@ void XSStream::on_eof () {
     Stream::on_eof();
 }
 
-void XSStream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+void XSStream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(aTHX_ this);
-    shutdown_xscb.call(self, evname_on_shutdown, { xs::out(err) });
+    shutdown_xscb.call(self, evname_on_shutdown, { xs::out<const CodeError&>(err) });
     Stream::on_shutdown(err, req);
 }
 
@@ -304,7 +304,7 @@ void XSTcp::open (sock_t sock) {
 //    })) FSEvent::on_fs_event(filename, events);
 //}
 //
-//void XSFSPoll::on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) {
+//void XSFSPoll::on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) {
 //    auto obj = xs::out<FSPoll*>(aTHX_ this);
 //    if (!fs_poll_xscb.call(obj, evname_on_fs_poll, {
 //        err ? Scalar::undef : (stat_as_hash ? stat2hvr(prev) : stat2avr(prev)),

@@ -16,7 +16,7 @@ TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
     client->connect(sa);
     client->write("123");
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
         CHECK(err);
         switch (counter) {
         case 0:
@@ -54,8 +54,7 @@ TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]"
 
     client->connect(sa, 1000);
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        if (err) WARN(err->what());
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
         CHECK_FALSE(err);
     });
 
@@ -81,7 +80,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     auto sa = server->sockaddr();
     auto ip = sa.ip();
     auto port = sa.port();
-    server->connection_event.add([](Stream*, Stream*, const CodeError*) {});
+    server->connection_event.add([](Stream*, Stream*, const CodeError&) {});
 
     std::vector<TcpSP> clients(tries);
     std::vector<decltype(clients[0]->connect_event)*> disps;
@@ -90,8 +89,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
         auto client = clients[i] = make_client(test.loop);
         client->connect()->to(ip, port)->timeout(10)->use_cache(i % 2)->run();
 
-        client->connect_event.add([&, i](Stream*, const CodeError* err, ConnectRequest*) {
-            //if (err) {WARN(i); WARN(err->what());}
+        client->connect_event.add([&, i](Stream*, const CodeError& err, ConnectRequest*) {
             ++connected;
             err ? ++errors : ++successes;
         });
@@ -126,9 +124,8 @@ TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
     TcpSP client = make_client(test.loop);
     client->connect(test.get_blackhole_addr(), 10);
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        CHECK(err);
-        REQUIRE(err->whats() != "");
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
+        REQUIRE(err.whats() != "");
     });
     test.await(client->connect_event, "connected called");
 }
@@ -144,13 +141,11 @@ TEST_CASE("connect timeout clean queue", "[tcp-connect-timeout][v-ssl]") {
 
     client->write("123");
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        CHECK(err);
-        REQUIRE(err->whats() != "");
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
+        REQUIRE(err.whats() != "");
     });
-    client->write_event.add([&](Stream*, const CodeError* err, WriteRequest*) {
-        CHECK(err);
-        REQUIRE(err->whats() != "");
+    client->write_event.add([&](Stream*, const CodeError& err, WriteRequest*) {
+        REQUIRE(err.whats() != "");
     });
 
     test.await(client->connect_event, "connected called");
@@ -165,9 +160,8 @@ TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ss
     req->run();
 
     size_t counter = 5;
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
-        CHECK(err);
-        REQUIRE(err->whats() != "");
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
+        REQUIRE(err.whats() != "");
         if (--counter > 0) {
             client->connect(req);
             SECTION("usual") {}
@@ -193,7 +187,7 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-co
 
     client->connect(sa, 100);
 
-    client->connect_event.add([&](Stream*, const CodeError* err, ConnectRequest*) {
+    client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
         REQUIRE(err);
     });
 

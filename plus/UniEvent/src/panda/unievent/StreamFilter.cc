@@ -30,7 +30,7 @@ void StreamFilter::priority_read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
-void StreamFilter::handle_connection (const StreamSP& client, const CodeError* err) {
+void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err) {
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
@@ -38,11 +38,11 @@ void StreamFilter::handle_connection (const StreamSP& client, const CodeError* e
 //    invoke(next, &StreamFilter::tcp_connect, &TCP::finalize_connect, req);
 //}
 
-void StreamFilter::handle_connect (const CodeError* err, const ConnectRequestSP& req) {
+void StreamFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
     invoke(prev, &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, req);
 }
 
-void StreamFilter::handle_read (string& buf, const CodeError* err) {
+void StreamFilter::handle_read (string& buf, const CodeError& err) {
     invoke(prev, &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
 }
 
@@ -50,7 +50,7 @@ void StreamFilter::write (const WriteRequestSP& req) {
     invoke(next, &StreamFilter::write, &Stream::finalize_write, req);
 }
 
-void StreamFilter::handle_write (const CodeError* err, const WriteRequestSP& req) {
+void StreamFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
     invoke(prev, &StreamFilter::handle_write, &Stream::finalize_handle_write, err, req);
 }
 
@@ -58,7 +58,7 @@ void StreamFilter::handle_eof () {
     invoke(prev, &StreamFilter::handle_eof, &Stream::finalize_handle_eof);
 }
 
-void StreamFilter::handle_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+void StreamFilter::handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     invoke(prev, &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, req);
 }
 

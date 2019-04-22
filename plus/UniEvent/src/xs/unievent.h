@@ -84,8 +84,8 @@ struct XSUdp : Udp {
     void open (sock_t sock) override;
 
 protected:
-    void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError* err) override;
-    void on_send    (const CodeError* err, const SendRequestSP& req) override;
+    void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) override;
+    void on_send    (const CodeError& err, const SendRequestSP& req) override;
 
 private:
     Sv io_sv;
@@ -104,11 +104,11 @@ struct XSStream : virtual Stream {
     XSStream () {}
 
 protected:
-    void on_connection (const StreamSP&, const CodeError*) override;
-    void on_connect    (const CodeError*, const ConnectRequestSP&) override;
-    void on_read       (string&, const CodeError*) override;
-    void on_write      (const CodeError*, const WriteRequestSP&) override;
-    void on_shutdown   (const CodeError*, const ShutdownRequestSP&) override;
+    void on_connection (const StreamSP&, const CodeError&) override;
+    void on_connect    (const CodeError&, const ConnectRequestSP&) override;
+    void on_read       (string&, const CodeError&) override;
+    void on_write      (const CodeError&, const WriteRequestSP&) override;
+    void on_shutdown   (const CodeError&, const ShutdownRequestSP&) override;
     void on_eof        () override;
 };
 
@@ -150,7 +150,7 @@ private:
 //    bool       stat_as_hash;
 //    XSFSPoll (Loop* loop) : FSPoll(loop), stat_as_hash(false) {}
 //protected:
-//    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError* err) override;
+//    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) override;
 //};
 //
 
@@ -172,20 +172,29 @@ private:
 
 namespace xs {
 
-template <class TYPE> struct Typemap<const panda::unievent::Error*, TYPE> : TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG> {
-    using Super = TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG>;
-    Sv create (pTHX_ TYPE var, const Sv& sv = {}) {
+template <class TYPE> struct Typemap<const panda::unievent::Error*, TYPE> : TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG> {};
+template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typemap<TYPE*> {
+    using Super = Typemap<TYPE*>;
+
+    Sv out (pTHX_ TYPE& var, const Sv& sv = {}) {
         if (!var) return Sv::undef;
-        return Super::create(aTHX_ var->clone(), sv ? sv : xs::unievent::get_perl_class_for_err(*var));
+        return Super::out(aTHX_ var.clone(), sv ? sv : xs::unievent::get_perl_class_for_err(var));
+    }
+
+    TYPE& in (pTHX_ const Sv& sv) {
+        if (!sv.defined()) {
+            static TYPE ret;
+            return ret;
+        }
+        return Super::in(aTHX_ sv);
     }
 };
 
-template <class TYPE> struct Typemap<const panda::unievent::CodeError*, TYPE> : Typemap<const panda::unievent::Error*,     TYPE> {};
-template <class TYPE> struct Typemap<const panda::unievent::SSLError*,  TYPE> : Typemap<const panda::unievent::CodeError*, TYPE> {};
+template <class TYPE> struct Typemap<const panda::unievent::CodeError*, TYPE>  : Typemap<const panda::unievent::Error*,     TYPE> {};
+template <class TYPE> struct Typemap<const panda::unievent::SSLError*,  TYPE>  : Typemap<const panda::unievent::CodeError*, TYPE> {};
+template <class TYPE> struct Typemap<const panda::unievent::CodeError&, TYPE&> : Typemap<const panda::unievent::Error&,     TYPE&> {};
+template <class TYPE> struct Typemap<const panda::unievent::SSLError&,  TYPE&> : Typemap<const panda::unievent::CodeError&, TYPE&> {};
 
-template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : TypemapRefCast<TYPE&> {
-    Sv out (pTHX_ TYPE& var, const Sv& proto = {}) { return Typemap<TYPE*>::out(aTHX_ &var, proto); }
-};
 
 template <> struct Typemap<panda::unievent::AddrInfoHints> : TypemapBase<panda::unievent::AddrInfoHints> {
     using Hints = panda::unievent::AddrInfoHints;

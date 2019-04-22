@@ -24,7 +24,7 @@ backend::BackendHandle* Tcp::new_impl () {
 void Tcp::open (sock_t sock) {
     impl()->open(sock);
     if (peeraddr()) {
-        auto err = set_connect_result(CodeError());
+        auto err = set_connect_result(true);
         if (err) throw err;
     }
 }
@@ -58,7 +58,7 @@ void TcpConnectRequest::exec () {
         ->port(port)
         ->hints(hints)
         ->use_cache(cached)
-        ->on_resolve([this](const AddrInfo& res, const CodeError* err, const Resolver::RequestSP) {
+        ->on_resolve([this](const AddrInfo& res, const CodeError& err, const Resolver::RequestSP) {
             resolve_request = nullptr;
             if (err) return handle_connect(err);
             addr = res.addr();
@@ -73,7 +73,7 @@ void TcpConnectRequest::do_impl () {
     if (err) delay([=]{ handle_connect(err); });
 }
 
-void TcpConnectRequest::handle_connect (const CodeError* err) {
+void TcpConnectRequest::handle_connect (const CodeError& err) {
     if (resolve_request) {
         resolve_request->event.remove_all();
         resolve_request->cancel();

@@ -6,19 +6,19 @@ namespace panda { namespace unievent { namespace backend {
 
 struct IStreamListener {
     virtual string buf_alloc         (size_t cap) = 0;
-    virtual void   handle_connection (const CodeError*) = 0;
-    virtual void   handle_read       (string&, const CodeError*) = 0;
+    virtual void   handle_connection (const CodeError&) = 0;
+    virtual void   handle_read       (string&, const CodeError&) = 0;
     virtual void   handle_eof        () = 0;
 };
 
 struct IConnectListener {
-    virtual void handle_connect (const CodeError*) = 0;
+    virtual void handle_connect (const CodeError&) = 0;
 };
 
 struct BackendConnectRequest : BackendRequest {
     BackendConnectRequest (BackendHandle* h, IConnectListener* l) : BackendRequest(h), listener(l) {}
 
-    void handle_connect (const CodeError* err) noexcept {
+    void handle_connect (const CodeError& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_connect(err); });
     }
 
@@ -26,13 +26,13 @@ struct BackendConnectRequest : BackendRequest {
 };
 
 struct IWriteListener {
-    virtual void handle_write (const CodeError*) = 0;
+    virtual void handle_write (const CodeError&) = 0;
 };
 
 struct BackendWriteRequest : BackendRequest {
     BackendWriteRequest (BackendHandle* h, IWriteListener* l) : BackendRequest(h), listener(l) {}
 
-    void handle_write (const CodeError* err) noexcept {
+    void handle_write (const CodeError& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_write(err); });
     }
 
@@ -40,13 +40,13 @@ struct BackendWriteRequest : BackendRequest {
 };
 
 struct IShutdownListener {
-    virtual void handle_shutdown (const CodeError*) = 0;
+    virtual void handle_shutdown (const CodeError&) = 0;
 };
 
 struct BackendShutdownRequest : BackendRequest {
     BackendShutdownRequest (BackendHandle* h, IShutdownListener* l) : BackendRequest(h), listener(l) {}
 
-    void handle_shutdown (const CodeError* err) noexcept {
+    void handle_shutdown (const CodeError& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_shutdown(err); });
     }
 
@@ -79,11 +79,11 @@ struct BackendStream : BackendHandle {
     virtual bool readable () const noexcept = 0;
     virtual bool writable () const noexcept = 0;
 
-    void handle_connection (const CodeError* err) noexcept {
+    void handle_connection (const CodeError& err) noexcept {
         ltry([&]{ listener->handle_connection(err); });
     }
 
-    void handle_read (string& buf, const CodeError* err) noexcept {
+    void handle_read (string& buf, const CodeError& err) noexcept {
         ltry([&]{ listener->handle_read(buf, err); });
     }
 

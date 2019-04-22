@@ -91,13 +91,13 @@ void SendRequest::cancel () {
     handle_send(CodeError(std::errc::operation_canceled));
 }
 
-void SendRequest::handle_send (const CodeError* err) {
+void SendRequest::handle_send (const CodeError& err) {
     handle->queue.done(this, [&] {
         handle->on_send(err, this);
     });
 }
 
-void Udp::on_send (const CodeError* err, const SendRequestSP& r) {
+void Udp::on_send (const CodeError& err, const SendRequestSP& r) {
     r->event(this, err, r);
 }
 
@@ -115,10 +115,10 @@ void Udp::clear () {
     });
 }
 
-void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err) {
+void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
     on_receive(buf, sa, flags, err);
 }
 
-void Udp::on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError* err) {
+void Udp::on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
     receive_event(this, buf, sa, flags, err);
 }

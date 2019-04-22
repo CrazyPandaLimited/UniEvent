@@ -6,17 +6,17 @@ namespace panda { namespace unievent { namespace backend {
 
 struct IUdpListener {
     virtual string buf_alloc      (size_t cap) = 0;
-    virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError* err) = 0;
+    virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) = 0;
 };
 
 struct ISendListener {
-    virtual void handle_send (const CodeError*) = 0;
+    virtual void handle_send (const CodeError&) = 0;
 };
 
 struct BackendSendRequest : BackendRequest {
     BackendSendRequest (BackendHandle* h, ISendListener* l) : BackendRequest(h), listener(l) {}
 
-    void handle_send (const CodeError* err) noexcept {
+    void handle_send (const CodeError& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_send(err); });
     }
 
@@ -65,7 +65,7 @@ struct BackendUdp : BackendHandle {
 
     virtual BackendSendRequest* new_send_request (ISendListener*) = 0;
 
-    void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError* err) {
+    void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });
     }
 

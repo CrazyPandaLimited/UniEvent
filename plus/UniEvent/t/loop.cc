@@ -124,7 +124,7 @@ TEST_CASE("loop", "[loop]") {
     SECTION("loop doesn't leak when it has internal prepare and resolver") {
         loop = new MyLoop();
         loop->delay([]{});
-        loop->resolver()->resolve("localhost", [](const AddrInfo&, const CodeError*, const Resolver::RequestSP&){});
+        loop->resolver()->resolve("localhost", [](const AddrInfo&, const CodeError&, const Resolver::RequestSP&){});
         loop->run();
         loop = nullptr;
         CHECK(dcnt == 1);

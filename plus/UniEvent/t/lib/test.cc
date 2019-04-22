@@ -57,7 +57,7 @@ TcpSP make_client (Loop* loop) {
 //    });
 //    timer->once(timeout);
 //
-//    stream->read_start([stream, timer, callback](Stream*, string& buf, const CodeError* err) mutable {
+//    stream->read_start([stream, timer, callback](Stream*, string& buf, const CodeError& err) mutable {
 //        timer->reset();
 //        timer->timer_event.remove_all();
 //        callback(stream, buf, err);
@@ -68,7 +68,7 @@ TcpSP make_client (Loop* loop) {
 //        _EDEBUG("eof for %p %d", static_cast<Handle*>(stream), stream->refcnt());
 //
 //    });
-//    stream->shutdown_event.add([](Stream* stream, const CodeError*, ShutdownRequest*){
+//    stream->shutdown_event.add([](Stream* stream, const CodeError&, ShutdownRequest*){
 //        _EDEBUG("shutdown for %p %d readlistn=%d", static_cast<Handle*>(stream), stream->refcnt(), stream->read_event.has_listeners());
 //        stream->read_event.remove_all();
 //        _EDEBUG("shutdown for %p %d", static_cast<Handle*>(stream), stream->refcnt());

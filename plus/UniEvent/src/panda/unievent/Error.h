@@ -68,8 +68,6 @@ struct CodeError : Error {
     explicit
     operator bool () const { return _code.value(); }
 
-    operator const CodeError* () const { return _code ? this : nullptr; }
-
     static ErrorCategory category;
 
 protected:

@@ -16,15 +16,15 @@ namespace panda { namespace unievent {
 struct Stream : virtual Handle, protected backend::IStreamListener {
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
-    using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError* err);
+    using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
     using connection_fn   = function<connection_fptr>;
-    using connect_fptr    = void(const StreamSP& handle, const CodeError* err, const ConnectRequestSP& req);
+    using connect_fptr    = void(const StreamSP& handle, const CodeError& err, const ConnectRequestSP& req);
     using connect_fn      = function<connect_fptr>;
-    using read_fptr       = void(const StreamSP& handle, string& buf, const CodeError* err);
+    using read_fptr       = void(const StreamSP& handle, string& buf, const CodeError& err);
     using read_fn         = function<read_fptr>;
-    using write_fptr      = void(const StreamSP& handle, const CodeError* err, const WriteRequestSP& req);
+    using write_fptr      = void(const StreamSP& handle, const CodeError& err, const WriteRequestSP& req);
     using write_fn        = function<write_fptr>;
-    using shutdown_fptr   = void(const StreamSP& handle, const CodeError* err, const ShutdownRequestSP& req);
+    using shutdown_fptr   = void(const StreamSP& handle, const CodeError& err, const ShutdownRequestSP& req);
     using shutdown_fn     = function<shutdown_fptr>;
     using eof_fptr        = void(const StreamSP& handle);
     using eof_fn          = function<eof_fptr>;
@@ -111,21 +111,21 @@ protected:
 
     virtual StreamSP create_connection () = 0;
 
-    virtual void on_connection (const StreamSP& client, const CodeError* err);
-    virtual void on_connect    (const CodeError* err, const ConnectRequestSP& req);
-    virtual void on_read       (string& buf, const CodeError* err);
-    virtual void on_write      (const CodeError* err, const WriteRequestSP& req);
+    virtual void on_connection (const StreamSP& client, const CodeError& err);
+    virtual void on_connect    (const CodeError& err, const ConnectRequestSP& req);
+    virtual void on_read       (string& buf, const CodeError& err);
+    virtual void on_write      (const CodeError& err, const WriteRequestSP& req);
     virtual void on_eof        ();
-    virtual void on_shutdown   (const CodeError* err, const ShutdownRequestSP& req);
+    virtual void on_shutdown   (const CodeError& err, const ShutdownRequestSP& req);
 
     void set_listening   () { flags |= LISTENING; }
     void set_connecting  () { flags |= CONNECTING; }
     void set_established () { flags |= ESTABLISHED; }
 
-    CodeError set_connect_result (const CodeError* err) {
-        set_connected(!err);
-        if (!err && wantread()) return _read_start();
-        else return *err;
+    CodeError set_connect_result (bool ok) {
+        set_connected(ok);
+        if (ok && wantread()) return _read_start();
+        else return CodeError();
     }
 
     void set_connected (bool ok) {
@@ -166,16 +166,16 @@ private:
         else        (this->*my_method)(std::forward<Args>(args)...);
     }
 
-    void handle_connection          (const CodeError*) override;
-    void finalize_handle_connection (const StreamSP& client, const CodeError*);
-    void finalize_handle_connect    (const CodeError*, const ConnectRequestSP&);
-    void handle_read                (string&, const CodeError*) override;
-    void finalize_handle_read       (string& buf, const CodeError* err) { on_read(buf, err); }
+    void handle_connection          (const CodeError&) override;
+    void finalize_handle_connection (const StreamSP& client, const CodeError&);
+    void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
+    void handle_read                (string&, const CodeError&) override;
+    void finalize_handle_read       (string& buf, const CodeError& err) { on_read(buf, err); }
     void finalize_write             (const WriteRequestSP&);
-    void finalize_handle_write      (const CodeError*, const WriteRequestSP&);
+    void finalize_handle_write      (const CodeError&, const WriteRequestSP&);
     void handle_eof                 () override;
     void finalize_handle_eof        () { set_connected(false); on_eof(); }
-    void finalize_handle_shutdown   (const CodeError*, const ShutdownRequestSP&);
+    void finalize_handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
 
     void _reset ();
     void _clear ();
@@ -211,7 +211,7 @@ protected:
 
     void exec           () override = 0;
     void cancel         () override;
-    void handle_connect (const CodeError*) override;
+    void handle_connect (const CodeError&) override;
 };
 
 
@@ -236,7 +236,7 @@ private:
 
     void exec         () override;
     void cancel       () override;
-    void handle_write (const CodeError*) override;
+    void handle_write (const CodeError&) override;
 };
 
 
@@ -264,7 +264,7 @@ private:
 
     void exec            () override;
     void cancel          () override;
-    void handle_shutdown (const CodeError*) override;
+    void handle_shutdown (const CodeError&) override;
 };
 
 

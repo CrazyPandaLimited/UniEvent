@@ -26,8 +26,8 @@ void Stream::listen (connection_fn callback, int backlog) {
     set_listening();
 }
 
-void Stream::handle_connection (const CodeError* err) {
-    _EDEBUG("[%p] err: %d", this, err ? err->code().value() : 0);
+void Stream::handle_connection (const CodeError& err) {
+    _EDEBUG("[%p] err: %d", this, err.code().value());
     if (err) invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, nullptr, err);
     else     accept();
 }
@@ -46,13 +46,14 @@ void Stream::accept (const StreamSP& client) {
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
-void Stream::finalize_handle_connection (const StreamSP& client, const CodeError* _err) {
-    auto err = client->set_connect_result(_err);
+void Stream::finalize_handle_connection (const StreamSP& client, const CodeError& err1) {
+    auto err2 = client->set_connect_result(!err1);
+    auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
     on_connection(client, err);
 }
 
-void Stream::on_connection (const StreamSP& client, const CodeError* err) {
+void Stream::on_connection (const StreamSP& client, const CodeError& err) {
     connection_event(this, client, err);
 }
 
@@ -74,14 +75,15 @@ void ConnectRequest::cancel () {
     handle_connect(CodeError(std::errc::operation_canceled));
 }
 
-void ConnectRequest::handle_connect (const CodeError* err) {
+void ConnectRequest::handle_connect (const CodeError& err) {
     _EDEBUGTHIS();
     if (!err) handle->set_established();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
 }
 
-void Stream::finalize_handle_connect (const CodeError* _err, const ConnectRequestSP& req) {
-    auto err = set_connect_result(_err);
+void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
+    auto err2 = set_connect_result(!err1);
+    auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
 
     req->timer = nullptr;
@@ -105,7 +107,7 @@ void Stream::finalize_handle_connect (const CodeError* _err, const ConnectReques
     }
 }
 
-void Stream::on_connect (const CodeError* err, const ConnectRequestSP& req) {
+void Stream::on_connect (const CodeError& err, const ConnectRequestSP& req) {
     connect_event(this, err, req);
 }
 
@@ -124,11 +126,11 @@ void Stream::read_stop () {
     set_reading(false);
 }
 
-void Stream::handle_read (string& buf, const CodeError* err) {
+void Stream::handle_read (string& buf, const CodeError& err) {
     invoke(_filters.back(), &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
 }
 
-void Stream::on_read (string& buf, const CodeError* err) {
+void Stream::on_read (string& buf, const CodeError& err) {
     read_event(this, buf, err);
 }
 
@@ -154,20 +156,20 @@ void WriteRequest::cancel () {
     handle_write(CodeError(std::errc::operation_canceled));
 }
 
-void WriteRequest::handle_write (const CodeError* err) {
+void WriteRequest::handle_write (const CodeError& err) {
     _EDEBUGTHIS();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_write, &Stream::finalize_handle_write, err, this);
 }
 
-void Stream::finalize_handle_write (const CodeError* err, const WriteRequestSP& req) {
-    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
+    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     queue.done(req, [&]{
         req->event(this, err, req);
         on_write(err, req);
     });
 }
 
-void Stream::on_write (const CodeError* err, const WriteRequestSP& req) {
+void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
     write_event(this, err, req);
 }
 
@@ -198,13 +200,13 @@ void ShutdownRequest::cancel () {
     handle_shutdown(CodeError(std::errc::operation_canceled));
 }
 
-void ShutdownRequest::handle_shutdown (const CodeError* err) {
+void ShutdownRequest::handle_shutdown (const CodeError& err) {
     _EDEBUGTHIS();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, this);
 }
 
-void Stream::finalize_handle_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
-    _EDEBUGTHIS("err: %d, request: %p", err ? err->code().value() : 0, req.get());
+void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
+    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
     queue.done(req, [&]{
         req->event(this, err, req);
@@ -212,7 +214,7 @@ void Stream::finalize_handle_shutdown (const CodeError* err, const ShutdownReque
     });
 }
 
-void Stream::on_shutdown (const CodeError* err, const ShutdownRequestSP& req) {
+void Stream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     shutdown_event(this, err, req);
 }
 
