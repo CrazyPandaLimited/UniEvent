@@ -25,13 +25,11 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
 
     virtual void reset ();
 
-//    virtual void on_reinit     ();
-
 protected:
     StreamFilter (Stream* h, const void* type, double priority);
 
-//    CodeError temp_read_start    ();
-//    void      restore_read_start ();
+    CodeError priority_read_start ();
+    void      priority_read_stop  ();
 
     using NextFilter = StreamFilter;
 

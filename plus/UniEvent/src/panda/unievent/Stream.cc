@@ -249,6 +249,10 @@ void Stream::clear () {
 
 void Stream::_clear () {
     Handle::clear();
+    if (_filters.size()) {
+        _filters.front()->reset();
+        _filters.clear();
+    }
     flags = 0;
     buf_alloc_callback = nullptr;
     connection_factory = nullptr;

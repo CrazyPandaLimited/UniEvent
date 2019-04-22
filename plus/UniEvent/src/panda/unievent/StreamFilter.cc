@@ -22,13 +22,13 @@ bool StreamFilter::is_secure () {
     return false;
 }
 
-//CodeError StreamFilter::temp_read_start () {
-//    return handle->_read_start();
-//}
-//
-//void StreamFilter::restore_read_start () {
-//    if (!handle->wantread()) handle->read_stop();
-//}
+CodeError StreamFilter::priority_read_start () {
+    return handle->_read_start();
+}
+
+void StreamFilter::priority_read_stop () {
+    if (!handle->wantread()) handle->read_stop();
+}
 
 void StreamFilter::handle_connection (const StreamSP& client, const CodeError* err) {
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
