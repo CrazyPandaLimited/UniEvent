@@ -35,7 +35,7 @@ subtest 'start/stop/reset' => \&many, sub {
     my $s = new UniEvent::Signal;
     my ($lastsignum, $i);
 
-    $s->signal_callback(sub {
+    $s->event->add(sub {
         $lastsignum = $_[1];
         ++$i;
         $l->stop;
@@ -75,13 +75,11 @@ subtest 'once' => \&many, sub {
     my $s = new UniEvent::Signal;
     my ($lastsignum, $i);
 
-    $s->signal_callback(sub {
+    $s->once($signum, sub {
         $lastsignum = $_[1];
         ++$i;
         $l->stop;
     });
-    
-    $s->once($signum);
     ok $l->run_nowait, 'holds loop';
     
     trigger($l, $signum);
@@ -98,7 +96,7 @@ subtest 'call_now' => sub {
     my $h = new UniEvent::Signal;
     my $i = 0;
     my $sig;
-    $h->signal_callback(sub { $i++, $sig = $_[1] });
+    $h->event->add(sub { $i++, $sig = $_[1] });
     $h->call_now(SIGHUP) for 1..5;
     is $i, 5;
     is $sig, SIGHUP;

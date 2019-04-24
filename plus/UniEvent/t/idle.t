@@ -11,8 +11,7 @@ subtest 'start/stop/reset' => sub {
     is $h->type, UniEvent::Idle::TYPE, 'type ok';
     
     my $i = 0;
-    $h->idle_callback(sub { $i++ });
-    $h->start;
+    $h->start(sub { $i++ });
     ok $l->run_nowait, 'holds loop';
     is $i, 1, 'idle works';
     
@@ -31,7 +30,7 @@ subtest 'start/stop/reset' => sub {
 
 subtest 'runs rarely when loop is high loaded' => sub {
     my $t = new UniEvent::Timer;
-    $t->timer_callback(sub { $l->stop if ++(state $j) % 10 == 0 });
+    $t->event->add(sub { $l->stop if ++(state $j) % 10 == 0 });
     $t->start(0.001);
     
     my $i = 0;
@@ -46,7 +45,7 @@ subtest 'runs rarely when loop is high loaded' => sub {
     for (0..10000) {
         my $tt = new UniEvent::Timer;
         push @a, $tt;
-        $tt->timer_callback(sub {});
+        $tt->event->add(sub {});
         $tt->start(0.001);
     }
 
@@ -63,7 +62,7 @@ subtest 'runs rarely when loop is high loaded' => sub {
 subtest 'call_now' => sub {
     my $h = new UniEvent::Idle;
     my $i = 0;
-    $h->idle_callback(sub { $i++ });
+    $h->event->add(sub { $i++ });
     $h->call_now for 1..5;
     is $i, 5;
 };

@@ -5,16 +5,13 @@
 
 namespace panda { namespace unievent {
 
-struct StreamFilter;
-using StreamFilterSP = iptr<StreamFilter>;
-
 struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
     const void* type     () const { return _type; }
     double      priority () const { return _priority; }
 
     virtual bool is_secure ();
 
-    //virtual void tcp_connect       (const TCPConnectRequestSP&);
+    virtual void tcp_connect       (const TcpConnectRequestSP&);
     virtual void handle_connection (const StreamSP&, const CodeError&);
     virtual void handle_connect    (const CodeError&, const ConnectRequestSP&);
     virtual void handle_read       (string&, const CodeError&);
@@ -26,12 +23,15 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
     virtual void reset ();
 
 protected:
+    using NextFilter = StreamFilter;
+
     StreamFilter (Stream* h, const void* type, double priority);
 
     CodeError priority_read_start ();
     void      priority_read_stop  ();
 
-    using NextFilter = StreamFilter;
+    void subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& subreq);
+    void subreq_write       (const RequestSP& parent, const WriteRequestSP& subreq);
 
 //    void set_connecting();
 //    void set_connected(bool success);

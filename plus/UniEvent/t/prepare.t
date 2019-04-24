@@ -11,8 +11,7 @@ subtest 'start/stop/reset' => sub {
     is $h->type, UniEvent::Prepare::TYPE, 'type ok';
     
     my $i = 0;
-    $h->prepare_callback(sub { $i++ });
-    $h->start;
+    $h->start(sub { $i++ });
     ok $l->run_nowait, 'holds loop';
     is $i, 1, 'prepare works';
     
@@ -32,7 +31,7 @@ subtest 'start/stop/reset' => sub {
 subtest 'call_now' => sub {
     my $h = new UniEvent::Prepare;
     my $i = 0;
-    $h->prepare_callback(sub { $i++ });
+    $h->event->add(sub { $i++ });
     $h->call_now for 1..5;
     is $i, 5;
 };

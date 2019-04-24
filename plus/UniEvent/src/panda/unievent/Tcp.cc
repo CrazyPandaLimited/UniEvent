@@ -50,27 +50,31 @@ void Tcp::connect (const TcpConnectRequestSP& req) {
 void TcpConnectRequest::exec () {
     _EDEBUGTHIS();
     ConnectRequest::exec();
+    if (handle->filters().size()) handle->filters().front()->tcp_connect(this);
+    else                          finalize_connect();
+}
 
-    if (addr) return do_impl();
+void TcpConnectRequest::finalize_connect () {
+    _EDEBUGTHIS();
+
+    if (addr) {
+        auto err = handle->impl()->connect(addr, impl());
+        if (err) delay([=]{ handle_connect(err); });
+        return;
+    }
 
     resolve_request = handle->loop()->resolver()->resolve()
         ->node(host)
         ->port(port)
         ->hints(hints)
         ->use_cache(cached)
-        ->on_resolve([this](const AddrInfo& res, const CodeError& err, const Resolver::RequestSP) {
+        ->on_resolve([this](const AddrInfo& res, const CodeError& res_err, const Resolver::RequestSP) {
             resolve_request = nullptr;
-            if (err) return handle_connect(err);
-            addr = res.addr();
-            do_impl();
+            if (res_err) return handle_connect(res_err);
+            auto err = handle->impl()->connect(res.addr(), impl());
+            if (err) handle_connect(err);
         });
-
     resolve_request->run();
-}
-
-void TcpConnectRequest::do_impl () {
-    auto err = handle->impl()->connect(addr, impl());
-    if (err) delay([=]{ handle_connect(err); });
 }
 
 void TcpConnectRequest::handle_connect (const CodeError& err) {

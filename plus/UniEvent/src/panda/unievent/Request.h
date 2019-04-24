@@ -14,9 +14,11 @@ using RequestSP = iptr<Request>;
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt {
 protected:
     using BackendRequest = backend::BackendRequest;
-    friend struct Queue;
+    friend struct Queue; friend StreamFilter;
 
     BackendRequest* _impl;
+    Request*        parent;
+    RequestSP       subreq;
 
     Request () : _impl(), _delay_id(0) {}
 
@@ -57,7 +59,6 @@ protected:
 private:
     HandleSP _handle;
     uint64_t _delay_id;
-
 };
 
 struct BufferRequest : Request {
@@ -75,25 +76,5 @@ struct BufferRequest : Request {
         for (; begin != end; ++begin) bufs.push_back(*begin);
     }
 };
-
-//struct CancelableRequest : Request {
-//    CancelableRequest () : canceled_(false) {}
-//
-//    bool canceled () const { return canceled_; }
-//
-//    virtual void cancel() {
-//        _EDEBUGTHIS("cancel");
-//        if (!canceled_) {
-//            canceled_ = true;
-//            // if uv_cancel is succeeded callback will be called with ECANCELED
-//            // otherwise it is completed or started execution and it is impossible to stop it
-//            uv_cancel(uvrp);
-//        }
-//    }
-//
-//protected:
-//    bool canceled_;
-//};
-//
 
 }}

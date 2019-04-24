@@ -1,6 +1,6 @@
 #include "StreamFilter.h"
 #include "Stream.h"
-//#include "TCP.h"
+#include "Tcp.h"
 
 using namespace panda::unievent;
 
@@ -30,13 +30,27 @@ void StreamFilter::priority_read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
+void StreamFilter::subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& subreq) {
+    parent->subreq = subreq;
+    subreq->parent = parent;
+    NextFilter::tcp_connect(subreq);
+}
+
+void StreamFilter::subreq_write (const RequestSP& parent, const WriteRequestSP& subreq) {
+    parent->subreq = subreq;
+    subreq->parent = parent;
+    NextFilter::write(subreq);
+}
+
+
 void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err) {
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
-//void StreamFilter::tcp_connect (const TCPConnectRequestSP& req) {
-//    invoke(next, &StreamFilter::tcp_connect, &TCP::finalize_connect, req);
-//}
+void StreamFilter::tcp_connect (const TcpConnectRequestSP& req) {
+    if (next) next->tcp_connect(req);
+    else      req->finalize_connect();
+}
 
 void StreamFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
     invoke(prev, &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, req);
@@ -61,15 +75,6 @@ void StreamFilter::handle_eof () {
 void StreamFilter::handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     invoke(prev, &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, req);
 }
-
-//void StreamFilter::connect (ConnectRequest* req) {
-//    if (next_) next_->connect(req);
-//    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
-//}
-//
-//void StreamFilter::on_reinit () {
-//    if (prev_) prev_->on_reinit();
-//}
 
 void StreamFilter::reset () {
     next->reset();

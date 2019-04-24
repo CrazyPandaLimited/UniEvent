@@ -21,7 +21,7 @@ $srv->connection_callback(sub {
 });
 
 my $t = UE::Prepare->new;
-$t->prepare_callback(sub {
+$t->start(sub {
     my $cl = UE::Tcp->new($loop);
     $cl->connect_addr($srv->sockaddr, sub {
         my ($handler, $err) = @_;
@@ -31,8 +31,6 @@ $t->prepare_callback(sub {
     });
     $t->stop if ++$d[0] == $cnt;
 });
-
-$t->start;
 
 $loop->run;
 

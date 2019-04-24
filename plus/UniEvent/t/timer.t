@@ -12,7 +12,7 @@ subtest 'once timer' => sub {
     
     is $t->type, UniEvent::Timer::TYPE, 'type correct';
     
-    $t->timer_callback(\&count);
+    $t->event->add(\&count);
     time_mark();
     $t->start(0, 0.02);
     $l->run;
@@ -32,14 +32,14 @@ subtest 'once timer' => sub {
 
 subtest 'call_now' => sub {
     my $t = new UniEvent::Timer;
-    $t->timer_callback(\&count);
+    $t->event->add(\&count);
     $t->call_now for 1..6;
     check_count(6, "call_now works");
 };
 
 subtest 'stop' => sub {
     my $t = new UniEvent::Timer;
-    $t->timer_callback(sub { shift->stop });
+    $t->event->add(sub { shift->stop });
     $t->start(1, 0.01);
     $l->run;
     pass "stop works";
@@ -48,7 +48,7 @@ subtest 'stop' => sub {
 subtest 'initial = repeat' => sub {
     $l->update_time;
     my $t = new UniEvent::Timer;
-    $t->timer_callback(sub {
+    $t->event->add(sub {
         my $h = shift;
         count();
         check_mark(0.01, "first call time and repeat call time are correct");
@@ -64,7 +64,7 @@ subtest 'initial = repeat' => sub {
 subtest 'different initial and repeat' => sub {
     $l->update_time;
     my $t = new UniEvent::Timer;
-    $t->timer_callback(sub {
+    $t->event->add(sub {
         my $h = shift;
         ++(state $i);
         count();
@@ -84,7 +84,7 @@ subtest 'change repeat' => sub {
         $l->update_time;
         my $initial_meth = shift;
         my $t = new UniEvent::Timer;
-        $t->timer_callback(sub { $l->stop });
+        $t->event->add(sub { $l->stop });
         $t->$initial_meth(0.01);
         $t->repeat(0.02);
         time_mark();
@@ -103,7 +103,7 @@ subtest 'again' => sub {
     my $t  = new UniEvent::Timer;
     my $t2 = new UniEvent::Timer;
     dies_ok {$t->again} "again cannot be called on never-started timer";
-    $t->timer_callback(sub {
+    $t->event->add(sub {
         ++(state $i);
         count();
         $i == 1 ? check_mark(0.01, "first call in 0.01 because last time t2 didn't reset") :
@@ -111,7 +111,7 @@ subtest 'again' => sub {
         shift->stop if $i > 5;
         time_mark();
     });
-    $t2->timer_callback(sub { # $t2 holds $t from triggering by reseting it via again
+    $t2->event->add(sub { # $t2 holds $t from triggering by reseting it via again
         my $me = shift;
         check_count(0, "'again' resets repeating timer");
         ++(state $i);
@@ -130,7 +130,7 @@ subtest 'again' => sub {
 
 subtest 'reset' => sub {
     my $t = new UniEvent::Timer;
-    $t->timer_callback(sub { shift->reset });
+    $t->event->add(sub { shift->reset });
     time_mark();
     $t->start(0.02);
     $l->run;

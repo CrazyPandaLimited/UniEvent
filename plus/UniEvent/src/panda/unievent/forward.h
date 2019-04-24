@@ -48,6 +48,9 @@ using SendRequestSP = iptr<SendRequest>;
 struct Stream;
 using StreamSP = iptr<Stream>;
 
+struct StreamFilter;
+using StreamFilterSP = iptr<StreamFilter>;
+
 struct ConnectRequest;
 using ConnectRequestSP = iptr<ConnectRequest>;
 
@@ -71,9 +74,6 @@ using TcpConnectRequestSP = iptr<TcpConnectRequest>;
 
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
-//
-//struct StreamFilter;
-//using StreamFilterSP = iptr<StreamFilter>;
 
 //struct AddressRotator;
 //using AddressRotatorSP = iptr<AddressRotator>;

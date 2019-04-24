@@ -81,7 +81,7 @@ struct TcpConnectRequest : ConnectRequest, panda::lib::AllocatedObject<TcpConnec
     TcpConnectRequestSP run        ()                              { handle->connect(this); return this; }
 
 private:
-    friend Tcp;
+    friend Tcp; friend StreamFilter;
     Tcp*                handle;
     Resolver::RequestSP resolve_request;
 
@@ -90,9 +90,9 @@ private:
         ConnectRequest::set(h);
     }
 
-    void do_impl        ();
-    void exec           () override;
-    void handle_connect (const CodeError&) override;
+    void exec             () override;
+    void finalize_connect ();
+    void handle_connect   (const CodeError&) override;
 };
 
 inline TcpConnectRequestSP Tcp::connect () {

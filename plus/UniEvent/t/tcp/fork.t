@@ -31,7 +31,7 @@ $server->connection_callback(sub {
 });
 
 my $timer = UE::Timer->new($loop);
-$timer->timer_callback(sub {
+$timer->event->add(sub {
     $pid = fork();
     unless ($pid) {
         $loop->handle_fork();

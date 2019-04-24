@@ -26,7 +26,7 @@ subtest 'type' => sub {
 subtest 'active' => sub {
     my $l = new UniEvent::Loop;
     my $t = new UniEvent::Timer($l);
-    $t->timer_callback(sub {shift->stop});
+    $t->event->add(sub {shift->stop});
     ok(!$t->active, "not started handle is non-active");
     $t->start(0.01);
     ok($t->active, "started handle is active");
@@ -38,7 +38,7 @@ subtest 'weak' => sub {
     my $l = new UniEvent::Loop;
     my $h = new UniEvent::Prepare($l);
     my $i = 0;
-    $h->prepare_callback(sub {shift->loop->stop; ++$i});
+    $h->event->add(sub {shift->loop->stop; ++$i});
     ok !$h->weak, "by default, handle is non-weak";
     $h->start;
     $l->run;
