@@ -4,8 +4,6 @@
 
 namespace panda { namespace unievent {
 
-AddrInfoHintsSP TCP::default_hints = AddrInfoHintsSP(new AddrInfoHints);
-
 TCP::~TCP() {
     _EDTOR();
 }
@@ -164,6 +162,11 @@ void TCP::_close() {
         resolve_request.reset();
     }
     Stream::_close();
+}
+
+AddrInfoHintsSP TCP::default_hints() {
+    thread_local static AddrInfoHintsSP val = new AddrInfoHints;
+    return val;
 }
 
 std::ostream& operator<< (std::ostream& os, const TCP& tcp) {

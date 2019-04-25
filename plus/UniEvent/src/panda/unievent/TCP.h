@@ -37,13 +37,13 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void bind (const SockAddr&, unsigned int flags = 0);
 
-    virtual void bind (std::string_view host, uint16_t port, const AddrInfoHintsSP& hints = default_hints);
+    virtual void bind (std::string_view host, uint16_t port, const AddrInfoHintsSP& hints = default_hints());
 
     virtual void connect (TCPConnectRequest* tcp_connect_request);
 
     virtual void connect (const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void connect (const string& host, uint16_t port, uint64_t timeout = 0, const AddrInfoHintsSP& hints = default_hints);
+    virtual void connect (const string& host, uint16_t port, uint64_t timeout = 0, const AddrInfoHintsSP& hints = default_hints());
 
     virtual TCPConnectAutoBuilder connect (); 
 
@@ -51,7 +51,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void reconnect (const SockAddr& sa, uint64_t timeout = 0);
 
-    virtual void reconnect (const string& host, uint16_t port, uint64_t timeout, const AddrInfoHintsSP& hints = default_hints);
+    virtual void reconnect (const string& host, uint16_t port, uint64_t timeout, const AddrInfoHintsSP& hints = default_hints());
 
     void do_connect (TCPConnectRequest* connect_request);
 
@@ -118,7 +118,7 @@ public:
 private:
     uv_tcp_t uvh;
     TimerSP connect_timer;
-    static AddrInfoHintsSP default_hints;
+    static AddrInfoHintsSP default_hints();
     ResolveRequestSP resolve_request;
 };
 
@@ -132,7 +132,7 @@ struct TCPConnectRequest : ConnectRequest {
 
         Derived& concrete () { return static_cast<Derived&>(*this); }
         
-        Derived& to (const string& host, uint16_t port, const AddrInfoHintsSP& hints = TCP::default_hints) {
+        Derived& to (const string& host, uint16_t port, const AddrInfoHintsSP& hints = TCP::default_hints()) {
             _host  = host;
             _port  = port;
             _hints = hints;
@@ -159,7 +159,7 @@ struct TCPConnectRequest : ConnectRequest {
         SockAddr        _sa;
         string          _host;
         uint16_t        _port;
-        AddrInfoHintsSP _hints   = TCP::default_hints;
+        AddrInfoHintsSP _hints   = TCP::default_hints();
         uint64_t        _timeout = 0;
         connect_fn      _callback;
     };
