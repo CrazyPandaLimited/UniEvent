@@ -9,19 +9,7 @@ struct IUdpListener {
     virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) = 0;
 };
 
-struct ISendListener {
-    virtual void handle_send (const CodeError&) = 0;
-};
-
-struct BackendSendRequest : BackendRequest {
-    BackendSendRequest (BackendHandle* h, ISendListener* l) : BackendRequest(h), listener(l) {}
-
-    void handle_send (const CodeError& err) noexcept {
-        handle->loop->ltry([&]{ listener->handle_send(err); });
-    }
-
-    ISendListener* listener;
-};
+struct BackendSendRequest : BackendRequest { using BackendRequest::BackendRequest; };
 
 struct BackendUdp : BackendHandle {
     struct Flags {
@@ -36,6 +24,8 @@ struct BackendUdp : BackendHandle {
     };
 
     BackendUdp (BackendLoop* loop, IUdpListener* lst) : BackendHandle(loop), listener(lst) {}
+
+    virtual BackendRequest* new_send_request (IRequestListener*) = 0;
 
     string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
 
@@ -62,8 +52,6 @@ struct BackendUdp : BackendHandle {
     virtual void set_multicast_interface (std::string_view interface_addr) = 0;
     virtual void set_broadcast           (bool on) = 0;
     virtual void set_ttl                 (int ttl) = 0;
-
-    virtual BackendSendRequest* new_send_request (ISendListener*) = 0;
 
     void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });

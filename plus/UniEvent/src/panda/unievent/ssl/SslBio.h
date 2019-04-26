@@ -41,7 +41,7 @@ namespace panda { namespace unievent { namespace ssl {
 
 #endif
 
-struct SSLBio {
+struct SslBio {
     struct membuf_t : panda::lib::AllocatedObject<membuf_t> {
         Stream* handle;
         string  buf;    // current read buf

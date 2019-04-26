@@ -18,30 +18,23 @@ StreamFilter::StreamFilter (Stream* h, const void* type, double priority) : hand
 //    handle->set_shutdown(success);
 //}
 
-bool StreamFilter::is_secure () {
-    return false;
-}
-
-CodeError StreamFilter::priority_read_start () {
+CodeError StreamFilter::read_start () {
     return handle->_read_start();
 }
 
-void StreamFilter::priority_read_stop () {
+void StreamFilter::read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
-void StreamFilter::subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& subreq) {
-    parent->subreq = subreq;
-    subreq->parent = parent;
-    NextFilter::tcp_connect(subreq);
+void StreamFilter::subreq_tcp_connect (const TcpConnectRequestSP& req) {
+    handle->queue.subreq_push(req);
+    NextFilter::tcp_connect(req);
 }
 
-void StreamFilter::subreq_write (const RequestSP& parent, const WriteRequestSP& subreq) {
-    parent->subreq = subreq;
-    subreq->parent = parent;
-    NextFilter::write(subreq);
+void StreamFilter::subreq_write (const WriteRequestSP& req) {
+    handle->queue.subreq_push(req);
+    NextFilter::write(req);
 }
-
 
 void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err) {
     invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
@@ -74,8 +67,4 @@ void StreamFilter::handle_eof () {
 
 void StreamFilter::handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     invoke(prev, &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, req);
-}
-
-void StreamFilter::reset () {
-    next->reset();
 }

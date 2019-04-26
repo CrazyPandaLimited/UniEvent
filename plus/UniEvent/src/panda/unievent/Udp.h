@@ -81,7 +81,7 @@ private:
 };
 
 
-struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest>, private backend::ISendListener {
+struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest> {
     CallbackDispatcher<Udp::send_fptr> event;
     net::SockAddr                      addr;
 
@@ -101,9 +101,8 @@ private:
         return static_cast<backend::BackendSendRequest*>(_impl);
     }
 
-    void exec        () override;
-    void cancel      () override;
-    void handle_send (const CodeError&) override;
+    void exec         () override;
+    void handle_event (const CodeError&) override;
 };
 
 

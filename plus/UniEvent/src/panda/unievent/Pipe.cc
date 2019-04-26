@@ -35,7 +35,7 @@ void Pipe::connect (const PipeConnectRequestSP& req) {
 void PipeConnectRequest::exec () {
     ConnectRequest::exec();
     auto err = handle->impl()->connect(name, impl());
-    if (err) return delay([=]{ handle_connect(err); });
+    if (err) return delay([=]{ cancel(err); });
 }
 
 void Pipe::pending_instances (int count) {

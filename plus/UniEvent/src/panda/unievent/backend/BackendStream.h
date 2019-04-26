@@ -11,54 +11,16 @@ struct IStreamListener {
     virtual void   handle_eof        () = 0;
 };
 
-struct IConnectListener {
-    virtual void handle_connect (const CodeError&) = 0;
-};
-
-struct BackendConnectRequest : BackendRequest {
-    BackendConnectRequest (BackendHandle* h, IConnectListener* l) : BackendRequest(h), listener(l) {}
-
-    void handle_connect (const CodeError& err) noexcept {
-        handle->loop->ltry([&]{ listener->handle_connect(err); });
-    }
-
-    IConnectListener* listener;
-};
-
-struct IWriteListener {
-    virtual void handle_write (const CodeError&) = 0;
-};
-
-struct BackendWriteRequest : BackendRequest {
-    BackendWriteRequest (BackendHandle* h, IWriteListener* l) : BackendRequest(h), listener(l) {}
-
-    void handle_write (const CodeError& err) noexcept {
-        handle->loop->ltry([&]{ listener->handle_write(err); });
-    }
-
-    IWriteListener* listener;
-};
-
-struct IShutdownListener {
-    virtual void handle_shutdown (const CodeError&) = 0;
-};
-
-struct BackendShutdownRequest : BackendRequest {
-    BackendShutdownRequest (BackendHandle* h, IShutdownListener* l) : BackendRequest(h), listener(l) {}
-
-    void handle_shutdown (const CodeError& err) noexcept {
-        handle->loop->ltry([&]{ listener->handle_shutdown(err); });
-    }
-
-    IShutdownListener* listener;
-};
+struct BackendConnectRequest  : BackendRequest { using BackendRequest::BackendRequest; };
+struct BackendWriteRequest    : BackendRequest { using BackendRequest::BackendRequest; };
+struct BackendShutdownRequest : BackendRequest { using BackendRequest::BackendRequest; };
 
 struct BackendStream : BackendHandle {
     BackendStream (BackendLoop* loop, IStreamListener* lst) : BackendHandle(loop), listener(lst) {}
 
-    virtual BackendConnectRequest*  new_connect_request  (IConnectListener*)  = 0;
-    virtual BackendWriteRequest*    new_write_request    (IWriteListener*)    = 0;
-    virtual BackendShutdownRequest* new_shutdown_request (IShutdownListener*) = 0;
+    virtual BackendConnectRequest*  new_connect_request  (IRequestListener*) = 0;
+    virtual BackendWriteRequest*    new_write_request    (IRequestListener*) = 0;
+    virtual BackendShutdownRequest* new_shutdown_request (IRequestListener*) = 0;
 
     string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
 

@@ -1,10 +1,10 @@
-#include "SSLBio.h"
+#include "SslBio.h"
 #include "../Stream.h"
 
 using panda::string;
 using namespace panda::unievent::ssl;
 
-using membuf_t = SSLBio::membuf_t;
+using membuf_t = SslBio::membuf_t;
 
 static int bio_new (BIO* bio) {
     membuf_t* b = new membuf_t();
@@ -181,14 +181,14 @@ static long bio_ctrl (BIO* bio, int cmd, long num, void* ptr) {
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 
-BIO_METHOD SSLBio::_method = {
+BIO_METHOD SslBio::_method = {
     BIO_TYPE_MEM, "memory buffer", bio_write, bio_read, bio_puts, bio_gets, bio_ctrl, bio_new, bio_free, nullptr
 };
 
 
 #else
 
-BIO_METHOD* SSLBio::_method() {
+BIO_METHOD* SslBio::_method() {
     _EDEBUG();
     
     thread_local BIO_METHOD *bio = nullptr;

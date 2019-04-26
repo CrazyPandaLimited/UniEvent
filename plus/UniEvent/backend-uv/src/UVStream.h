@@ -6,24 +6,24 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVConnectRequest : UVRequest<BackendConnectRequest, uv_connect_t>, AllocatedObject<UVConnectRequest> {
-    UVConnectRequest (BackendHandle* h, IConnectListener* l) : UVRequest<BackendConnectRequest, uv_connect_t>(h, l) {}
+    using UVRequest<BackendConnectRequest, uv_connect_t>::UVRequest;
 };
 
 struct UVWriteRequest : UVRequest<BackendWriteRequest, uv_write_t>, AllocatedObject<UVWriteRequest> {
-    UVWriteRequest (BackendHandle* h, IWriteListener* l) : UVRequest<BackendWriteRequest, uv_write_t>(h, l) {}
+    using UVRequest<BackendWriteRequest, uv_write_t>::UVRequest;
 };
 
 struct UVShutdownRequest : UVRequest<BackendShutdownRequest, uv_shutdown_t>, AllocatedObject<UVShutdownRequest> {
-    UVShutdownRequest (BackendHandle* h, IShutdownListener* l) : UVRequest<BackendShutdownRequest, uv_shutdown_t>(h, l) {}
+    using UVRequest<BackendShutdownRequest, uv_shutdown_t>::UVRequest;
 };
 
 template <class Base, class UvReq>
 struct UVStream : UVHandle<Base, UvReq> {
     UVStream (UVLoop* loop, IStreamListener* lst) : UVHandle<Base, UvReq>(loop, lst) {}
 
-    BackendConnectRequest*  new_connect_request  (IConnectListener* l)  override { return new UVConnectRequest(this, l); }
-    BackendWriteRequest*    new_write_request    (IWriteListener* l)    override { return new UVWriteRequest(this, l); }
-    BackendShutdownRequest* new_shutdown_request (IShutdownListener* l) override { return new UVShutdownRequest(this, l); }
+    BackendConnectRequest*  new_connect_request  (IRequestListener* l) override { return new UVConnectRequest(this, l); }
+    BackendWriteRequest*    new_write_request    (IRequestListener* l) override { return new UVWriteRequest(this, l); }
+    BackendShutdownRequest* new_shutdown_request (IRequestListener* l) override { return new UVShutdownRequest(this, l); }
 
     void listen (int backlog) override {
         uvx_strict(uv_listen(uvsp(), backlog, on_connection));
@@ -71,7 +71,7 @@ protected:
     static void on_connect (uv_connect_t* p, int status) {
         auto req = get_request<UVConnectRequest*>(p);
         req->active = false;
-        req->handle_connect(uvx_ce(status));
+        req->handle_event(uvx_ce(status));
     }
 
 private:
@@ -106,13 +106,13 @@ private:
     static void on_write (uv_write_t* p, int status) {
         auto req = get_request<UVWriteRequest*>(p);
         req->active = false;
-        req->handle_write(uvx_ce(status));
+        req->handle_event(uvx_ce(status));
     }
 
     static void on_shutdown (uv_shutdown_t* p, int status) {
         auto req = get_request<UVShutdownRequest*>(p);
         req->active = false;
-        req->handle_shutdown(uvx_ce(status));
+        req->handle_event(uvx_ce(status));
     }
 };
 

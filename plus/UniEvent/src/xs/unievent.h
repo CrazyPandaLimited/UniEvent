@@ -206,12 +206,12 @@ template <> struct Typemap<panda::unievent::AddrInfoHints> : TypemapBase<panda::
     }
 };
 
-//template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
-//    SSL_CTX* in (pTHX_ SV* arg) {
-//        if (!SvOK(arg)) return nullptr;
-//        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
-//    }
-//};
+template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
+    SSL_CTX* in (pTHX_ SV* arg) {
+        if (!SvOK(arg)) return nullptr;
+        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
+    }
+};
 
 template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
     panda::string package () { return "UniEvent::Backend"; }

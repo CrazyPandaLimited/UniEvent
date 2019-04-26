@@ -3,7 +3,7 @@ use lib 't/lib';
 use MyTest;
 use Net::SockAddr;
 use Net::SSLeay;
-plan skip_all => 'disabled';
+
 my $SERV_CERT = "t/cert/cert.pem";
 my $serv_ctx = Net::SSLeay::CTX_new();
 Net::SSLeay::CTX_use_certificate_file($serv_ctx, $SERV_CERT, &Net::SSLeay::FILETYPE_PEM) or sslerr();
@@ -13,11 +13,11 @@ Net::SSLeay::CTX_check_private_key($serv_ctx) or sslerr();
 my $client_ctx = Net::SSLeay::CTX_new();
 Net::SSLeay::CTX_load_verify_locations($client_ctx, $SERV_CERT, '') or die "something went wrong";
 
-my $srv = new UniEvent::TCP;
+my $srv = new UE::Tcp;
 $srv->use_ssl($serv_ctx);
-$srv->bind(SA_LOOPBACK_ANY);
+$srv->bind_addr(SA_LOOPBACK_ANY);
 $srv->listen;
-my $sa = $srv->get_sockaddr;
+my $sa = $srv->sockaddr;
 
 my @save;
 my $data = 'MAGIC SSL';
@@ -34,7 +34,7 @@ $srv->connection_callback(sub {
         $client->shutdown();
     });
     
-    $client->read_start(sub {
+    $client->read_callback(sub {
         my ($h, $str, $err) = @_;
         fail $err if $err;
         is $str, $data, "server: data from client";
@@ -47,14 +47,14 @@ $srv->connection_callback(sub {
     $srv->weak(1);
 });
 
-my $client = new UniEvent::TCP;
+my $client = new UE::Tcp;
 $client->use_ssl($client_ctx);
-my $p = new UniEvent::Prepare;
+my $p = new UE::Prepare;
 
 $p->start(sub {
     shift->stop();
     
-    $client->read_start(sub {
+    $client->read_callback(sub {
         my ($h, $str, $err) = @_;
         fail $err if $err;
         is $str, $data, "client: data from server";
@@ -72,7 +72,7 @@ $p->start(sub {
         pass("client: connected");
     });
    
-    $client->connect($sa);
+    $client->connect_addr($sa);
 });
 
 $srv->loop->run;

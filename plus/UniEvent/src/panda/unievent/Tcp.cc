@@ -59,7 +59,7 @@ void TcpConnectRequest::finalize_connect () {
 
     if (addr) {
         auto err = handle->impl()->connect(addr, impl());
-        if (err) delay([=]{ handle_connect(err); });
+        if (err) delay([=]{ cancel(err); });
         return;
     }
 
@@ -70,20 +70,20 @@ void TcpConnectRequest::finalize_connect () {
         ->use_cache(cached)
         ->on_resolve([this](const AddrInfo& res, const CodeError& res_err, const Resolver::RequestSP) {
             resolve_request = nullptr;
-            if (res_err) return handle_connect(res_err);
+            if (res_err) return cancel(res_err);
             auto err = handle->impl()->connect(res.addr(), impl());
-            if (err) handle_connect(err);
+            if (err) cancel(err);
         });
     resolve_request->run();
 }
 
-void TcpConnectRequest::handle_connect (const CodeError& err) {
+void TcpConnectRequest::handle_event (const CodeError& err) {
     if (resolve_request) {
         resolve_request->event.remove_all();
         resolve_request->cancel();
         resolve_request = nullptr;
     }
-    ConnectRequest::handle_connect(err);
+    ConnectRequest::handle_event(err);
 }
 
 

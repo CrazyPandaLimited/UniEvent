@@ -1,19 +1,11 @@
 #pragma once
 #include "../Debug.h"
+#include "../Error.h"
 #include "BackendLoop.h"
 #include <panda/string.h>
 #include <panda/optional.h>
 
 namespace panda { namespace unievent { namespace backend {
-
-struct BackendRequest {
-    BackendHandle* handle;
-
-    BackendRequest (BackendHandle* handle) : handle(handle) { _ECTOR(); }
-
-    virtual void destroy () noexcept = 0;
-    virtual ~BackendRequest () { _EDTOR(); }
-};
 
 struct BackendHandle {
     static constexpr const size_t MIN_ALLOC_SIZE = 1024;
@@ -44,6 +36,24 @@ struct BackendHandle {
 private:
     static uint64_t last_id;
 
+};
+
+struct IRequestListener {
+    virtual void handle_event (const CodeError&) = 0;
+};
+
+struct BackendRequest {
+    BackendHandle*    handle;
+    IRequestListener* listener;
+
+    BackendRequest (BackendHandle* h, IRequestListener* l) : handle(h), listener(l) { _ECTOR(); }
+
+    void handle_event (const CodeError& err) noexcept {
+        handle->loop->ltry([&]{ listener->handle_event(err); });
+    }
+
+    virtual void destroy () noexcept = 0;
+    virtual ~BackendRequest () { _EDTOR(); }
 };
 
 }}}

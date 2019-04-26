@@ -75,20 +75,20 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
     void reset () override;
     void clear () override;
 
-//    void use_ssl (SSL_CTX* context);
-//    void use_ssl (const SSL_METHOD* method = nullptr);
-//
-//    SSL* get_ssl   () const;
-//    bool is_secure () const;
-//
-//    void add_filter (const StreamFilterSP&);
-//
-//    template <typename F>
-//    iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
-//    StreamFilterSP get_filter (const void* type) const;
-//
-//    void push_ahead_filter  (const StreamFilterSP& filter) { filters_.insert(filters_.begin(), filter); }
-//    void push_behind_filter (const StreamFilterSP& filter) { filters_.insert(filters_.end(), filter); }
+    void use_ssl (SSL_CTX* context);
+    void use_ssl (const SSL_METHOD* method = nullptr);
+
+    SSL* get_ssl   () const;
+    bool is_secure () const;
+
+    void add_filter (const StreamFilterSP&);
+
+    template <typename F>
+    iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
+    StreamFilterSP get_filter (const void* type) const;
+
+    void push_ahead_filter  (const StreamFilterSP& filter) { _filters.insert(_filters.begin(), filter); }
+    void push_behind_filter (const StreamFilterSP& filter) { _filters.insert(_filters.end(), filter); }
 
     Filters& filters () { return _filters; }
 
@@ -142,7 +142,7 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend struct AcceptRequest;
 
     static const uint32_t LISTENING   = 1;
     static const uint32_t CONNECTING  = 2;
@@ -166,6 +166,11 @@ private:
         else        (this->*my_method)(std::forward<Args>(args)...);
     }
 
+    template <class T, class...Args>
+    void invoke_sync (T filter_method, Args&&...args) {
+        if (_filters.size()) (_filters.front()->*filter_method)(std::forward<Args>(args)...);
+    }
+
     void handle_connection          (const CodeError&) override;
     void finalize_handle_connection (const StreamSP& client, const CodeError&);
     void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
@@ -184,7 +189,7 @@ private:
 };
 
 
-struct ConnectRequest : Request, private backend::IConnectListener {
+struct ConnectRequest : Request {
     CallbackDispatcher<Stream::connect_fptr> event;
 
 protected:
@@ -209,13 +214,12 @@ protected:
         Request::set(h);
     }
 
-    void exec           () override = 0;
-    void cancel         () override;
-    void handle_connect (const CodeError&) override;
+    void exec         () override = 0;
+    void handle_event (const CodeError&) override;
 };
 
 
-struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest>, private backend::IWriteListener {
+struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest> {
     CallbackDispatcher<Stream::write_fptr> event;
 
     using BufferRequest::BufferRequest;
@@ -235,12 +239,11 @@ private:
     }
 
     void exec         () override;
-    void cancel       () override;
-    void handle_write (const CodeError&) override;
+    void handle_event (const CodeError&) override;
 };
 
 
-struct ShutdownRequest : Request, private backend::IShutdownListener {
+struct ShutdownRequest : Request {
     CallbackDispatcher<Stream::shutdown_fptr> event;
 
     ShutdownRequest (Stream::shutdown_fn callback = {}) {
@@ -262,25 +265,9 @@ private:
         return static_cast<backend::BackendShutdownRequest*>(_impl);
     }
 
-    void exec            () override;
-    void cancel          () override;
-    void handle_shutdown (const CodeError&) override;
+    void exec         () override;
+    void handle_event (const CodeError&) override;
 };
-
-
-struct DisconnectRequest : Request {
-    DisconnectRequest (Stream* h) : handle(h) {
-        _ECTOR();
-        set(h);
-    }
-
-private:
-    Stream* handle;
-
-    void exec   () override;
-    void cancel () override;
-};
-
 
 inline void Stream::write (const string& data, write_fn callback) {
     auto req = new WriteRequest(data);

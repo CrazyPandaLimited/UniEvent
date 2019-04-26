@@ -1,9 +1,9 @@
 #include "Stream.h"
-//#include "ssl/SSLFilter.h"
-//#include <chrono>
-//#include <algorithm>
+#include "ssl/SslFilter.h"
 
-using namespace panda::unievent;
+namespace panda { namespace unievent {
+
+using ssl::SslFilter;
 
 Stream::~Stream () {
     _EDTOR();
@@ -18,9 +18,18 @@ string Stream::buf_alloc (size_t cap) noexcept {
 }
 
 // ===================== CONNECTION ===============================
+struct AcceptRequest : Request {
+    Stream* handle;
+
+    AcceptRequest (Stream* h) : handle(h) { set(h); }
+
+    void exec         ()                                                 override {}
+    void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
+    void handle_event (const CodeError&)                                 override {}
+};
+
 void Stream::listen (connection_fn callback, int backlog) {
-//    auto filter = get_filter<ssl::SSLFilter>();
-//    if (filter && filter->is_client()) throw Error("Programming error, use server certificate");
+    invoke_sync(&StreamFilter::listen);
     if (callback) connection_event.add(callback);
     impl()->listen(backlog);
     set_listening();
@@ -43,6 +52,9 @@ void Stream::accept (const StreamSP& client) {
         client->set_connecting();
         client->set_established();
     }
+    // filters may delay handle_connection() and make subrequests
+    // creating dummy AcceptRequest follows 2 purposes: holding the only client reference and delaying users requests until handle_connection() is done
+    if (_filters.size()) client->queue.push(new AcceptRequest(this));
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 
@@ -50,6 +62,8 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
     auto err2 = client->set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
+    auto areq = client->queue.front().get();
+    if (areq && typeid(*areq) == typeid(AcceptRequest)) client->queue.done(areq, []{});
     on_connection(client, err);
 }
 
@@ -64,18 +78,12 @@ void ConnectRequest::exec () {
 
     if (timeout) {
         timer = new Timer(handle->loop());
-        timer->event.add([this](const TimerSP&){
-            handle_connect(CodeError(std::errc::timed_out));
-        });
+        timer->event.add([this](const TimerSP&){ cancel(std::errc::timed_out); });
         timer->once(timeout);
     }
 }
 
-void ConnectRequest::cancel () {
-    handle_connect(CodeError(std::errc::operation_canceled));
-}
-
-void ConnectRequest::handle_connect (const CodeError& err) {
+void ConnectRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     if (!err) handle->set_established();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
@@ -149,14 +157,10 @@ void WriteRequest::exec () {
 void Stream::finalize_write (const WriteRequestSP& req) {
     _EDEBUGTHIS();
     auto err = impl()->write(req->bufs, req->impl());
-    if (err) return req->delay([=]{ req->handle_write(err); });
+    if (err) return req->delay([=]{ req->cancel(err); });
 }
 
-void WriteRequest::cancel () {
-    handle_write(CodeError(std::errc::operation_canceled));
-}
-
-void WriteRequest::handle_write (const CodeError& err) {
+void WriteRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_write, &Stream::finalize_handle_write, err, this);
 }
@@ -193,14 +197,10 @@ void ShutdownRequest::exec () {
     _EDEBUGTHIS();
     handle->set_shutting();
     auto err = handle->impl()->shutdown(impl());
-    if (err) return delay([=]{ handle_shutdown(err); });
+    if (err) return delay([=]{ cancel(err); });
 }
 
-void ShutdownRequest::cancel () {
-    handle_shutdown(CodeError(std::errc::operation_canceled));
-}
-
-void ShutdownRequest::handle_shutdown (const CodeError& err) {
+void ShutdownRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     handle->invoke(handle->_filters.back(), &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, this);
 }
@@ -219,20 +219,20 @@ void Stream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
 }
 
 // ===================== DISCONNECT/RESET/CLEAR ===============================
+struct DisconnectRequest : Request {
+    Stream* handle;
+
+    DisconnectRequest (Stream* h) : handle(h) { set(h); }
+
+    void exec         ()                                                 override { handle->queue.done(this, [&]{ handle->_reset(); }); }
+    void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
+    void handle_event (const CodeError&)                                 override {}
+};
+
 void Stream::disconnect () {
     if (!queue.size()) _reset();
     else if (queue.size() == 1 && connecting()) reset();
     else queue.push(new DisconnectRequest(this));
-}
-
-void DisconnectRequest::exec () {
-    _EDEBUGTHIS();
-    handle->queue.done(this, [&]{ handle->_reset(); });
-}
-
-void DisconnectRequest::cancel () {
-    _EDEBUGTHIS();
-    handle->queue.done(this, [&]{});
 }
 
 void Stream::reset () {
@@ -241,7 +241,7 @@ void Stream::reset () {
 
 void Stream::_reset () {
     Handle::reset();
-    if (_filters.size()) _filters.front()->reset();
+    invoke_sync(&StreamFilter::reset);
     flags &= DONTREAD; // clear flags except DONTREAD
 }
 
@@ -251,10 +251,8 @@ void Stream::clear () {
 
 void Stream::_clear () {
     Handle::clear();
-    if (_filters.size()) {
-        _filters.front()->reset();
-        _filters.clear();
-    }
+    invoke_sync(&StreamFilter::reset);
+    _filters.clear();
     flags = 0;
     buf_alloc_callback = nullptr;
     connection_factory = nullptr;
@@ -266,43 +264,40 @@ void Stream::_clear () {
     eof_event.remove_all();
 }
 
-//void Stream::add_filter (const StreamFilterSP& filter) {
-//    assert(filter);
-//    auto it = filters_.begin();
-//    auto pos = it;
-//    bool found = false;
-//    while (it != filters_.end()) {
-//        if ((*it)->type() == filter->type()) {
-//            *it = filter;
-//            return;
-//        }
-//        if ((*it)->priority() > filter->priority() && !found) {
-//            pos = it;
-//            found = true;
-//        }
-//        it++;
-//    }
-//    if (found) filters_.insert(pos, filter);
-//    else filters_.push_back(filter);
-//}
-//
-//StreamFilterSP Stream::get_filter (const void* type) const {
-//    for (const auto& f : filters_) if (f->type() == type) return f;
-//    return {};
-//}
-//
-//void Stream::use_ssl (SSL_CTX* context) { add_filter(new ssl::SSLFilter(this, context)); }
-//
-//void Stream::use_ssl (const SSL_METHOD* method) {
-//    ssl::SSLFilterSP f = new ssl::SSLFilter(this, method);
-//    if (listening() && f->is_client()) throw Error("Using ssl without certificate on listening stream");
-//    add_filter(f);
-//}
-//
-//bool Stream::is_secure () const { return get_filter(ssl::SSLFilter::TYPE); }
-//
-//SSL* Stream::get_ssl () const {
-//    auto filter = get_filter<ssl::SSLFilter>();
-//    return filter ? filter->get_ssl() : nullptr;
-//}
-//
+// ===================== FILTERS ADD/REMOVE ===============================
+void Stream::add_filter (const StreamFilterSP& filter) {
+    assert(filter);
+    auto it = _filters.begin();
+    auto pos = it;
+    bool found = false;
+    while (it != _filters.end()) {
+        if ((*it)->type() == filter->type()) {
+            *it = filter;
+            return;
+        }
+        if ((*it)->priority() > filter->priority() && !found) {
+            pos = it;
+            found = true;
+        }
+        it++;
+    }
+    if (found) _filters.insert(pos, filter);
+    else _filters.push_back(filter);
+}
+
+StreamFilterSP Stream::get_filter (const void* type) const {
+    for (const auto& f : _filters) if (f->type() == type) return f;
+    return {};
+}
+
+void Stream::use_ssl (SSL_CTX* context)         { add_filter(new SslFilter(this, context)); }
+void Stream::use_ssl (const SSL_METHOD* method) { add_filter(new SslFilter(this, method)); }
+
+bool Stream::is_secure () const { return get_filter(SslFilter::TYPE); }
+
+SSL* Stream::get_ssl () const {
+    auto filter = get_filter<SslFilter>();
+    return filter ? filter->get_ssl() : nullptr;
+}
+
+}}

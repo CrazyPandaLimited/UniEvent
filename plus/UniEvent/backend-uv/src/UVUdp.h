@@ -6,7 +6,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVSendRequest : UVRequest<BackendSendRequest, uv_udp_send_t>, AllocatedObject<UVSendRequest> {
-    UVSendRequest (BackendHandle* h, ISendListener* l) : UVRequest<BackendSendRequest, uv_udp_send_t>(h, l) {}
+    using UVRequest<BackendSendRequest, uv_udp_send_t>::UVRequest;
 };
 
 struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
@@ -92,13 +92,13 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         uvx_strict(uv_udp_set_ttl(&uvh, ttl));
     }
 
-    BackendSendRequest* new_send_request (ISendListener* l) override { return new UVSendRequest(this, l); }
+    BackendSendRequest* new_send_request (IRequestListener* l) override { return new UVSendRequest(this, l); }
 
 private:
     static void on_send (uv_udp_send_t* p, int status) {
         auto req = get_request<UVSendRequest*>(p);
         req->active = false;
-        req->handle_send(uvx_ce(status));
+        req->handle_event(uvx_ce(status));
     }
 
     static void _buf_alloc (uv_handle_t* p, size_t size, uv_buf_t* uvbuf) {

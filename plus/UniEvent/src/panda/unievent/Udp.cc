@@ -84,14 +84,10 @@ void Udp::send (const SendRequestSP& req) {
 
 void SendRequest::exec () {
     auto err = handle->impl()->send(bufs, addr, impl());
-    if (err) delay([=]{ handle_send(err); });
+    if (err) delay([=]{ cancel(err); });
 }
 
-void SendRequest::cancel () {
-    handle_send(CodeError(std::errc::operation_canceled));
-}
-
-void SendRequest::handle_send (const CodeError& err) {
+void SendRequest::handle_event (const CodeError& err) {
     handle->queue.done(this, [&] {
         handle->on_send(err, this);
     });

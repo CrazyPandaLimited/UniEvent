@@ -1,82 +1,80 @@
-//#include "SSLFilter.h"
-//#include "SSLBio.h"
-//#include "../Debug.h"
-//#include "../Stream.h"
-//#include "../Prepare.h"
+#include "SslFilter.h"
+#include "SslBio.h"
+#include "../Debug.h"
+#include "../Stream.h"
 //#include <vector>
-//#include <openssl/err.h>
-//#include <openssl/dh.h>
-//#include <openssl/conf.h>
-//#include <openssl/engine.h>
-//#include <openssl/ssl.h>
-//
-//#define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
-//
-//#define _ESSL(fmt, ...) do { if(EVENT_LIB_DEBUG >= 1) fprintf(stderr, "%s:%d:%s(): [%s] {%p} " fmt "\n", __FILE__, __LINE__, __func__, profile == Profile::CLIENT ? "client" : "server", this->handle, ##__VA_ARGS__); } while (0)
-//
-//namespace panda { namespace unievent { namespace ssl {
-//
-//const void* SSLFilter::TYPE = &typeid(SSLFilter);
-//
-//static bool init_openSSL_lib () {
-//    SSL_library_init();
-//    SSL_load_error_strings();
-//    ERR_load_BIO_strings();
-//    ERR_load_crypto_strings();
-//    OpenSSL_add_all_algorithms();
-//    return true;
-//}
-//
-//static const bool _init = init_openSSL_lib();
-//
+#include <openssl/err.h>
+#include <openssl/dh.h>
+#include <openssl/conf.h>
+#include <openssl/engine.h>
+#include <openssl/ssl.h>
+
+#define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
+
+#define _ESSL(fmt, ...) do { if(EVENT_LIB_DEBUG >= 0) fprintf(stderr, "%s:%d:%s(): [%s] {%p} " fmt "\n", __FILE__, __LINE__, __func__, profile == Profile::CLIENT ? "client" : (profile == Profile::SERVER ? "server" : "no profile"), this->handle, ##__VA_ARGS__); } while (0)
+
+namespace panda { namespace unievent { namespace ssl {
+
+const void* SslFilter::TYPE = &typeid(SslFilter);
+
+static bool init_openssl_lib () {
+    SSL_library_init();
+    SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+    return true;
+}
+static const bool _init = init_openssl_lib();
+
+static SSL_CTX* ssl_ctx_from_method (const SSL_METHOD* method) {
+    if (!method) method = SSLv23_client_method();
+    auto context = SSL_CTX_new(method);
+    if (!context) throw SSLError(SSL_ERROR_SSL);
+    return context;
+}
+
+SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& server_filter)
+        : StreamFilter(stream, TYPE, PRIORITY), /*connect_request(nullptr),*/ state(State::initial), profile(Profile::UNKNOWN), server_filter(server_filter)
+{
+    _ECTOR();
+    if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
+
+    ssl = SSL_new(context);
+    if (!ssl) throw SSLError(SSL_ERROR_SSL);
+
+    read_bio = BIO_new(SslBio::method());
+    if (!read_bio) throw SSLError(SSL_ERROR_SSL);
+
+    write_bio = BIO_new(SslBio::method());
+    if (!write_bio) throw SSLError(SSL_ERROR_SSL);
+
+    SslBio::set_handle(read_bio, handle);
+    SslBio::set_handle(write_bio, handle);
+    SSL_set_bio(ssl, read_bio, write_bio);
+}
+
+SslFilter::SslFilter (Stream* stream, const SSL_METHOD* method) : SslFilter(stream, ssl_ctx_from_method(method)) {
+    SSL_CTX_free(SSL_get_SSL_CTX(ssl)); // it is refcounted, release ctx created from ssl_ctx_from_method
+}
+
+SslFilter::~SslFilter () {
+    _EDTOR();
+    SSL_free(ssl);
+}
+
+void SslFilter::listen () {
+    if (!SSL_check_private_key(ssl)) throw Error("SSL certificate&key needed to listen()");
+    NextFilter::listen();
+}
+
 //struct SSLWriteRequest : WriteRequest {
 //    WriteRequest* src;
 //    ~SSLWriteRequest(){ _EDTOR(); }
 //    SSLWriteRequest (WriteRequest* src = nullptr) : WriteRequest(), src(src) { _ECTOR(); }
 //};
 //
-//SSLFilter::~SSLFilter () {
-//    _EDTOR();
-//    SSL_free(ssl);
-//}
-//
-//SSLFilter::SSLFilter (SSLFilterSP parent_filter, Stream* stream, SSL_CTX* context)
-//        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), state(State::initial), profile(Profile::UNKNOWN), parent_filter(parent_filter)
-//{
-//    _ECTOR();
-//    init(context);
-//}
-//
-//SSLFilter::SSLFilter (Stream* stream, SSL_CTX* context) : SSLFilter(nullptr, stream, context) {}
-//
-//SSLFilter::SSLFilter (Stream* stream, const SSL_METHOD* method)
-//        : StreamFilter(stream, TYPE, PRIORITY), connect_request(nullptr), state(State::initial), profile(Profile::UNKNOWN), parent_filter()
-//{
-//    _ECTOR();
-//    if (!method) {
-//        method = SSLv23_client_method();
-//        profile = Profile::CLIENT;
-//    }
-//    SSL_CTX* context = SSL_CTX_new(method);
-//    if (!context) throw SSLError(SSL_ERROR_SSL);
-//    init(context);
-//    SSL_CTX_free(context); // it is refcounted, ssl keeps it if neded
-//}
-//
-//void SSLFilter::init (SSL_CTX* context) {
-//    ssl = SSL_new(context);
-////     SSL_CTX_set_msg_callback(context, &msg);
-////     SSL_CTX_set_info_callback(context, sslInfoCallback);  // for debug
-//    if (!ssl) throw SSLError(SSL_ERROR_SSL);
-//    read_bio = BIO_new(SSLBio::method());
-//    write_bio = BIO_new(SSLBio::method());
-//    if (!read_bio || !write_bio) throw SSLError(SSL_ERROR_SSL);
-//    SSLBio::set_handle(read_bio, handle);
-//    SSLBio::set_handle(write_bio, handle);
-//    SSL_set_bio(ssl, read_bio, write_bio);
-//}
-//
-//void SSLFilter::reset () {
+//void SslFilter::reset () {
 //    _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
 //    if (state == State::initial) return;
 //
@@ -89,65 +87,53 @@
 //    //// soft reset - openssl docs say it should work, but IT DOES NOT WORK!
 //    //if (!SSL_clear(ssl)) throw SSLError(SSL_ERROR_SSL);
 //}
-//
-//void SSLFilter::on_connect (const CodeError* err, ConnectRequest* req) {
-//    _ESSL("on_connect, ERR=%d WHAT=%s", err ? err->code() : 0, err ? err->what() : "");
-//    //if (state == State::terminal) {
-//        // we need this for ssl filters chaining
-//        //NextFilter::on_connect(err, req);
-//        //return;
-//    //}
-//
-//    reset();
-//
-//    if (err) {
-//        NextFilter::on_connect(err, req);
-//        return;
-//    }
-//
-//    auto read_err = temp_read_start();
-//    if (read_err) {
-//        NextFilter::on_connect(read_err, req);
-//        return;
-//    }
-//
-//    connect_request = req;
-//    start_ssl_connection(Profile::CLIENT);
-//}
-//
-//void SSLFilter::on_connection (StreamSP stream, const CodeError* err) {
-//    _ESSL("on_connection, stream: %p, err: %d", stream.get(), err ? err->code() : 0);
-//    if (err) {
-//        NextFilter::on_connection(handle, err);
-//        return;
-//    }
-//
-//    stream->async_lock();
-//    SSLFilter* filter = new SSLFilter(this, stream, SSL_get_SSL_CTX(ssl));
-//    stream->add_filter(filter);
-//    auto uverr = filter->temp_read_start();
-//    if (uverr) {
-//        NextFilter::on_connection(handle, uverr);
-//        return;
-//    }
-//    stream->retain();
-//    filter->start_ssl_connection(Profile::SERVER);
-//}
-//
-//void SSLFilter::start_ssl_connection (Profile profile) {
-//    _ESSL();
-//
-//    this->profile = profile;
-//    if (profile == Profile::CLIENT) {
-//        SSL_set_connect_state(ssl);
-//    } else {
-//        SSL_set_accept_state(ssl);
-//    }
-//
-//    negotiate();
-//}
-//
-//int SSLFilter::negotiate () {
+
+void SslFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
+    _ESSL("ERR=%s", err.what());
+
+return NextFilter::handle_connect(err, req);
+    //if (state == State::terminal) {
+        // we need this for ssl filters chaining
+        //NextFilter::on_connect(err, req);
+        //return;
+    //}
+
+    //reset();
+
+    if (err) return NextFilter::handle_connect(err, req);
+
+    auto read_err = read_start();
+    if (read_err) return NextFilter::handle_connect(read_err, req);
+
+    connect_request = req;
+    start_ssl_connection(Profile::CLIENT);
+}
+
+void SslFilter::handle_connection (const StreamSP& client, const CodeError& err) {
+    _ESSL("client: %p, err: %s", client.get(), err.what());
+return NextFilter::handle_connection(client, err);
+    if (err) return NextFilter::handle_connection(client, err);
+
+    SslFilter* filter = new SslFilter(client, SSL_get_SSL_CTX(ssl), this);
+    client->add_filter(filter);
+
+    auto read_err = filter->read_start();
+    if (read_err) return NextFilter::handle_connection(client, read_err);
+
+    filter->start_ssl_connection(Profile::SERVER);
+}
+
+void SslFilter::start_ssl_connection (Profile profile) {
+    _ESSL();
+
+    this->profile = profile;
+    if (profile == Profile::CLIENT) SSL_set_connect_state(ssl);
+    else                            SSL_set_accept_state(ssl);
+
+    //negotiate();
+}
+
+//int SslFilter::negotiate () {
 //    bool renegotiate = SSL_renegotiate_pending(ssl);
 //    assert((!SSL_is_init_finished(ssl) && handle->connecting()) || renegotiate);
 //
@@ -157,7 +143,7 @@
 //
 //    _ESSL("ssl_state=%d, renego pending %d", ssl_state, SSL_renegotiate_pending(ssl));
 //
-//    string write_buf = SSLBio::steal_buf(write_bio);
+//    string write_buf = SslBio::steal_buf(write_bio);
 //    if (write_buf) {
 //        _ESSL("writing %d bytes", (int)write_buf.length());
 //        SSLWriteRequest* req = new SSLWriteRequest();
@@ -171,7 +157,7 @@
 //        int code = SSL_get_error(ssl, ssl_state);
 //        _ESSL("code=%d", code);
 //        if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
-//            SSLBio::steal_buf(read_bio); // avoid clearing by BIO
+//            SslBio::steal_buf(read_bio); // avoid clearing by BIO
 //            negotiation_finished(SSLError(code));
 //            return 0;
 //        }
@@ -185,13 +171,13 @@
 //}
 //
 ////// renegotiate DOES NOT WORK - SSL_is_init_finshed returns true, SSL_renegotiate_pending becomes false after first SSL_do_handshake
-////void SSLFilter::renegotiate () {
-////    printf("SSLFilter::renegotiate\n");
+////void SslFilter::renegotiate () {
+////    printf("SslFilter::renegotiate\n");
 ////    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw StreamError(ERRNO_EINVAL);
 ////    SSL_set_verify(ssl, SSL_VERIFY_PEER, nullptr);
 ////    printf("SSL_get_secure_renegotiation_support=%li\n", SSL_get_secure_renegotiation_support(ssl));
 ////    int ssl_state = SSL_renegotiate(ssl);
-////    printf("SSLFilter::renegotiate: renego pending %d\n", SSL_renegotiate_pending(ssl));
+////    printf("SslFilter::renegotiate: renego pending %d\n", SSL_renegotiate_pending(ssl));
 ////    if (ssl_state <= 0) {
 ////        int code = SSL_get_error(ssl, ssl_state);
 ////        throw SSLError(code);
@@ -201,7 +187,7 @@
 ////    negotiate();
 ////}
 //
-//void SSLFilter::negotiation_finished (const CodeError* err) {
+//void SslFilter::negotiation_finished (const CodeError* err) {
 //    _ESSL("connecting: %d err=%s", (int)handle->connecting(), err ? err->what() : "");
 //
 //    if(state == State::terminal || state == State::error) {
@@ -233,7 +219,7 @@
 //    }
 //}
 //
-//void SSLFilter::on_read (string& encbuf, const CodeError* err) {
+//void SslFilter::on_read (string& encbuf, const CodeError* err) {
 //    _ESSL("got %lu bytes, state: %d", encbuf.length(), (int)state);
 //    if(state == State::error) {
 //        NextFilter::on_read(encbuf, SSLError(SSL_ERROR_SSL));
@@ -259,13 +245,13 @@
 //        return;
 //    }
 //
-//    SSLBio::set_buf(read_bio, encbuf);
+//    SslBio::set_buf(read_bio, encbuf);
 //
 //    _EDEBUG("connecting %d, err %s", connecting, err ? err->what() : "");
 //
 //    int pending = encbuf.length();
 //    if (connecting && !(pending = negotiate())) { // no more data to read, handshake not completed
-//        SSLBio::steal_buf(read_bio);
+//        SslBio::steal_buf(read_bio);
 //        return;
 //    }
 //
@@ -284,7 +270,7 @@
 //    }
 //
 //    if (ssl_code == SSL_ERROR_WANT_WRITE) { // renegotiation
-//        string wbuf = SSLBio::steal_buf(write_bio);
+//        string wbuf = SslBio::steal_buf(write_bio);
 //        _ESSL("write %lu", wbuf.length());
 //        SSLWriteRequest* req = new SSLWriteRequest();
 //        req->retain();
@@ -297,13 +283,13 @@
 //    }
 //}
 //
-//int SSLFilter::read_ssl_buffer(string& decbuf, int pending) {
+//int SslFilter::read_ssl_buffer(string& decbuf, int pending) {
 //    int ret = SSL_read(ssl, decbuf.buf(), pending);
 //    _ESSL("sslret=%d pending=%d", ret, pending);
 //    return ret;
 //}
 //
-//void SSLFilter::write (WriteRequest* req) {
+//void SslFilter::write (WriteRequest* req) {
 //    if(state != State::terminal) {
 //        NextFilter::on_write(SSLError(SSL_ERROR_SSL), req);
 //        return;
@@ -329,14 +315,14 @@
 //            sslreq->release();
 //            return;
 //        }
-//        string buf = SSLBio::steal_buf(write_bio);
+//        string buf = SslBio::steal_buf(write_bio);
 //        sslreq->bufs.push_back(buf);
 //    }
 //
 //    NextFilter::write(sslreq);
 //}
 //
-//void SSLFilter::on_write (const CodeError* err, WriteRequest* req) {
+//void SslFilter::on_write (const CodeError* err, WriteRequest* req) {
 //    _ESSL("on_write state: %d", (int)state);
 //
 //    SSLWriteRequest* sslreq = static_cast<SSLWriteRequest*>(req);
@@ -352,7 +338,7 @@
 //    sslreq->release();
 //}
 //
-//void SSLFilter::on_reinit () {
+//void SslFilter::on_reinit () {
 //    _ESSL("on_reinit, state: %d, connecting: %d", (int)state, handle->connecting());
 //    if (state == State::negotiating) {
 //        negotiation_finished(CodeError(ERRNO_ECANCELED));
@@ -361,7 +347,7 @@
 //    }
 //}
 //
-//void SSLFilter::on_eof() {
+//void SslFilter::on_eof() {
 //    _ESSL("on_eof, state: %d", (int)state);
 //    if(state == State::terminal) {
 //        NextFilter::on_eof();
@@ -371,11 +357,9 @@
 //    }
 //}
 //
-//void SSLFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_request) {
+//void SslFilter::on_shutdown(const CodeError* err, ShutdownRequest* shutdown_request) {
 //    _ESSL("on_shutdown, state: %d", (int)state);
 //    NextFilter::on_shutdown(err, shutdown_request);
 //}
-//
-//bool SSLFilter::is_secure () { return true; }
-//
-//}}}
+
+}}}

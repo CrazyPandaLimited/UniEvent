@@ -36,7 +36,6 @@ struct Queue {
 
     template <class Func>
     void done (Request* check, Func&& f) {
-        _EDEBUG("req=%p", check);
         auto req = requests.front();
         assert(req == check);
         if (req == cancel_till) cancel_till = nullptr; // stop canceling, as we processed the last request
@@ -58,28 +57,22 @@ struct Queue {
     void cancel (Pre&& fpre, Post&& fpost) {
         ++locked; // this blocks executing of requests
         cancel_till = requests.back(); // we must not cancel anything that is added during callbacks execution
-        _EDEBUG("cancel_till=%p size=%lu", cancel_till.get(), requests.size());
         auto gen = cancel_gen;
 
         ExceptionKeeper exk;
 
-        _EDEBUG("run fpre");
         exk.etry([&]{ fpre(); });
-
-        _EDEBUG("2 cancel_till=%p size=%lu", cancel_till.get(), requests.size());
 
         if (requests.size() && cancel_till) {
             RequestSP cur;
             do {
                 cur = requests.front();
-                _EDEBUG("removing next request %p", cur.get());
                 exk.etry([&]{ cur->cancel(); });
                 assert(cur != requests.front()); // if cancel() throws before calling done(), otherwise infite loop. Idea to prettify?
             } while (cancel_till && cur != cancel_till); // respect recursive cancel()
         }
 
         // post callback is only called if no recursive cancels has been made
-        _EDEBUG("run fpost");
         if (gen == cancel_gen) exk.etry([&]{
             fpost();
             ++cancel_gen;
@@ -94,13 +87,25 @@ struct Queue {
     }
 
     void resume () {
-        _EDEBUG();
         auto& req = requests.front();
         if (req && !locked) req->exec();
     }
 
+    void subreq_push (const RequestSP& req) {
+        assert(requests.size());
+        requests.push_front(req);
+    }
+
+    void subreq_done (Request* check) {
+        assert(requests.front() == check);
+        check->finish_exec();
+        requests.pop_front();
+    }
+
     size_t size      () const { return requests.size(); }
     bool   canceling () const { return cancel_till; }
+
+    const RequestSP& front () const { return requests.front(); }
 
 private:
     using Requests = panda::lib::IntrusiveChain<RequestSP>;
