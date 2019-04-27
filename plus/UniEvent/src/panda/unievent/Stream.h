@@ -225,7 +225,7 @@ struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest> {
     using BufferRequest::BufferRequest;
 
 private:
-    friend Stream;
+    friend Stream; friend StreamFilter;
     Stream* handle;
 
     void set (Stream* h) {

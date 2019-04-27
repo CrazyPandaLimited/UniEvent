@@ -22,13 +22,12 @@ struct SslFilter : StreamFilter, panda::lib::AllocatedObject<SslFilter> {
     void listen () override;
     void handle_connection (const StreamSP&, const CodeError&) override;
     void handle_connect    (const CodeError&, const ConnectRequestSP&) override;
-//    void write             (const WriteRequestSP&) override;
-//    void handle_write      (const CodeError&, const WriteRequestSP&) override;
-//    void handle_read       (string&, const CodeError&) override;
-//    void handle_eof        () override;
-//    void handle_shutdown   (const CodeError&, const ShutdownRequestSP&) override;
+    void write             (const WriteRequestSP&) override;
+    void handle_write      (const CodeError&, const WriteRequestSP&) override;
+    void handle_read       (string&, const CodeError&) override;
+    void handle_eof        () override;
 
-    //void reset () override;
+    void reset () override;
 
 private:
     enum class State   { initial = 0, negotiating = 1, error = 2, terminal = 3 };
@@ -44,13 +43,10 @@ private:
     Profile          profile;
     SslFilter*       server_filter;
 
+    void init                 (SSL_CTX*);
     void start_ssl_connection (Profile);
-//    int  negotiate            ();
-//    void negotiation_finished (const CodeError* err = nullptr);
-//    int  read_ssl_buffer      (string& decbuf, int pending);
-//
-//    static void on_negotiate_write (Stream*, const CodeError*, WriteRequest*);
-//    static void on_regular_write   (Stream*, const CodeError*, WriteRequest*);
+    int  negotiate            ();
+    void negotiation_finished (const CodeError& = CodeError());
 };
 
 }}}

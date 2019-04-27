@@ -54,7 +54,7 @@ void Stream::accept (const StreamSP& client) {
     }
     // filters may delay handle_connection() and make subrequests
     // creating dummy AcceptRequest follows 2 purposes: holding the only client reference and delaying users requests until handle_connection() is done
-    if (_filters.size()) client->queue.push(new AcceptRequest(this));
+    if (_filters.size()) client->queue.push(new AcceptRequest(client));
     invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
 }
 

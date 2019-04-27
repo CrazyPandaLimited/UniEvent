@@ -31,6 +31,7 @@ protected:
 
     void subreq_tcp_connect (const TcpConnectRequestSP& req);
     void subreq_write       (const WriteRequestSP& req);
+    void subreq_done        (const RequestSP& req);
 
 //    void set_connecting();
 //    void set_connected(bool success);

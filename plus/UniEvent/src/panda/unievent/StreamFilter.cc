@@ -27,13 +27,19 @@ void StreamFilter::read_stop () {
 }
 
 void StreamFilter::subreq_tcp_connect (const TcpConnectRequestSP& req) {
+    req->set(panda::dyn_cast<Tcp*>(handle)); // TODO: find a better way
     handle->queue.subreq_push(req);
     NextFilter::tcp_connect(req);
 }
 
 void StreamFilter::subreq_write (const WriteRequestSP& req) {
+    req->set(handle);
     handle->queue.subreq_push(req);
     NextFilter::write(req);
+}
+
+void StreamFilter::subreq_done (const RequestSP& req) {
+    handle->queue.subreq_done(req);
 }
 
 void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err) {

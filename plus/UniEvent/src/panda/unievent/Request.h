@@ -12,6 +12,12 @@ struct Request;
 using RequestSP = iptr<Request>;
 
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected backend::IRequestListener {
+    template <class Func>
+    void delay (Func&& f) {
+        if (_delay_id) _handle->loop()->cancel_delay(_delay_id);
+        _delay_id = _handle->loop()->delay(f);
+    }
+
 protected:
     using BackendRequest = backend::BackendRequest;
     friend struct Queue; friend StreamFilter;
@@ -22,12 +28,6 @@ protected:
 
     void set (Handle* h) {
         _handle = h;
-    }
-
-    template <class Func>
-    void delay (Func&& f) {
-        if (_delay_id) _handle->loop()->cancel_delay(_delay_id);
-        _delay_id = _handle->loop()->delay(f);
     }
 
     virtual void exec () = 0;
