@@ -42,7 +42,7 @@ struct SslWriteRequest : WriteRequest {
 using SslWriteRequestSP = iptr<SslWriteRequest>;
 
 SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& server_filter)
-        : StreamFilter(stream, TYPE, PRIORITY), /*connect_request(nullptr),*/ state(State::initial), profile(Profile::UNKNOWN), server_filter(server_filter)
+        : StreamFilter(stream, TYPE, PRIORITY), state(State::initial), profile(Profile::UNKNOWN), server_filter(server_filter)
 {
     _ECTOR();
     if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
@@ -82,7 +82,7 @@ void SslFilter::reset () {
     _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
     if (state == State::initial) return;
 
-    connect_request = nullptr;
+    source_request = nullptr;
     ERR_clear_error();
     state = State::initial;
     // hard reset
@@ -108,20 +108,22 @@ void SslFilter::handle_connect (const CodeError& err, const ConnectRequestSP& re
     auto read_err = read_start();
     if (read_err) return NextFilter::handle_connect(read_err, req);
 
-    connect_request = req;
+    source_request = req;
     start_ssl_connection(Profile::CLIENT);
 }
 
-void SslFilter::handle_connection (const StreamSP& client, const CodeError& err) {
+void SslFilter::handle_connection (const StreamSP& client, const CodeError& err, const AcceptRequestSP& req) {
     _ESSL("client: %p, err: %s", client.get(), err.what());
-    if (err) return NextFilter::handle_connection(client, err);
+    if (err) return NextFilter::handle_connection(client, err, req);
 
     SslFilter* filter = new SslFilter(client, SSL_get_SSL_CTX(ssl), this);
     client->add_filter(filter);
 
     auto read_err = filter->read_start();
-    if (read_err) return NextFilter::handle_connection(client, read_err);
+    if (read_err) return NextFilter::handle_connection(client, read_err, req);
 
+    assert(req);
+    filter->source_request = req;
     filter->start_ssl_connection(Profile::SERVER);
 }
 
@@ -169,7 +171,7 @@ int SslFilter::negotiate () {
         if (wreq) { // negotiation finished on my last write -> call negotiation_finished() later with results for wreq
             wreq->final = true;
             if (pending) negotiation_finished(SSLError(SSL_ERROR_SSL)); // there should be no ongoing data because client hasn't yet received wreq
-            subreq_write(wreq);
+            subreq_write(source_request, wreq);
             return 0;
         } else {
             negotiation_finished();
@@ -177,7 +179,7 @@ int SslFilter::negotiate () {
         }
     }
 
-    if (wreq) subreq_write(wreq);
+    if (wreq) subreq_write(source_request, wreq);
     return 0;
 }
 
@@ -211,8 +213,10 @@ void SslFilter::negotiation_finished (const CodeError& err) {
     state = err ? State::error : State::terminal;
 
     read_stop();
-    if (profile == Profile::CLIENT) NextFilter::handle_connect(err, std::move(connect_request));
-    else                            server_filter->NextFilter::handle_connection(handle, err);
+    if (profile == Profile::CLIENT)
+        NextFilter::handle_connect(err, static_pointer_cast<ConnectRequest>(std::move(source_request)));
+    else
+        server_filter->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(std::move(source_request)));
 }
 
 void SslFilter::handle_read (string& encbuf, const CodeError& err) {
@@ -271,7 +275,7 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
         _ESSL("write %lu", wbuf.length());
         WriteRequestSP req = new SslWriteRequest();
         req->bufs.push_back(wbuf);
-        subreq_write(req);
+        subreq_write(source_request, req);
     } else {
         string s;
         NextFilter::handle_read(s, SSLError(ssl_code));
@@ -299,7 +303,7 @@ void SslFilter::write (const WriteRequestSP& req) {
         sslreq->bufs.push_back(buf);
     }
 
-    subreq_write(sslreq);
+    subreq_write(req, sslreq);
 }
 
 void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {

@@ -20,7 +20,7 @@ struct SslFilter : StreamFilter, panda::lib::AllocatedObject<SslFilter> {
     SSL* get_ssl () const { return ssl; }
 
     void listen () override;
-    void handle_connection (const StreamSP&, const CodeError&) override;
+    void handle_connection (const StreamSP&, const CodeError&, const AcceptRequestSP&) override;
     void handle_connect    (const CodeError&, const ConnectRequestSP&) override;
     void write             (const WriteRequestSP&) override;
     void handle_write      (const CodeError&, const WriteRequestSP&) override;
@@ -38,7 +38,7 @@ private:
     SSL*             ssl;
     BIO*             read_bio;
     BIO*             write_bio;
-    ConnectRequestSP connect_request;
+    RequestSP        source_request;
     State            state;
     Profile          profile;
     SslFilter*       server_filter;

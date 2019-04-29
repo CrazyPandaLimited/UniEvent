@@ -9,7 +9,7 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
     const void* type     () const { return _type; }
     double      priority () const { return _priority; }
 
-    virtual void handle_connection (const StreamSP&, const CodeError&);
+    virtual void handle_connection (const StreamSP&, const CodeError&, const AcceptRequestSP&);
     virtual void tcp_connect       (const TcpConnectRequestSP&);
     virtual void handle_connect    (const CodeError&, const ConnectRequestSP&);
     virtual void handle_read       (string&, const CodeError&);
@@ -29,8 +29,8 @@ protected:
     CodeError read_start ();
     void      read_stop  ();
 
-    void subreq_tcp_connect (const TcpConnectRequestSP& req);
-    void subreq_write       (const WriteRequestSP& req);
+    void subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& req);
+    void subreq_write       (const RequestSP& parent, const WriteRequestSP& req);
     void subreq_done        (const RequestSP& req);
 
 //    void set_connecting();

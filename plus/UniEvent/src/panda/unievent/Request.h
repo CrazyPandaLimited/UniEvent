@@ -23,8 +23,10 @@ protected:
     friend struct Queue; friend StreamFilter;
 
     BackendRequest* _impl;
+    Request*        parent;
+    RequestSP       subreq;
 
-    Request () : _impl(), _delay_id(0) {}
+    Request () : _impl(), parent(), _delay_id(0) {}
 
     void set (Handle* h) {
         _handle = h;
@@ -35,7 +37,10 @@ protected:
     /* this is private API, as there is no way of stopping request inside backend in general case. usually called during reset()
        If called separately by user, will only do "visible" cancellation (user callback being called with canceled status),
        but backend will continue to run the request and the next request will only be started afterwards */
-    virtual void cancel (const CodeError& err = std::errc::operation_canceled) { handle_event(err); }
+    virtual void cancel (const CodeError& err = std::errc::operation_canceled) {
+        if (subreq) return subreq->cancel(err);
+        handle_event(err);
+    }
 
     // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)
     void finish_exec () {

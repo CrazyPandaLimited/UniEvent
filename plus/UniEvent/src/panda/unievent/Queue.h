@@ -91,21 +91,8 @@ struct Queue {
         if (req && !locked) req->exec();
     }
 
-    void subreq_push (const RequestSP& req) {
-        assert(requests.size());
-        requests.push_front(req);
-    }
-
-    void subreq_done (Request* check) {
-        assert(requests.front() == check);
-        check->finish_exec();
-        requests.pop_front();
-    }
-
     size_t size      () const { return requests.size(); }
     bool   canceling () const { return cancel_till; }
-
-    const RequestSP& front () const { return requests.front(); }
 
 private:
     using Requests = panda::lib::IntrusiveChain<RequestSP>;

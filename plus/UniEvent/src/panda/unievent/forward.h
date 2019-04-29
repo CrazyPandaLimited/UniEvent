@@ -51,6 +51,9 @@ using StreamSP = iptr<Stream>;
 struct StreamFilter;
 using StreamFilterSP = iptr<StreamFilter>;
 
+struct AcceptRequest;
+using AcceptRequestSP = iptr<AcceptRequest>;
+
 struct ConnectRequest;
 using ConnectRequestSP = iptr<ConnectRequest>;
 

@@ -142,7 +142,7 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend struct AcceptRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend AcceptRequest;
 
     static const uint32_t LISTENING   = 1;
     static const uint32_t CONNECTING  = 2;
@@ -172,7 +172,7 @@ private:
     }
 
     void handle_connection          (const CodeError&) override;
-    void finalize_handle_connection (const StreamSP& client, const CodeError&);
+    void finalize_handle_connection (const StreamSP& client, const CodeError&, const AcceptRequestSP&);
     void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
     void handle_read                (string&, const CodeError&) override;
     void finalize_handle_read       (string& buf, const CodeError& err) { on_read(buf, err); }
@@ -186,6 +186,17 @@ private:
     void _clear ();
 
     CodeError _read_start ();
+};
+
+
+struct AcceptRequest : Request {
+    Stream* handle;
+
+    AcceptRequest (Stream* h) : handle(h) { set(h); }
+
+    void exec         ()                                                 override {}
+    void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
+    void handle_event (const CodeError&)                                 override {}
 };
 
 

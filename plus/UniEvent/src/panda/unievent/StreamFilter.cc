@@ -26,24 +26,29 @@ void StreamFilter::read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
-void StreamFilter::subreq_tcp_connect (const TcpConnectRequestSP& req) {
+void StreamFilter::subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& req) {
+    parent->subreq = req;
+    req->parent = parent;
     req->set(panda::dyn_cast<Tcp*>(handle)); // TODO: find a better way
-    handle->queue.subreq_push(req);
     NextFilter::tcp_connect(req);
 }
 
-void StreamFilter::subreq_write (const WriteRequestSP& req) {
+void StreamFilter::subreq_write (const RequestSP& parent, const WriteRequestSP& req) {
+    parent->subreq = req;
+    req->parent = parent;
     req->set(handle);
-    handle->queue.subreq_push(req);
     NextFilter::write(req);
 }
 
 void StreamFilter::subreq_done (const RequestSP& req) {
-    handle->queue.subreq_done(req);
+    assert(!req->subreq);
+    req->finish_exec();
+    req->parent->subreq = nullptr;
+    req->parent = nullptr;
 }
 
-void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err) {
-    invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
+void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err, const AcceptRequestSP& req) {
+    invoke(prev, &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err, req);
 }
 
 void StreamFilter::tcp_connect (const TcpConnectRequestSP& req) {

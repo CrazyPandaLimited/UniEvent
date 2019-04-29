@@ -18,16 +18,6 @@ string Stream::buf_alloc (size_t cap) noexcept {
 }
 
 // ===================== CONNECTION ===============================
-struct AcceptRequest : Request {
-    Stream* handle;
-
-    AcceptRequest (Stream* h) : handle(h) { set(h); }
-
-    void exec         ()                                                 override {}
-    void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
-    void handle_event (const CodeError&)                                 override {}
-};
-
 void Stream::listen (connection_fn callback, int backlog) {
     invoke_sync(&StreamFilter::listen);
     if (callback) connection_event.add(callback);
@@ -37,7 +27,7 @@ void Stream::listen (connection_fn callback, int backlog) {
 
 void Stream::handle_connection (const CodeError& err) {
     _EDEBUG("[%p] err: %d", this, err.code().value());
-    if (err) invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, nullptr, err);
+    if (err) invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, nullptr, err, nullptr);
     else     accept();
 }
 
@@ -54,16 +44,19 @@ void Stream::accept (const StreamSP& client) {
     }
     // filters may delay handle_connection() and make subrequests
     // creating dummy AcceptRequest follows 2 purposes: holding the only client reference and delaying users requests until handle_connection() is done
-    if (_filters.size()) client->queue.push(new AcceptRequest(client));
-    invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err);
+    AcceptRequestSP areq;
+    if (_filters.size()) {
+        areq = new AcceptRequest(client);
+        client->queue.push(areq);
+    }
+    invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err, areq);
 }
 
-void Stream::finalize_handle_connection (const StreamSP& client, const CodeError& err1) {
+void Stream::finalize_handle_connection (const StreamSP& client, const CodeError& err1, const AcceptRequestSP& req) {
     auto err2 = client->set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
-    auto areq = client->queue.front().get();
-    if (areq && typeid(*areq) == typeid(AcceptRequest)) client->queue.done(areq, []{});
+    if (req) client->queue.done(req, []{});
     on_connection(client, err);
 }
 
