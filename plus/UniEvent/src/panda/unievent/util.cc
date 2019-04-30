@@ -5,6 +5,12 @@
 #include "Resolver.h"
 #include <uv.h>
 
+#ifdef _WIN32
+    #include "util_win.icc"
+#else
+    #include "util_unix.icc"
+#endif
+
 using panda::net::SockAddr;
 
 namespace panda { namespace unievent {
@@ -18,14 +24,6 @@ AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, co
     })->run();
     l->run();
     return ai;
-}
-
-void setsockopt (fd_t sock, int level, int optname, const void* optval, int optlen) {
-    #ifdef _WIN32
-        if (::setsockopt(sock, level, optname, (const char*)optval, optlen)) throw last_sys_code_error();
-    #else
-        if (::setsockopt(sock, level, optname, optval, (socklen_t)optlen)) throw last_sys_code_error();
-    #endif
 }
 
 string hostname () {
@@ -145,23 +143,6 @@ const HandleType& guess_type (file_t file) {
         case UV_TCP       : return Tcp::TYPE;
         default           : return Handle::UNKNOWN_TYPE;
     }
-}
-
-CodeError sys_code_error (int syserr) {
-    // that appears to be a bug in gcc (well, in libstdc++); per 1.9.5.1p4 it should map POSIX error codes to generic_category
-    #ifdef _WIN32
-        return std::error_code(syserr, std::system_category());
-    #else
-        return std::error_code(syserr, std::generic_category());
-    #endif
-}
-
-CodeError last_sys_code_error () {
-    #ifdef _WIN32
-        return sys_code_error(WSAGetLastError());
-    #else
-        return sys_code_error(errno);
-    #endif
 }
 
 CodeError uvx_code_error (int uverr) {

@@ -80,15 +80,9 @@ struct XSUdp : Udp {
 
     using Udp::Udp;
 
-    void open (const Sv& sv);
-    void open (sock_t sock) override;
-
 protected:
     void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) override;
     void on_send    (const CodeError& err, const SendRequestSP& req) override;
-
-private:
-    Sv io_sv;
 };
 
 
@@ -113,28 +107,14 @@ protected:
 };
 
 struct XSPipe : Pipe, XSStream {
-    XSPipe (Loop* loop, bool ipc) : Pipe(loop, ipc) {}
-
+    using Pipe::Pipe;
     StreamSP create_connection () override;
-
-    void open (const Sv& sv);
-    void open (file_t sock) override;
-
-private:
-    Sv io_sv;
 };
 
 
 struct XSTcp : Tcp, XSStream {
-    XSTcp (const LoopSP& loop, int domain = AF_UNSPEC) : Tcp(loop, domain) {}
-
+    using Tcp::Tcp;
     StreamSP create_connection () override;
-
-    void open (const Sv& sv);
-    void open (sock_t sock) override;
-
-private:
-    Sv io_sv;
 };
 
 //struct XSFSEvent : FSEvent, XSHandle {

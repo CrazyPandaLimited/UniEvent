@@ -20,7 +20,7 @@ struct Tcp : virtual Stream, panda::lib::AllocatedObject<Tcp> {
 
     const HandleType& type () const override;
 
-    virtual void open (sock_t socket);
+    virtual void open (sock_t socket, Ownership = Ownership::TRANSFER);
     virtual void bind (const net::SockAddr&, unsigned flags = 0);
     virtual void bind (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
 

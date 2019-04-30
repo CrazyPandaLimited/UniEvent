@@ -18,15 +18,8 @@ struct Poll : virtual Handle, private backend::IPollListener {
 
     CallbackDispatcher<poll_fptr> event;
 
-    Poll (Socket sock, const LoopSP& loop = Loop::default_loop()) {
-        _ECTOR();
-        _init(loop, loop->impl()->new_poll_sock(this, sock.val));
-    }
-
-    Poll (Fd fd, const LoopSP& loop = Loop::default_loop()) {
-        _ECTOR();
-        _init(loop, loop->impl()->new_poll_fd(this, fd.val));
-    }
+    Poll (Socket sock, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
+    Poll (Fd       fd, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
 
     ~Poll () {
         _EDTOR();

@@ -21,7 +21,8 @@ backend::BackendHandle* Tcp::new_impl () {
     return loop()->impl()->new_tcp(this, domain);
 }
 
-void Tcp::open (sock_t sock) {
+void Tcp::open (sock_t sock, Ownership ownership) {
+    if (ownership == Ownership::SHARE) sock = sock_dup(sock);
     impl()->open(sock);
     if (peeraddr()) {
         auto err = set_connect_result(true);

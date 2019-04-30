@@ -199,18 +199,6 @@ void XSUdp::on_send (const CodeError& err, const SendRequestSP& req) {
     Udp::on_send(err, req);
 }
 
-void XSUdp::open (const Sv& sv) {
-    if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-    auto io = xs::in<IO*>(sv);
-    io_sv = (SV*)io;
-    Udp::open((sock_t)PerlIO_fileno(IoIFP(io)));
-}
-
-void XSUdp::open (sock_t sock) {
-    io_sv.reset();
-    Udp::open(sock);
-}
-
 
 void XSStream::on_connection (const StreamSP& client, const CodeError& err) {
     _EDEBUGTHIS();
@@ -264,35 +252,11 @@ StreamSP XSPipe::create_connection () {
     return ret;
 }
 
-void XSPipe::open (const Sv& sv) {
-    if (!sv.is_ref()) return open((file_t)SvUV(sv));
-    auto io = xs::in<IO*>(sv);
-    io_sv = (SV*)io;
-    Pipe::open((file_t)PerlIO_fileno(IoIFP(io)));
-}
-
-void XSPipe::open (file_t sock) {
-    io_sv.reset();
-    Pipe::open(sock);
-}
-
 
 StreamSP XSTcp::create_connection () {
     TcpSP ret = make_backref<XSTcp>(loop());
     xs::out<Tcp*>(ret.get());
     return ret;
-}
-
-void XSTcp::open (const Sv& sv) {
-    if (!sv.is_ref()) return open((sock_t)SvUV(sv));
-    auto io = xs::in<IO*>(sv);
-    io_sv = (SV*)io;
-    Tcp::open((sock_t)PerlIO_fileno(IoIFP(io)));
-}
-
-void XSTcp::open (sock_t sock) {
-    io_sv.reset();
-    Tcp::open(sock);
 }
 
 

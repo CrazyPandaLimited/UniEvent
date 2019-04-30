@@ -22,8 +22,9 @@ string Udp::buf_alloc (size_t cap) noexcept {
     }
 }
 
-void Udp::open (sock_t socket) {
-    impl()->open(socket);
+void Udp::open (sock_t sock, Ownership ownership) {
+    if (ownership == Ownership::SHARE) sock = sock_dup(sock);
+    impl()->open(sock);
 }
 
 void Udp::bind (const net::SockAddr& sa, unsigned flags) {

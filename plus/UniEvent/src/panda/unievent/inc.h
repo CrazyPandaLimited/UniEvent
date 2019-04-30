@@ -8,6 +8,11 @@
 
 namespace panda { namespace unievent {
 
+enum class Ownership {
+    TRANSFER = 0,
+    SHARE
+};
+
 template <class F1, class F2>
 void scope_guard (F1&& code, F2&& guard) {
     try { code(); }

@@ -70,6 +70,7 @@ subtest 'open connected socket' => sub {
     
     my $client = new UniEvent::Pipe($l);
     $client->open($sock);
+    close($sock);
     undef $sock;
     
     my $res;

@@ -12,6 +12,9 @@ AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port = 0
 
 void setsockopt (fd_t sock, int level, int optname, const void* optval, int optlen);
 
+file_t file_dup (file_t fd);
+sock_t sock_dup (sock_t);
+
 panda::string hostname         ();
 size_t        get_rss          ();
 uint64_t      get_free_memory  ();

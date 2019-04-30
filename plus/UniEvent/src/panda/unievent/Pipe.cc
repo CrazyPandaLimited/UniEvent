@@ -1,4 +1,5 @@
 #include "Pipe.h"
+#include "util.h"
 using namespace panda::unievent;
 
 const HandleType Pipe::TYPE("pipe");
@@ -11,7 +12,8 @@ backend::BackendHandle* Pipe::new_impl () {
     return loop()->impl()->new_pipe(this, _ipc);
 }
 
-void Pipe::open (file_t file) {
+void Pipe::open (file_t file, Ownership ownership) {
+    if (ownership == Ownership::SHARE) file = file_dup(file);
     impl()->open(file);
     if (peername()) {
         auto err = set_connect_result(true);
