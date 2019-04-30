@@ -38,4 +38,4 @@ $client->read_callback(sub {
 
 $loop->run;
 
-done_testing(2);
+done_testing(4);
