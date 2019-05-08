@@ -117,13 +117,19 @@ struct XSTcp : Tcp, XSStream {
     StreamSP create_connection () override;
 };
 
+
+struct XSTty : Tty, XSStream {
+    using Tty::Tty;
+    StreamSP create_connection () override;
+};
+
+
 //struct XSFSEvent : FSEvent, XSHandle {
 //    XSCallback fs_event_xscb;
 //    XSFSEvent (Loop* loop) : FSEvent(loop) {}
 //protected:
 //    void on_fs_event (const char* filename, int events) override;
 //};
-//
 //
 //struct XSFSPoll : FSPoll, XSHandle {
 //    XSCallback fs_poll_xscb;
@@ -132,22 +138,7 @@ struct XSTcp : Tcp, XSStream {
 //protected:
 //    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) override;
 //};
-//
 
-//
-//struct XSTTY : TTY, XSStream {
-//    XSTTY (Sv io, bool readable = false, Loop* loop = Loop::default_loop()) : TTY(sv2file(io), readable, loop) {
-//        if (io.is_ref()) io_sv = io;
-//    }
-//
-//    XSTTY (file_t fd, bool readable = false, Loop* loop = Loop::default_loop()) : TTY(fd, readable, loop) {}
-//
-//    StreamSP on_create_connection () override;
-//
-//private:
-//    Sv io_sv;
-//
-//};
 }}
 
 namespace xs {
@@ -237,16 +228,16 @@ template <class TYPE> struct Typemap <panda::unievent::Tcp*, TYPE> : Typemap<pan
     panda::string package () { return "UniEvent::Tcp"; }
 };
 
+template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+    panda::string package () { return "UniEvent::Tty"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }
 //};
 //
 //template <class TYPE> struct Typemap <panda::unievent::FSPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSPoll"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::TTY*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-//    panda::string package () { return "UniEvent::TTY"; }
 //};
 
 template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {

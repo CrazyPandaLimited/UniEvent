@@ -1,8 +1,5 @@
 #pragma once
 #include <panda/refcnt.h>
-//#include <panda/function.h>
-
-// Forward declarations only
 
 namespace panda { namespace unievent {
 
@@ -77,12 +74,5 @@ using TcpConnectRequestSP = iptr<TcpConnectRequest>;
 
 //struct FSPoll;
 //using FSPollSP = iptr<FSPoll>;
-
-//struct AddressRotator;
-//using AddressRotatorSP = iptr<AddressRotator>;
-//
-//struct Socks;
-//using SocksSP = iptr<Socks>;
-//
 
 }}

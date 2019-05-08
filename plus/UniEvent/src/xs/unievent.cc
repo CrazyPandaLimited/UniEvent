@@ -260,6 +260,13 @@ StreamSP XSTcp::create_connection () {
 }
 
 
+StreamSP XSTty::create_connection () {
+    TtySP ret = make_backref<XSTty>(fd, loop());
+    xs::out<Tty*>(ret.get());
+    return ret;
+}
+
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
@@ -275,12 +282,6 @@ StreamSP XSTcp::create_connection () {
 //        err ? Scalar::undef : (stat_as_hash ? stat2hvr(curr) : stat2avr(curr)),
 //        xs::out(err)
 //    })) FSPoll::on_fs_poll(prev, curr, err);
-//}
-//
-//StreamSP XSTTY::on_create_connection () {
-//    TTYSP ret = make_backref<XSTTY>(fd, readable(), loop());
-//    xs::out<TTY*>(ret.get());
-//    return ret;
 //}
 
 

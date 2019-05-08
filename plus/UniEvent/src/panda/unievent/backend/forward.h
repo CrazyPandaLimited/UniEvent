@@ -42,5 +42,6 @@ struct BackendShutdownRequest;
 
 struct BackendPipe;
 struct BackendTcp;
+struct BackendTty;
 
 }}};

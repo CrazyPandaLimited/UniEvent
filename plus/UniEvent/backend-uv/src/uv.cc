@@ -2,6 +2,7 @@
 #include "UVBackend.h"
 #include "UVUdp.h"
 #include "UVTcp.h"
+#include "UVTty.h"
 #include "UVIdle.h"
 #include "UVPoll.h"
 #include "UVPipe.h"
@@ -33,5 +34,6 @@ BackendPoll*    UVLoop::new_poll_fd   (IPollListener* l, int fd)       { return 
 BackendUdp*     UVLoop::new_udp       (IUdpListener* l, int domain)    { return new UVUdp(this, l, domain); }
 BackendPipe*    UVLoop::new_pipe      (IStreamListener* l, bool ipc)   { return new UVPipe(this, l, ipc); }
 BackendTcp*     UVLoop::new_tcp       (IStreamListener* l, int domain) { return new UVTcp(this, l, domain); }
+BackendTty*     UVLoop::new_tty       (IStreamListener* l, file_t fd)  { return new UVTty(this, l, fd); }
 
 }}}}
