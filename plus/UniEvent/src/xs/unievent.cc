@@ -54,10 +54,10 @@ Stash perl_class_for_handle (Handle* h) {
         ca[Udp::TYPE]     = Stash("UniEvent::Udp",     GV_ADD);
         ca[Pipe::TYPE]    = Stash("UniEvent::Pipe",    GV_ADD);
         ca[Tcp::TYPE]     = Stash("UniEvent::Tcp",     GV_ADD);
+        ca[Tty::TYPE]     = Stash("UniEvent::Tty",     GV_ADD);
+        ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
 //        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
-//        ca[FSPoll::Type]  = Stash("UniEvent::FSPoll",  GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
-//        ca[TTY::Type]     = Stash("UniEvent::TTY",     GV_ADD);
 //        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);
     }
     return ca.at(h->type());
@@ -95,45 +95,24 @@ bool XSCallback::call (const Object& handle, const Simple& evname, std::initiali
     return true;
 }
 
-//Ref stat2avr (const stat_t* stat) {
-//    return Ref::create(Array::create({
-//        Simple(stat->st_dev),
-//        Simple(stat->st_ino),
-//        Simple(stat->st_mode),
-//        Simple(stat->st_nlink),
-//        Simple(stat->st_uid),
-//        Simple(stat->st_gid),
-//        Simple(stat->st_rdev),
-//        Simple(stat->st_size),
-//        Simple(stat->st_atim.tv_sec),
-//        Simple(stat->st_mtim.tv_sec),
-//        Simple(stat->st_ctim.tv_sec),
-//        Simple(stat->st_blksize),
-//        Simple(stat->st_blocks),
-//        Simple(stat->st_flags),
-//        Simple(stat->st_gen),
-//        Simple(stat->st_birthtim.tv_sec),
-//    }));
-//}
-//
 //Ref stat2hvr (const stat_t* stat) {
 //    return Ref::create(Hash::create({
-//        {"dev",       Simple(stat->st_dev)},
-//        {"ino",       Simple(stat->st_ino)},
-//        {"mode",      Simple(stat->st_mode)},
-//        {"nlink",     Simple(stat->st_nlink)},
-//        {"uid",       Simple(stat->st_uid)},
-//        {"gid",       Simple(stat->st_gid)},
-//        {"rdev",      Simple(stat->st_rdev)},
-//        {"size",      Simple(stat->st_size)},
-//        {"atime",     Simple(stat->st_atim.tv_sec)},
-//        {"mtime",     Simple(stat->st_mtim.tv_sec)},
-//        {"ctime",     Simple(stat->st_ctim.tv_sec)},
-//        {"blksize",   Simple(stat->st_blksize)},
-//        {"blocks",    Simple(stat->st_blocks)},
-//        {"flags",     Simple(stat->st_flags)},
-//        {"gen",       Simple(stat->st_gen)},
-//        {"birthtime", Simple(stat->st_birthtim.tv_sec)},
+//        {"dev",       Simple(s.st_dev)},
+//        {"ino",       Simple(s.st_ino)},
+//        {"mode",      Simple(s.st_mode)},
+//        {"nlink",     Simple(s.st_nlink)},
+//        {"uid",       Simple(s.st_uid)},
+//        {"gid",       Simple(s.st_gid)},
+//        {"rdev",      Simple(s.st_rdev)},
+//        {"size",      Simple(s.st_size)},
+//        {"atime",     Simple(s.st_atim.tv_sec)},
+//        {"mtime",     Simple(s.st_mtim.tv_sec)},
+//        {"ctime",     Simple(s.st_ctim.tv_sec)},
+//        {"blksize",   Simple(s.st_blksize)},
+//        {"blocks",    Simple(s.st_blocks)},
+//        {"flags",     Simple(s.st_flags)},
+//        {"gen",       Simple(s.st_gen)},
+//        {"birthtime", Simple(s.st_birthtim.tv_sec)},
 //    }));
 //}
 
@@ -267,21 +246,23 @@ StreamSP XSTty::create_connection () {
 }
 
 
+void XSFsPoll::on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) {
+    auto obj = xs::out<FsPoll*>(this);
+    fs_poll_xscb.call(obj, evname_on_fs_poll, {
+        err ? Scalar::undef : Scalar(xs::out<const Stat&>(prev)),
+        err ? Scalar::undef : Scalar(xs::out<const Stat&>(cur)),
+        xs::out<const CodeError&>(err)
+    });
+    FsPoll::on_fs_poll(prev, cur, err);
+}
+
+
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
 //    auto obj = xs::out<FSEvent*>(aTHX_ this);
 //    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
 //        Simple(filename),
 //        Simple(events)
 //    })) FSEvent::on_fs_event(filename, events);
-//}
-//
-//void XSFSPoll::on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) {
-//    auto obj = xs::out<FSPoll*>(aTHX_ this);
-//    if (!fs_poll_xscb.call(obj, evname_on_fs_poll, {
-//        err ? Scalar::undef : (stat_as_hash ? stat2hvr(prev) : stat2avr(prev)),
-//        err ? Scalar::undef : (stat_as_hash ? stat2hvr(curr) : stat2avr(curr)),
-//        xs::out(err)
-//    })) FSPoll::on_fs_poll(prev, curr, err);
 //}
 
 
@@ -307,4 +288,29 @@ AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
         else if (k == "flags"   ) ret.flags    = val;
     }
     return ret;
+}
+
+static double timeval2double (const TimeVal& tv) {
+    return (double)tv.sec + (double)tv.usec/1000000;
+}
+
+Sv Typemap<const Stat&>::out (pTHX_ const Stat& s, const Sv&) {
+    return Ref::create(Array::create({
+        Simple(s.dev),
+        Simple(s.ino),
+        Simple(s.mode),
+        Simple(s.nlink),
+        Simple(s.uid),
+        Simple(s.gid),
+        Simple(s.rdev),
+        Simple(s.size),
+        Simple(timeval2double(s.atime)),
+        Simple(timeval2double(s.mtime)),
+        Simple(timeval2double(s.ctime)),
+        Simple(s.blksize),
+        Simple(s.blocks),
+        Simple(s.flags),
+        Simple(s.gen),
+        Simple(timeval2double(s.birthtime)),
+    }));
 }

@@ -29,9 +29,9 @@ protected:
     CodeError read_start ();
     void      read_stop  ();
 
-    void subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& req);
-    void subreq_write       (const RequestSP& parent, const WriteRequestSP& req);
-    void subreq_done        (const RequestSP& req);
+    void subreq_tcp_connect (const StreamRequestSP& parent, const TcpConnectRequestSP& req);
+    void subreq_write       (const StreamRequestSP& parent, const WriteRequestSP& req);
+    void subreq_done        (const StreamRequestSP& req);
 
 //    void set_connecting();
 //    void set_connected(bool success);

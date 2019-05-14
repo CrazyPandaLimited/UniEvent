@@ -38,11 +38,15 @@ SockAddr AsyncTest::get_blackhole_addr () {
     return res->ai_addr;
 }
 
-AsyncTest::AsyncTest(uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
+AsyncTest::AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
     : loop(loop ? loop : LoopSP(new Loop()))
     , expected(expected)
     , timer(create_timeout(timeout))
 {}
+
+AsyncTest::AsyncTest (uint64_t timeout, unsigned count, const LoopSP& loop) : AsyncTest(timeout, std::vector<string>(), loop) {
+    set_expected(count);
+}
 
 AsyncTest::~AsyncTest() noexcept(false) {
     if (!happened_as_expected() && !std::uncaught_exception()) {
@@ -50,11 +54,20 @@ AsyncTest::~AsyncTest() noexcept(false) {
     }
 }
 
+void AsyncTest::set_expected (unsigned count) {
+    expected.clear();
+    for (unsigned i = 0; i < count; ++i) expected.push_back("<event>");
+}
+
+void AsyncTest::set_expected (const std::vector<string>& v) {
+    expected = v;
+}
+
 void AsyncTest::run        () { loop->run(); }
 void AsyncTest::run_once   () { loop->run_once(); }
 void AsyncTest::run_nowait () { loop->run_nowait(); }
 
-void AsyncTest::happens(string event) {
+void AsyncTest::happens (string event) {
     if (event) {
         happened.push_back(event);
     }

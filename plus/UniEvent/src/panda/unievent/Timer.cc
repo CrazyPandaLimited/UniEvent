@@ -46,11 +46,11 @@ TimerSP Timer::start (uint64_t repeat, timer_fn cb, Loop* loop) {
 }
 
 void Timer::reset () {
-    stop();
+    impl()->stop();
 }
 
 void Timer::clear () {
-    stop();
+    impl()->stop();
     event.remove_all();
 }
 

@@ -12,8 +12,8 @@
 #include <panda/unievent/Pipe.h>
 #include <panda/unievent/Tcp.h>
 #include <panda/unievent/Tty.h>
+#include <panda/unievent/Work.h>
+#include <panda/unievent/FsPoll.h>
 //#include <panda/unievent/FSEvent.h>
-//#include <panda/unievent/FSPoll.h>
-//#include <panda/unievent/Work.h>
 //#include <panda/unievent/FSRequest.h>
 #include <panda/unievent/util.h>

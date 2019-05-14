@@ -1,5 +1,5 @@
 #pragma once
-#include "../StreamFilter.h"
+#include "../Stream.h"
 #include <openssl/ssl.h>
 #include <panda/lib/memory.h>
 
@@ -38,7 +38,7 @@ private:
     SSL*             ssl;
     BIO*             read_bio;
     BIO*             write_bio;
-    RequestSP        source_request;
+    StreamRequestSP  source_request;
     State            state;
     Profile          profile;
     SslFilter*       server_filter;

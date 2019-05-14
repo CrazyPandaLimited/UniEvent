@@ -44,4 +44,10 @@ struct BackendPipe;
 struct BackendTcp;
 struct BackendTty;
 
+struct BackendWork;
+struct IWorkListener;
+
+struct BackendFsPoll;
+struct IFsPollListener;
+
 }}};

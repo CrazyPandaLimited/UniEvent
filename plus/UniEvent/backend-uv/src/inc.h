@@ -9,20 +9,20 @@ namespace panda { namespace unievent { namespace backend { namespace uv {
 
 using panda::lib::AllocatedObject;
 
-inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
-inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
+static inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
+static inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
 
 template <class T = BackendHandle*, class X>
-inline T get_handle (X* uvhp) {
+static inline T get_handle (X* uvhp) {
     return static_cast<T>(reinterpret_cast<BackendHandle*>(uvhp->data));
 }
 
 template <class T = BackendRequest*, class X>
-inline T get_request (X* uvrp) {
+static inline T get_request (X* uvrp) {
     return static_cast<T>(reinterpret_cast<BackendRequest*>(uvrp->data));
 }
 
-inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {
+static inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {
     char* ptr = buf.shared_buf();
     auto  cap = buf.shared_capacity();
 
@@ -37,7 +37,7 @@ inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {
     uvbuf->len  = availcap;
 }
 
-inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
+static inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
     if (!uvbuf->base) return {}; // in some cases of eof there may be no buffer
     auto buf_ptr = (string*)(uvbuf->base + uvbuf->len);
     string ret = *buf_ptr;
@@ -55,7 +55,7 @@ inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
     }
 
 template <class Handle, class Func>
-inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
+static inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
     net::SockAddr ret;
     int sz = sizeof(ret);
     int err = f(uvhp, ret.get(), &sz);
@@ -66,7 +66,7 @@ inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
     return ret;
 }
 
-inline optional<fd_t> uvx_fileno (const uv_handle_t* p) {
+static inline optional<fd_t> uvx_fileno (const uv_handle_t* p) {
     uv_os_fd_t fd; //should be compatible type
     int err = uv_fileno(p, &fd);
     if (!err) return {fd};
@@ -74,24 +74,48 @@ inline optional<fd_t> uvx_fileno (const uv_handle_t* p) {
     throw uvx_code_error(err);
 }
 
-inline int uvx_recv_buffer_size (const uv_handle_t* p) {
+static inline int uvx_recv_buffer_size (const uv_handle_t* p) {
     int ret = 0;
     uvx_strict(uv_recv_buffer_size((uv_handle_t*)p, &ret));
     return ret;
 }
 
-inline void uvx_recv_buffer_size (uv_handle_t* p, int value) {
+static inline void uvx_recv_buffer_size (uv_handle_t* p, int value) {
     uvx_strict(uv_recv_buffer_size(p, &value));
 }
 
-inline int uvx_send_buffer_size (const uv_handle_t* p) {
+static inline int uvx_send_buffer_size (const uv_handle_t* p) {
     int ret = 0;
     uvx_strict(uv_send_buffer_size((uv_handle_t*)p, &ret));
     return ret;
 }
 
-inline void uvx_send_buffer_size (uv_handle_t* p, int value) {
+static inline void uvx_send_buffer_size (uv_handle_t* p, int value) {
     uvx_strict(uv_send_buffer_size(p, &value));
+}
+
+static inline void uvx_tv2ue (const uv_timespec_t& from, TimeVal& to) {
+    to.sec  = from.tv_sec;
+    to.usec = from.tv_nsec;
+}
+
+static inline void uvx_stat2ue (const uv_stat_t* from, Stat& to) {
+    to.dev     = from->st_dev;
+    to.mode    = from->st_mode;
+    to.nlink   = from->st_nlink;
+    to.uid     = from->st_uid;
+    to.gid     = from->st_gid;
+    to.rdev    = from->st_rdev;
+    to.ino     = from->st_ino;
+    to.size    = from->st_size;
+    to.blksize = from->st_blksize;
+    to.blocks  = from->st_blocks;
+    to.flags   = from->st_flags;
+    to.gen     = from->st_gen;
+    uvx_tv2ue(from->st_atim, to.atime);
+    uvx_tv2ue(from->st_mtim, to.mtime);
+    uvx_tv2ue(from->st_ctim, to.ctime);
+    uvx_tv2ue(from->st_birthtim, to.birthtime);
 }
 
 }}}}

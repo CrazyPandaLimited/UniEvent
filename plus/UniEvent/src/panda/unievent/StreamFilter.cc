@@ -26,21 +26,21 @@ void StreamFilter::read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
-void StreamFilter::subreq_tcp_connect (const RequestSP& parent, const TcpConnectRequestSP& req) {
+void StreamFilter::subreq_tcp_connect (const StreamRequestSP& parent, const TcpConnectRequestSP& req) {
     parent->subreq = req;
     req->parent = parent;
     req->set(panda::dyn_cast<Tcp*>(handle)); // TODO: find a better way
     NextFilter::tcp_connect(req);
 }
 
-void StreamFilter::subreq_write (const RequestSP& parent, const WriteRequestSP& req) {
+void StreamFilter::subreq_write (const StreamRequestSP& parent, const WriteRequestSP& req) {
     parent->subreq = req;
     req->parent = parent;
     req->set(handle);
     NextFilter::write(req);
 }
 
-void StreamFilter::subreq_done (const RequestSP& req) {
+void StreamFilter::subreq_done (const StreamRequestSP& req) {
     assert(!req->subreq);
     req->finish_exec();
     req->parent->subreq = nullptr;

@@ -47,11 +47,6 @@ struct CpuInfo {
 std::vector<CpuInfo> cpu_info ();
 
 
-struct TimeVal {
-  long sec;
-  long usec;
-};
-
 struct ResourceUsage {
    TimeVal  utime;    /* user CPU time used */
    TimeVal  stime;    /* system CPU time used */

@@ -1,5 +1,4 @@
 #pragma once
-#include "forward.h"
 #include "Handle.h"
 #include "backend/BackendTimer.h"
 
@@ -9,7 +8,9 @@ namespace panda { namespace unievent {
 struct Timer : virtual Handle, private backend::ITimerListener {
     using timer_fptr = void(const TimerSP& handle);
     using timer_fn = function<timer_fptr>;
-    
+
+    static const HandleType TYPE;
+
     CallbackDispatcher<timer_fptr> event;
 
     Timer (const LoopSP& loop = Loop::default_loop()) {
@@ -33,8 +34,6 @@ struct Timer : virtual Handle, private backend::ITimerListener {
 
     static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
     static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
-
-    static const HandleType TYPE;
 
 protected:
     virtual void on_timer ();

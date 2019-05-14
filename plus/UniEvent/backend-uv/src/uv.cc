@@ -6,10 +6,12 @@
 #include "UVIdle.h"
 #include "UVPoll.h"
 #include "UVPipe.h"
+#include "UVWork.h"
 #include "UVTimer.h"
 #include "UVCheck.h"
 #include "UVAsync.h"
 #include "UVSignal.h"
+#include "UVFsPoll.h"
 #include "UVDelayer.h"
 #include "UVPrepare.h"
 
@@ -35,5 +37,7 @@ BackendUdp*     UVLoop::new_udp       (IUdpListener* l, int domain)    { return 
 BackendPipe*    UVLoop::new_pipe      (IStreamListener* l, bool ipc)   { return new UVPipe(this, l, ipc); }
 BackendTcp*     UVLoop::new_tcp       (IStreamListener* l, int domain) { return new UVTcp(this, l, domain); }
 BackendTty*     UVLoop::new_tty       (IStreamListener* l, file_t fd)  { return new UVTty(this, l, fd); }
+BackendFsPoll*  UVLoop::new_fs_poll   (IFsPollListener* l)             { return new UVFsPoll(this, l); }
+BackendWork*    UVLoop::new_work      (IWorkListener* l)               { return new UVWork(this, l); }
 
 }}}}

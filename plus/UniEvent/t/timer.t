@@ -137,6 +137,23 @@ subtest 'reset' => sub {
     check_mark(0.02, "reset works");
 };
 
+subtest 'new start' => sub {
+    my $cnt = 0;
+    my $t = UE::Timer->start(0.001, sub {
+        my $t = shift;
+        $t->stop if ++$cnt == 2;
+    });
+    $l->run;
+    is $cnt, 2;
+};
+
+subtest 'new once' => sub {
+    my $cnt = 0;
+    my $t = UE::Timer->once(0.001, sub {++$cnt});
+    $l->run for 1..3;
+    is $cnt, 1;
+};
+
 done_testing();
 
 my $cnt;

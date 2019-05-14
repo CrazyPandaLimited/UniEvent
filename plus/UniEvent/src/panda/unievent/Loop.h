@@ -65,20 +65,22 @@ protected:
     ~Loop ();
 
 private:
+    friend Handle; friend Work;
+    using Works = panda::lib::IntrusiveChain<WorkSP>;
+
     Backend*     _backend;
     BackendLoop* _impl;
     Handles      _handles;
     ResolverSP   _resolver;
+    Works        _works;
 
     Loop (Backend*, BackendLoop::Type);
 
-    void register_handle (Handle* h) {
-        _handles.push_back(h);
-    }
+    void register_handle   (Handle* h)          { _handles.push_back(h); }
+    void unregister_handle (Handle* h) noexcept { _handles.erase(h); }
 
-    void unregister_handle (Handle* h) noexcept {
-        _handles.erase(h);
-    }
+    void register_work   (const WorkSP& w)          { _works.push_back(w); }
+    void unregister_work (const WorkSP& w) noexcept { _works.erase(w); }
 
     static LoopSP _global_loop;
     static thread_local LoopSP _default_loop;
@@ -86,7 +88,6 @@ private:
     static void _init_global_loop ();
     static void _init_default_loop ();
 
-    friend Handle;
     friend void set_default_backend (backend::Backend*);
 };
 
@@ -110,3 +111,6 @@ private:
 };
 
 }}
+
+#include "Work.h"
+#include "Handle.h"

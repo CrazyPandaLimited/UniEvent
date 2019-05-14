@@ -212,10 +212,8 @@ void Stream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
 }
 
 // ===================== DISCONNECT/RESET/CLEAR ===============================
-struct DisconnectRequest : Request {
-    Stream* handle;
-
-    DisconnectRequest (Stream* h) : handle(h) { set(h); }
+struct DisconnectRequest : StreamRequest {
+    DisconnectRequest (Stream* h) { set(h); }
 
     void exec         ()                                                 override { handle->queue.done(this, [&]{ handle->_reset(); }); }
     void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }

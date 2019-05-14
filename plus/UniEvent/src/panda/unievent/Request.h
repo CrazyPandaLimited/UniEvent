@@ -56,28 +56,11 @@ protected:
 
     ~Request () {
         assert(!_impl);
-        //if (_impl) _impl->destroy();
     }
 
 private:
     HandleSP _handle;
     uint64_t _delay_id;
-};
-
-struct BufferRequest : Request {
-    std::vector<string> bufs;
-
-    BufferRequest () {}
-
-    BufferRequest (const string& data) {
-        bufs.push_back(data);
-    }
-
-    template <class It>
-    BufferRequest (It begin, It end) {
-        bufs.reserve(end - begin);
-        for (; begin != end; ++begin) bufs.push_back(*begin);
-    }
 };
 
 }}

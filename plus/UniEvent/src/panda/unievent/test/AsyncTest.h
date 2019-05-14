@@ -24,13 +24,17 @@ struct AsyncTest {
     static SockAddr get_refused_addr   ();
     static SockAddr get_blackhole_addr ();
 
-    AsyncTest (uint64_t timeout, const std::vector<string>& expected = {}, const LoopSP& loop = nullptr);
+    AsyncTest (uint64_t timeout, unsigned count = 0, const LoopSP& loop = nullptr);
+    AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop = nullptr);
     virtual ~AsyncTest() noexcept(false);
+
+    void set_expected (unsigned);
+    void set_expected (const std::vector<string>&);
 
     void run        ();
     void run_once   ();
     void run_nowait ();
-    void happens    (string event);
+    void happens    (string event = "<event>");
 
     template<typename F>
     static TimerSP timer_once (uint64_t timeout, Loop* loop, F&& f) {

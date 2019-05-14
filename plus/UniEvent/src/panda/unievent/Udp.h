@@ -81,20 +81,31 @@ private:
 };
 
 
-struct SendRequest : BufferRequest, lib::AllocatedObject<SendRequest> {
+struct SendRequest : Request, lib::AllocatedObject<SendRequest> {
     CallbackDispatcher<Udp::send_fptr> event;
     net::SockAddr                      addr;
+    std::vector<string>                bufs;
 
-    using BufferRequest::BufferRequest;
+    SendRequest () {}
 
-    void set (Udp* h) {
-        handle = h;
-        BufferRequest::set(h);
+    SendRequest (const string& data) {
+        bufs.push_back(data);
+    }
+
+    template <class It>
+    SendRequest (It begin, It end) {
+        bufs.reserve(end - begin);
+        for (; begin != end; ++begin) bufs.push_back(*begin);
     }
 
 private:
     friend Udp;
     Udp* handle;
+
+    void set (Udp* h) {
+        handle = h;
+        Request::set(h);
+    }
 
     backend::BackendSendRequest* impl () {
         if (!_impl) _impl = handle->impl()->new_send_request(this);

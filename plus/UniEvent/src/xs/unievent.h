@@ -35,51 +35,49 @@ struct XSCallback {
 };
 
 struct XSPrepare : Prepare {
+    using Prepare::Prepare;
     XSCallback prepare_xscb;
-    XSPrepare (Loop* loop) : Prepare(loop) {}
 protected:
     void on_prepare () override;
 };
 
 
 struct XSCheck : Check {
+    using Check::Check;
     XSCallback check_xscb;
-    XSCheck (Loop* loop) : Check(loop) {}
 protected:
     void on_check () override;
 };
 
 
 struct XSIdle : Idle {
+    using Idle::Idle;
     XSCallback idle_xscb;
-    XSIdle (Loop* loop) : Idle(loop) {}
 protected:
     void on_idle () override;
 };
 
 
 struct XSTimer : Timer {
+    using Timer::Timer;
     XSCallback timer_xscb;
-    XSTimer (Loop* loop) : Timer(loop) {}
 protected:
     void on_timer () override;
 };
 
 
 struct XSSignal : Signal {
+    using Signal::Signal;
     XSCallback signal_xscb;
-    XSSignal (Loop* loop) : Signal(loop) {}
 protected:
     void on_signal (int signum) override;
 };
 
 
 struct XSUdp : Udp {
+    using Udp::Udp;
     XSCallback receive_xscb;
     XSCallback send_xscb;
-
-    using Udp::Udp;
-
 protected:
     void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) override;
     void on_send    (const CodeError& err, const SendRequestSP& req) override;
@@ -87,6 +85,7 @@ protected:
 
 
 struct XSStream : virtual Stream {
+    using Stream::Stream;
     XSCallback connection_xscb;
     XSCallback read_xscb;
     XSCallback write_xscb;
@@ -94,9 +93,6 @@ struct XSStream : virtual Stream {
     XSCallback eof_xscb;
     XSCallback connect_xscb;
     XSCallback create_connection_xscb;
-
-    XSStream () {}
-
 protected:
     void on_connection (const StreamSP&, const CodeError&) override;
     void on_connect    (const CodeError&, const ConnectRequestSP&) override;
@@ -124,6 +120,14 @@ struct XSTty : Tty, XSStream {
 };
 
 
+struct XSFsPoll : FsPoll {
+    using FsPoll::FsPoll;
+    XSCallback fs_poll_xscb;
+protected:
+    void on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) override;
+};
+
+
 //struct XSFSEvent : FSEvent, XSHandle {
 //    XSCallback fs_event_xscb;
 //    XSFSEvent (Loop* loop) : FSEvent(loop) {}
@@ -131,13 +135,6 @@ struct XSTty : Tty, XSStream {
 //    void on_fs_event (const char* filename, int events) override;
 //};
 //
-//struct XSFSPoll : FSPoll, XSHandle {
-//    XSCallback fs_poll_xscb;
-//    bool       stat_as_hash;
-//    XSFSPoll (Loop* loop) : FSPoll(loop), stat_as_hash(false) {}
-//protected:
-//    void on_fs_poll (const stat_t* prev, const stat_t* curr, const CodeError& err) override;
-//};
 
 }}
 
@@ -182,6 +179,10 @@ template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
         if (!SvOK(arg)) return nullptr;
         return reinterpret_cast<SSL_CTX*>(SvIV(arg));
     }
+};
+
+template <> struct Typemap<const panda::unievent::Stat&> : TypemapBase<const panda::unievent::Stat&> {
+    Sv out (pTHX_ const panda::unievent::Stat&, const Sv& = Sv());
 };
 
 template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
@@ -232,12 +233,12 @@ template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<pan
     panda::string package () { return "UniEvent::Tty"; }
 };
 
+template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    panda::string package () { return "UniEvent::FsPoll"; }
+};
+
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }
-//};
-//
-//template <class TYPE> struct Typemap <panda::unievent::FSPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::FSPoll"; }
 //};
 
 template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {

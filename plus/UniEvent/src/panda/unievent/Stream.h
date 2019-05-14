@@ -188,11 +188,23 @@ private:
     CodeError _read_start ();
 };
 
-
-struct AcceptRequest : Request {
+struct StreamRequest : Request {
+protected:
+    friend Stream; friend StreamFilter;
     Stream* handle;
 
-    AcceptRequest (Stream* h) : handle(h) { set(h); }
+    StreamRequest () : handle() {}
+
+    void set (Stream* h) {
+        handle = h;
+        Request::set(h);
+    }
+};
+using StreamRequestSP = iptr<StreamRequest>;
+
+
+struct AcceptRequest : StreamRequest, lib::AllocatedObject<AcceptRequest> {
+    AcceptRequest (Stream* h) { set(h); }
 
     void exec         ()                                                 override {}
     void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
@@ -200,17 +212,15 @@ struct AcceptRequest : Request {
 };
 
 
-struct ConnectRequest : Request {
+struct ConnectRequest : StreamRequest {
     CallbackDispatcher<Stream::connect_fptr> event;
 
 protected:
+    friend Stream;
     uint64_t timeout;
     TimerSP  timer;
-    Stream*  handle;
 
-    friend Stream;
-
-    ConnectRequest (Stream::connect_fn callback = {}, uint64_t timeout = 0) : timeout(timeout), handle(nullptr) {
+    ConnectRequest (Stream::connect_fn callback = {}, uint64_t timeout = 0) : timeout(timeout) {
         _ECTOR();
         if (callback) event.add(callback);
     }
@@ -220,29 +230,29 @@ protected:
         return static_cast<backend::BackendConnectRequest*>(_impl);
     }
 
-    void set (Stream* h) {
-        handle = h;
-        Request::set(h);
-    }
-
     void exec         () override = 0;
     void handle_event (const CodeError&) override;
 };
 
 
-struct WriteRequest : BufferRequest, lib::AllocatedObject<WriteRequest> {
+struct WriteRequest : StreamRequest, lib::AllocatedObject<WriteRequest> {
     CallbackDispatcher<Stream::write_fptr> event;
+    std::vector<string> bufs;
 
-    using BufferRequest::BufferRequest;
+    WriteRequest () {}
+
+    WriteRequest (const string& data) {
+        bufs.push_back(data);
+    }
+
+    template <class It>
+    WriteRequest (It begin, It end) {
+        bufs.reserve(end - begin);
+        for (; begin != end; ++begin) bufs.push_back(*begin);
+    }
 
 private:
-    friend Stream; friend StreamFilter;
-    Stream* handle;
-
-    void set (Stream* h) {
-        handle = h;
-        Request::set(h);
-    }
+    friend Stream;
 
     backend::BackendWriteRequest* impl () {
         if (!_impl) _impl = handle->impl()->new_write_request(this);
@@ -254,7 +264,7 @@ private:
 };
 
 
-struct ShutdownRequest : Request {
+struct ShutdownRequest : StreamRequest {
     CallbackDispatcher<Stream::shutdown_fptr> event;
 
     ShutdownRequest (Stream::shutdown_fn callback = {}) {
@@ -264,12 +274,6 @@ struct ShutdownRequest : Request {
 
 private:
     friend Stream;
-    Stream* handle;
-
-    void set (Stream* h) {
-        handle = h;
-        Request::set(h);
-    }
 
     backend::BackendShutdownRequest* impl () {
         if (!_impl) _impl = handle->impl()->new_shutdown_request(this);

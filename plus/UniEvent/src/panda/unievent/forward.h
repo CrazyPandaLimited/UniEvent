@@ -33,9 +33,6 @@ using PollSP = iptr<Poll>;
 struct Resolver;
 using ResolverSP = iptr<Resolver>;
 
-struct Request;
-using RequestSP = iptr<Request>;
-
 struct Udp;
 using UdpSP = iptr<Udp>;
 
@@ -47,6 +44,9 @@ using StreamSP = iptr<Stream>;
 
 struct StreamFilter;
 using StreamFilterSP = iptr<StreamFilter>;
+
+struct StreamRequest;
+using StreamRequestSP = iptr<StreamRequest>;
 
 struct AcceptRequest;
 using AcceptRequestSP = iptr<AcceptRequest>;
@@ -72,7 +72,10 @@ using TcpSP = iptr<Tcp>;
 struct TcpConnectRequest;
 using TcpConnectRequestSP = iptr<TcpConnectRequest>;
 
-//struct FSPoll;
-//using FSPollSP = iptr<FSPoll>;
+struct Work;
+using WorkSP = iptr<Work>;
+
+struct FsPoll;
+using FsPollSP = iptr<FsPoll>;
 
 }}
