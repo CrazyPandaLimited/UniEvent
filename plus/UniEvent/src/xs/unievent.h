@@ -120,12 +120,12 @@ struct XSTty : Tty, XSStream {
 };
 
 
-struct XSFsPoll : FsPoll {
-    using FsPoll::FsPoll;
-    XSCallback fs_poll_xscb;
-protected:
-    void on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) override;
-};
+//struct XSFsPoll : FsPoll {
+//    using FsPoll::FsPoll;
+//    XSCallback fs_poll_xscb;
+//protected:
+//    void on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) override;
+//};
 
 
 //struct XSFSEvent : FSEvent, XSHandle {
@@ -233,9 +233,9 @@ template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<pan
     panda::string package () { return "UniEvent::Tty"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::FsPoll"; }
-};
+//template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+//    panda::string package () { return "UniEvent::FsPoll"; }
+//};
 
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    panda::string package () { return "UniEvent::FSEvent"; }

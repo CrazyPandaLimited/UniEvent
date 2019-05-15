@@ -55,7 +55,7 @@ Stash perl_class_for_handle (Handle* h) {
         ca[Pipe::TYPE]    = Stash("UniEvent::Pipe",    GV_ADD);
         ca[Tcp::TYPE]     = Stash("UniEvent::Tcp",     GV_ADD);
         ca[Tty::TYPE]     = Stash("UniEvent::Tty",     GV_ADD);
-        ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
+//        ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
 //        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
 //        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);
@@ -246,15 +246,15 @@ StreamSP XSTty::create_connection () {
 }
 
 
-void XSFsPoll::on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) {
-    auto obj = xs::out<FsPoll*>(this);
-    fs_poll_xscb.call(obj, evname_on_fs_poll, {
-        err ? Scalar::undef : Scalar(xs::out<const Stat&>(prev)),
-        err ? Scalar::undef : Scalar(xs::out<const Stat&>(cur)),
-        xs::out<const CodeError&>(err)
-    });
-    FsPoll::on_fs_poll(prev, cur, err);
-}
+//void XSFsPoll::on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) {
+//    auto obj = xs::out<FsPoll*>(this);
+//    fs_poll_xscb.call(obj, evname_on_fs_poll, {
+//        err ? Scalar::undef : Scalar(xs::out<const Stat&>(prev)),
+//        err ? Scalar::undef : Scalar(xs::out<const Stat&>(cur)),
+//        xs::out<const CodeError&>(err)
+//    });
+//    FsPoll::on_fs_poll(prev, cur, err);
+//}
 
 
 //void XSFSEvent::on_fs_event (const char* filename, int events) {
