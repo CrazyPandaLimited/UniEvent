@@ -29,7 +29,7 @@ inline bool inet_looks_like_ipv6 (const char* src) {
     return false;
 }
 
-inline void exepath (char* buffer, size_t* size) throw(CodeError) {
+inline void exepath (char* buffer, size_t* size) {
     if (uv_exepath(buffer, size)) throw CodeError(UV_UNKNOWN);
 }
 
