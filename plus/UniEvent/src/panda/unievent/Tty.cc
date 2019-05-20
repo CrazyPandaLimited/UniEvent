@@ -8,7 +8,7 @@ void Tty::reset_mode () {
     uv_tty_reset_mode();
 }
 
-Tty::Tty (file_t fd, const LoopSP& loop) : fd(fd) {
+Tty::Tty (fd_t fd, const LoopSP& loop) : fd(fd) {
     _init(loop, loop->impl()->new_tty(this, fd));
 }
 

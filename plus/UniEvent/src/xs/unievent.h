@@ -15,9 +15,9 @@ using namespace panda::unievent;
 Stash get_perl_class_for_err    (const Error& err);
 Stash get_perl_class_for_handle (Handle* h);
 
-inline file_t sv2file (const Sv& sv) {
-    if (sv.is_ref()) return (file_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
-    else             return (file_t)SvUV(sv);
+inline fd_t sv2file (const Sv& sv) {
+    if (sv.is_ref()) return (fd_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
+    else             return (fd_t)SvUV(sv);
 }
 
 struct XSCallback {
@@ -181,8 +181,8 @@ template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
     }
 };
 
-template <> struct Typemap<const panda::unievent::Stat&> : TypemapBase<const panda::unievent::Stat&> {
-    Sv out (pTHX_ const panda::unievent::Stat&, const Sv& = Sv());
+template <> struct Typemap<const panda::unievent::Fs::Stat&> : TypemapBase<const panda::unievent::Fs::Stat&> {
+    Sv out (pTHX_ const panda::unievent::Fs::Stat&, const Sv& = Sv());
 };
 
 template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {

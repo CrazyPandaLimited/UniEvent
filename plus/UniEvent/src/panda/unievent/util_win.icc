@@ -1,10 +1,11 @@
 #include <io.h>
-#include <Winsock2.h>
 #include <Windows.h>
+#include <process.h>
+#include <Winsock2.h>
 
 namespace panda { namespace unievent {
 
-void setsockopt (fd_t sock, int level, int optname, const void* optval, int optlen) {
+void setsockopt (fh_t sock, int level, int optname, const void* optval, int optlen) {
     if (::setsockopt(sock, level, optname, (const char*)optval, optlen)) throw last_sys_code_error();
 }
 
@@ -16,7 +17,7 @@ CodeError last_sys_code_error () {
     return sys_code_error(WSAGetLastError());
 }
 
-file_t file_dup (file_t src) {
+fd_t file_dup (fd_t src) {
     HANDLE h = (HANDLE)_get_osfhandle(src);
     if (h == INVALID_HANDLE_VALUE) throw last_sys_code_error();
     
@@ -53,5 +54,7 @@ sock_t sock_dup (sock_t sock) {
     
     return new_sock;
 }
+
+int getpid () { return ::_getpid(); }
 
 }}

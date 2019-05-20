@@ -12,7 +12,7 @@ backend::BackendHandle* Pipe::new_impl () {
     return loop()->impl()->new_pipe(this, _ipc);
 }
 
-void Pipe::open (file_t file, Ownership ownership) {
+void Pipe::open (fd_t file, Ownership ownership) {
     if (ownership == Ownership::SHARE) file = file_dup(file);
     impl()->open(file);
     if (peername()) {

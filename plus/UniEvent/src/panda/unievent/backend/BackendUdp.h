@@ -39,7 +39,7 @@ struct BackendUdp : BackendHandle {
     virtual net::SockAddr sockaddr () = 0;
     virtual net::SockAddr peeraddr () = 0;
 
-    virtual optional<fd_t> fileno () const = 0;
+    virtual optional<fh_t> fileno () const = 0;
 
     virtual int  recv_buffer_size () const    = 0;
     virtual void recv_buffer_size (int value) = 0;

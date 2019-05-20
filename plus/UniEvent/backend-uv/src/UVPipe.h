@@ -28,7 +28,7 @@ struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
         uvx_strict(uv_pipe_bind(&uvh, name_str));
     }
 
-    void open (file_t file) override {
+    void open (fd_t file) override {
         uvx_strict(uv_pipe_open(&uvh, file));
     }
 

@@ -13,13 +13,13 @@
 namespace panda { namespace unievent {
 
 #if defined(_WIN32)
-    using file_t = int;
-    using sock_t = SOCKET;
-    using fd_t   = HANDLE;
-#else
-    using file_t = int;
-    using sock_t = int;
     using fd_t   = int;
+    using sock_t = SOCKET;
+    using fh_t   = HANDLE;
+#else
+    using fd_t   = int;
+    using sock_t = int;
+    using fh_t   = int;
 #endif
 
 enum class Ownership {
@@ -30,25 +30,13 @@ enum class Ownership {
 struct TimeVal {
   long sec;
   long usec;
+  double get () const { return (double)sec + (double)usec / 1000000; }
 };
 
-struct Stat {
-  uint64_t dev;
-  uint64_t mode;
-  uint64_t nlink;
-  uint64_t uid;
-  uint64_t gid;
-  uint64_t rdev;
-  uint64_t ino;
-  uint64_t size;
-  uint64_t blksize;
-  uint64_t blocks;
-  uint64_t flags;
-  uint64_t gen;
-  TimeVal  atime;
-  TimeVal  mtime;
-  TimeVal  ctime;
-  TimeVal  birthtime;
+struct TimeSpec {
+    long sec;
+    long nsec;
+    double get () const { return (double)sec + (double)nsec / 1000000000; }
 };
 
 template <class F1, class F2>

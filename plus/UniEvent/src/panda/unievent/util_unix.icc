@@ -2,7 +2,7 @@
 
 namespace panda { namespace unievent {
 
-void setsockopt (fd_t sock, int level, int optname, const void* optval, int optlen) {
+void setsockopt (fh_t sock, int level, int optname, const void* optval, int optlen) {
     if (::setsockopt(sock, level, optname, optval, (socklen_t)optlen)) throw last_sys_code_error();
 }
 
@@ -15,7 +15,7 @@ CodeError last_sys_code_error () {
     return sys_code_error(errno);
 }
 
-file_t file_dup (file_t src) {
+fd_t file_dup (fd_t src) {
     auto ret = ::dup(src);
     if (ret == -1) throw last_sys_code_error();
     return ret;
@@ -24,5 +24,7 @@ file_t file_dup (file_t src) {
 sock_t sock_dup (sock_t sock) {
     return file_dup(sock);
 }
+
+int getpid () { return ::getpid(); }
 
 }}

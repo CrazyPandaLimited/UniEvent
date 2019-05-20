@@ -42,8 +42,7 @@ struct BackendLoop {
     virtual BackendUdp*     new_udp       (IUdpListener*, int domain)    = 0;
     virtual BackendPipe*    new_pipe      (IStreamListener*, bool ipc)   = 0;
     virtual BackendTcp*     new_tcp       (IStreamListener*, int domain) = 0;
-    virtual BackendTty*     new_tty       (IStreamListener*, file_t)     = 0;
-    virtual BackendFsPoll*  new_fs_poll   (IFsPollListener*)             = 0;
+    virtual BackendTty*     new_tty       (IStreamListener*, fd_t)       = 0;
     virtual BackendWork*    new_work      (IWorkListener*)               = 0;
 
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;

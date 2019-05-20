@@ -92,7 +92,7 @@ struct Stream : virtual Handle, protected backend::IStreamListener {
 
     Filters& filters () { return _filters; }
 
-    optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
+    optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
     int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
     void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }

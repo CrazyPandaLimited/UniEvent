@@ -290,11 +290,7 @@ AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
     return ret;
 }
 
-static double timeval2double (const TimeVal& tv) {
-    return (double)tv.sec + (double)tv.usec/1000000;
-}
-
-Sv Typemap<const Stat&>::out (pTHX_ const Stat& s, const Sv&) {
+Sv Typemap<const Fs::Stat&>::out (pTHX_ const Fs::Stat& s, const Sv&) {
     return Ref::create(Array::create({
         Simple(s.dev),
         Simple(s.ino),
@@ -304,13 +300,13 @@ Sv Typemap<const Stat&>::out (pTHX_ const Stat& s, const Sv&) {
         Simple(s.gid),
         Simple(s.rdev),
         Simple(s.size),
-        Simple(timeval2double(s.atime)),
-        Simple(timeval2double(s.mtime)),
-        Simple(timeval2double(s.ctime)),
+        Simple(s.atime.get()),
+        Simple(s.mtime.get()),
+        Simple(s.ctime.get()),
         Simple(s.blksize),
         Simple(s.blocks),
         Simple(s.flags),
         Simple(s.gen),
-        Simple(timeval2double(s.birthtime)),
+        Simple(s.birthtime.get()),
     }));
 }

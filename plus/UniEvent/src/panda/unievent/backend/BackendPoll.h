@@ -10,7 +10,7 @@ struct IPollListener {
 struct BackendPoll : BackendHandle {
     BackendPoll (BackendLoop*, IPollListener* lst) : BackendHandle(loop), listener(lst) {}
 
-    virtual optional<fd_t> fileno () const = 0;
+    virtual optional<fh_t> fileno () const = 0;
 
     virtual void start (int events) = 0;
     virtual void stop  ()           = 0;

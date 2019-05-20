@@ -133,7 +133,7 @@ ResourceUsage get_rusage () {
     return ret;
 }
 
-const HandleType& guess_type (file_t file) {
+const HandleType& guess_type (fd_t file) {
     auto uvt = uv_guess_handle(file);
     switch (uvt) {
         //case UV_TTY       : return TTY::TYPE;

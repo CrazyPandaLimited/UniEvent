@@ -35,7 +35,7 @@ struct Poll : virtual Handle, private backend::IPollListener {
 
     void call_now (int events, const CodeError& err) { on_poll(events, err); }
 
-    optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
+    optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
     static const HandleType TYPE;
 

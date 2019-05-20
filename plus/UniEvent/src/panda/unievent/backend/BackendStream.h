@@ -31,7 +31,7 @@ struct BackendStream : BackendHandle {
     virtual CodeError write      (const std::vector<string>& bufs, BackendWriteRequest*) = 0;
     virtual CodeError shutdown   (BackendShutdownRequest*) = 0;
 
-    virtual optional<fd_t> fileno () const = 0;
+    virtual optional<fh_t> fileno () const = 0;
 
     virtual int  recv_buffer_size () const    = 0;
     virtual void recv_buffer_size (int value) = 0;

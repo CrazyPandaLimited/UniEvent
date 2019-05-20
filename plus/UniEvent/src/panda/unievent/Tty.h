@@ -13,7 +13,7 @@ struct Tty : virtual Stream {
 
     static void reset_mode ();
 
-    Tty (file_t fd, const LoopSP& loop = Loop::default_loop());
+    Tty (fd_t fd, const LoopSP& loop = Loop::default_loop());
 
     const HandleType& type () const override;
 
@@ -21,7 +21,7 @@ struct Tty : virtual Stream {
     virtual WinSize get_winsize ();
 
 protected:
-    file_t fd;
+    fd_t fd;
 
     StreamSP create_connection () override;
 

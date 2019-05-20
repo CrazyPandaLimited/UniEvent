@@ -43,7 +43,7 @@ struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::
     template <class It>
     /*INL*/ void send       (It begin, It end, const net::SockAddr& sa, send_fn callback = {});
 
-    optional<fd_t> fileno () const { return _impl ? impl()->fileno() : optional<fd_t>(); }
+    optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
     net::SockAddr sockaddr () const { return impl()->sockaddr(); }
     net::SockAddr peeraddr () const { return impl()->peeraddr(); }

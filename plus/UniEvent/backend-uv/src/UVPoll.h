@@ -23,7 +23,7 @@ struct UVPoll : UVHandle<BackendPoll, uv_poll_t> {
         uvx_strict(uv_poll_stop(&uvh));
     }
 
-    optional<fd_t> fileno () const override { return uvx_fileno(uvhp()); }
+    optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }
 };
 
 }}}}

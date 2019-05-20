@@ -53,7 +53,7 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         return uvx_sockaddr(&uvh, &uv_udp_getpeername);
     }
 
-    optional<fd_t> fileno () const override { return uvx_fileno(uvhp()); }
+    optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }
 
     int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(uvhp()); }
     void recv_buffer_size (int value) override { uvx_recv_buffer_size(uvhp(), value); }

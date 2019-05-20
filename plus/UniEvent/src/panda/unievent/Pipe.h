@@ -20,7 +20,7 @@ struct Pipe : virtual Stream {
 
     bool ipc () const { return _ipc; }
 
-    virtual void open    (file_t file, Ownership ownership = Ownership::TRANSFER);
+    virtual void open    (fd_t file, Ownership ownership = Ownership::TRANSFER);
     virtual void bind    (string_view name);
     virtual void connect (const PipeConnectRequestSP& req);
     /*INL*/ void connect (const string& name, connect_fn callback = nullptr);

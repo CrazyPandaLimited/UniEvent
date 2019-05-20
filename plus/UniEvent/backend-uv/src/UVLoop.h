@@ -69,8 +69,7 @@ struct UVLoop : BackendLoop {
     BackendUdp*     new_udp       (IUdpListener*, int domain)    override;
     BackendPipe*    new_pipe      (IStreamListener*, bool ipc)   override;
     BackendTcp*     new_tcp       (IStreamListener*, int domain) override;
-    BackendTty*     new_tty       (IStreamListener*, file_t)     override;
-    BackendFsPoll*  new_fs_poll   (IFsPollListener*)             override;
+    BackendTty*     new_tty       (IStreamListener*, fd_t)       override;
     BackendWork*    new_work      (IWorkListener*)               override;
 
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return _delayer.add(f, guard); }

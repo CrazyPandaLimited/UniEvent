@@ -10,11 +10,12 @@ namespace panda { namespace unievent {
 
 AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port = 0, const AddrInfoHints& hints = {}, bool use_cache = true);
 
-void setsockopt (fd_t sock, int level, int optname, const void* optval, int optlen);
+void setsockopt (fh_t sock, int level, int optname, const void* optval, int optlen);
 
-file_t file_dup (file_t fd);
+fd_t   file_dup (fd_t fd);
 sock_t sock_dup (sock_t);
 
+int           getpid           ();
 panda::string hostname         ();
 size_t        get_rss          ();
 uint64_t      get_free_memory  ();
@@ -68,7 +69,7 @@ struct ResourceUsage {
 
 ResourceUsage get_rusage ();
 
-const HandleType& guess_type (file_t);
+const HandleType& guess_type (fd_t);
 
 CodeError sys_code_error      (int syserr);
 CodeError last_sys_code_error ();

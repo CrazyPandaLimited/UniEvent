@@ -57,7 +57,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         return uvx_ce(err);
     }
 
-    optional<fd_t> fileno () const override { return uvx_fileno(this->template uvhp()); }
+    optional<fh_t> fileno () const override { return uvx_fileno(this->template uvhp()); }
 
     bool readable () const noexcept override { return uv_is_readable(uvsp()); }
     bool writable () const noexcept override { return uv_is_writable(uvsp()); }

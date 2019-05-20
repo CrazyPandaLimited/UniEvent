@@ -47,7 +47,4 @@ struct BackendTty;
 struct BackendWork;
 struct IWorkListener;
 
-struct BackendFsPoll;
-struct IFsPollListener;
-
 }}};
