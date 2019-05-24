@@ -16,11 +16,12 @@ fd_t   file_dup (fd_t fd);
 sock_t sock_dup (sock_t);
 
 int           getpid           ();
+int           getppid          ();
+TimeVal       gettimeofday     ();
 panda::string hostname         ();
 size_t        get_rss          ();
 uint64_t      get_free_memory  ();
 uint64_t      get_total_memory ();
-
 
 struct InterfaceAddress {
     string        name;

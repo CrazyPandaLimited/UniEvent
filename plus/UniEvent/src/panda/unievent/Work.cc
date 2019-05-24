@@ -15,11 +15,12 @@ void Work::queue () {
     _active = true;
 }
 
-void Work::cancel () {
-    if (!_active) return;
-    _impl->destroy();
+bool Work::cancel () {
+    if (!_active) return true;
+    if (!_impl->destroy()) return false;
     _impl = nullptr;
     handle_after_work(CodeError(std::errc::operation_canceled));
+    return true;
 }
 
 void Work::on_work () {

@@ -154,7 +154,7 @@ template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typ
             static TYPE ret;
             return ret;
         }
-        return Super::in(aTHX_ sv);
+        return *Super::in(aTHX_ sv);
     }
 };
 
@@ -182,7 +182,8 @@ template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
 };
 
 template <> struct Typemap<const panda::unievent::Fs::Stat&> : TypemapBase<const panda::unievent::Fs::Stat&> {
-    Sv out (pTHX_ const panda::unievent::Fs::Stat&, const Sv& = Sv());
+    static Sv out (pTHX_ const panda::unievent::Fs::Stat&, const Sv& = Sv());
+    static const panda::unievent::Fs::Stat& in (pTHX_ SV*) { throw "nahuy"; }
 };
 
 template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
@@ -231,6 +232,10 @@ template <class TYPE> struct Typemap <panda::unievent::Tcp*, TYPE> : Typemap<pan
 
 template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
     panda::string package () { return "UniEvent::Tty"; }
+};
+
+template <class TYPE> struct Typemap <panda::unievent::Fs*, TYPE> : TypemapObject<panda::unievent::Fs*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
+    panda::string package () { return "UniEvent::Fs::Request"; }
 };
 
 //template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {

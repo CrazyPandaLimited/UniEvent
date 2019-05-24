@@ -5,9 +5,9 @@
 
 namespace panda { namespace unievent {
 
-struct Work : Refcnt, lib::IntrusiveChainNode<Work*>, lib::AllocatedObject<Work>, private backend::IWorkListener {
+struct Work : Refcnt, lib::IntrusiveChainNode<WorkSP>, lib::AllocatedObject<Work>, private backend::IWorkListener {
     using BackendWork   = backend::BackendWork;
-    using work_fn       = function<void(const WorkSP&)>;
+    using work_fn       = function<void(Work*)>;
     using after_work_fn = function<void(const WorkSP&, const CodeError&)>;
 
     work_fn       work_cb;
@@ -17,11 +17,13 @@ struct Work : Refcnt, lib::IntrusiveChainNode<Work*>, lib::AllocatedObject<Work>
 
     Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop), _impl(), _active() {}
 
-    virtual void queue ();
-    virtual void cancel ();
+    const LoopSP& loop () const { return _loop; }
+
+    virtual void queue  ();
+    virtual bool cancel ();
 
     ~Work () {
-        if (_impl) _impl->destroy();
+        if (_impl) assert(_impl->destroy());
     }
 
 protected:

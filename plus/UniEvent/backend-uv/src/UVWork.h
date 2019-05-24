@@ -19,13 +19,14 @@ struct UVWork : BackendWork {
         uvx_strict(err);
     }
 
-    void destroy () noexcept override {
+    bool destroy () noexcept override {
         if (active) {
-            uvr.after_work_cb = [](uv_work_t* p, int) { delete get(p); };
             auto err = uv_cancel((uv_req_t*)&uvr);
-            assert(!err || err == UV_EBUSY);
+            if (err) return false;
+            uvr.after_work_cb = [](uv_work_t* p, int) { delete get(p); };
         }
         else delete this;
+        return true;
     }
 
 private:

@@ -26,7 +26,7 @@ struct BackendWork {
         loop->ltry([&]{ listener->handle_after_work(err); });
     }
 
-    virtual void destroy () noexcept = 0;
+    virtual bool destroy () noexcept = 0;
 
     virtual ~BackendWork () { _EDTOR(); }
 };

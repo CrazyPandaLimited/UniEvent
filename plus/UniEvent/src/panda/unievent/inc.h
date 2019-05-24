@@ -1,4 +1,5 @@
 #pragma once
+#include <iosfwd>
 #include <stdint.h>
 #include <type_traits>
 #if defined(_WIN32)
@@ -28,16 +29,34 @@ enum class Ownership {
 };
 
 struct TimeVal {
-  long sec;
-  long usec;
+  int64_t sec;
+  int32_t usec;
+
   double get () const { return (double)sec + (double)usec / 1000000; }
+
+  bool operator== (const TimeVal& oth) const { return sec == oth.sec && usec == oth.usec; }
+  bool operator!= (const TimeVal& oth) const { return !operator==(oth); }
+  bool operator>= (const TimeVal& oth) const { return sec > oth.sec || (sec == oth.sec && usec >= oth.usec); }
+  bool operator>  (const TimeVal& oth) const { return sec > oth.sec || (sec == oth.sec && usec > oth.usec); }
+  bool operator<= (const TimeVal& oth) const { return !operator>(oth); }
+  bool operator<  (const TimeVal& oth) const { return !operator>=(oth); }
 };
+std::ostream& operator<< (std::ostream& os, const TimeVal&);
 
 struct TimeSpec {
     long sec;
     long nsec;
+
     double get () const { return (double)sec + (double)nsec / 1000000000; }
+
+    bool operator== (const TimeSpec& oth) const { return sec == oth.sec && nsec == oth.nsec; }
+    bool operator!= (const TimeSpec& oth) const { return !operator==(oth); }
+    bool operator>= (const TimeSpec& oth) const { return sec > oth.sec || (sec == oth.sec && nsec >= oth.nsec); }
+    bool operator>  (const TimeSpec& oth) const { return sec > oth.sec || (sec == oth.sec && nsec > oth.nsec); }
+    bool operator<= (const TimeSpec& oth) const { return !operator>(oth); }
+    bool operator<  (const TimeSpec& oth) const { return !operator>=(oth); }
 };
+std::ostream& operator<< (std::ostream& os, const TimeSpec&);
 
 template <class F1, class F2>
 void scope_guard (F1&& code, F2&& guard) {

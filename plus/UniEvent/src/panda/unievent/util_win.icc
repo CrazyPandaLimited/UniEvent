@@ -55,6 +55,4 @@ sock_t sock_dup (sock_t sock) {
     return new_sock;
 }
 
-int getpid () { return ::_getpid(); }
-
 }}

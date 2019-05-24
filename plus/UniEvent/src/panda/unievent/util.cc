@@ -4,6 +4,7 @@
 #include "Pipe.h"
 #include "Resolver.h"
 #include <uv.h>
+#include <ostream>
 
 #ifdef _WIN32
     #include "util_win.icc"
@@ -24,6 +25,19 @@ AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, co
     })->run();
     l->run();
     return ai;
+}
+
+int getpid  () { return uv_os_getpid(); }
+int getppid () { return uv_os_getppid(); }
+
+TimeVal gettimeofday () {
+    TimeVal ret;
+    uv_timeval64_t tv;
+    auto err = uv_gettimeofday(&tv);
+    if (err) throw uvx_code_error(err);
+    ret.sec  = tv.tv_sec;
+    ret.usec = tv.tv_usec;
+    return ret;
 }
 
 string hostname () {
@@ -228,5 +242,8 @@ CodeError uvx_code_error (int uverr) {
         default                : return CodeError(errc::unknown_error);
     }
 }
+
+std::ostream& operator<< (std::ostream& os, const TimeVal&  v) { return os << v.get(); }
+std::ostream& operator<< (std::ostream& os, const TimeSpec& v) { return os << v.get(); }
 
 }}
