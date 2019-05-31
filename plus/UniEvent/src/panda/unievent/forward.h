@@ -75,9 +75,6 @@ using TcpConnectRequestSP = iptr<TcpConnectRequest>;
 struct Work;
 using WorkSP = iptr<Work>;
 
-struct Fs;
-using FsSP = iptr<Fs>;
-
 struct FsPoll;
 using FsPollSP = iptr<FsPoll>;
 

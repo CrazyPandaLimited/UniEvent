@@ -8,9 +8,12 @@
 
 namespace panda { namespace unievent {
 
-struct Fs : Work, lib::AllocatedObject<Fs> {
+struct Fs {
     template <class T>
     using ex = excepted<T, CodeError>;
+
+    struct Request;
+    using RequestSP = iptr<Request>;
 
     static const int DEFAULT_FILE_MODE = 0644;
     static const int DEFAULT_DIR_MODE  = 0755;
@@ -98,13 +101,13 @@ struct Fs : Work, lib::AllocatedObject<Fs> {
         size_t      len;
     };
 
-    using fn          = function<void(const CodeError&, const FsSP&)>;
-    using bool_fn     = function<void(bool, const CodeError&, const FsSP&)>;
-    using open_fn     = function<void(fd_t, const CodeError&, const FsSP&)>;
-    using scandir_fn  = function<void(const DirEntries&, const CodeError&, const FsSP&)>;
-    using stat_fn     = function<void(const Stat&, const CodeError&, const FsSP&)>;
-    using string_fn   = function<void(string&, const CodeError&, const FsSP&)>;
-    using sendfile_fn = function<void(size_t, const CodeError&, const FsSP&)>;
+    using fn          = function<void(const CodeError&, const RequestSP&)>;
+    using bool_fn     = function<void(bool, const CodeError&, const RequestSP&)>;
+    using open_fn     = function<void(fd_t, const CodeError&, const RequestSP&)>;
+    using scandir_fn  = function<void(const DirEntries&, const CodeError&, const RequestSP&)>;
+    using stat_fn     = function<void(const Stat&, const CodeError&, const RequestSP&)>;
+    using string_fn   = function<void(string&, const CodeError&, const RequestSP&)>;
+    using sendfile_fn = function<void(size_t, const CodeError&, const RequestSP&)>;
 
     static FileType ftype (uint64_t mode);
 
@@ -141,10 +144,10 @@ struct Fs : Work, lib::AllocatedObject<Fs> {
     static ex<void>       rename   (string_view src, string_view dst);
     static ex<size_t>     sendfile (fd_t out, fd_t in, int64_t offset, size_t length);
     static ex<void>       link     (string_view src, string_view dst);
-    static ex<void>       symlink  (string_view src, string_view dst, int flags);
+    static ex<void>       symlink  (string_view src, string_view dst, int flags = 0);
     static ex<string>     readlink (string_view);
     static ex<string>     realpath (string_view);
-    static ex<void>       copyfile (string_view src, string_view dst, int flags);
+    static ex<void>       copyfile (string_view src, string_view dst, int flags = 0);
     static ex<string>     mkdtemp  (string_view);
     static ex<string>     read     (fd_t, size_t length, int64_t offset = -1);
     static ex<void>       write    (fd_t fd, const string_view& buf, int64_t offset = -1) { return write(fd, &buf, &buf+1, offset); }
@@ -164,125 +167,131 @@ struct Fs : Work, lib::AllocatedObject<Fs> {
     }
 
     // async static methods
-    static FsSP mkdir      (string_view, int mode, const fn&, const LoopSP&);
-    static FsSP rmdir      (string_view, const fn&, const LoopSP&);
-    static FsSP remove     (string_view, const fn&, const LoopSP&);
-    static FsSP mkpath     (string_view, int mode, const fn&, const LoopSP&);
-    static FsSP scandir    (string_view, const scandir_fn&, const LoopSP&);
-    static FsSP remove_all (string_view, const fn&, const LoopSP&);
+    static RequestSP mkdir      (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP rmdir      (string_view, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP remove     (string_view, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP mkpath     (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP scandir    (string_view, const scandir_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP remove_all (string_view, const fn&, const LoopSP& = Loop::default_loop());
 
-    static FsSP open     (string_view, int flags, int mode, const open_fn&, const LoopSP&);
-    static FsSP close    (fd_t, const fn&, const LoopSP&);
-    static FsSP stat     (string_view, const stat_fn&, const LoopSP&);
-    static FsSP stat     (fd_t, const stat_fn&, const LoopSP&);
-    static FsSP lstat    (string_view, const stat_fn&, const LoopSP&);
-    static FsSP exists   (string_view, const bool_fn&, const LoopSP&);
-    static FsSP isfile   (string_view, const bool_fn&, const LoopSP&);
-    static FsSP isdir    (string_view, const bool_fn&, const LoopSP&);
-    static FsSP access   (string_view, int mode, const fn&, const LoopSP&);
-    static FsSP unlink   (string_view, const fn&, const LoopSP&);
-    static FsSP sync     (fd_t, const fn&, const LoopSP&);
-    static FsSP datasync (fd_t, const fn&, const LoopSP&);
-    static FsSP truncate (string_view, int64_t offset, const fn&, const LoopSP&);
-    static FsSP truncate (fd_t, int64_t offset, const fn&, const LoopSP&);
-    static FsSP chmod    (string_view, int mode, const fn&, const LoopSP&);
-    static FsSP chmod    (fd_t, int mode, const fn&, const LoopSP&);
-    static FsSP touch    (string_view, int mode, const fn&, const LoopSP&);
-    static FsSP utime    (string_view, double atime, double mtime, const fn&, const LoopSP&);
-    static FsSP utime    (fd_t, double atime, double mtime, const fn&, const LoopSP&);
-    static FsSP chown    (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP&);
-    static FsSP lchown   (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP&);
-    static FsSP chown    (fd_t, uid_t uid, gid_t gid, const fn&, const LoopSP&);
-    static FsSP rename   (string_view src, string_view dst, const fn&, const LoopSP&);
-    static FsSP sendfile (fd_t out, fd_t in, int64_t offset, size_t length, const sendfile_fn&, const LoopSP&);
-    static FsSP link     (string_view src, string_view dst, const fn&, const LoopSP&);
-    static FsSP symlink  (string_view src, string_view dst, int flags, const fn&, const LoopSP&);
-    static FsSP readlink (string_view, const string_fn&, const LoopSP&);
-    static FsSP realpath (string_view, const string_fn&, const LoopSP&);
-    static FsSP copyfile (string_view src, string_view dst, int flags, const fn&, const LoopSP&);
-    static FsSP mkdtemp  (string_view, const string_fn&, const LoopSP&);
-    static FsSP read     (fd_t, size_t size, int64_t offset, const string_fn&, const LoopSP&);
-    static FsSP write    (fd_t fd, const string_view& buf, int64_t offset, const fn& cb, const LoopSP& loop) { return _write(fd, {string(buf)}, offset, cb, loop); }
+    static RequestSP open     (string_view, int flags, int mode, const open_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP close    (fd_t, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP stat     (string_view, const stat_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP stat     (fd_t, const stat_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP lstat    (string_view, const stat_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP exists   (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP isfile   (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP isdir    (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP access   (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP unlink   (string_view, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP sync     (fd_t, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP datasync (fd_t, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP truncate (string_view, int64_t offset, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP truncate (fd_t, int64_t offset, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP chmod    (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP chmod    (fd_t, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP touch    (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP utime    (string_view, double atime, double mtime, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP utime    (fd_t, double atime, double mtime, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP chown    (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP lchown   (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP chown    (fd_t, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP rename   (string_view src, string_view dst, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP sendfile (fd_t out, fd_t in, int64_t offset, size_t length, const sendfile_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP link     (string_view src, string_view dst, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP symlink  (string_view src, string_view dst, int flags, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP readlink (string_view, const string_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP realpath (string_view, const string_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP copyfile (string_view src, string_view dst, int flags, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP mkdtemp  (string_view, const string_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP read     (fd_t, size_t size, int64_t offset, const string_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP write    (fd_t fd, const string_view& buf, int64_t offset, const fn& cb, const LoopSP& loop) { return _write(fd, {string(buf)}, offset, cb, loop); }
 
     template <class It>
-    static FsSP write (fd_t fd, It begin, It end, int64_t offset, const fn& cb, const LoopSP& loop) {
+    static RequestSP write (fd_t fd, It begin, It end, int64_t offset, const fn& cb, const LoopSP& loop) {
         std::vector<string> bufs;
         for (; begin != end; ++begin) bufs.emplace(bufs.end(), *begin);
         return _write(fd, std::move(bufs), offset, cb, loop);
     }
 
     // async object methods
-    Fs  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _state(State::READY), _fd() {}
-    ~Fs () { assert(_state != State::BUSY); }
+    struct Request : Work, lib::AllocatedObject<Request> {
+        Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _state(State::READY), _fd() {}
+        ~Request () { assert(_state != State::BUSY); }
 
-    using AllocatedObject<Fs>::operator new;
-    using AllocatedObject<Fs>::operator delete;
+        using AllocatedObject<Request>::operator new;
+        using AllocatedObject<Request>::operator delete;
 
-    fd_t fd () const  { return _fd; }
-    void fd (fd_t fd) { _fd = fd; }
+        fd_t fd () const  { return _fd; }
+        void fd (fd_t fd) { _fd = fd; }
 
-    void mkdir      (string_view, int mode, const fn&);
-    void rmdir      (string_view, const fn&);
-    void remove     (string_view, const fn&);
-    void mkpath     (string_view, int mode, const fn&);
-    void scandir    (string_view, const scandir_fn&);
-    void remove_all (string_view, const fn&);
+        void mkdir      (string_view, int mode, const fn&);
+        void rmdir      (string_view, const fn&);
+        void remove     (string_view, const fn&);
+        void mkpath     (string_view, int mode, const fn&);
+        void scandir    (string_view, const scandir_fn&);
+        void remove_all (string_view, const fn&);
 
-    void open     (string_view, int flags, int mode, const open_fn&);
-    void close    (const fn&);
-    void stat     (string_view, const stat_fn&);
-    void stat     (const stat_fn&);
-    void lstat    (string_view, const stat_fn&);
-    void exists   (string_view, const bool_fn&);
-    void isfile   (string_view, const bool_fn&);
-    void isdir    (string_view, const bool_fn&);
-    void access   (string_view, int mode, const fn&);
-    void unlink   (string_view, const fn&);
-    void sync     (const fn&);
-    void datasync (const fn&);
-    void truncate (string_view, int64_t offset, const fn&);
-    void truncate (int64_t offset, const fn&);
-    void chmod    (string_view, int mode, const fn&);
-    void chmod    (int mode, const fn&);
-    void touch    (string_view, int mode, const fn&);
-    void utime    (string_view, double atime, double mtime, const fn&);
-    void utime    (double atime, double mtime, const fn&);
-    void chown    (string_view, uid_t uid, gid_t gid, const fn&);
-    void lchown   (string_view, uid_t uid, gid_t gid, const fn&);
-    void chown    (uid_t uid, gid_t gid, const fn&);
-    void rename   (string_view src, string_view dst, const fn&);
-    void sendfile (fd_t out, fd_t in, int64_t offset, size_t length, const sendfile_fn&);
-    void link     (string_view src, string_view dst, const fn&);
-    void symlink  (string_view src, string_view dst, int flags, const fn&);
-    void readlink (string_view, const string_fn&);
-    void realpath (string_view, const string_fn&);
-    void copyfile (string_view src, string_view dst, int flags, const fn&);
-    void mkdtemp  (string_view, const string_fn&);
-    void read     (size_t size, int64_t offset, const string_fn&);
+        void open     (string_view, int flags, int mode, const open_fn&);
+        void close    (const fn&);
+        void stat     (string_view, const stat_fn&);
+        void stat     (const stat_fn&);
+        void lstat    (string_view, const stat_fn&);
+        void exists   (string_view, const bool_fn&);
+        void isfile   (string_view, const bool_fn&);
+        void isdir    (string_view, const bool_fn&);
+        void access   (string_view, int mode, const fn&);
+        void unlink   (string_view, const fn&);
+        void sync     (const fn&);
+        void datasync (const fn&);
+        void truncate (string_view, int64_t offset, const fn&);
+        void truncate (int64_t offset, const fn&);
+        void chmod    (string_view, int mode, const fn&);
+        void chmod    (int mode, const fn&);
+        void touch    (string_view, int mode, const fn&);
+        void utime    (string_view, double atime, double mtime, const fn&);
+        void utime    (double atime, double mtime, const fn&);
+        void chown    (string_view, uid_t uid, gid_t gid, const fn&);
+        void lchown   (string_view, uid_t uid, gid_t gid, const fn&);
+        void chown    (uid_t uid, gid_t gid, const fn&);
+        void rename   (string_view src, string_view dst, const fn&);
+        void sendfile (fd_t out, fd_t in, int64_t offset, size_t length, const sendfile_fn&);
+        void link     (string_view src, string_view dst, const fn&);
+        void symlink  (string_view src, string_view dst, int flags, const fn&);
+        void readlink (string_view, const string_fn&);
+        void realpath (string_view, const string_fn&);
+        void copyfile (string_view src, string_view dst, int flags, const fn&);
+        void mkdtemp  (string_view, const string_fn&);
+        void read     (size_t size, int64_t offset, const string_fn&);
 
-    void write (const string_view& buf, int64_t offset, const fn& cb) { _write({string(buf)}, offset, cb); }
+        void write (const string_view& buf, int64_t offset, const fn& cb) { _write({string(buf)}, offset, cb); }
 
-    template <class It>
-    void write (It begin, It end, int64_t offset, const fn& cb) {
-        std::vector<string> bufs;
-        for (; begin != end; ++begin) bufs.emplace(bufs.end(), *begin);
-        _write(std::move(bufs), offset, cb);
-    }
+        template <class It>
+        void write (It begin, It end, int64_t offset, const fn& cb) {
+            std::vector<string> bufs;
+            for (; begin != end; ++begin) bufs.emplace(bufs.end(), *begin);
+            _write(std::move(bufs), offset, cb);
+        }
+
+    private:
+        friend Fs;
+        enum class State {READY, BUSY, COMPLETE};
+
+        State      _state;
+        fd_t       _fd;
+        CodeError  _err;
+        DirEntries _dir_entries;
+        Stat       _stat;
+        bool       _bool;
+        size_t     _size;
+        string     _string;
+
+        void _write (std::vector<string>&&, int64_t offset, const fn&);
+    };
 
 private:
-    enum class State {READY, BUSY, COMPLETE};
-    State      _state;
-    fd_t       _fd;
-    CodeError  _err;
-    DirEntries _dir_entries;
-    Stat       _stat;
-    bool       _bool;
-    size_t     _size;
-    string     _string;
-
-    static ex<void> _write (fd_t file, _buf_t* bufs, size_t nbufs, int64_t offset);
-    static FsSP     _write (fd_t, std::vector<string>&&, int64_t offset, const fn&, const LoopSP&);
-    void            _write (std::vector<string>&&, int64_t offset, const fn&);
+    static ex<void>  _write (fd_t file, _buf_t* bufs, size_t nbufs, int64_t offset);
+    static RequestSP _write (fd_t, std::vector<string>&&, int64_t offset, const fn&, const LoopSP&);
 };
 
 }}

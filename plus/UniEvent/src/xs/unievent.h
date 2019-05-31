@@ -140,16 +140,16 @@ struct XSTty : Tty, XSStream {
 
 namespace xs {
 
-template <class TYPE> struct Typemap<const panda::unievent::Error*, TYPE> : TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG> {};
-template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typemap<TYPE*> {
-    using Super = Typemap<TYPE*>;
+template <class TYPE> struct Typemap<panda::unievent::Error*, TYPE*> : TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG> {};
+template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typemap<panda::unievent::Error*, TYPE*> {
+    using Super = Typemap<panda::unievent::Error*, TYPE*>;
 
-    Sv out (pTHX_ TYPE& var, const Sv& sv = {}) {
+    static Sv out (pTHX_ TYPE& var, const Sv& sv = {}) {
         if (!var) return Sv::undef;
         return Super::out(aTHX_ var.clone(), sv ? sv : xs::unievent::get_perl_class_for_err(var));
     }
 
-    TYPE& in (pTHX_ const Sv& sv) {
+    static TYPE& in (pTHX_ const Sv& sv) {
         if (!sv.defined()) {
             static TYPE ret;
             return ret;
@@ -158,99 +158,104 @@ template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typ
     }
 };
 
-template <class TYPE> struct Typemap<const panda::unievent::CodeError*, TYPE>  : Typemap<const panda::unievent::Error*,     TYPE> {};
-template <class TYPE> struct Typemap<const panda::unievent::SSLError*,  TYPE>  : Typemap<const panda::unievent::CodeError*, TYPE> {};
+template <class TYPE> struct Typemap<panda::unievent::CodeError*, TYPE>  : Typemap<panda::unievent::Error*,     TYPE> {};
+template <class TYPE> struct Typemap<panda::unievent::SSLError*,  TYPE>  : Typemap<panda::unievent::CodeError*, TYPE> {};
+
 template <class TYPE> struct Typemap<const panda::unievent::CodeError&, TYPE&> : Typemap<const panda::unievent::Error&,     TYPE&> {};
 template <class TYPE> struct Typemap<const panda::unievent::SSLError&,  TYPE&> : Typemap<const panda::unievent::CodeError&, TYPE&> {};
-
 
 template <> struct Typemap<panda::unievent::AddrInfoHints> : TypemapBase<panda::unievent::AddrInfoHints> {
     using Hints = panda::unievent::AddrInfoHints;
 
-    Hints in (pTHX_ SV* arg);
+    static Hints in (pTHX_ SV* arg);
 
-    Sv create (pTHX_ const Hints& var, Sv = Sv()) {
+    static Sv create (pTHX_ const Hints& var, Sv = Sv()) {
         return Simple(std::string_view(reinterpret_cast<const char*>(&var), sizeof(Hints)));
     }
 };
 
 template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
-    SSL_CTX* in (pTHX_ SV* arg) {
+    static SSL_CTX* in (pTHX_ SV* arg) {
         if (!SvOK(arg)) return nullptr;
         return reinterpret_cast<SSL_CTX*>(SvIV(arg));
     }
 };
 
-template <> struct Typemap<const panda::unievent::Fs::Stat&> : TypemapBase<const panda::unievent::Fs::Stat&> {
+template <> struct Typemap<panda::unievent::Fs::Stat> : TypemapBase<panda::unievent::Fs::Stat> {
     static Sv out (pTHX_ const panda::unievent::Fs::Stat&, const Sv& = Sv());
-    static const panda::unievent::Fs::Stat& in (pTHX_ SV*) { throw "nahuy"; }
+    static panda::unievent::Fs::Stat in (pTHX_ const Array&);
+};
+
+template <> struct Typemap<panda::unievent::Fs::DirEntry> : TypemapBase<panda::unievent::Fs::DirEntry> {
+    static Sv out (pTHX_ const panda::unievent::Fs::DirEntry&, const Sv& = Sv());
+    static panda::unievent::Fs::DirEntry in (pTHX_ const Array&);
 };
 
 template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
-    panda::string package () { return "UniEvent::Backend"; }
+    static panda::string package () { return "UniEvent::Backend"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Loop*, TYPE> : TypemapObject<panda::unievent::Loop*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
-    panda::string package () { return "UniEvent::Loop"; }
+    static panda::string package () { return "UniEvent::Loop"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
 template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Prepare"; }
+    static panda::string package () { return "UniEvent::Prepare"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Check"; }
+    static panda::string package () { return "UniEvent::Check"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Idle"; }
+    static panda::string package () { return "UniEvent::Idle"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Timer*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Timer"; }
+    static panda::string package () { return "UniEvent::Timer"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Signal"; }
+    static panda::string package () { return "UniEvent::Signal"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Udp*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Udp"; }
+    static panda::string package () { return "UniEvent::Udp"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
 
 template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::Pipe"; }
+    static panda::string package () { return "UniEvent::Pipe"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Tcp*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::Tcp"; }
+    static panda::string package () { return "UniEvent::Tcp"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::Tty"; }
+    static panda::string package () { return "UniEvent::Tty"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Fs*, TYPE> : TypemapObject<panda::unievent::Fs*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
-    panda::string package () { return "UniEvent::Fs::Request"; }
+template <class TYPE> struct Typemap <panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
+    static panda::string package () { return "UniEvent::Fs::Request"; }
 };
 
 //template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::FsPoll"; }
+//    static panda::string package () { return "UniEvent::FsPoll"; }
 //};
 
 //template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    panda::string package () { return "UniEvent::FSEvent"; }
+//    static panda::string package () { return "UniEvent::FSEvent"; }
 //};
 
 template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
-    std::string package () { return "UniEvent::Resolver"; }
+    static std::string package () { return "UniEvent::Resolver"; }
 };
 template <class TYPE> struct Typemap<panda::unievent::Resolver::Request*, TYPE> : TypemapObject<panda::unievent::Resolver::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
-    std::string package () { return "UniEvent::Resolver::Request"; }
+    static std::string package () { return "UniEvent::Resolver::Request"; }
 };
 
 }

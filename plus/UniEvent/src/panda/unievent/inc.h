@@ -34,6 +34,12 @@ struct TimeVal {
 
   double get () const { return (double)sec + (double)usec / 1000000; }
 
+  TimeVal& operator= (double val) {
+      sec  = val;
+      usec = (val - sec) * 1000000;
+      return *this;
+  }
+
   bool operator== (const TimeVal& oth) const { return sec == oth.sec && usec == oth.usec; }
   bool operator!= (const TimeVal& oth) const { return !operator==(oth); }
   bool operator>= (const TimeVal& oth) const { return sec > oth.sec || (sec == oth.sec && usec >= oth.usec); }
@@ -48,6 +54,12 @@ struct TimeSpec {
     long nsec;
 
     double get () const { return (double)sec + (double)nsec / 1000000000; }
+
+    TimeSpec& operator= (double val) {
+        sec  = val;
+        nsec = (val - sec) * 1000000000;
+        return *this;
+    }
 
     bool operator== (const TimeSpec& oth) const { return sec == oth.sec && nsec == oth.nsec; }
     bool operator!= (const TimeSpec& oth) const { return !operator==(oth); }

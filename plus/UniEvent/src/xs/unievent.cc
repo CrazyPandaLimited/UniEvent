@@ -126,6 +126,85 @@ bool XSCallback::call (const Object& handle, const Simple& evname, std::initiali
 //    SvREFCNT_dec_NN(handle_rv);
 //}
 
+static inline void throw_bad_hints () { throw "argument is not a valid AddrInfoHints"; }
+
+AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
+    if (!SvOK(arg)) return AddrInfoHints();
+
+    if (SvPOK(arg)) {
+        if (SvCUR(arg) < sizeof(AddrInfoHints)) throw_bad_hints();
+        return *reinterpret_cast<AddrInfoHints*>(SvPVX(arg));
+    }
+
+    if (!Sv(arg).is_hash_ref()) throw_bad_hints();
+    AddrInfoHints ret;
+    Hash h = arg;
+    for (auto& row : h) {
+        auto k = row.key();
+        auto val = Simple(row.value());
+        if      (k == "family"  ) ret.family   = val;
+        else if (k == "socktype") ret.socktype = val;
+        else if (k == "protocol") ret.protocol = val;
+        else if (k == "flags"   ) ret.flags    = val;
+    }
+    return ret;
+}
+
+Sv Typemap<Fs::Stat>::out (pTHX_ const Fs::Stat& s, const Sv&) {
+    return Ref::create(Array::create({
+        Simple(s.dev),
+        Simple(s.ino),
+        Simple(s.mode),
+        Simple(s.nlink),
+        Simple(s.uid),
+        Simple(s.gid),
+        Simple(s.rdev),
+        Simple(s.size),
+        Simple(s.atime.get()),
+        Simple(s.mtime.get()),
+        Simple(s.ctime.get()),
+        Simple(s.blksize),
+        Simple(s.blocks),
+        Simple(s.flags),
+        Simple(s.gen),
+        Simple(s.birthtime.get()),
+        Simple((int)s.type()),
+        Simple(s.perms()),
+    }));
+}
+
+Fs::Stat Typemap<Fs::Stat>::in (pTHX_ const Array& a) {
+    Fs::Stat ret;
+    ret.dev       = Simple(a[0]);
+    ret.ino       = Simple(a[1]);
+    ret.mode      = Simple(a[2]);
+    ret.nlink     = Simple(a[3]);
+    ret.uid       = Simple(a[4]);
+    ret.gid       = Simple(a[5]);
+    ret.rdev      = Simple(a[6]);
+    ret.size      = Simple(a[7]);
+    ret.atime     = Simple(a[8]);
+    ret.mtime     = Simple(a[9]);
+    ret.ctime     = Simple(a[10]);
+    ret.blksize   = Simple(a[11]);
+    ret.blocks    = Simple(a[12]);
+    ret.flags     = Simple(a[13]);
+    ret.gen       = Simple(a[14]);
+    ret.birthtime = Simple(a[15]);
+    return ret;
+}
+
+Sv Typemap<Fs::DirEntry>::out (pTHX_ const Fs::DirEntry& de, const Sv&) {
+    return Ref::create(Array::create({
+        Simple(de.name()),
+        Simple((int)de.type())
+    }));
+}
+
+Fs::DirEntry Typemap<Fs::DirEntry>::in (pTHX_ const Array& a) {
+    return Fs::DirEntry(Simple(a[0]).as_string(), (Fs::FileType)(int)Simple(a[1]));
+}
+
 void XSPrepare::on_prepare () {
     auto obj = xs::out<Prepare*>(this);
     prepare_xscb.call(obj, evname_on_prepare);
@@ -264,49 +343,3 @@ StreamSP XSTty::create_connection () {
 //        Simple(events)
 //    })) FSEvent::on_fs_event(filename, events);
 //}
-
-
-static inline void throw_bad_hints () { throw "argument is not a valid AddrInfoHints"; }
-
-AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
-    if (!SvOK(arg)) return AddrInfoHints();
-
-    if (SvPOK(arg)) {
-        if (SvCUR(arg) < sizeof(AddrInfoHints)) throw_bad_hints();
-        return *reinterpret_cast<AddrInfoHints*>(SvPVX(arg));
-    }
-
-    if (!Sv(arg).is_hash_ref()) throw_bad_hints();
-    AddrInfoHints ret;
-    Hash h = arg;
-    for (auto& row : h) {
-        auto k = row.key();
-        auto val = Simple(row.value());
-        if      (k == "family"  ) ret.family   = val;
-        else if (k == "socktype") ret.socktype = val;
-        else if (k == "protocol") ret.protocol = val;
-        else if (k == "flags"   ) ret.flags    = val;
-    }
-    return ret;
-}
-
-Sv Typemap<const Fs::Stat&>::out (pTHX_ const Fs::Stat& s, const Sv&) {
-    return Ref::create(Array::create({
-        Simple(s.dev),
-        Simple(s.ino),
-        Simple(s.mode),
-        Simple(s.nlink),
-        Simple(s.uid),
-        Simple(s.gid),
-        Simple(s.rdev),
-        Simple(s.size),
-        Simple(s.atime.get()),
-        Simple(s.mtime.get()),
-        Simple(s.ctime.get()),
-        Simple(s.blksize),
-        Simple(s.blocks),
-        Simple(s.flags),
-        Simple(s.gen),
-        Simple(s.birthtime.get()),
-    }));
-}

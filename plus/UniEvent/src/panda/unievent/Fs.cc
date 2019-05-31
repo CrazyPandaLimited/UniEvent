@@ -487,52 +487,52 @@ ex<string> Fs::mkdtemp (string_view path) {
    =================================== ASYNC STATIC API ==========================================
    =============================================================================================== */
 
-#define UEFS_ASYNC_S(call_code) \
-    FsSP ret = new Fs(l);       \
-    call_code;                  \
+#define UEFS_ASYNC_S(call_code)             \
+    Fs::RequestSP ret = new Fs::Request(l); \
+    call_code;                              \
     return ret;
 
 #define UEFS_ASYNC_SFD(call_code) UEFS_ASYNC_S({ ret->fd(f); call_code; })
 
-FsSP Fs::mkdir      (string_view path, int mode, const fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->mkdir(path, mode, cb)); }
-FsSP Fs::rmdir      (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->rmdir(path, cb)); }
-FsSP Fs::remove     (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->remove(path, cb)); }
-FsSP Fs::mkpath     (string_view path, int mode, const fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->mkpath(path, mode, cb)); }
-FsSP Fs::scandir    (string_view path, const scandir_fn& cb, const LoopSP& l)   { UEFS_ASYNC_S(ret->scandir(path, cb)); }
-FsSP Fs::remove_all (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->remove_all(path, cb)); }
+Fs::RequestSP Fs::mkdir      (string_view path, int mode, const fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->mkdir(path, mode, cb)); }
+Fs::RequestSP Fs::rmdir      (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->rmdir(path, cb)); }
+Fs::RequestSP Fs::remove     (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->remove(path, cb)); }
+Fs::RequestSP Fs::mkpath     (string_view path, int mode, const fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->mkpath(path, mode, cb)); }
+Fs::RequestSP Fs::scandir    (string_view path, const scandir_fn& cb, const LoopSP& l)   { UEFS_ASYNC_S(ret->scandir(path, cb)); }
+Fs::RequestSP Fs::remove_all (string_view path, const fn& cb, const LoopSP& l)           { UEFS_ASYNC_S(ret->remove_all(path, cb)); }
 
-FsSP Fs::open     (string_view path, int flags, int mode, const open_fn& cb, const LoopSP& l)          { UEFS_ASYNC_S(ret->open(path, flags, mode, cb)); }
-FsSP Fs::close    (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->close(cb)); }
-FsSP Fs::stat     (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->stat(path, cb)); }
-FsSP Fs::stat     (fd_t f, const stat_fn& cb, const LoopSP& l)                                         { UEFS_ASYNC_SFD(ret->stat(cb)); }
-FsSP Fs::lstat    (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->lstat(path, cb)); }
-FsSP Fs::exists   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->exists(path, cb)); }
-FsSP Fs::isfile   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isfile(path, cb)); }
-FsSP Fs::isdir    (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isdir(path, cb)); }
-FsSP Fs::access   (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->access(path, mode, cb)); }
-FsSP Fs::unlink   (string_view path, const fn& cb, const LoopSP& l)                                    { UEFS_ASYNC_S(ret->unlink(path, cb)); }
-FsSP Fs::sync     (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->sync(cb)); }
-FsSP Fs::datasync (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->datasync(cb)); }
-FsSP Fs::truncate (string_view path, int64_t off, const fn& cb, const LoopSP& l)                       { UEFS_ASYNC_S(ret->truncate(path, off, cb)); }
-FsSP Fs::truncate (fd_t f, int64_t off, const fn& cb, const LoopSP& l)                                 { UEFS_ASYNC_SFD(ret->truncate(off, cb)); }
-FsSP Fs::chmod    (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->chmod(path, mode, cb)); }
-FsSP Fs::chmod    (fd_t f, int mode, const fn& cb, const LoopSP& l)                                    { UEFS_ASYNC_SFD(ret->chmod(mode, cb)); }
-FsSP Fs::touch    (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->touch(path, mode, cb)); }
-FsSP Fs::utime    (string_view path, double atime, double mtime, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_S(ret->utime(path, atime, mtime, cb)); }
-FsSP Fs::utime    (fd_t f, double atime, double mtime, const fn& cb, const LoopSP& l)                  { UEFS_ASYNC_SFD(ret->utime(atime, mtime, cb)); }
-FsSP Fs::chown    (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->chown(path, uid, gid, cb)); }
-FsSP Fs::lchown   (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->lchown(path, uid, gid, cb)); }
-FsSP Fs::chown    (fd_t f, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)                        { UEFS_ASYNC_SFD(ret->chown(uid, gid, cb)); }
-FsSP Fs::rename   (string_view src, string_view dst, const fn& cb, const LoopSP& l)                    { UEFS_ASYNC_S(ret->rename(src, dst, cb)); }
-FsSP Fs::sendfile (fd_t out, fd_t in, int64_t off, size_t len, const sendfile_fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->sendfile(out, in, off, len, cb)); }
-FsSP Fs::link     (string_view src, string_view dst, const fn& cb, const LoopSP& l)                    { UEFS_ASYNC_S(ret->link(src, dst, cb)); }
-FsSP Fs::symlink  (string_view src, string_view dst, int flags, const fn& cb, const LoopSP& l)         { UEFS_ASYNC_S(ret->symlink(src, dst, flags, cb)); }
-FsSP Fs::readlink (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->readlink(path, cb)); }
-FsSP Fs::realpath (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->realpath(path, cb)); }
-FsSP Fs::copyfile (string_view src, string_view dst, int flags, const fn& cb, const LoopSP& l)         { UEFS_ASYNC_S(ret->copyfile(src, dst, flags, cb)); }
-FsSP Fs::mkdtemp  (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->mkdtemp(path, cb)); }
-FsSP Fs::read     (fd_t f, size_t size, int64_t off, const string_fn& cb, const LoopSP& l)             { UEFS_ASYNC_SFD(ret->read(size, off, cb)); }
-FsSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_SFD(ret->_write(std::move(v), off, cb)); }
+Fs::RequestSP Fs::open     (string_view path, int flags, int mode, const open_fn& cb, const LoopSP& l)          { UEFS_ASYNC_S(ret->open(path, flags, mode, cb)); }
+Fs::RequestSP Fs::close    (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->close(cb)); }
+Fs::RequestSP Fs::stat     (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->stat(path, cb)); }
+Fs::RequestSP Fs::stat     (fd_t f, const stat_fn& cb, const LoopSP& l)                                         { UEFS_ASYNC_SFD(ret->stat(cb)); }
+Fs::RequestSP Fs::lstat    (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->lstat(path, cb)); }
+Fs::RequestSP Fs::exists   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->exists(path, cb)); }
+Fs::RequestSP Fs::isfile   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isfile(path, cb)); }
+Fs::RequestSP Fs::isdir    (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isdir(path, cb)); }
+Fs::RequestSP Fs::access   (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->access(path, mode, cb)); }
+Fs::RequestSP Fs::unlink   (string_view path, const fn& cb, const LoopSP& l)                                    { UEFS_ASYNC_S(ret->unlink(path, cb)); }
+Fs::RequestSP Fs::sync     (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->sync(cb)); }
+Fs::RequestSP Fs::datasync (fd_t f, const fn& cb, const LoopSP& l)                                              { UEFS_ASYNC_SFD(ret->datasync(cb)); }
+Fs::RequestSP Fs::truncate (string_view path, int64_t off, const fn& cb, const LoopSP& l)                       { UEFS_ASYNC_S(ret->truncate(path, off, cb)); }
+Fs::RequestSP Fs::truncate (fd_t f, int64_t off, const fn& cb, const LoopSP& l)                                 { UEFS_ASYNC_SFD(ret->truncate(off, cb)); }
+Fs::RequestSP Fs::chmod    (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->chmod(path, mode, cb)); }
+Fs::RequestSP Fs::chmod    (fd_t f, int mode, const fn& cb, const LoopSP& l)                                    { UEFS_ASYNC_SFD(ret->chmod(mode, cb)); }
+Fs::RequestSP Fs::touch    (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->touch(path, mode, cb)); }
+Fs::RequestSP Fs::utime    (string_view path, double atime, double mtime, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_S(ret->utime(path, atime, mtime, cb)); }
+Fs::RequestSP Fs::utime    (fd_t f, double atime, double mtime, const fn& cb, const LoopSP& l)                  { UEFS_ASYNC_SFD(ret->utime(atime, mtime, cb)); }
+Fs::RequestSP Fs::chown    (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->chown(path, uid, gid, cb)); }
+Fs::RequestSP Fs::lchown   (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->lchown(path, uid, gid, cb)); }
+Fs::RequestSP Fs::chown    (fd_t f, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)                        { UEFS_ASYNC_SFD(ret->chown(uid, gid, cb)); }
+Fs::RequestSP Fs::rename   (string_view src, string_view dst, const fn& cb, const LoopSP& l)                    { UEFS_ASYNC_S(ret->rename(src, dst, cb)); }
+Fs::RequestSP Fs::sendfile (fd_t out, fd_t in, int64_t off, size_t len, const sendfile_fn& cb, const LoopSP& l) { UEFS_ASYNC_S(ret->sendfile(out, in, off, len, cb)); }
+Fs::RequestSP Fs::link     (string_view src, string_view dst, const fn& cb, const LoopSP& l)                    { UEFS_ASYNC_S(ret->link(src, dst, cb)); }
+Fs::RequestSP Fs::symlink  (string_view src, string_view dst, int flags, const fn& cb, const LoopSP& l)         { UEFS_ASYNC_S(ret->symlink(src, dst, flags, cb)); }
+Fs::RequestSP Fs::readlink (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->readlink(path, cb)); }
+Fs::RequestSP Fs::realpath (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->realpath(path, cb)); }
+Fs::RequestSP Fs::copyfile (string_view src, string_view dst, int flags, const fn& cb, const LoopSP& l)         { UEFS_ASYNC_S(ret->copyfile(src, dst, flags, cb)); }
+Fs::RequestSP Fs::mkdtemp  (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->mkdtemp(path, cb)); }
+Fs::RequestSP Fs::read     (fd_t f, size_t size, int64_t off, const string_fn& cb, const LoopSP& l)             { UEFS_ASYNC_SFD(ret->read(size, off, cb)); }
+Fs::RequestSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_SFD(ret->_write(std::move(v), off, cb)); }
 
 /* ===============================================================================================
    =================================== ASYNC OBJECT API ==========================================
@@ -565,45 +565,45 @@ FsSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const fn& cb, c
 #define UEFS_ASYNC_BOOL(call_expr) UEFS_ASYNC_RAW( { _bool = call_expr; }, cb(_bool, _err, this))
 #define UEFS_ASYNC_STR(call_expr)  UEFS_ASYNC(call_expr, (_string = *std::move(ret)), cb(_string, _err, this))
 
-void Fs::mkdir      (string_view _path, int mode, const fn& cb) { auto path = string(_path); UEFS_ASYNC_VOID(Fs::mkdir(path, mode)); }
-void Fs::rmdir      (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::rmdir(path)); }
-void Fs::remove     (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::remove(path)); }
-void Fs::mkpath     (string_view _path, int mode, const fn& cb) { auto path = string(_path); UEFS_ASYNC_VOID(Fs::mkpath(path, mode)); }
-void Fs::scandir    (string_view _path, const scandir_fn& cb)   { auto path = string(_path); UEFS_ASYNC(Fs::scandir(path), (_dir_entries = *std::move(ret)), cb(_dir_entries, _err, this)); }
-void Fs::remove_all (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::remove_all(path)); }
+void Fs::Request::mkdir      (string_view _path, int mode, const fn& cb) { auto path = string(_path); UEFS_ASYNC_VOID(Fs::mkdir(path, mode)); }
+void Fs::Request::rmdir      (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::rmdir(path)); }
+void Fs::Request::remove     (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::remove(path)); }
+void Fs::Request::mkpath     (string_view _path, int mode, const fn& cb) { auto path = string(_path); UEFS_ASYNC_VOID(Fs::mkpath(path, mode)); }
+void Fs::Request::scandir    (string_view _path, const scandir_fn& cb)   { auto path = string(_path); UEFS_ASYNC(Fs::scandir(path), (_dir_entries = *std::move(ret)), cb(_dir_entries, _err, this)); }
+void Fs::Request::remove_all (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::remove_all(path)); }
 
-void Fs::open     (string_view _path, int flags, int mode, const open_fn& cb)         { auto path = string(_path); UEFS_ASYNC(Fs::open(path, flags, mode), (_fd = *ret), cb(_fd, _err, this)); }
-void Fs::close    (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::close(_fd)); }
-void Fs::stat     (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::stat(path)); }
-void Fs::stat     (const stat_fn& cb)                                                 { UEFS_ASYNC_STAT(Fs::stat(_fd)); }
-void Fs::lstat    (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::lstat(path)); }
-void Fs::exists   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::exists(path)); }
-void Fs::isfile   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isfile(path)); }
-void Fs::isdir    (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isdir(path)); }
-void Fs::access   (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::access(path, mode)); }
-void Fs::unlink   (string_view _path, const fn& cb)                                   { auto path = string(_path); UEFS_ASYNC_VOID(Fs::unlink(path)); }
-void Fs::sync     (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::sync(_fd)); }
-void Fs::datasync (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::datasync(_fd)); }
-void Fs::truncate (string_view _path, int64_t off, const fn& cb)                      { auto path = string(_path); UEFS_ASYNC_VOID(Fs::truncate(path, off)); }
-void Fs::truncate (int64_t off, const fn& cb)                                         { UEFS_ASYNC_VOID(Fs::truncate(_fd, off)); }
-void Fs::chmod    (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::chmod(path, mode)); }
-void Fs::chmod    (int mode, const fn& cb)                                            { UEFS_ASYNC_VOID(Fs::chmod(_fd, mode)); }
-void Fs::touch    (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::touch(path, mode)); }
-void Fs::utime    (string_view _path, double atime, double mtime, const fn& cb)       { auto path = string(_path); UEFS_ASYNC_VOID(Fs::utime(path, atime, mtime)); }
-void Fs::utime    (double atime, double mtime, const fn& cb)                          { UEFS_ASYNC_VOID(Fs::utime(_fd, atime, mtime)); }
-void Fs::chown    (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::chown(path, uid, gid)); }
-void Fs::lchown   (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::lchown(path, uid, gid)); }
-void Fs::chown    (uid_t uid, gid_t gid, const fn& cb)                                { UEFS_ASYNC_VOID(Fs::chown(_fd, uid, gid)); }
-void Fs::rename   (string_view _src, string_view _dst, const fn& cb)                  { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::rename(src, dst)); }
-void Fs::sendfile (fd_t out, fd_t in, int64_t off, size_t len, const sendfile_fn& cb) { UEFS_ASYNC(Fs::sendfile(out, in, off, len), (_size = *ret), cb(_size, _err, this)); }
-void Fs::link     (string_view _src, string_view _dst, const fn& cb)                  { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::link(src, dst)); }
-void Fs::symlink  (string_view _src, string_view _dst, int flags, const fn& cb)       { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::symlink(src, dst, flags)); }
-void Fs::readlink (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::readlink(path)); }
-void Fs::realpath (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::realpath(path)); }
-void Fs::copyfile (string_view _src, string_view _dst, int flags, const fn& cb)       { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::copyfile(src, dst, flags)); }
-void Fs::mkdtemp  (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::mkdtemp(path)); }
-void Fs::read     (size_t size, int64_t off, const string_fn& cb)                     { UEFS_ASYNC_STR(Fs::read(_fd, size, off)); }
-void Fs::_write   (std::vector<string>&& v, int64_t off, const fn& cb)                {
+void Fs::Request::open     (string_view _path, int flags, int mode, const open_fn& cb)         { auto path = string(_path); UEFS_ASYNC(Fs::open(path, flags, mode), (_fd = *ret), cb(_fd, _err, this)); }
+void Fs::Request::close    (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::close(_fd)); }
+void Fs::Request::stat     (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::stat(path)); }
+void Fs::Request::stat     (const stat_fn& cb)                                                 { UEFS_ASYNC_STAT(Fs::stat(_fd)); }
+void Fs::Request::lstat    (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::lstat(path)); }
+void Fs::Request::exists   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::exists(path)); }
+void Fs::Request::isfile   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isfile(path)); }
+void Fs::Request::isdir    (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isdir(path)); }
+void Fs::Request::access   (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::access(path, mode)); }
+void Fs::Request::unlink   (string_view _path, const fn& cb)                                   { auto path = string(_path); UEFS_ASYNC_VOID(Fs::unlink(path)); }
+void Fs::Request::sync     (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::sync(_fd)); }
+void Fs::Request::datasync (const fn& cb)                                                      { UEFS_ASYNC_VOID(Fs::datasync(_fd)); }
+void Fs::Request::truncate (string_view _path, int64_t off, const fn& cb)                      { auto path = string(_path); UEFS_ASYNC_VOID(Fs::truncate(path, off)); }
+void Fs::Request::truncate (int64_t off, const fn& cb)                                         { UEFS_ASYNC_VOID(Fs::truncate(_fd, off)); }
+void Fs::Request::chmod    (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::chmod(path, mode)); }
+void Fs::Request::chmod    (int mode, const fn& cb)                                            { UEFS_ASYNC_VOID(Fs::chmod(_fd, mode)); }
+void Fs::Request::touch    (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::touch(path, mode)); }
+void Fs::Request::utime    (string_view _path, double atime, double mtime, const fn& cb)       { auto path = string(_path); UEFS_ASYNC_VOID(Fs::utime(path, atime, mtime)); }
+void Fs::Request::utime    (double atime, double mtime, const fn& cb)                          { UEFS_ASYNC_VOID(Fs::utime(_fd, atime, mtime)); }
+void Fs::Request::chown    (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::chown(path, uid, gid)); }
+void Fs::Request::lchown   (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::lchown(path, uid, gid)); }
+void Fs::Request::chown    (uid_t uid, gid_t gid, const fn& cb)                                { UEFS_ASYNC_VOID(Fs::chown(_fd, uid, gid)); }
+void Fs::Request::rename   (string_view _src, string_view _dst, const fn& cb)                  { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::rename(src, dst)); }
+void Fs::Request::sendfile (fd_t out, fd_t in, int64_t off, size_t len, const sendfile_fn& cb) { UEFS_ASYNC(Fs::sendfile(out, in, off, len), (_size = *ret), cb(_size, _err, this)); }
+void Fs::Request::link     (string_view _src, string_view _dst, const fn& cb)                  { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::link(src, dst)); }
+void Fs::Request::symlink  (string_view _src, string_view _dst, int flags, const fn& cb)       { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::symlink(src, dst, flags)); }
+void Fs::Request::readlink (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::readlink(path)); }
+void Fs::Request::realpath (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::realpath(path)); }
+void Fs::Request::copyfile (string_view _src, string_view _dst, int flags, const fn& cb)       { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::copyfile(src, dst, flags)); }
+void Fs::Request::mkdtemp  (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::mkdtemp(path)); }
+void Fs::Request::read     (size_t size, int64_t off, const string_fn& cb)                     { UEFS_ASYNC_STR(Fs::read(_fd, size, off)); }
+void Fs::Request::_write   (std::vector<string>&& v, int64_t off, const fn& cb)                {
     UEFS_ASYNC_RAW({
         auto nbufs = v.size();
         _buf_t bufs[nbufs];

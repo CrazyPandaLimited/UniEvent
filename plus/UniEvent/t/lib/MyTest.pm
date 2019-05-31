@@ -21,12 +21,14 @@ my %used_mtimes;
 init();
 
 sub init {
-    remove_tree($rdir, {error => \my $err} );
+    # for file tests
+    UniEvent::Fs::remove_all($rdir) if -d $rdir;
+    UniEvent::Fs::mkpath($rdir);
+    
     # if something goes wrong, loop hangs. Make tests fail with SIGALRM instead of hanging forever.
     # each test must not last longer than 10 seconds. If needed, set alarm(more_than_10s) in your test
     alarm(10) unless defined $DB::header;
 
-    make_path($rdir, {mode => 0755});
 }
 
 sub import {
@@ -146,8 +148,8 @@ sub remove_dir {
     };
 }
 
-END {
-    remove_tree($rdir);
+END { # clean up after file tests
+    UniEvent::Fs::remove_all($rdir) if -d $rdir;
 }
 
 1;
