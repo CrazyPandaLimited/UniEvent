@@ -26,7 +26,7 @@ protected:
     StreamSP create_connection () override;
 
 private:
-    BackendTty*    impl     () const { return static_cast<BackendTty*>(Handle::impl()); }
+    BackendTty*    impl     () const { return static_cast<BackendTty*>(BHandle::impl()); }
     BackendHandle* new_impl () override;
 };
 using TtySP = iptr<Tty>;

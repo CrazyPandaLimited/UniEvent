@@ -5,7 +5,7 @@
 namespace panda { namespace unievent {
 
 // All the values are in milliseconds.
-struct Timer : virtual Handle, private backend::ITimerListener {
+struct Timer : virtual BHandle, private backend::ITimerListener {
     using timer_fptr = void(const TimerSP& handle);
     using timer_fn = function<timer_fptr>;
 

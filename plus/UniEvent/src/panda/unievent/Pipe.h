@@ -38,7 +38,7 @@ private:
 
     bool _ipc;
 
-    backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(Handle::impl()); }
+    backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(BHandle::impl()); }
 
     BackendHandle* new_impl () override;
 };

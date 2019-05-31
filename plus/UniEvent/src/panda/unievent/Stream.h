@@ -13,7 +13,7 @@ struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
 
-struct Stream : virtual Handle, protected backend::IStreamListener {
+struct Stream : virtual BHandle, protected backend::IStreamListener {
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
@@ -156,7 +156,7 @@ private:
     uint8_t flags;
     Filters _filters;
 
-    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(Handle::impl()); }
+    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(BHandle::impl()); }
 
     bool reading () const { return flags & READING; }
 

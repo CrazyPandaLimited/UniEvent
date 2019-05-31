@@ -7,7 +7,7 @@
 
 namespace panda { namespace unievent {
 
-struct Udp : virtual Handle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
+struct Udp : virtual BHandle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
     using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
     using receive_fn    = function<receive_fptr>;
     using send_fptr     = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
@@ -73,7 +73,7 @@ private:
     int   domain;
     Queue queue;
 
-    BackendUdp* impl () const { return static_cast<BackendUdp*>(Handle::impl()); }
+    BackendUdp* impl () const { return static_cast<BackendUdp*>(BHandle::impl()); }
 
     BackendHandle* new_impl () override;
 

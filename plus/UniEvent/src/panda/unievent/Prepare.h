@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent {
 
-struct Prepare : virtual Handle, private backend::IPrepareListener {
+struct Prepare : virtual BHandle, private backend::IPrepareListener {
     using prepare_fptr = void(const PrepareSP&);
     using prepare_fn   = function<prepare_fptr>;
 

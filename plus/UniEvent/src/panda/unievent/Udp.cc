@@ -99,12 +99,12 @@ void Udp::on_send (const CodeError& err, const SendRequestSP& r) {
 }
 
 void Udp::reset () {
-    queue.cancel([&]{ Handle::reset(); });
+    queue.cancel([&]{ BHandle::reset(); });
 }
 
 void Udp::clear () {
     queue.cancel([&]{
-        Handle::clear();
+        BHandle::clear();
         domain = AF_UNSPEC;
         buf_alloc_callback = nullptr;
         receive_event.remove_all();

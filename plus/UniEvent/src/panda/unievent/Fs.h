@@ -216,11 +216,13 @@ struct Fs {
 
     // async object methods
     struct Request : Work, lib::AllocatedObject<Request> {
-        Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _state(State::READY), _fd() {}
-        ~Request () { assert(_state != State::BUSY); }
+        Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _busy(), _fd() {}
+        ~Request () { assert(!_busy); }
 
         using AllocatedObject<Request>::operator new;
         using AllocatedObject<Request>::operator delete;
+
+        bool busy () const { return _busy; }
 
         fd_t fd () const  { return _fd; }
         void fd (fd_t fd) { _fd = fd; }
@@ -275,14 +277,13 @@ struct Fs {
 
     private:
         friend Fs;
-        enum class State {READY, BUSY, COMPLETE};
 
-        State      _state;
+        bool       _busy;
+        bool       _bool;
         fd_t       _fd;
         CodeError  _err;
         DirEntries _dir_entries;
         Stat       _stat;
-        bool       _bool;
         size_t     _size;
         string     _string;
 

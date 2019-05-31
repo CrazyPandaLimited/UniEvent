@@ -53,7 +53,7 @@ private:
 
     int domain;
 
-    backend::BackendTcp* impl () const { return static_cast<backend::BackendTcp*>(Handle::impl()); }
+    backend::BackendTcp* impl () const { return static_cast<backend::BackendTcp*>(BHandle::impl()); }
 
     BackendHandle* new_impl () override;
 };

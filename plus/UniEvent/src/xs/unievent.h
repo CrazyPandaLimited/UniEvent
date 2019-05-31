@@ -191,63 +191,65 @@ template <> struct Typemap<panda::unievent::Fs::DirEntry> : TypemapBase<panda::u
     static panda::unievent::Fs::DirEntry in (pTHX_ const Array&);
 };
 
-template <> struct Typemap <panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
+template <> struct Typemap<panda::unievent::backend::Backend*> : TypemapObject<panda::unievent::backend::Backend*, panda::unievent::backend::Backend*, ObjectTypeForeignPtr, ObjectStorageMG> {
     static panda::string package () { return "UniEvent::Backend"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Loop*, TYPE> : TypemapObject<panda::unievent::Loop*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
+template <class TYPE> struct Typemap<panda::unievent::Loop*, TYPE> : TypemapObject<panda::unievent::Loop*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
     static panda::string package () { return "UniEvent::Loop"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
+template <class TYPE> struct Typemap<panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
-template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::BHandle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
+
+template <class TYPE> struct Typemap<panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Prepare"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Check*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Check"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Idle"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Timer*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Timer*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Timer"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Signal"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Udp*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Udp*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {
     static panda::string package () { return "UniEvent::Udp"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
+template <class TYPE> struct Typemap<panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::BHandle*, TYPE> {};
 
-template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
     static panda::string package () { return "UniEvent::Pipe"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Tcp*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Tcp*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
     static panda::string package () { return "UniEvent::Tcp"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Tty*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
+template <class TYPE> struct Typemap<panda::unievent::Tty*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
     static panda::string package () { return "UniEvent::Tty"; }
 };
 
-template <class TYPE> struct Typemap <panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
+template <class TYPE> struct Typemap<panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
     static panda::string package () { return "UniEvent::Fs::Request"; }
 };
 
-//template <class TYPE> struct Typemap <panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    static panda::string package () { return "UniEvent::FsPoll"; }
-//};
+template <class TYPE> struct Typemap<panda::unievent::FsPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    static panda::string package () { return "UniEvent::FsPoll"; }
+};
 
-//template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+//template <class TYPE> struct Typemap<panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
 //    static panda::string package () { return "UniEvent::FSEvent"; }
 //};
 

@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent {
 
-struct Idle : virtual Handle, private backend::IIdleListener {
+struct Idle : virtual BHandle, private backend::IIdleListener {
     using idle_fptr = void(const IdleSP&);
     using idle_fn   = function<idle_fptr>;
     

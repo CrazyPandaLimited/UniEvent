@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent {
 
-struct Async : virtual Handle, private backend::IAsyncListener {
+struct Async : virtual BHandle, private backend::IAsyncListener {
     using async_fptr = void(const AsyncSP&);
     using async_fn   = function<async_fptr>;
     

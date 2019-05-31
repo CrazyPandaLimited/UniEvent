@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent {
 
-struct Poll : virtual Handle, private backend::IPollListener {
+struct Poll : virtual BHandle, private backend::IPollListener {
     using poll_fptr = void(const PollSP& handle, int events, const CodeError& err);
     using poll_fn = panda::function<poll_fptr>;
 

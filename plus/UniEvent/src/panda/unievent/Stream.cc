@@ -231,7 +231,7 @@ void Stream::reset () {
 }
 
 void Stream::_reset () {
-    Handle::reset();
+    BHandle::reset();
     invoke_sync(&StreamFilter::reset);
     flags &= DONTREAD; // clear flags except DONTREAD
 }
@@ -241,7 +241,7 @@ void Stream::clear () {
 }
 
 void Stream::_clear () {
-    Handle::clear();
+    BHandle::clear();
     invoke_sync(&StreamFilter::reset);
     _filters.clear();
     flags = 0;

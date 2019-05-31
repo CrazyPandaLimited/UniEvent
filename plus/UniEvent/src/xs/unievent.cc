@@ -55,7 +55,7 @@ Stash perl_class_for_handle (Handle* h) {
         ca[Pipe::TYPE]    = Stash("UniEvent::Pipe",    GV_ADD);
         ca[Tcp::TYPE]     = Stash("UniEvent::Tcp",     GV_ADD);
         ca[Tty::TYPE]     = Stash("UniEvent::Tty",     GV_ADD);
-//        ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
+        ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
 //        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
 //        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
 //        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);

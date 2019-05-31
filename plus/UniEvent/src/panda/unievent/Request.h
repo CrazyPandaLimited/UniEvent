@@ -28,7 +28,7 @@ protected:
 
     Request () : _impl(), parent(), _delay_id(0) {}
 
-    void set (Handle* h) {
+    void set (BHandle* h) {
         _handle = h;
     }
 
@@ -59,8 +59,8 @@ protected:
     }
 
 private:
-    HandleSP _handle;
-    uint64_t _delay_id;
+    BHandleSP _handle;
+    uint64_t  _delay_id;
 };
 
 }}
