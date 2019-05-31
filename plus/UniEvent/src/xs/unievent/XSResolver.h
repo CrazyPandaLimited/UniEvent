@@ -37,6 +37,6 @@ protected:
 
 namespace xs {
     template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
-        std::string package () { return "UniEvent::Resolver"; }
+        static std::string package () { return "UniEvent::Resolver"; }
     };
 }

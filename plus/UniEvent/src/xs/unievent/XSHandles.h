@@ -240,55 +240,55 @@ private:
 namespace xs {
 
 template <class TYPE> struct Typemap <panda::unievent::Loop*, TYPE> : TypemapObject<panda::unievent::Loop*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
-    panda::string package () { return "UniEvent::Loop"; }
+    static panda::string package () { return "UniEvent::Loop"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
 template <class TYPE> struct Typemap <panda::unievent::Prepare*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Prepare"; }
+    static panda::string package () { return "UniEvent::Prepare"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Check*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Check"; }
+    static panda::string package () { return "UniEvent::Check"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Idle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Idle"; }
+    static panda::string package () { return "UniEvent::Idle"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Timer*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Timer"; }
+    static panda::string package () { return "UniEvent::Timer"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::FSEvent"; }
+    static panda::string package () { return "UniEvent::FSEvent"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::FSPoll*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::FSPoll"; }
+    static panda::string package () { return "UniEvent::FSPoll"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Signal*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::Signal"; }
+    static panda::string package () { return "UniEvent::Signal"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
 
 template <class TYPE> struct Typemap <panda::unievent::TCP*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::TCP"; }
+    static panda::string package () { return "UniEvent::TCP"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::Pipe"; }
+    static panda::string package () { return "UniEvent::Pipe"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::TTY*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
-    panda::string package () { return "UniEvent::TTY"; }
+    static panda::string package () { return "UniEvent::TTY"; }
 };
 
 template <class TYPE> struct Typemap <panda::unievent::UDP*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-    panda::string package () { return "UniEvent::UDP"; }
+    static panda::string package () { return "UniEvent::UDP"; }
 };
 
 }

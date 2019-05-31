@@ -11,22 +11,27 @@ Stash get_perl_class_for_err (const Error& err);
 
 }}
 
-namespace xs {
+static const panda::unievent::Error noerr;
 
-    template <class TYPE> struct Typemap<const panda::unievent::Error*, TYPE> : TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG> {
-        using Super = TypemapObject<const panda::unievent::Error*, TYPE, ObjectTypePtr, ObjectStorageMG>;
-        Sv create (pTHX_ TYPE var, const Sv& sv = {}) {
+namespace xs {
+    template <class TYPE> struct Typemap<panda::unievent::Error*, TYPE*> : TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG> {
+        using Super = TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG>;
+        static Sv create (pTHX_ TYPE* var, const Sv& sv = {}) {
             if (!var) return Sv::undef;
             return Super::create(aTHX_ var->clone(), sv ? sv : xs::unievent::get_perl_class_for_err(*var));
         }
     };
-    template <class TYPE> struct Typemap<const panda::unievent::ImplRequiredError*, TYPE> : Typemap<const panda::unievent::Error*,     TYPE> {};
-    template <class TYPE> struct Typemap<const panda::unievent::CodeError*,         TYPE> : Typemap<const panda::unievent::Error*,     TYPE> {};
-    template <class TYPE> struct Typemap<const panda::unievent::SSLError*,          TYPE> : Typemap<const panda::unievent::CodeError*, TYPE> {};
+    template <class TYPE> struct Typemap<panda::unievent::ImplRequiredError*, TYPE> : Typemap<panda::unievent::Error*,     TYPE> {};
+    template <class TYPE> struct Typemap<panda::unievent::CodeError*,         TYPE> : Typemap<panda::unievent::Error*,     TYPE> {};
+    template <class TYPE> struct Typemap<panda::unievent::SSLError*,          TYPE> : Typemap<panda::unievent::CodeError*, TYPE> {};
 
-    template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : TypemapRefCast<TYPE&> {
-        Sv out (pTHX_ TYPE& var, const Sv& proto = {}) { return Typemap<TYPE*>::out(aTHX_ &var, proto); }
+    template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typemap<panda::unievent::Error*, TYPE*> {
+        using Super = Typemap<panda::unievent::Error*, TYPE*>;
+        static TYPE& in (pTHX_ SV* arg) {
+            auto ret = Super::in(aTHX_ arg);
+            if (!ret) return noerr;
+            return *ret;
+        }
+        static Sv out (pTHX_ TYPE& var, const Sv& sv = {}) { return Super::out(aTHX_ &var, sv); }
     };
-    template <class TYPE> struct Typemap<const panda::unievent::ImplRequiredError&, TYPE> : Typemap<const panda::unievent::Error&, TYPE> {};
-
 }
