@@ -1,10 +1,10 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendCheck.h"
+#include "BackendHandle.h"
+#include "backend/CheckImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Check : virtual BHandle, private backend::ICheckListener {
+struct Check : virtual BackendHandle, private backend::ICheckListener {
     using check_fptr = void(const CheckSP&);
     using check_fn   = function<check_fptr>;
 
@@ -32,7 +32,7 @@ protected:
 private:
     void handle_check () override;
 
-    backend::BackendCheck* impl () const { return static_cast<backend::BackendCheck*>(_impl); }
+    backend::CheckImpl* impl () const { return static_cast<backend::CheckImpl*>(_impl); }
 };
 
 }}

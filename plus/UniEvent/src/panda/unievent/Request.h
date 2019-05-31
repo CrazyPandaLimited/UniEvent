@@ -1,6 +1,6 @@
 #pragma once
 #include "inc.h"
-#include "Handle.h"
+#include "BackendHandle.h"
 #include <vector>
 #include <panda/string.h>
 #include <panda/refcnt.h>
@@ -19,16 +19,16 @@ struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected ba
     }
 
 protected:
-    using BackendRequest = backend::BackendRequest;
+    using RequestImpl = backend::RequestImpl;
     friend struct Queue; friend StreamFilter;
 
-    BackendRequest* _impl;
-    Request*        parent;
-    RequestSP       subreq;
+    RequestImpl* _impl;
+    Request*     parent;
+    RequestSP    subreq;
 
     Request () : _impl(), parent(), _delay_id(0) {}
 
-    void set (BHandle* h) {
+    void set (BackendHandle* h) {
         _handle = h;
     }
 
@@ -59,8 +59,8 @@ protected:
     }
 
 private:
-    BHandleSP _handle;
-    uint64_t  _delay_id;
+    BackendHandleSP _handle;
+    uint64_t        _delay_id;
 };
 
 }}

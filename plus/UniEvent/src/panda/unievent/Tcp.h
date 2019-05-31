@@ -3,14 +3,14 @@
 #include "Stream.h"
 #include "AddrInfo.h"
 #include "Resolver.h"
-#include "backend/BackendTcp.h"
+#include "backend/TcpImpl.h"
 #include <ostream>
 
 namespace panda { namespace unievent {
 
 struct Tcp : virtual Stream, panda::lib::AllocatedObject<Tcp> {
-    using BackendTcp = backend::BackendTcp;
-    using Flags      = BackendTcp::Flags;
+    using TcpImpl = backend::TcpImpl;
+    using Flags      = TcpImpl::Flags;
 
     static const HandleType TYPE;
 
@@ -53,9 +53,9 @@ private:
 
     int domain;
 
-    backend::BackendTcp* impl () const { return static_cast<backend::BackendTcp*>(BHandle::impl()); }
+    backend::TcpImpl* impl () const { return static_cast<backend::TcpImpl*>(BackendHandle::impl()); }
 
-    BackendHandle* new_impl () override;
+    HandleImpl* new_impl () override;
 };
 
 struct TcpConnectRequest : ConnectRequest, panda::lib::AllocatedObject<TcpConnectRequest> {

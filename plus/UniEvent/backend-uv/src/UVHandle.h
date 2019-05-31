@@ -1,6 +1,6 @@
 #pragma once
 #include "inc.h"
-#include <panda/unievent/backend/BackendHandle.h>
+#include <panda/unievent/backend/HandleImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
@@ -12,7 +12,7 @@ protected:
     template <class...Args>
     UVHandle (Args&&...args) : Base(args...) {
         _ECTOR();
-        uvh.data = static_cast<BackendHandle*>(this);
+        uvh.data = static_cast<HandleImpl*>(this);
     }
 
     bool active () const override {

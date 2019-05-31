@@ -2,8 +2,6 @@
 #include "Loop.h"
 #include "Debug.h"
 #include "Error.h"
-#include "backend/BackendHandle.h"
-#include <bitset>
 #include <cstdint>
 #include <panda/string.h>
 #include <panda/lib/memory.h>
@@ -65,57 +63,5 @@ private:
     LoopSP _loop;
     bool   _weak;
 };
-
-struct BHandle : Handle {
-    using BackendHandle = backend::BackendHandle;
-
-    bool active () const override { return _impl ? _impl->active() : false; }
-    
-    virtual void reset () = 0;
-    virtual void clear () = 0;
-
-protected:
-    //friend Loop;
-
-    mutable BackendHandle* _impl;
-
-    BHandle () : _impl() { _ECTOR(); }
-
-    ~BHandle () {
-        if (_impl) _impl->destroy();
-    }
-
-    void _init (const LoopSP& loop, BackendHandle* impl = nullptr) {
-        _impl = impl;
-        Handle::_init(loop);
-    }
-
-    void set_weak   () override { impl()->set_weak(); }
-    void unset_weak () override { impl()->unset_weak(); }
-
-    virtual BackendHandle* new_impl () { abort(); }
-
-    BackendHandle* impl () const {
-        if (!_impl) {
-            _impl = const_cast<BHandle*>(this)->new_impl();
-            if (weak()) _impl->set_weak(); // preserve weak
-        }
-        return _impl;
-    }
-};
-using BHandleSP = iptr<BHandle>;
-
-inline void BHandle::reset () {
-    if (!_impl) return;
-    _impl->destroy();
-    _impl = nullptr;
-    if (weak()) _impl->set_weak(); // preserve weak
-}
-
-inline void BHandle::clear () {
-    if (!_impl) return;
-    _impl->destroy();
-    _impl = nullptr;
-}
 
 }}

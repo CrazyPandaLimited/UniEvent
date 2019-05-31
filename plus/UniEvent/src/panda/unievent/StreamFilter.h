@@ -33,11 +33,6 @@ protected:
     void subreq_write       (const StreamRequestSP& parent, const WriteRequestSP& req);
     void subreq_done        (const StreamRequestSP& req);
 
-//    void set_connecting();
-//    void set_connected(bool success);
-//    void set_shutdown(bool success);
-//
-//    friend Stream;
     Stream*  handle;
 
 private:

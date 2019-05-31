@@ -2,49 +2,49 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct BackendLoop;
-struct BackendHandle;
+struct LoopImpl;
+struct HandleImpl;
 
-struct BackendPrepare;
+struct PrepareImpl;
 struct IPrepareListener;
 
-struct BackendCheck;
+struct CheckImpl;
 struct ICheckListener;
 
-struct BackendIdle;
+struct IdleImpl;
 struct IIdleListener;
 
-struct BackendTimer;
+struct TimerImpl;
 struct ITimerListener;
 
-struct BackendAsync;
+struct AsyncImpl;
 struct IAsyncListener;
 
-struct BackendSignal;
+struct SignalImpl;
 struct ISignalListener;
 
-struct BackendPoll;
+struct PollImpl;
 struct IPollListener;
 
-struct BackendUdp;
+struct UdpImpl;
 struct IUdpListener;
 struct ISendListener;
-struct BackendSendRequest;
+struct SendRequestImpl;
 
-struct BackendStream;
+struct StreamImpl;
 struct IStreamListener;
 struct IConnectListener;
-struct BackendConnectRequest;
+struct ConnectRequestImpl;
 struct IWriteListener;
-struct BackendWriteRequest;
+struct WriteRequestImpl;
 struct IShutdownListener;
-struct BackendShutdownRequest;
+struct ShutdownRequestImpl;
 
-struct BackendPipe;
-struct BackendTcp;
-struct BackendTty;
+struct PipeImpl;
+struct TcpImpl;
+struct TtyImpl;
 
-struct BackendWork;
+struct WorkImpl;
 struct IWorkListener;
 
 }}};

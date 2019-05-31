@@ -8,8 +8,8 @@ struct UVRequest : BASE {
     bool   active;
     UVTYPE uvr;
 
-    UVRequest (BackendHandle* h, IRequestListener* l) : BASE(h, l), active() {
-        uvr.data = static_cast<BackendRequest*>(this);
+    UVRequest (HandleImpl* h, IRequestListener* l) : BASE(h, l), active() {
+        uvr.data = static_cast<RequestImpl*>(this);
     }
 
     void destroy () noexcept override {

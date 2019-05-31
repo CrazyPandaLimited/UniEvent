@@ -1,10 +1,10 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendPoll.h"
+#include "BackendHandle.h"
+#include "backend/PollImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Poll : virtual BHandle, private backend::IPollListener {
+struct Poll : virtual BackendHandle, private backend::IPollListener {
     using poll_fptr = void(const PollSP& handle, int events, const CodeError& err);
     using poll_fn = panda::function<poll_fptr>;
 
@@ -45,7 +45,7 @@ protected:
 private:
     void handle_poll (int events, const CodeError& err) override;
 
-    backend::BackendPoll* impl () const { return static_cast<backend::BackendPoll*>(_impl); }
+    backend::PollImpl* impl () const { return static_cast<backend::PollImpl*>(_impl); }
 };
 
 }}

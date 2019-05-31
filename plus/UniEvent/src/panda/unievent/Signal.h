@@ -1,11 +1,11 @@
 #pragma once
-#include "Handle.h"
+#include "BackendHandle.h"
 #include <signal.h>
-#include "backend/BackendSignal.h"
+#include "backend/SignalImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Signal : virtual BHandle, private backend::ISignalListener {
+struct Signal : virtual BackendHandle, private backend::ISignalListener {
     using signal_fptr = void(const SignalSP& handle, int signum);
     using signal_fn = function<signal_fptr>;
     
@@ -39,7 +39,7 @@ protected:
 private:
     void handle_signal (int signum) override;
 
-    backend::BackendSignal* impl () const { return static_cast<backend::BackendSignal*>(_impl); }
+    backend::SignalImpl* impl () const { return static_cast<backend::SignalImpl*>(_impl); }
 };
 
 }}

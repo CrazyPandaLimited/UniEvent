@@ -1,11 +1,11 @@
 #pragma once
 #include <panda/unievent/backend/Delayer.h>
-#include <panda/unievent/backend/BackendIdle.h>
+#include <panda/unievent/backend/IdleImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVDelayer : Delayer, private IIdleListener {
-    UVDelayer (BackendLoop* loop) : Delayer(loop), handle() {}
+    UVDelayer (LoopImpl* loop) : Delayer(loop), handle() {}
 
     uint64_t add (const delayed_fn& f, const iptr<Refcnt>& guard = {}) {
         if (!callbacks.size()) {
@@ -20,7 +20,7 @@ struct UVDelayer : Delayer, private IIdleListener {
     }
 
 private:
-    BackendIdle* handle;
+    IdleImpl* handle;
 
     void handle_idle () override {
         Delayer::call();

@@ -1,11 +1,11 @@
 #pragma once
 #include "UVStream.h"
-#include <panda/unievent/backend/BackendTcp.h>
+#include <panda/unievent/backend/TcpImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVTcp : UVStream<BackendTcp, uv_tcp_t> {
-    UVTcp (UVLoop* loop, IStreamListener* lst, int domain) : UVStream<BackendTcp, uv_tcp_t>(loop, lst) {
+struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
+    UVTcp (UVLoop* loop, IStreamListener* lst, int domain) : UVStream<TcpImpl, uv_tcp_t>(loop, lst) {
         if (domain == AF_UNSPEC) uvx_strict(uv_tcp_init(loop->uvloop, &uvh));
         else                     uvx_strict(uv_tcp_init_ex(loop->uvloop, &uvh, domain));
     }
@@ -20,7 +20,7 @@ struct UVTcp : UVStream<BackendTcp, uv_tcp_t> {
         uvx_strict(uv_tcp_bind(&uvh, addr.get(), uv_flags));
     }
 
-    virtual CodeError connect (const net::SockAddr& addr, BackendConnectRequest* _req) override {
+    virtual CodeError connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {
         auto req = static_cast<UVConnectRequest*>(_req);
         auto err = uv_tcp_connect(&req->uvr, &uvh, addr.get(), on_connect);
         if (!err) req->active = true;

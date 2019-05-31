@@ -1,14 +1,14 @@
 #pragma once
 #include "inc.h"
-#include <panda/unievent/backend/BackendWork.h>
+#include <panda/unievent/backend/WorkImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVWork : BackendWork {
+struct UVWork : WorkImpl {
     bool      active;
     uv_work_t uvr;
 
-    UVWork (UVLoop* loop, IWorkListener* lst) : BackendWork(loop, lst), active() {
+    UVWork (UVLoop* loop, IWorkListener* lst) : WorkImpl(loop, lst), active() {
         uvr.loop = loop->uvloop;
         uvr.data = this;
     }

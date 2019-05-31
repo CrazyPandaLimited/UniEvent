@@ -1,11 +1,11 @@
 #pragma once
 #include "UVHandle.h"
-#include <panda/unievent/backend/BackendAsync.h>
+#include <panda/unievent/backend/AsyncImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVAsync : UVHandle<BackendAsync, uv_async_t> {
-    UVAsync (UVLoop* loop, IAsyncListener* lst) : UVHandle<BackendAsync, uv_async_t>(loop, lst) {
+struct UVAsync : UVHandle<AsyncImpl, uv_async_t> {
+    UVAsync (UVLoop* loop, IAsyncListener* lst) : UVHandle<AsyncImpl, uv_async_t>(loop, lst) {
         int err = uv_async_init(loop->uvloop, &uvh, [](uv_async_t* p){
             get_handle<UVAsync*>(p)->handle_async();
         });

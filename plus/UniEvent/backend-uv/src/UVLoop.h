@@ -1,11 +1,11 @@
 #pragma once
 #include "inc.h"
 #include "UVDelayer.h"
-#include <panda/unievent/backend/BackendLoop.h>
+#include <panda/unievent/backend/LoopImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVLoop : BackendLoop {
+struct UVLoop : LoopImpl {
     uv_loop_t* uvloop;
 
     UVLoop (Type type) : _delayer(this) {
@@ -58,19 +58,19 @@ struct UVLoop : BackendLoop {
         if (err) throw uvx_code_error(err);
     }
 
-    BackendTimer*   new_timer     (ITimerListener*)              override;
-    BackendPrepare* new_prepare   (IPrepareListener*)            override;
-    BackendCheck*   new_check     (ICheckListener*)              override;
-    BackendIdle*    new_idle      (IIdleListener*)               override;
-    BackendAsync*   new_async     (IAsyncListener*)              override;
-    BackendSignal*  new_signal    (ISignalListener*)             override;
-    BackendPoll*    new_poll_sock (IPollListener*, sock_t sock)  override;
-    BackendPoll*    new_poll_fd   (IPollListener*, int fd)       override;
-    BackendUdp*     new_udp       (IUdpListener*, int domain)    override;
-    BackendPipe*    new_pipe      (IStreamListener*, bool ipc)   override;
-    BackendTcp*     new_tcp       (IStreamListener*, int domain) override;
-    BackendTty*     new_tty       (IStreamListener*, fd_t)       override;
-    BackendWork*    new_work      (IWorkListener*)               override;
+    TimerImpl*   new_timer     (ITimerListener*)              override;
+    PrepareImpl* new_prepare   (IPrepareListener*)            override;
+    CheckImpl*   new_check     (ICheckListener*)              override;
+    IdleImpl*    new_idle      (IIdleListener*)               override;
+    AsyncImpl*   new_async     (IAsyncListener*)              override;
+    SignalImpl*  new_signal    (ISignalListener*)             override;
+    PollImpl*    new_poll_sock (IPollListener*, sock_t sock)  override;
+    PollImpl*    new_poll_fd   (IPollListener*, int fd)       override;
+    UdpImpl*     new_udp       (IUdpListener*, int domain)    override;
+    PipeImpl*    new_pipe      (IStreamListener*, bool ipc)   override;
+    TcpImpl*     new_tcp       (IStreamListener*, int domain) override;
+    TtyImpl*     new_tty       (IStreamListener*, fd_t)       override;
+    WorkImpl*    new_work      (IWorkListener*)               override;
 
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return _delayer.add(f, guard); }
     void     cancel_delay (uint64_t id) noexcept                                { _delayer.cancel(id); }

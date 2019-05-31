@@ -17,7 +17,7 @@ const HandleType& Tcp::type () const {
     return TYPE;
 }
 
-backend::BackendHandle* Tcp::new_impl () {
+backend::HandleImpl* Tcp::new_impl () {
     return loop()->impl()->new_tcp(this, domain);
 }
 

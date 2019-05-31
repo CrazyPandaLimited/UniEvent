@@ -1,13 +1,13 @@
 #pragma once
-#include "BackendLoop.h"
+#include "LoopImpl.h"
 #include <panda/refcnt.h>
 
 namespace panda { namespace unievent { namespace backend {
 
 struct Delayer {
-    using delayed_fn = BackendLoop::delayed_fn;
+    using delayed_fn = LoopImpl::delayed_fn;
 
-    Delayer (BackendLoop* l) : loop(l), lastid(0) {}
+    Delayer (LoopImpl* l) : loop(l), lastid(0) {}
 
     uint64_t add (const delayed_fn& f, const iptr<Refcnt>& guard = {}) {
         callbacks.push_back({++lastid, f, guard});
@@ -26,7 +26,7 @@ protected:
     };
     using Callbacks = std::vector<Callback>;
 
-    BackendLoop* loop;
+    LoopImpl* loop;
     Callbacks    callbacks;
     Callbacks    reserve;
     uint64_t     lastid;

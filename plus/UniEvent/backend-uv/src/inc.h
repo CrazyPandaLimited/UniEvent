@@ -3,7 +3,7 @@
 #include <panda/unievent/util.h>
 #include <panda/unievent/Debug.h>
 #include <panda/unievent/Error.h>
-#include <panda/unievent/backend/BackendHandle.h>
+#include <panda/unievent/backend/HandleImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
@@ -12,14 +12,14 @@ using panda::lib::AllocatedObject;
 static inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
 static inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
 
-template <class T = BackendHandle*, class X>
+template <class T = HandleImpl*, class X>
 static inline T get_handle (X* uvhp) {
-    return static_cast<T>(reinterpret_cast<BackendHandle*>(uvhp->data));
+    return static_cast<T>(reinterpret_cast<HandleImpl*>(uvhp->data));
 }
 
-template <class T = BackendRequest*, class X>
+template <class T = RequestImpl*, class X>
 static inline T get_request (X* uvrp) {
-    return static_cast<T>(reinterpret_cast<BackendRequest*>(uvrp->data));
+    return static_cast<T>(reinterpret_cast<RequestImpl*>(uvrp->data));
 }
 
 static inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {

@@ -1,10 +1,10 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendIdle.h"
+#include "BackendHandle.h"
+#include "backend/IdleImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Idle : virtual BHandle, private backend::IIdleListener {
+struct Idle : virtual BackendHandle, private backend::IIdleListener {
     using idle_fptr = void(const IdleSP&);
     using idle_fn   = function<idle_fptr>;
     
@@ -32,7 +32,7 @@ protected:
 private:
     void handle_idle () override;
 
-    backend::BackendIdle* impl () const { return static_cast<backend::BackendIdle*>(_impl); }
+    backend::IdleImpl* impl () const { return static_cast<backend::IdleImpl*>(_impl); }
 };
 
 }}

@@ -1,5 +1,5 @@
 #pragma once
-#include "BackendHandle.h"
+#include "HandleImpl.h"
 
 namespace panda { namespace unievent { namespace backend {
 
@@ -7,8 +7,8 @@ struct IPollListener {
     virtual void handle_poll (int events, const CodeError& err) = 0;
 };
 
-struct BackendPoll : BackendHandle {
-    BackendPoll (BackendLoop*, IPollListener* lst) : BackendHandle(loop), listener(lst) {}
+struct PollImpl : HandleImpl {
+    PollImpl (LoopImpl*, IPollListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual optional<fh_t> fileno () const = 0;
 

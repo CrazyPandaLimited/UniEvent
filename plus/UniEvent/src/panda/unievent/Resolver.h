@@ -102,8 +102,8 @@ private:
     };
 
     using Cache  = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
-    using BTimer = backend::BackendTimer;
-    using BPoll  = backend::BackendPoll;
+    using BTimer = backend::TimerImpl;
+    using BPoll  = backend::PollImpl;
 
     struct Worker : private backend::ITimerListener, private backend::IPollListener {
         Worker  (Resolver*);

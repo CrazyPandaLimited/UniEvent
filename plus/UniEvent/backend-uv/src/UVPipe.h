@@ -1,6 +1,6 @@
 #pragma once
 #include "UVStream.h"
-#include <panda/unievent/backend/BackendPipe.h>
+#include <panda/unievent/backend/PipeImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
@@ -18,8 +18,8 @@ static inline optional<string> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
     return ret;
 }
 
-struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
-    UVPipe (UVLoop* loop, IStreamListener* lst, bool ipc) : UVStream<BackendPipe, uv_pipe_t>(loop, lst) {
+struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
+    UVPipe (UVLoop* loop, IStreamListener* lst, bool ipc) : UVStream<PipeImpl, uv_pipe_t>(loop, lst) {
         uvx_strict(uv_pipe_init(loop->uvloop, &uvh, ipc));
     }
 
@@ -32,7 +32,7 @@ struct UVPipe : UVStream<BackendPipe, uv_pipe_t> {
         uvx_strict(uv_pipe_open(&uvh, file));
     }
 
-    CodeError connect (std::string_view name, BackendConnectRequest* _req) override {
+    CodeError connect (std::string_view name, ConnectRequestImpl* _req) override {
         UE_NULL_TERMINATE(name, name_str);
         auto req = static_cast<UVConnectRequest*>(_req);
         uv_pipe_connect(&req->uvr, &uvh, name_str, on_connect);

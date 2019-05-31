@@ -1,11 +1,11 @@
 #pragma once
 #include "Queue.h"
 #include "Timer.h"
-#include "Handle.h"
 #include "forward.h"
 #include "Request.h"
 #include "StreamFilter.h"
-#include "backend/BackendStream.h"
+#include "BackendHandle.h"
+#include "backend/StreamImpl.h"
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
@@ -13,7 +13,7 @@ struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
 
-struct Stream : virtual BHandle, protected backend::IStreamListener {
+struct Stream : virtual BackendHandle, protected backend::IStreamListener {
     using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
@@ -156,7 +156,7 @@ private:
     uint8_t flags;
     Filters _filters;
 
-    backend::BackendStream* impl () const { return static_cast<backend::BackendStream*>(BHandle::impl()); }
+    backend::StreamImpl* impl () const { return static_cast<backend::StreamImpl*>(BackendHandle::impl()); }
 
     bool reading () const { return flags & READING; }
 
@@ -225,9 +225,9 @@ protected:
         if (callback) event.add(callback);
     }
 
-    backend::BackendConnectRequest* impl () {
+    backend::ConnectRequestImpl* impl () {
         if (!_impl) _impl = handle->impl()->new_connect_request(this);
-        return static_cast<backend::BackendConnectRequest*>(_impl);
+        return static_cast<backend::ConnectRequestImpl*>(_impl);
     }
 
     void exec         () override = 0;
@@ -254,9 +254,9 @@ struct WriteRequest : StreamRequest, lib::AllocatedObject<WriteRequest> {
 private:
     friend Stream;
 
-    backend::BackendWriteRequest* impl () {
+    backend::WriteRequestImpl* impl () {
         if (!_impl) _impl = handle->impl()->new_write_request(this);
-        return static_cast<backend::BackendWriteRequest*>(_impl);
+        return static_cast<backend::WriteRequestImpl*>(_impl);
     }
 
     void exec         () override;
@@ -275,9 +275,9 @@ struct ShutdownRequest : StreamRequest {
 private:
     friend Stream;
 
-    backend::BackendShutdownRequest* impl () {
+    backend::ShutdownRequestImpl* impl () {
         if (!_impl) _impl = handle->impl()->new_shutdown_request(this);
-        return static_cast<backend::BackendShutdownRequest*>(_impl);
+        return static_cast<backend::ShutdownRequestImpl*>(_impl);
     }
 
     void exec         () override;

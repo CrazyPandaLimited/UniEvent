@@ -1,20 +1,20 @@
 #pragma once
 #include "Queue.h"
-#include "Handle.h"
 #include "Request.h"
 #include "AddrInfo.h"
-#include "backend/BackendUdp.h"
+#include "BackendHandle.h"
+#include "backend/UdpImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Udp : virtual BHandle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
+struct Udp : virtual BackendHandle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
     using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
     using receive_fn    = function<receive_fptr>;
     using send_fptr     = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
     using send_fn       = function<send_fptr>;
-    using BackendUdp    = backend::BackendUdp;
-    using Flags         = BackendUdp::Flags;
-    using Membership    = BackendUdp::Membership;
+    using UdpImpl    = backend::UdpImpl;
+    using Flags         = UdpImpl::Flags;
+    using Membership    = UdpImpl::Membership;
 
     buf_alloc_fn                     buf_alloc_callback;
     CallbackDispatcher<receive_fptr> receive_event;
@@ -73,9 +73,9 @@ private:
     int   domain;
     Queue queue;
 
-    BackendUdp* impl () const { return static_cast<BackendUdp*>(BHandle::impl()); }
+    UdpImpl* impl () const { return static_cast<UdpImpl*>(BackendHandle::impl()); }
 
-    BackendHandle* new_impl () override;
+    HandleImpl* new_impl () override;
 
     void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) override;
 };
@@ -107,9 +107,9 @@ private:
         Request::set(h);
     }
 
-    backend::BackendSendRequest* impl () {
+    backend::SendRequestImpl* impl () {
         if (!_impl) _impl = handle->impl()->new_send_request(this);
-        return static_cast<backend::BackendSendRequest*>(_impl);
+        return static_cast<backend::SendRequestImpl*>(_impl);
     }
 
     void exec         () override;

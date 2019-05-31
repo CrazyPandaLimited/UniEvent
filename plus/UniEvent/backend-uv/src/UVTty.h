@@ -1,11 +1,11 @@
 #pragma once
 #include "UVStream.h"
-#include <panda/unievent/backend/BackendTty.h>
+#include <panda/unievent/backend/TtyImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVTty : UVStream<BackendTty, uv_tty_t> {
-    UVTty (UVLoop* loop, IStreamListener* lst, fd_t fd) : UVStream<BackendTty, uv_tty_t>(loop, lst) {
+struct UVTty : UVStream<TtyImpl, uv_tty_t> {
+    UVTty (UVLoop* loop, IStreamListener* lst, fd_t fd) : UVStream<TtyImpl, uv_tty_t>(loop, lst) {
         uvx_strict(uv_tty_init(loop->uvloop, &uvh, fd, /*not used*/0));
     }
 

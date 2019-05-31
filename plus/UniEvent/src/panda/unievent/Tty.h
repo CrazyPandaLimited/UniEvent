@@ -1,13 +1,13 @@
 #pragma once
 #include "Stream.h"
-#include "backend/BackendTty.h"
+#include "backend/TtyImpl.h"
 
 namespace panda { namespace unievent {
 
 struct Tty : virtual Stream {
-    using BackendTty = backend::BackendTty;
-    using Mode       = BackendTty::Mode;
-    using WinSize    = BackendTty::WinSize;
+    using TtyImpl = backend::TtyImpl;
+    using Mode       = TtyImpl::Mode;
+    using WinSize    = TtyImpl::WinSize;
 
     static const HandleType TYPE;
 
@@ -26,8 +26,8 @@ protected:
     StreamSP create_connection () override;
 
 private:
-    BackendTty*    impl     () const { return static_cast<BackendTty*>(BHandle::impl()); }
-    BackendHandle* new_impl () override;
+    TtyImpl*    impl     () const { return static_cast<TtyImpl*>(BackendHandle::impl()); }
+    HandleImpl* new_impl () override;
 };
 using TtySP = iptr<Tty>;
 

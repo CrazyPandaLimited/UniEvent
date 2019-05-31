@@ -1,10 +1,10 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendAsync.h"
+#include "BackendHandle.h"
+#include "backend/AsyncImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Async : virtual BHandle, private backend::IAsyncListener {
+struct Async : virtual BackendHandle, private backend::IAsyncListener {
     using async_fptr = void(const AsyncSP&);
     using async_fn   = function<async_fptr>;
     
@@ -35,7 +35,7 @@ protected:
 private:
     void handle_async () override;
 
-    backend::BackendAsync* impl () const { return static_cast<backend::BackendAsync*>(_impl); }
+    backend::AsyncImpl* impl () const { return static_cast<backend::AsyncImpl*>(_impl); }
 };
 
 }}

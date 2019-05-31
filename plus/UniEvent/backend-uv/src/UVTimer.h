@@ -1,11 +1,11 @@
 #pragma once
 #include "UVHandle.h"
-#include <panda/unievent/backend/BackendTimer.h>
+#include <panda/unievent/backend/TimerImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVTimer : UVHandle<BackendTimer, uv_timer_t> {
-    UVTimer (UVLoop* loop, ITimerListener* lst) : UVHandle<BackendTimer, uv_timer_t>(loop, lst) {
+struct UVTimer : UVHandle<TimerImpl, uv_timer_t> {
+    UVTimer (UVLoop* loop, ITimerListener* lst) : UVHandle<TimerImpl, uv_timer_t>(loop, lst) {
         uv_timer_init(loop->uvloop, &uvh);
     }
 

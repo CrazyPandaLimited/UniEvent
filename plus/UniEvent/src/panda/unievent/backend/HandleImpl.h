@@ -1,19 +1,19 @@
 #pragma once
 #include "../Debug.h"
 #include "../Error.h"
-#include "BackendLoop.h"
+#include "LoopImpl.h"
 #include <panda/string.h>
 #include <panda/optional.h>
 
 namespace panda { namespace unievent { namespace backend {
 
-struct BackendHandle {
+struct HandleImpl {
     static constexpr const size_t MIN_ALLOC_SIZE = 1024;
 
     uint64_t     id;
-    BackendLoop* loop;
+    LoopImpl* loop;
 
-    BackendHandle (BackendLoop* loop) : id(++last_id), loop(loop) {}
+    HandleImpl (LoopImpl* loop) : id(++last_id), loop(loop) {}
 
     virtual bool active () const = 0;
 
@@ -25,7 +25,7 @@ struct BackendHandle {
 
     virtual void destroy () noexcept = 0;
 
-    virtual ~BackendHandle () {}
+    virtual ~HandleImpl () {}
 
     template <class T>
     static string buf_alloc (size_t size, T allocator) noexcept {
@@ -42,18 +42,18 @@ struct IRequestListener {
     virtual void handle_event (const CodeError&) = 0;
 };
 
-struct BackendRequest {
-    BackendHandle*    handle;
+struct RequestImpl {
+    HandleImpl*    handle;
     IRequestListener* listener;
 
-    BackendRequest (BackendHandle* h, IRequestListener* l) : handle(h), listener(l) { _ECTOR(); }
+    RequestImpl (HandleImpl* h, IRequestListener* l) : handle(h), listener(l) { _ECTOR(); }
 
     void handle_event (const CodeError& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_event(err); });
     }
 
     virtual void destroy () noexcept = 0;
-    virtual ~BackendRequest () { _EDTOR(); }
+    virtual ~RequestImpl () { _EDTOR(); }
 };
 
 }}}

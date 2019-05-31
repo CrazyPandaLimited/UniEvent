@@ -12,10 +12,10 @@ backend::Backend* default_backend     ();
 void              set_default_backend (backend::Backend* backend);
 
 struct Loop : Refcnt {
-    using Backend     = backend::Backend;
-    using BackendLoop = backend::BackendLoop;
-    using Handles     = panda::lib::IntrusiveChain<Handle*>;
-    using RunMode     = BackendLoop::RunMode;
+    using Backend  = backend::Backend;
+    using LoopImpl = backend::LoopImpl;
+    using Handles  = panda::lib::IntrusiveChain<Handle*>;
+    using RunMode  = LoopImpl::RunMode;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -27,7 +27,7 @@ struct Loop : Refcnt {
         return _default_loop;
     }
 
-    Loop (Backend* backend = nullptr) : Loop(backend, BackendLoop::Type::LOCAL) {}
+    Loop (Backend* backend = nullptr) : Loop(backend, LoopImpl::Type::LOCAL) {}
 
     Backend* backend () const { return _backend; }
 
@@ -47,7 +47,7 @@ struct Loop : Refcnt {
 
     const Handles& handles () const { return _handles; }
 
-    uint64_t delay (const BackendLoop::delayed_fn& f, const iptr<Refcnt>& guard = {}) {
+    uint64_t delay (const LoopImpl::delayed_fn& f, const iptr<Refcnt>& guard = {}) {
         return impl()->delay(f, guard);
     }
 
@@ -57,7 +57,7 @@ struct Loop : Refcnt {
 
     Resolver* resolver ();
 
-    BackendLoop* impl () { return _impl; }
+    LoopImpl* impl () { return _impl; }
 
     void dump () const;
 
@@ -68,13 +68,13 @@ private:
     friend Handle; friend Work;
     using Works = panda::lib::IntrusiveChain<WorkSP>;
 
-    Backend*     _backend;
-    BackendLoop* _impl;
-    Handles      _handles;
-    ResolverSP   _resolver;
-    Works        _works;
+    Backend*   _backend;
+    LoopImpl*  _impl;
+    Handles    _handles;
+    ResolverSP _resolver;
+    Works      _works;
 
-    Loop (Backend*, BackendLoop::Type);
+    Loop (Backend*, LoopImpl::Type);
 
     void register_handle   (Handle* h)          { _handles.push_back(h); }
     void unregister_handle (Handle* h) noexcept { _handles.erase(h); }

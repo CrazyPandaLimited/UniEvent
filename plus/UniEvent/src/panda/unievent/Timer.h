@@ -1,11 +1,11 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendTimer.h"
+#include "BackendHandle.h"
+#include "backend/TimerImpl.h"
 
 namespace panda { namespace unievent {
 
 // All the values are in milliseconds.
-struct Timer : virtual BHandle, private backend::ITimerListener {
+struct Timer : virtual BackendHandle, private backend::ITimerListener {
     using timer_fptr = void(const TimerSP& handle);
     using timer_fn = function<timer_fptr>;
 
@@ -41,7 +41,7 @@ protected:
 private:
     void handle_timer () override;
 
-    backend::BackendTimer* impl () const { return static_cast<backend::BackendTimer*>(_impl); }
+    backend::TimerImpl* impl () const { return static_cast<backend::TimerImpl*>(_impl); }
 };
 
 }}

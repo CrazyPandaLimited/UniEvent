@@ -28,15 +28,15 @@ void set_default_backend (backend::Backend* backend) {
 }
 
 void Loop::_init_global_loop () {
-    _global_loop = new Loop(nullptr, BackendLoop::Type::GLOBAL);
+    _global_loop = new Loop(nullptr, LoopImpl::Type::GLOBAL);
 }
 
 void Loop::_init_default_loop () {
     if (std::this_thread::get_id() == main_thread_id) _default_loop = global_loop();
-    else _default_loop = new Loop(nullptr, BackendLoop::Type::DEFAULT);
+    else _default_loop = new Loop(nullptr, LoopImpl::Type::DEFAULT);
 }
 
-Loop::Loop (Backend* backend, BackendLoop::Type type) {
+Loop::Loop (Backend* backend, LoopImpl::Type type) {
     _ECTOR();
     if (!backend) backend = default_backend();
     _backend = backend;

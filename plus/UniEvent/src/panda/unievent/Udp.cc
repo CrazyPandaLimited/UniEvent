@@ -6,7 +6,7 @@ const HandleType Udp::TYPE("udp");
 
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, AddrInfoHints::PASSIVE);
 
-backend::BackendHandle* Udp::new_impl () {
+backend::HandleImpl* Udp::new_impl () {
     return loop()->impl()->new_udp(this, domain);
 }
 
@@ -99,12 +99,12 @@ void Udp::on_send (const CodeError& err, const SendRequestSP& r) {
 }
 
 void Udp::reset () {
-    queue.cancel([&]{ BHandle::reset(); });
+    queue.cancel([&]{ BackendHandle::reset(); });
 }
 
 void Udp::clear () {
     queue.cancel([&]{
-        BHandle::clear();
+        BackendHandle::clear();
         domain = AF_UNSPEC;
         buf_alloc_callback = nullptr;
         receive_event.remove_all();

@@ -1,7 +1,7 @@
 #pragma once
 #include "../Error.h"
 #include "../Debug.h"
-#include "BackendLoop.h"
+#include "LoopImpl.h"
 
 namespace panda { namespace unievent { namespace backend {
 
@@ -10,11 +10,11 @@ struct IWorkListener {
     virtual void handle_after_work (const CodeError&) = 0;
 };
 
-struct BackendWork {
-    BackendLoop*   loop;
+struct WorkImpl {
+    LoopImpl*   loop;
     IWorkListener* listener;
 
-    BackendWork (BackendLoop* loop, IWorkListener* lst) : loop(loop), listener(lst) { _ECTOR(); }
+    WorkImpl (LoopImpl* loop, IWorkListener* lst) : loop(loop), listener(lst) { _ECTOR(); }
 
     virtual void queue () = 0;
 
@@ -28,7 +28,7 @@ struct BackendWork {
 
     virtual bool destroy () noexcept = 0;
 
-    virtual ~BackendWork () { _EDTOR(); }
+    virtual ~WorkImpl () { _EDTOR(); }
 };
 
 }}}

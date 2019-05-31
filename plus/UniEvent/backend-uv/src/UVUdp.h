@@ -1,16 +1,16 @@
 #pragma once
 #include "UVHandle.h"
 #include "UVRequest.h"
-#include <panda/unievent/backend/BackendUdp.h>
+#include <panda/unievent/backend/UdpImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVSendRequest : UVRequest<BackendSendRequest, uv_udp_send_t>, AllocatedObject<UVSendRequest> {
-    using UVRequest<BackendSendRequest, uv_udp_send_t>::UVRequest;
+struct UVSendRequest : UVRequest<SendRequestImpl, uv_udp_send_t>, AllocatedObject<UVSendRequest> {
+    using UVRequest<SendRequestImpl, uv_udp_send_t>::UVRequest;
 };
 
-struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
-    UVUdp (UVLoop* loop, IUdpListener* lst, int domain) : UVHandle<BackendUdp, uv_udp_t>(loop, lst) {
+struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
+    UVUdp (UVLoop* loop, IUdpListener* lst, int domain) : UVHandle<UdpImpl, uv_udp_t>(loop, lst) {
         uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop->uvloop, &uvh) : uv_udp_init_ex(loop->uvloop, &uvh, domain));
     }
 
@@ -37,7 +37,7 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         uvx_strict(uv_udp_recv_stop(&uvh));
     }
 
-    CodeError send (const std::vector<string>& bufs, const net::SockAddr& addr, BackendSendRequest* _req) override {
+    CodeError send (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl* _req) override {
         auto req = static_cast<UVSendRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.get(), on_send);
@@ -92,7 +92,7 @@ struct UVUdp : UVHandle<BackendUdp, uv_udp_t> {
         uvx_strict(uv_udp_set_ttl(&uvh, ttl));
     }
 
-    BackendSendRequest* new_send_request (IRequestListener* l) override { return new UVSendRequest(this, l); }
+    SendRequestImpl* new_send_request (IRequestListener* l) override { return new UVSendRequest(this, l); }
 
 private:
     static void on_send (uv_udp_send_t* p, int status) {

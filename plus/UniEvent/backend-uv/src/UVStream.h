@@ -1,35 +1,35 @@
 #pragma once
 #include "UVHandle.h"
 #include "UVRequest.h"
-#include <panda/unievent/backend/BackendStream.h>
+#include <panda/unievent/backend/StreamImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVConnectRequest : UVRequest<BackendConnectRequest, uv_connect_t>, AllocatedObject<UVConnectRequest> {
-    using UVRequest<BackendConnectRequest, uv_connect_t>::UVRequest;
+struct UVConnectRequest : UVRequest<ConnectRequestImpl, uv_connect_t>, AllocatedObject<UVConnectRequest> {
+    using UVRequest<ConnectRequestImpl, uv_connect_t>::UVRequest;
 };
 
-struct UVWriteRequest : UVRequest<BackendWriteRequest, uv_write_t>, AllocatedObject<UVWriteRequest> {
-    using UVRequest<BackendWriteRequest, uv_write_t>::UVRequest;
+struct UVWriteRequest : UVRequest<WriteRequestImpl, uv_write_t>, AllocatedObject<UVWriteRequest> {
+    using UVRequest<WriteRequestImpl, uv_write_t>::UVRequest;
 };
 
-struct UVShutdownRequest : UVRequest<BackendShutdownRequest, uv_shutdown_t>, AllocatedObject<UVShutdownRequest> {
-    using UVRequest<BackendShutdownRequest, uv_shutdown_t>::UVRequest;
+struct UVShutdownRequest : UVRequest<ShutdownRequestImpl, uv_shutdown_t>, AllocatedObject<UVShutdownRequest> {
+    using UVRequest<ShutdownRequestImpl, uv_shutdown_t>::UVRequest;
 };
 
 template <class Base, class UvReq>
 struct UVStream : UVHandle<Base, UvReq> {
     UVStream (UVLoop* loop, IStreamListener* lst) : UVHandle<Base, UvReq>(loop, lst) {}
 
-    BackendConnectRequest*  new_connect_request  (IRequestListener* l) override { return new UVConnectRequest(this, l); }
-    BackendWriteRequest*    new_write_request    (IRequestListener* l) override { return new UVWriteRequest(this, l); }
-    BackendShutdownRequest* new_shutdown_request (IRequestListener* l) override { return new UVShutdownRequest(this, l); }
+    ConnectRequestImpl*  new_connect_request  (IRequestListener* l) override { return new UVConnectRequest(this, l); }
+    WriteRequestImpl*    new_write_request    (IRequestListener* l) override { return new UVWriteRequest(this, l); }
+    ShutdownRequestImpl* new_shutdown_request (IRequestListener* l) override { return new UVShutdownRequest(this, l); }
 
     void listen (int backlog) override {
         uvx_strict(uv_listen(uvsp(), backlog, on_connection));
     }
 
-    CodeError accept (BackendStream* _client) {
+    CodeError accept (StreamImpl* _client) {
         auto client = static_cast<UVStream*>(_client);
         return uvx_ce(uv_accept(uvsp(), client->uvsp()));
     }
@@ -42,7 +42,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         uv_read_stop(uvsp());
     }
 
-    CodeError write (const std::vector<string>& bufs, BackendWriteRequest* _req) {
+    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req) {
         auto req = static_cast<UVWriteRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_write(&req->uvr, uvsp(), uvbufs, bufs.size(), on_write);
@@ -50,7 +50,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         return uvx_ce(err);
     }
 
-    CodeError shutdown (BackendShutdownRequest* _req) {
+    CodeError shutdown (ShutdownRequestImpl* _req) {
         auto req = static_cast<UVShutdownRequest*>(_req);
         int err = uv_shutdown(&req->uvr, uvsp(), on_shutdown);
         if (!err) req->active = true;

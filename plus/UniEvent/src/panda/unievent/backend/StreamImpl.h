@@ -1,5 +1,5 @@
 #pragma once
-#include "BackendHandle.h"
+#include "HandleImpl.h"
 #include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent { namespace backend {
@@ -11,25 +11,25 @@ struct IStreamListener {
     virtual void   handle_eof        () = 0;
 };
 
-struct BackendConnectRequest  : BackendRequest { using BackendRequest::BackendRequest; };
-struct BackendWriteRequest    : BackendRequest { using BackendRequest::BackendRequest; };
-struct BackendShutdownRequest : BackendRequest { using BackendRequest::BackendRequest; };
+struct ConnectRequestImpl  : RequestImpl { using RequestImpl::RequestImpl; };
+struct WriteRequestImpl    : RequestImpl { using RequestImpl::RequestImpl; };
+struct ShutdownRequestImpl : RequestImpl { using RequestImpl::RequestImpl; };
 
-struct BackendStream : BackendHandle {
-    BackendStream (BackendLoop* loop, IStreamListener* lst) : BackendHandle(loop), listener(lst) {}
+struct StreamImpl : HandleImpl {
+    StreamImpl (LoopImpl* loop, IStreamListener* lst) : HandleImpl(loop), listener(lst) {}
 
-    virtual BackendConnectRequest*  new_connect_request  (IRequestListener*) = 0;
-    virtual BackendWriteRequest*    new_write_request    (IRequestListener*) = 0;
-    virtual BackendShutdownRequest* new_shutdown_request (IRequestListener*) = 0;
+    virtual ConnectRequestImpl*  new_connect_request  (IRequestListener*) = 0;
+    virtual WriteRequestImpl*    new_write_request    (IRequestListener*) = 0;
+    virtual ShutdownRequestImpl* new_shutdown_request (IRequestListener*) = 0;
 
-    string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
+    string buf_alloc (size_t size) noexcept { return HandleImpl::buf_alloc(size, listener); }
 
     virtual void      listen     (int backlog) = 0;
-    virtual CodeError accept     (BackendStream* client) = 0;
+    virtual CodeError accept     (StreamImpl* client) = 0;
     virtual CodeError read_start () = 0;
     virtual void      read_stop  () = 0;
-    virtual CodeError write      (const std::vector<string>& bufs, BackendWriteRequest*) = 0;
-    virtual CodeError shutdown   (BackendShutdownRequest*) = 0;
+    virtual CodeError write      (const std::vector<string>& bufs, WriteRequestImpl*) = 0;
+    virtual CodeError shutdown   (ShutdownRequestImpl*) = 0;
 
     virtual optional<fh_t> fileno () const = 0;
 

@@ -1,10 +1,10 @@
 #pragma once
-#include "Handle.h"
-#include "backend/BackendPrepare.h"
+#include "BackendHandle.h"
+#include "backend/PrepareImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Prepare : virtual BHandle, private backend::IPrepareListener {
+struct Prepare : virtual BackendHandle, private backend::IPrepareListener {
     using prepare_fptr = void(const PrepareSP&);
     using prepare_fn   = function<prepare_fptr>;
 
@@ -34,7 +34,7 @@ protected:
 private:
     void handle_prepare () override;
 
-    backend::BackendPrepare* impl () const { return static_cast<backend::BackendPrepare*>(_impl); }
+    backend::PrepareImpl* impl () const { return static_cast<backend::PrepareImpl*>(_impl); }
 };
 
 }}

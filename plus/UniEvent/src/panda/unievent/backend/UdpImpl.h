@@ -1,5 +1,5 @@
 #pragma once
-#include "BackendHandle.h"
+#include "HandleImpl.h"
 #include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent { namespace backend {
@@ -9,9 +9,9 @@ struct IUdpListener {
     virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) = 0;
 };
 
-struct BackendSendRequest : BackendRequest { using BackendRequest::BackendRequest; };
+struct SendRequestImpl : RequestImpl { using RequestImpl::RequestImpl; };
 
-struct BackendUdp : BackendHandle {
+struct UdpImpl : HandleImpl {
     struct Flags {
         static const constexpr int PARTIAL   = 1;
         static const constexpr int IPV6ONLY  = 2;
@@ -23,18 +23,18 @@ struct BackendUdp : BackendHandle {
         JOIN_GROUP
     };
 
-    BackendUdp (BackendLoop* loop, IUdpListener* lst) : BackendHandle(loop), listener(lst) {}
+    UdpImpl (LoopImpl* loop, IUdpListener* lst) : HandleImpl(loop), listener(lst) {}
 
-    virtual BackendRequest* new_send_request (IRequestListener*) = 0;
+    virtual RequestImpl* new_send_request (IRequestListener*) = 0;
 
-    string buf_alloc (size_t size) noexcept { return BackendHandle::buf_alloc(size, listener); }
+    string buf_alloc (size_t size) noexcept { return HandleImpl::buf_alloc(size, listener); }
 
     virtual void      open       (sock_t sock) = 0;
     virtual void      bind       (const net::SockAddr&, unsigned flags) = 0;
     virtual void      connect    (const net::SockAddr&) = 0;
     virtual void      recv_start () = 0;
     virtual void      recv_stop  () = 0;
-    virtual CodeError send       (const std::vector<string>& bufs, const net::SockAddr& addr, BackendSendRequest*) = 0;
+    virtual CodeError send       (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl*) = 0;
 
     virtual net::SockAddr sockaddr () = 0;
     virtual net::SockAddr peeraddr () = 0;

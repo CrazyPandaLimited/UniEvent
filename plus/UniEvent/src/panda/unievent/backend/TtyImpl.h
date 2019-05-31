@@ -1,9 +1,9 @@
 #pragma once
-#include "BackendStream.h"
+#include "StreamImpl.h"
 
 namespace panda { namespace unievent { namespace backend {
 
-struct BackendTty : BackendStream {
+struct TtyImpl : StreamImpl {
     enum class Mode { STD = 0, RAW, IO };
 
     struct WinSize {
@@ -11,7 +11,7 @@ struct BackendTty : BackendStream {
         int height;
     };
 
-    BackendTty (BackendLoop* loop, IStreamListener* lst) : BackendStream(loop, lst) {}
+    TtyImpl (LoopImpl* loop, IStreamListener* lst) : StreamImpl(loop, lst) {}
 
     virtual void    set_mode    (Mode) = 0;
     virtual WinSize get_winsize ()     = 0;

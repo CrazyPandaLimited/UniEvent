@@ -8,7 +8,7 @@ const HandleType& Pipe::type () const {
     return TYPE;
 }
 
-backend::BackendHandle* Pipe::new_impl () {
+backend::HandleImpl* Pipe::new_impl () {
     return loop()->impl()->new_pipe(this, _ipc);
 }
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "BackendLoop.h"
+#include "LoopImpl.h"
 #include <panda/string.h>
 
 namespace panda { namespace unievent { namespace backend {
@@ -8,7 +8,7 @@ struct Backend {
 
     panda::string name () const { return _name; }
 
-    virtual BackendLoop* new_loop (BackendLoop::Type type) = 0;
+    virtual LoopImpl* new_loop (LoopImpl::Type type) = 0;
 
     virtual ~Backend () {}
 

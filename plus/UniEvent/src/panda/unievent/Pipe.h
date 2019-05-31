@@ -1,6 +1,6 @@
 #pragma once
 #include "Stream.h"
-#include "backend/BackendPipe.h"
+#include "backend/PipeImpl.h"
 
 namespace panda { namespace unievent {
 
@@ -38,9 +38,9 @@ private:
 
     bool _ipc;
 
-    backend::BackendPipe* impl () const { return static_cast<backend::BackendPipe*>(BHandle::impl()); }
+    backend::PipeImpl* impl () const { return static_cast<backend::PipeImpl*>(BackendHandle::impl()); }
 
-    BackendHandle* new_impl () override;
+    HandleImpl* new_impl () override;
 };
 
 

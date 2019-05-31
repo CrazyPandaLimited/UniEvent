@@ -1,11 +1,11 @@
 #pragma once
 #include "UVHandle.h"
-#include <panda/unievent/backend/BackendIdle.h>
+#include <panda/unievent/backend/IdleImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVIdle : UVHandle<BackendIdle, uv_idle_t> {
-    UVIdle (UVLoop* loop, IIdleListener* lst) : UVHandle<BackendIdle, uv_idle_t>(loop, lst) {
+struct UVIdle : UVHandle<IdleImpl, uv_idle_t> {
+    UVIdle (UVLoop* loop, IIdleListener* lst) : UVHandle<IdleImpl, uv_idle_t>(loop, lst) {
         uv_idle_init(loop->uvloop, &uvh);
     }
 

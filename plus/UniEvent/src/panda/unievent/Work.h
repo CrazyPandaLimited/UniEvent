@@ -1,12 +1,12 @@
 #pragma once
 #include "Loop.h"
-#include "backend/BackendWork.h"
+#include "backend/WorkImpl.h"
 #include <panda/lib/memory.h>
 
 namespace panda { namespace unievent {
 
 struct Work : Refcnt, lib::IntrusiveChainNode<WorkSP>, lib::AllocatedObject<Work>, private backend::IWorkListener {
-    using BackendWork   = backend::BackendWork;
+    using WorkImpl   = backend::WorkImpl;
     using work_fn       = function<void(Work*)>;
     using after_work_fn = function<void(const WorkSP&, const CodeError&)>;
 
@@ -32,13 +32,13 @@ protected:
 
 private:
     LoopSP       _loop;
-    BackendWork* _impl;
+    WorkImpl* _impl;
     bool         _active;
 
     void handle_work       () override;
     void handle_after_work (const CodeError& err) override;
 
-    BackendWork* impl () {
+    WorkImpl* impl () {
         if (!_impl) _impl = _loop->impl()->new_work(this);
         return _impl;
     }

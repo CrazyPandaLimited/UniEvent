@@ -1,11 +1,11 @@
 #pragma once
 #include "UVHandle.h"
-#include <panda/unievent/backend/BackendPrepare.h>
+#include <panda/unievent/backend/PrepareImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVPrepare : UVHandle<BackendPrepare, uv_prepare_t> {
-    UVPrepare (UVLoop* loop, IPrepareListener* lst) : UVHandle<BackendPrepare, uv_prepare_t>(loop, lst) {
+struct UVPrepare : UVHandle<PrepareImpl, uv_prepare_t> {
+    UVPrepare (UVLoop* loop, IPrepareListener* lst) : UVHandle<PrepareImpl, uv_prepare_t>(loop, lst) {
         uv_prepare_init(loop->uvloop, &uvh);
     }
 

@@ -16,7 +16,7 @@ const HandleType& Tty::type () const {
     return TYPE;
 }
 
-backend::BackendHandle* Tty::new_impl () {
+backend::HandleImpl* Tty::new_impl () {
     return loop()->impl()->new_tty(this, fd);
 }
 
