@@ -7,7 +7,6 @@ use Test::Deep;
 use Test2::IPC;
 use Test::Catch;
 use Test::Exception;
-use File::Path qw/make_path remove_tree/;
 
 XS::Loader::load_tests('MyTest');
 
@@ -91,62 +90,6 @@ sub variate_catch {
 }
 
 sub var ($) { return "$rdir/$_[0]" }
-
-sub create_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        open my $fh, '>', $path or die "$path: $!";
-        close $fh;
-    };
-}
-
-sub create_dir {
-    my $path = "$rdir/".shift();
-    return sub {
-        make_path($path, {mode => 0755});
-    };
-}
-
-sub move {
-    my $old = "$rdir/".shift();
-    my $new = "$rdir/".shift();
-    return sub {
-        rename $old, $new or die "rename $old -> $new: $!";
-    };
-}
-
-sub change_file_mtime {
-    my $path = "$rdir/".shift();
-    return sub {
-        my $time = time();
-        my $rnd;
-        do { $rnd = int rand 10000000 } while $used_mtimes{$rnd}++;
-        utime($time-$rnd, $time-$rnd, $path) or die "$path: $!";
-    };
-}
-
-sub change_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        open my $fh, '>>', $path or die "$path: $!";
-        print $fh "content".int(rand 2**32)."\n";
-        close $fh;
-    };
-}
-
-sub unlink_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        unlink($path);
-    };
-}
-
-sub remove_dir {
-    my $path = "$rdir/".shift();
-    return sub {
-        remove_tree($path);
-    };
-}
 
 END { # clean up after file tests
     UniEvent::Fs::remove_all($rdir) if -d $rdir;
