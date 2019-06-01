@@ -70,6 +70,9 @@ struct CodeError : Error {
 
     static ErrorCategory category;
 
+    bool operator== (const CodeError& oth) const { return code() == oth.code(); }
+    bool operator!= (const CodeError& oth) const { return !operator==(oth); }
+
 protected:
     std::error_code _code;
 

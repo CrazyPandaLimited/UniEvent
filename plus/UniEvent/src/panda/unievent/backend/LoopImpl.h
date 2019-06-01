@@ -44,6 +44,7 @@ struct LoopImpl {
     virtual TcpImpl*     new_tcp       (IStreamListener*, int domain) = 0;
     virtual TtyImpl*     new_tty       (IStreamListener*, fd_t)       = 0;
     virtual WorkImpl*    new_work      (IWorkListener*)               = 0;
+    virtual FsEventImpl* new_fs_event  (IFsEventListener*)            = 0;
 
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;
     virtual void     cancel_delay (uint64_t id) noexcept = 0;

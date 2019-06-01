@@ -78,4 +78,7 @@ using WorkSP = iptr<Work>;
 struct FsPoll;
 using FsPollSP = iptr<FsPoll>;
 
+struct FsEvent;
+using FsEventSP = iptr<FsEvent>;
+
 }}

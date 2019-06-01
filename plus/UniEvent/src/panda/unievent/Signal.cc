@@ -74,6 +74,7 @@ void Signal::reset () {
 
 void Signal::clear () {
     stop();
+    weak(false);
     event.remove_all();
 }
 

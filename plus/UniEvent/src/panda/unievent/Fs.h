@@ -53,7 +53,7 @@ struct Fs {
         static const int FICLONE_FORCE;
     };
 
-    enum class FileType {BLOCK, CHAR, DIR, FIFO, LINK, FILE, SOCKET, UNKNOWN};
+    enum class FileType {UNKNOWN, BLOCK, CHAR, DIR, FIFO, LINK, FILE, SOCKET};
 
     struct Stat {
         uint64_t dev;
@@ -82,6 +82,9 @@ struct Fs {
             return mode & ~S_IFMT;
           #endif
         }
+
+        bool operator== (const Stat&)     const;
+        bool operator!= (const Stat& oth) const { return !operator==(oth); }
     };
 
     struct DirEntry {

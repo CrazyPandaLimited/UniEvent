@@ -51,6 +51,7 @@ void Timer::reset () {
 
 void Timer::clear () {
     impl()->stop();
+    weak(false);
     event.remove_all();
 }
 

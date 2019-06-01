@@ -15,28 +15,13 @@ using namespace panda::unievent;
 Stash get_perl_class_for_err    (const Error& err);
 Stash get_perl_class_for_handle (Handle* h);
 
-inline fd_t sv2file (const Sv& sv) {
+inline fd_t sv2fd (const Sv& sv) {
     if (sv.is_ref()) return (fd_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
     else             return (fd_t)SvUV(sv);
 }
 
-struct XSCallback {
-    CV* callback;
-
-    XSCallback () : callback(nullptr) {}
-
-    void set  (SV* callback_rv);
-    SV*  get  ();
-    bool call (const Object& handle, const Simple& evname, std::initializer_list<Scalar> args = {});
-
-    ~XSCallback () {
-        SvREFCNT_dec(callback); // release callback
-    }
-};
-
 struct XSPrepare : Prepare {
     using Prepare::Prepare;
-    XSCallback prepare_xscb;
 protected:
     void on_prepare () override;
 };
@@ -44,7 +29,6 @@ protected:
 
 struct XSCheck : Check {
     using Check::Check;
-    XSCallback check_xscb;
 protected:
     void on_check () override;
 };
@@ -52,7 +36,6 @@ protected:
 
 struct XSIdle : Idle {
     using Idle::Idle;
-    XSCallback idle_xscb;
 protected:
     void on_idle () override;
 };
@@ -60,7 +43,6 @@ protected:
 
 struct XSTimer : Timer {
     using Timer::Timer;
-    XSCallback timer_xscb;
 protected:
     void on_timer () override;
 };
@@ -68,7 +50,6 @@ protected:
 
 struct XSSignal : Signal {
     using Signal::Signal;
-    XSCallback signal_xscb;
 protected:
     void on_signal (int signum) override;
 };
@@ -76,8 +57,6 @@ protected:
 
 struct XSUdp : Udp {
     using Udp::Udp;
-    XSCallback receive_xscb;
-    XSCallback send_xscb;
 protected:
     void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) override;
     void on_send    (const CodeError& err, const SendRequestSP& req) override;
@@ -86,13 +65,6 @@ protected:
 
 struct XSStream : virtual Stream {
     using Stream::Stream;
-    XSCallback connection_xscb;
-    XSCallback read_xscb;
-    XSCallback write_xscb;
-    XSCallback shutdown_xscb;
-    XSCallback eof_xscb;
-    XSCallback connect_xscb;
-    XSCallback create_connection_xscb;
 protected:
     void on_connection (const StreamSP&, const CodeError&) override;
     void on_connect    (const CodeError&, const ConnectRequestSP&) override;
@@ -120,33 +92,38 @@ struct XSTty : Tty, XSStream {
 };
 
 
-//struct XSFsPoll : FsPoll {
-//    using FsPoll::FsPoll;
-//    XSCallback fs_poll_xscb;
-//protected:
-//    void on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) override;
-//};
+struct XSFsPoll : FsPoll {
+    using FsPoll::FsPoll;
+protected:
+    void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) override;
+};
 
 
-//struct XSFSEvent : FSEvent, XSHandle {
-//    XSCallback fs_event_xscb;
-//    XSFSEvent (Loop* loop) : FSEvent(loop) {}
-//protected:
-//    void on_fs_event (const char* filename, int events) override;
-//};
-//
+struct XSFsEvent : FsEvent {
+    using FsEvent::FsEvent;
+protected:
+    void on_fs_event (const std::string_view& file, int events, const CodeError&) override;
+};
+
 
 }}
 
 namespace xs {
 
-template <class TYPE> struct Typemap<panda::unievent::Error*, TYPE*> : TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG> {};
+template <class TYPE> struct Typemap<panda::unievent::Error*, TYPE*> : TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG> {
+    using Super = TypemapObject<panda::unievent::Error*, TYPE*, ObjectTypePtr, ObjectStorageMG>;
+    static Sv out (pTHX_ TYPE* var, const Sv& sv = {}) {
+        if (!var) return Sv::undef;
+        return Super::out(aTHX_ var, sv ? sv : xs::unievent::get_perl_class_for_err(*var));
+    }
+};
+
 template <class TYPE> struct Typemap<const panda::unievent::Error&, TYPE&> : Typemap<panda::unievent::Error*, TYPE*> {
     using Super = Typemap<panda::unievent::Error*, TYPE*>;
 
     static Sv out (pTHX_ TYPE& var, const Sv& sv = {}) {
         if (!var) return Sv::undef;
-        return Super::out(aTHX_ var.clone(), sv ? sv : xs::unievent::get_perl_class_for_err(var));
+        return Super::out(aTHX_ var.clone(), sv);
     }
 
     static TYPE& in (pTHX_ const Sv& sv) {
@@ -199,6 +176,8 @@ template <class TYPE> struct Typemap<panda::unievent::Loop*, TYPE> : TypemapObje
     static panda::string package () { return "UniEvent::Loop"; }
 };
 
+template <class TYPE> struct Typemap<panda::unievent::Request*, TYPE> : TypemapObject<panda::unievent::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMG> {};
+
 template <class TYPE> struct Typemap<panda::unievent::Handle*, TYPE> : TypemapObject<panda::unievent::Handle*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {};
 
 template <class TYPE> struct Typemap<panda::unievent::BackendHandle*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {};
@@ -227,7 +206,23 @@ template <class TYPE> struct Typemap<panda::unievent::Udp*, TYPE> : Typemap<pand
     static panda::string package () { return "UniEvent::Udp"; }
 };
 
+template <class TYPE> struct Typemap<panda::unievent::SendRequest*, TYPE> : Typemap<panda::unievent::Request*, TYPE> {
+    static panda::string package () { return "UniEvent::Request::Send"; }
+};
+
 template <class TYPE> struct Typemap<panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::BackendHandle*, TYPE> {};
+
+template <class TYPE> struct Typemap<panda::unievent::ConnectRequest*, TYPE> : Typemap<panda::unievent::Request*, TYPE> {
+    static panda::string package () { return "UniEvent::Request::Connect"; }
+};
+
+template <class TYPE> struct Typemap<panda::unievent::WriteRequest*, TYPE> : Typemap<panda::unievent::Request*, TYPE> {
+    static panda::string package () { return "UniEvent::Request::Write"; }
+};
+
+template <class TYPE> struct Typemap<panda::unievent::ShutdownRequest*, TYPE> : Typemap<panda::unievent::Request*, TYPE> {
+    static panda::string package () { return "UniEvent::Request::Shutdown"; }
+};
 
 template <class TYPE> struct Typemap<panda::unievent::Pipe*, TYPE> : Typemap<panda::unievent::Stream*, TYPE> {
     static panda::string package () { return "UniEvent::Pipe"; }
@@ -241,7 +236,7 @@ template <class TYPE> struct Typemap<panda::unievent::Tty*, TYPE> : Typemap<pand
     static panda::string package () { return "UniEvent::Tty"; }
 };
 
-template <class TYPE> struct Typemap<panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref, DynamicCast> {
+template <class TYPE> struct Typemap<panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
     static panda::string package () { return "UniEvent::Fs::Request"; }
 };
 
@@ -249,9 +244,9 @@ template <class TYPE> struct Typemap<panda::unievent::FsPoll*, TYPE> : Typemap<p
     static panda::string package () { return "UniEvent::FsPoll"; }
 };
 
-//template <class TYPE> struct Typemap<panda::unievent::FSEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
-//    static panda::string package () { return "UniEvent::FSEvent"; }
-//};
+template <class TYPE> struct Typemap<panda::unievent::FsEvent*, TYPE> : Typemap<panda::unievent::Handle*, TYPE> {
+    static panda::string package () { return "UniEvent::FsEvent"; }
+};
 
 template <class TYPE> struct Typemap<panda::unievent::Resolver*, TYPE> : TypemapObject<panda::unievent::Resolver*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
     static std::string package () { return "UniEvent::Resolver"; }

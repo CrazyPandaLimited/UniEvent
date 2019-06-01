@@ -15,5 +15,5 @@
 #include <panda/unievent/Work.h>
 #include <panda/unievent/Fs.h>
 #include <panda/unievent/FsPoll.h>
-//#include <panda/unievent/FSEvent.h>
+#include <panda/unievent/FsEvent.h>
 #include <panda/unievent/util.h>

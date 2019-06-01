@@ -47,4 +47,7 @@ struct TtyImpl;
 struct WorkImpl;
 struct IWorkListener;
 
+struct FsEventImpl;
+struct IFsEventListener;
+
 }}};

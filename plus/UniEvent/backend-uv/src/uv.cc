@@ -13,6 +13,7 @@
 #include "UVSignal.h"
 #include "UVDelayer.h"
 #include "UVPrepare.h"
+#include "UVFsEvent.h"
 
 namespace panda { namespace unievent { namespace backend {
 
@@ -37,5 +38,6 @@ PipeImpl*    UVLoop::new_pipe      (IStreamListener* l, bool ipc)   { return new
 TcpImpl*     UVLoop::new_tcp       (IStreamListener* l, int domain) { return new UVTcp(this, l, domain); }
 TtyImpl*     UVLoop::new_tty       (IStreamListener* l, fd_t fd)    { return new UVTty(this, l, fd); }
 WorkImpl*    UVLoop::new_work      (IWorkListener* l)               { return new UVWork(this, l); }
+FsEventImpl* UVLoop::new_fs_event  (IFsEventListener* l)            { return new UVFsEvent(this, l); }
 
 }}}}

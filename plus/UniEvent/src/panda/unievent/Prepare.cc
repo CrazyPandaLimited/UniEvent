@@ -22,6 +22,7 @@ void Prepare::reset () {
 
 void Prepare::clear () {
     impl()->stop();
+    weak(false);
     event.remove_all();
 }
 

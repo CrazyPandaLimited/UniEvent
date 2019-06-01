@@ -10,7 +10,7 @@ struct UVTty : UVStream<TtyImpl, uv_tty_t> {
     }
 
     void set_mode (Mode mode) override {
-        uv_tty_mode_t uv_mode;
+        uv_tty_mode_t uv_mode = (uv_tty_mode_t)0;
         switch (mode) {
             case Mode::STD : uv_mode = UV_TTY_MODE_NORMAL; break;
             case Mode::RAW : uv_mode = UV_TTY_MODE_RAW;    break;

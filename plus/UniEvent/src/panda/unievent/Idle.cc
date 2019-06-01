@@ -22,6 +22,7 @@ void Idle::reset () {
 
 void Idle::clear () {
     impl()->stop();
+    weak(false);
     event.remove_all();
 }
 

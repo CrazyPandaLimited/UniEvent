@@ -52,6 +52,7 @@ inline void BackendHandle::clear () {
     if (!_impl) return;
     _impl->destroy();
     _impl = nullptr;
+    clear_weak();
 }
 
 }}

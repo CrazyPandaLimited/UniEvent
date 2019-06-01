@@ -59,6 +59,8 @@ protected:
     virtual void set_weak   () = 0;
     virtual void unset_weak () = 0;
 
+    void clear_weak () { _weak = false; }
+
 private:
     LoopSP _loop;
     bool   _weak;

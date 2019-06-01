@@ -35,6 +35,7 @@ void Poll::reset () {
 
 void Poll::clear () {
     stop();
+    weak(false);
     event.remove_all();
 }
 

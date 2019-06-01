@@ -23,6 +23,7 @@ void Check::reset () {
 void Check::clear () {
     impl()->stop();
     event.remove_all();
+    weak(false);
 }
 
 void Check::on_check () {

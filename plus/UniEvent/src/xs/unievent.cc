@@ -56,75 +56,18 @@ Stash perl_class_for_handle (Handle* h) {
         ca[Tcp::TYPE]     = Stash("UniEvent::Tcp",     GV_ADD);
         ca[Tty::TYPE]     = Stash("UniEvent::Tty",     GV_ADD);
         ca[FsPoll::TYPE]  = Stash("UniEvent::FsPoll",  GV_ADD);
-//        ca[FSEvent::Type] = Stash("UniEvent::FSEvent", GV_ADD);
-//        ca[Process::Type] = Stash("UniEvent::Process", GV_ADD);
-//        ca[File::Type]    = Stash("UniEvent::File",    GV_ADD);
+        ca[FsEvent::TYPE] = Stash("UniEvent::FsEvent", GV_ADD);
+//        ca[Process::TYPE] = Stash("UniEvent::Process", GV_ADD);
+//        ca[File::TYPE]    = Stash("UniEvent::File",    GV_ADD);
     }
     return ca.at(h->type());
 }
 
-void XSCallback::set (SV* cbsv) {
-    if (!cbsv || !SvOK(cbsv)) {
-        SvREFCNT_dec(callback);
-        callback = nullptr;
-        return;
-    }
-
-    CV* cv;
-    if (!SvROK(cbsv) || SvTYPE(cv = (CV*)SvRV(cbsv)) != SVt_PVCV) croak("[UniEvent] unsupported argument type for setting callback");
-
-    SvREFCNT_dec(callback);
-    callback = cv;
-    SvREFCNT_inc_simple_void_NN(callback);
+static inline void xscall (const Object& handle, const Simple& evname, std::initializer_list<Scalar> args = {}) {
+    if (!handle) return; // object is being destroyed
+    Sub cv = handle.method(evname); // evname is recommended to be a shared hash string for performance.
+    if (cv) cv.call(handle.ref(), args);
 }
-
-SV* XSCallback::get () {
-    return callback ? newRV((SV*)callback) : SvREFCNT_inc_simple_NN(&PL_sv_undef);
-}
-
-bool XSCallback::call (const Object& handle, const Simple& evname, std::initializer_list<Scalar> args) {
-    if (!handle) return true; // object is being destroyed
-
-    Sub cv;
-    if (evname) cv = handle.method(evname); // default behaviour - call method evname on handle. evname is recommended to be a shared hash string for performance.
-    if (!cv) cv = callback;
-    if (!cv) return false;
-
-    cv.call(handle.ref(), args);
-
-    return true;
-}
-
-//Ref stat2hvr (const stat_t* stat) {
-//    return Ref::create(Hash::create({
-//        {"dev",       Simple(s.st_dev)},
-//        {"ino",       Simple(s.st_ino)},
-//        {"mode",      Simple(s.st_mode)},
-//        {"nlink",     Simple(s.st_nlink)},
-//        {"uid",       Simple(s.st_uid)},
-//        {"gid",       Simple(s.st_gid)},
-//        {"rdev",      Simple(s.st_rdev)},
-//        {"size",      Simple(s.st_size)},
-//        {"atime",     Simple(s.st_atim.tv_sec)},
-//        {"mtime",     Simple(s.st_mtim.tv_sec)},
-//        {"ctime",     Simple(s.st_ctim.tv_sec)},
-//        {"blksize",   Simple(s.st_blksize)},
-//        {"blocks",    Simple(s.st_blocks)},
-//        {"flags",     Simple(s.st_flags)},
-//        {"gen",       Simple(s.st_gen)},
-//        {"birthtime", Simple(s.st_birthtim.tv_sec)},
-//    }));
-//}
-
-//void XSCommandCallback::run () {
-//    xscb.call(SvRV(handle_rv), nullptr);
-//}
-//
-//void XSCommandCallback::cancel () {}
-//
-//XSCommandCallback::~XSCommandCallback () {
-//    SvREFCNT_dec_NN(handle_rv);
-//}
 
 static inline void throw_bad_hints () { throw "argument is not a valid AddrInfoHints"; }
 
@@ -207,42 +150,42 @@ Fs::DirEntry Typemap<Fs::DirEntry>::in (pTHX_ const Array& a) {
 
 void XSPrepare::on_prepare () {
     auto obj = xs::out<Prepare*>(this);
-    prepare_xscb.call(obj, evname_on_prepare);
+    xscall(obj, evname_on_prepare);
     Prepare::on_prepare();
 }
 
 
 void XSCheck::on_check () {
     auto obj = xs::out<Check*>(this);
-    check_xscb.call(obj, evname_on_check);
+    xscall(obj, evname_on_check);
     Check::on_check();
 }
 
 
 void XSIdle::on_idle () {
     auto obj = xs::out<Idle*>(this);
-    idle_xscb.call(obj, evname_on_idle);
+    xscall(obj, evname_on_idle);
     Idle::on_idle();
 }
 
 
 void XSTimer::on_timer () {
     auto obj = xs::out<Timer*>(this);
-    timer_xscb.call(obj, evname_on_timer);
+    xscall(obj, evname_on_timer);
     Timer::on_timer();
 }
 
 
 void XSSignal::on_signal (int signum) {
     auto obj = xs::out<Signal*>(this);
-    signal_xscb.call(obj, evname_on_signal, { Simple(signum) });
+    xscall(obj, evname_on_signal, { Simple(signum) });
     Signal::on_signal(signum);
 }
 
 
 void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) {
     auto obj = xs::out<Udp*>(this);
-    receive_xscb.call(obj, evname_on_receive, {
+    xscall(obj, evname_on_receive, {
         err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
         xs::out(&sa),
         Simple(flags),
@@ -253,7 +196,7 @@ void XSUdp::on_receive (string& buf, const panda::net::SockAddr& sa, unsigned fl
 
 void XSUdp::on_send (const CodeError& err, const SendRequestSP& req) {
     auto obj = xs::out<Udp*>(this);
-    send_xscb.call(obj, evname_on_send, { xs::out<const CodeError&>(err) });
+    xscall(obj, evname_on_send, { xs::out<const CodeError&>(err), xs::out(req) });
     Udp::on_send(err, req);
 }
 
@@ -261,45 +204,42 @@ void XSUdp::on_send (const CodeError& err, const SendRequestSP& req) {
 void XSStream::on_connection (const StreamSP& client, const CodeError& err) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    connection_xscb.call(self, evname_on_connection, { xs::out(client.get()), xs::out<const CodeError&>(err) });
+    xscall(self, evname_on_connection, { xs::out(client.get()), xs::out<const CodeError&>(err) });
     Stream::on_connection(client, err);
 }
 
 void XSStream::on_connect (const CodeError& err, const ConnectRequestSP& req) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    connect_xscb.call(self, evname_on_connect, { xs::out<const CodeError&>(err) });
+    xscall(self, evname_on_connect, { xs::out<const CodeError&>(err), xs::out(req) });
     Stream::on_connect(err, req);
 }
 
 void XSStream::on_read (string& buf, const CodeError& err) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    read_xscb.call(self, evname_on_read, {
-        err ? Scalar::undef : Simple(string_view(buf.data(), buf.length())),
-        xs::out<const CodeError&>(err)
-    });
+    xscall(self, evname_on_read, { err ? Scalar::undef : Scalar(xs::out(buf)), xs::out<const CodeError&>(err) });
     Stream::on_read(buf, err);
 }
 
 void XSStream::on_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS();
     auto obj = xs::out<Stream*>(this);
-    write_xscb.call(obj, evname_on_write, { xs::out<const CodeError&>(err) });
+    xscall(obj, evname_on_write, { xs::out<const CodeError&>(err), xs::out(req) });
     Stream::on_write(err, req);
 }
 
 void XSStream::on_eof () {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(this);
-    eof_xscb.call(self, evname_on_eof);
+    xscall(self, evname_on_eof);
     Stream::on_eof();
 }
 
 void XSStream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS();
     auto self = xs::out<Stream*>(aTHX_ this);
-    shutdown_xscb.call(self, evname_on_shutdown, { xs::out<const CodeError&>(err) });
+    xscall(self, evname_on_shutdown, { xs::out<const CodeError&>(err), xs::out(req) });
     Stream::on_shutdown(err, req);
 }
 
@@ -313,33 +253,36 @@ StreamSP XSPipe::create_connection () {
 
 StreamSP XSTcp::create_connection () {
     TcpSP ret = make_backref<XSTcp>(loop());
-    xs::out<Tcp*>(ret.get());
+    xs::out(ret.get());
     return ret;
 }
 
 
 StreamSP XSTty::create_connection () {
     TtySP ret = make_backref<XSTty>(fd, loop());
-    xs::out<Tty*>(ret.get());
+    xs::out(ret.get());
     return ret;
 }
 
 
-//void XSFsPoll::on_fs_poll (const Stat& prev, const Stat& cur, const CodeError& err) {
-//    auto obj = xs::out<FsPoll*>(this);
-//    fs_poll_xscb.call(obj, evname_on_fs_poll, {
-//        err ? Scalar::undef : Scalar(xs::out<const Stat&>(prev)),
-//        err ? Scalar::undef : Scalar(xs::out<const Stat&>(cur)),
-//        xs::out<const CodeError&>(err)
-//    });
-//    FsPoll::on_fs_poll(prev, cur, err);
-//}
+void XSFsPoll::on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) {
+    _EDEBUGTHIS();
+    auto self = xs::out<FsPoll*>(this);
+    xscall(self, evname_on_fs_poll, {
+        xs::out(prev),
+        xs::out(cur),
+        xs::out<const CodeError&>(err)
+    });
+    FsPoll::on_fs_poll(prev, cur, err);
+}
 
 
-//void XSFSEvent::on_fs_event (const char* filename, int events) {
-//    auto obj = xs::out<FSEvent*>(aTHX_ this);
-//    if (!fs_event_xscb.call(obj, evname_on_fs_event, {
-//        Simple(filename),
-//        Simple(events)
-//    })) FSEvent::on_fs_event(filename, events);
-//}
+void XSFsEvent::on_fs_event (const std::string_view& file, int events, const CodeError& err) {
+    auto self = xs::out<FsEvent*>(this);
+    xscall(self, evname_on_fs_event, {
+        Simple(file),
+        Simple(events),
+        xs::out<const CodeError&>(err)
+    });
+    FsEvent::on_fs_event(file, events, err);
+}
