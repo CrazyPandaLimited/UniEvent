@@ -91,6 +91,7 @@ void SslFilter::reset () {
     SSL_free(oldssl);
     //// soft reset - openssl docs say it should work, but IT DOES NOT WORK!
     //if (!SSL_clear(ssl)) throw SSLError(SSL_ERROR_SSL);
+    NextFilter::reset();
 }
 
 void SslFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
