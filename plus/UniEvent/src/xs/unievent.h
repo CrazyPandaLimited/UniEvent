@@ -10,99 +10,97 @@
 
 namespace xs { namespace unievent {
 
-using namespace panda::unievent;
+Stash get_perl_class_for_err    (const panda::unievent::Error& err);
+Stash get_perl_class_for_handle (panda::unievent::Handle* h);
 
-Stash get_perl_class_for_err    (const Error& err);
-Stash get_perl_class_for_handle (Handle* h);
-
-inline fd_t sv2fd (const Sv& sv) {
-    if (sv.is_ref()) return (fd_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
-    else             return (fd_t)SvUV(sv);
+inline panda::unievent::fd_t sv2fd (const Sv& sv) {
+    if (sv.is_ref()) return (panda::unievent::fd_t)PerlIO_fileno(IoIFP( xs::in<IO*>(sv) ));
+    else             return (panda::unievent::fd_t)SvUV(sv);
 }
 
-struct XSPrepare : Prepare {
+struct XSPrepare : panda::unievent::Prepare {
     using Prepare::Prepare;
 protected:
     void on_prepare () override;
 };
 
 
-struct XSCheck : Check {
+struct XSCheck : panda::unievent::Check {
     using Check::Check;
 protected:
     void on_check () override;
 };
 
 
-struct XSIdle : Idle {
+struct XSIdle : panda::unievent::Idle {
     using Idle::Idle;
 protected:
     void on_idle () override;
 };
 
 
-struct XSTimer : Timer {
+struct XSTimer : panda::unievent::Timer {
     using Timer::Timer;
 protected:
     void on_timer () override;
 };
 
 
-struct XSSignal : Signal {
+struct XSSignal : panda::unievent::Signal {
     using Signal::Signal;
 protected:
     void on_signal (int signum) override;
 };
 
 
-struct XSUdp : Udp {
+struct XSUdp : panda::unievent::Udp {
     using Udp::Udp;
 protected:
-    void on_receive (string& buf, const panda::net::SockAddr& sa, unsigned flags, const CodeError& err) override;
-    void on_send    (const CodeError& err, const SendRequestSP& req) override;
+    void on_receive (panda::string& buf, const panda::net::SockAddr& sa, unsigned flags, const panda::unievent::CodeError& err) override;
+    void on_send    (const panda::unievent::CodeError& err, const panda::unievent::SendRequestSP& req) override;
 };
 
 
-struct XSStream : virtual Stream {
+struct XSStream : virtual panda::unievent::Stream {
     using Stream::Stream;
 protected:
-    void on_connection (const StreamSP&, const CodeError&) override;
-    void on_connect    (const CodeError&, const ConnectRequestSP&) override;
-    void on_read       (string&, const CodeError&) override;
-    void on_write      (const CodeError&, const WriteRequestSP&) override;
-    void on_shutdown   (const CodeError&, const ShutdownRequestSP&) override;
+    void on_connection (const panda::unievent::StreamSP&, const panda::unievent::CodeError&) override;
+    void on_connect    (const panda::unievent::CodeError&, const panda::unievent::ConnectRequestSP&) override;
+    void on_read       (panda::string&, const panda::unievent::CodeError&) override;
+    void on_write      (const panda::unievent::CodeError&, const panda::unievent::WriteRequestSP&) override;
+    void on_shutdown   (const panda::unievent::CodeError&, const panda::unievent::ShutdownRequestSP&) override;
     void on_eof        () override;
 };
 
-struct XSPipe : Pipe, XSStream {
+struct XSPipe : panda::unievent::Pipe, XSStream {
     using Pipe::Pipe;
-    StreamSP create_connection () override;
+    panda::unievent::StreamSP create_connection () override;
 };
 
 
-struct XSTcp : Tcp, XSStream {
+struct XSTcp : panda::unievent::Tcp, XSStream {
     using Tcp::Tcp;
-    StreamSP create_connection () override;
+    panda::unievent::StreamSP create_connection () override;
 };
 
 
-struct XSTty : Tty, XSStream {
+struct XSTty : panda::unievent::Tty, XSStream {
     using Tty::Tty;
-    StreamSP create_connection () override;
+    panda::unievent::StreamSP create_connection () override;
 };
 
 
-struct XSFsPoll : FsPoll {
+struct XSFsPoll : panda::unievent::FsPoll {
     using FsPoll::FsPoll;
 protected:
-    void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) override;
+    void on_fs_poll (const panda::unievent::Fs::Stat& prev, const panda::unievent::Fs::Stat& cur, const panda::unievent::CodeError& err) override;
 };
 
 
-struct XSFsEvent : FsEvent {
+struct XSFsEvent : panda::unievent::FsEvent {
     using FsEvent::FsEvent;
 protected:
-    void on_fs_event (const std::string_view& file, int events, const CodeError&) override;
+    void on_fs_event (const std::string_view& file, int events, const panda::unievent::CodeError&) override;
 };
 
 
