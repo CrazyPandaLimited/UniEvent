@@ -5,6 +5,8 @@ namespace panda { namespace unievent {
 
 using ssl::SslFilter;
 
+#define HOLD_ON StreamSP __hold = this; (void)__hold;
+
 Stream::~Stream () {
     _EDTOR();
 }
@@ -57,6 +59,7 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
     auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
     if (req) client->queue.done(req, []{});
+    HOLD_ON;
     on_connection(client, err);
 }
 
@@ -88,6 +91,7 @@ void Stream::finalize_handle_connect (const CodeError& err1, const ConnectReques
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
 
     req->timer = nullptr;
+    HOLD_ON;
 
     // if we are already canceling queue now, do not start recursive cancel
     if (!err || queue.canceling()) {
@@ -131,6 +135,11 @@ void Stream::handle_read (string& buf, const CodeError& err) {
     invoke(_filters.back(), &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
 }
 
+void Stream::finalize_handle_read (string& buf, const CodeError& err) {
+    HOLD_ON;
+    on_read(buf, err);
+}
+
 void Stream::on_read (string& buf, const CodeError& err) {
     read_event(this, buf, err);
 }
@@ -160,6 +169,7 @@ void WriteRequest::handle_event (const CodeError& err) {
 
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
+    HOLD_ON;
     queue.done(req, [&]{
         req->event(this, err, req);
         on_write(err, req);
@@ -173,6 +183,12 @@ void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
 // ===================== EOF ===============================
 void Stream::handle_eof () {
     invoke(_filters.back(), &StreamFilter::handle_eof, &Stream::finalize_handle_eof);
+}
+
+void Stream::finalize_handle_eof () {
+    set_connected(false);
+    HOLD_ON;
+    on_eof();
 }
 
 void Stream::on_eof () {
@@ -201,6 +217,7 @@ void ShutdownRequest::handle_event (const CodeError& err) {
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
+    HOLD_ON;
     queue.done(req, [&]{
         req->event(this, err, req);
         on_shutdown(err, req);

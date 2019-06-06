@@ -175,11 +175,11 @@ private:
     void finalize_handle_connection (const StreamSP& client, const CodeError&, const AcceptRequestSP&);
     void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
     void handle_read                (string&, const CodeError&) override;
-    void finalize_handle_read       (string& buf, const CodeError& err) { on_read(buf, err); }
+    void finalize_handle_read       (string& buf, const CodeError&);
     void finalize_write             (const WriteRequestSP&);
     void finalize_handle_write      (const CodeError&, const WriteRequestSP&);
     void handle_eof                 () override;
-    void finalize_handle_eof        () { set_connected(false); on_eof(); }
+    void finalize_handle_eof        ();
     void finalize_handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
 
     void _reset ();

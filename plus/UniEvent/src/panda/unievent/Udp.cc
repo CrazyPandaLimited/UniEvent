@@ -2,6 +2,8 @@
 #include "util.h"
 using namespace panda::unievent;
 
+#define HOLD_ON(h) UdpSP __hold = h; (void)__hold;
+
 const HandleType Udp::TYPE("udp");
 
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, AddrInfoHints::PASSIVE);
@@ -89,6 +91,7 @@ void SendRequest::exec () {
 }
 
 void SendRequest::handle_event (const CodeError& err) {
+    HOLD_ON(handle);
     handle->queue.done(this, [&] {
         handle->on_send(err, this);
     });
@@ -113,6 +116,7 @@ void Udp::clear () {
 }
 
 void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
+    HOLD_ON(this);
     on_receive(buf, sa, flags, err);
 }
 
