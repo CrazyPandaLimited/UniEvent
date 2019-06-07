@@ -11,11 +11,13 @@ struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
 
     virtual void handle_connection (const StreamSP&, const CodeError&, const AcceptRequestSP&);
     virtual void tcp_connect       (const TcpConnectRequestSP&);
+    virtual void pipe_connect      (const PipeConnectRequestSP&);
     virtual void handle_connect    (const CodeError&, const ConnectRequestSP&);
     virtual void handle_read       (string&, const CodeError&);
     virtual void write             (const WriteRequestSP&);
     virtual void handle_write      (const CodeError&, const WriteRequestSP&);
     virtual void handle_eof        ();
+    virtual void shutdown          (const ShutdownRequestSP&);
     virtual void handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
 
     virtual void listen () { if (next) next->listen(); }
@@ -29,21 +31,16 @@ protected:
     CodeError read_start ();
     void      read_stop  ();
 
-    void subreq_tcp_connect (const StreamRequestSP& parent, const TcpConnectRequestSP& req);
-    void subreq_write       (const StreamRequestSP& parent, const WriteRequestSP& req);
-    void subreq_done        (const StreamRequestSP& req);
+    void subreq_tcp_connect  (const StreamRequestSP& parent, const TcpConnectRequestSP&);
+    void subreq_pipe_connect (const StreamRequestSP& parent, const PipeConnectRequestSP&);
+    void subreq_write        (const StreamRequestSP& parent, const WriteRequestSP&);
+    void subreq_done         (const StreamRequestSP&);
 
     Stream*  handle;
 
 private:
     const void*  _type;
     const double _priority;
-
-    template <class T1, class T2, class...Args>
-    inline void invoke (const StreamFilterSP& obj, T1 smeth, T2 hmeth, Args&&...args) {
-        if (obj) (obj->*smeth)(std::forward<Args>(args)...);
-        else     (handle->*hmeth)(std::forward<Args>(args)...);
-    }
 };
 
 }}

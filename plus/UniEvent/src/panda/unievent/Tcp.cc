@@ -51,8 +51,11 @@ void Tcp::connect (const TcpConnectRequestSP& req) {
 void TcpConnectRequest::exec () {
     _EDEBUGTHIS();
     ConnectRequest::exec();
-    if (handle->filters().size()) handle->filters().front()->tcp_connect(this);
-    else                          finalize_connect();
+    if (handle->filters().size()) {
+        last_filter = handle->filters().front();
+        last_filter->tcp_connect(this);
+    }
+    else finalize_connect();
 }
 
 void TcpConnectRequest::finalize_connect () {

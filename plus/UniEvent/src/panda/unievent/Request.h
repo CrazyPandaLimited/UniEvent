@@ -19,14 +19,15 @@ struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected ba
     }
 
 protected:
-    using RequestImpl = backend::RequestImpl;
     friend struct Queue; friend StreamFilter;
+    using RequestImpl = backend::RequestImpl;
 
-    RequestImpl* _impl;
-    Request*     parent;
-    RequestSP    subreq;
+    RequestImpl*  _impl;
+    Request*      parent;
+    RequestSP     subreq;
+    StreamFilter* last_filter;
 
-    Request () : _impl(), parent(), _delay_id(0) {}
+    Request () : _impl(), parent(), last_filter(), _delay_id(0) {}
 
     void set (BackendHandle* h) {
         _handle = h;

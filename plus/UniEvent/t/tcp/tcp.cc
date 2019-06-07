@@ -27,6 +27,17 @@ TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
     REQUIRE(err.code() == std::errc::operation_canceled);
 }
 
+TEST_CASE("write without connection", "[tcp][v-ssl]") {
+    AsyncTest test(2000, 1);
+    TcpSP client = make_client(test.loop);
+    client->write("1");
+    client->write_event.add([&](auto, auto& err, auto) {
+        REQUIRE(err.code() == std::errc::not_connected);
+        test.happens();
+    });
+    test.run();
+}
+
 TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {"error"});
     TcpSP server = make_server(test.loop);
@@ -46,7 +57,8 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
     SECTION ("write") {
         client->write("2");
         client->write_event.add([&](Stream*, const CodeError& err, WriteRequest*) {
-            REQUIRE(err.code() == std::errc::bad_file_descriptor);
+            WARN(err.what());
+            REQUIRE(err.code() == std::errc::not_connected);
             test.happens("error");
             test.loop->stop();
         });
@@ -317,4 +329,17 @@ TEST_CASE("correct callback order", "[tcp]") {
         test.happens("write");
     });
     client->reset();
+}
+
+TEST_CASE("canceling queued requests with filter", "[tcp]") {
+    TcpSP h = new Tcp();
+    h->use_ssl();
+    h->connect("localhost", 12345);
+    h->disconnect();
+    h->connect("localhost", 12345);
+    h->write("lalala");
+    h->write("hahaha");
+    h->shutdown();
+    h->disconnect();
+    h->reset();
 }

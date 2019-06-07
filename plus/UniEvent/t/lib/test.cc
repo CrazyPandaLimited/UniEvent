@@ -8,17 +8,17 @@
 
 Variation variation;
 
-//SSL_CTX* get_ssl_ctx() {
-//    static SSL_CTX* ctx = nullptr;
-//    if (ctx) {
-//        return ctx;
-//    }
-//    ctx = SSL_CTX_new(SSLv23_server_method());
-//    SSL_CTX_use_certificate_file(ctx, "t/cert/cert.pem", SSL_FILETYPE_PEM);
-//    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/key.pem", SSL_FILETYPE_PEM);
-//    SSL_CTX_check_private_key(ctx);
-//    return ctx;
-//}
+SSL_CTX* get_ssl_ctx() {
+    static SSL_CTX* ctx = nullptr;
+    if (ctx) {
+        return ctx;
+    }
+    ctx = SSL_CTX_new(SSLv23_server_method());
+    SSL_CTX_use_certificate_file(ctx, "t/cert/cert.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/key.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_check_private_key(ctx);
+    return ctx;
+}
 
 TcpSP make_basic_server (Loop* loop, const SockAddr& sa) {
     TcpSP server = new Tcp(loop);
@@ -30,20 +30,20 @@ TcpSP make_basic_server (Loop* loop, const SockAddr& sa) {
 TcpSP make_server (Loop* loop, const SockAddr& sa) {
     TcpSP server = new Tcp(loop);
     server->bind(sa);
-    //if (variation.ssl) server->use_ssl(get_ssl_ctx());
+    if (variation.ssl) server->use_ssl(get_ssl_ctx());
     server->listen(10000);
     return server;
 }
 
 TcpSP make_client (Loop* loop) {
-    TcpSP client = new Tcp(loop);
+    TcpSP client = new Tcp(loop, AF_INET);
 
-    //if (variation.ssl) client->use_ssl();
+    if (variation.ssl) client->use_ssl();
 
-//    if (variation.buf) {
-//        client->recv_buffer_size(1);
-//        client->send_buffer_size(1);
-//    }
+    if (variation.buf) {
+        client->recv_buffer_size(1);
+        client->send_buffer_size(1);
+    }
 
     return client;
 }

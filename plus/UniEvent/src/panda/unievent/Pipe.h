@@ -51,7 +51,7 @@ struct PipeConnectRequest : ConnectRequest, panda::lib::AllocatedObject<PipeConn
         : ConnectRequest(callback), name(name) {}
 
 private:
-    friend Pipe;
+    friend Pipe; friend StreamFilter;
     Pipe* handle;
 
     void set (Pipe* h) {
@@ -59,7 +59,8 @@ private:
         ConnectRequest::set(h);
     }
 
-    void exec () override;
+    void exec             () override;
+    void finalize_connect ();
 };
 
 

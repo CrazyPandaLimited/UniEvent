@@ -79,8 +79,8 @@ void SslFilter::listen () {
 }
 
 void SslFilter::reset () {
-    _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
     if (state == State::initial) return;
+    _ESSL("reset, state: %d, connecting: %d", (int)state, handle->connecting());
 
     source_request = nullptr;
     ERR_clear_error();

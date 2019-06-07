@@ -51,6 +51,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
     bool   wantread         () const { return !(flags & DONTREAD); }
     bool   shutting_down    () const { return flags & SHUTTING; }
     bool   is_shut_down     () const { return flags & SHUT; }
+    bool   eof_received     () const { return flags & EOF_RECEIVED; }
+    bool   eof_sent         () const { return flags & EOF_SENT; }
 //    size_t write_queue_size () const { return uvsp_const()->write_queue_size; }
 
     void         listen   (int backlog) { listen(nullptr, backlog); }
@@ -144,17 +146,19 @@ protected:
 private:
     friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend AcceptRequest;
 
-    static const uint32_t LISTENING   = 1;
-    static const uint32_t CONNECTING  = 2;
-    static const uint32_t ESTABLISHED = 4; // physically connected
-    static const uint32_t CONNECTED   = 8; // logically connected
-    static const uint32_t DONTREAD    = 16;
-    static const uint32_t READING     = 32;
-    static const uint32_t SHUTTING    = 64;
-    static const uint32_t SHUT        = 128;
+    static const uint32_t LISTENING    = 1;
+    static const uint32_t CONNECTING   = 2;
+    static const uint32_t ESTABLISHED  = 4; // physically connected
+    static const uint32_t CONNECTED    = 8; // logically connected
+    static const uint32_t DONTREAD     = 16;
+    static const uint32_t READING      = 32;
+    static const uint32_t SHUTTING     = 64;
+    static const uint32_t SHUT         = 128;
+    static const uint32_t EOF_RECEIVED = 256;
+    static const uint32_t EOF_SENT     = 512;
 
-    uint8_t flags;
-    Filters _filters;
+    uint32_t flags;
+    Filters  _filters;
 
     backend::StreamImpl* impl () const { return static_cast<backend::StreamImpl*>(BackendHandle::impl()); }
 
@@ -180,6 +184,7 @@ private:
     void finalize_handle_write      (const CodeError&, const WriteRequestSP&);
     void handle_eof                 () override;
     void finalize_handle_eof        ();
+    void finalize_shutdown          (const ShutdownRequestSP&);
     void finalize_handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
 
     void _reset ();

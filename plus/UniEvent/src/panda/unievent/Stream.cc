@@ -7,6 +7,16 @@ using ssl::SslFilter;
 
 #define HOLD_ON StreamSP __hold = this; (void)__hold;
 
+#define INVOKE(h, f, fm, hm, ...) do { \
+    if (f) f->fm(__VA_ARGS__);      \
+    else   h->hm(__VA_ARGS__);      \
+} while(0)
+
+#define REQUEST_REQUIRE_WRITE_STATE do {                                                                            \
+    if (handle->eof_sent()) return delay([this]{ cancel(std::errc::broken_pipe); });                                \
+    if (!handle->connected() && !handle->eof_received()) return delay([this]{ cancel(std::errc::not_connected); }); \
+} while(0)
+
 Stream::~Stream () {
     _EDTOR();
 }
@@ -29,7 +39,7 @@ void Stream::listen (connection_fn callback, int backlog) {
 
 void Stream::handle_connection (const CodeError& err) {
     _EDEBUG("[%p] err: %d", this, err.code().value());
-    if (err) invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, nullptr, err, nullptr);
+    if (err) INVOKE(this, _filters.back(), handle_connection, finalize_handle_connection, nullptr, err, nullptr);
     else     accept();
 }
 
@@ -51,7 +61,7 @@ void Stream::accept (const StreamSP& client) {
         areq = new AcceptRequest(client);
         client->queue.push(areq);
     }
-    invoke(_filters.back(), &StreamFilter::handle_connection, &Stream::finalize_handle_connection, client, err, areq);
+    INVOKE(this, _filters.back(), handle_connection, finalize_handle_connection, client, err, areq);
 }
 
 void Stream::finalize_handle_connection (const StreamSP& client, const CodeError& err1, const AcceptRequestSP& req) {
@@ -82,7 +92,7 @@ void ConnectRequest::exec () {
 void ConnectRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     if (!err) handle->set_established();
-    handle->invoke(handle->_filters.back(), &StreamFilter::handle_connect, &Stream::finalize_handle_connect, err, this);
+    INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
 }
 
 void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
@@ -132,7 +142,7 @@ void Stream::read_stop () {
 }
 
 void Stream::handle_read (string& buf, const CodeError& err) {
-    invoke(_filters.back(), &StreamFilter::handle_read, &Stream::finalize_handle_read, buf, err);
+    INVOKE(this, _filters.back(), handle_read, finalize_handle_read, buf, err);
 }
 
 void Stream::finalize_handle_read (string& buf, const CodeError& err) {
@@ -153,7 +163,9 @@ void Stream::write (const WriteRequestSP& req) {
 
 void WriteRequest::exec () {
     _EDEBUGTHIS();
-    handle->invoke(handle->_filters.front(), &StreamFilter::write, &Stream::finalize_write, this);
+    REQUEST_REQUIRE_WRITE_STATE;
+    last_filter = handle->_filters.front();
+    INVOKE(handle, last_filter, write, finalize_write, this);
 }
 
 void Stream::finalize_write (const WriteRequestSP& req) {
@@ -164,7 +176,7 @@ void Stream::finalize_write (const WriteRequestSP& req) {
 
 void WriteRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
-    handle->invoke(handle->_filters.back(), &StreamFilter::handle_write, &Stream::finalize_handle_write, err, this);
+    INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
@@ -182,11 +194,12 @@ void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
 
 // ===================== EOF ===============================
 void Stream::handle_eof () {
-    invoke(_filters.back(), &StreamFilter::handle_eof, &Stream::finalize_handle_eof);
+    flags |= EOF_RECEIVED;
+    set_connected(false);
+    INVOKE(this, _filters.back(), handle_eof, finalize_handle_eof);
 }
 
 void Stream::finalize_handle_eof () {
-    set_connected(false);
     HOLD_ON;
     on_eof();
 }
@@ -204,14 +217,22 @@ void Stream::shutdown (const ShutdownRequestSP& req) {
 
 void ShutdownRequest::exec () {
     _EDEBUGTHIS();
-    handle->set_shutting();
-    auto err = handle->impl()->shutdown(impl());
-    if (err) return delay([=]{ cancel(err); });
+    REQUEST_REQUIRE_WRITE_STATE;
+    handle->flags |= Stream::EOF_SENT;
+    last_filter = handle->_filters.front();
+    INVOKE(handle, last_filter, shutdown, finalize_shutdown, this);
+}
+
+void Stream::finalize_shutdown (const ShutdownRequestSP& req) {
+    _EDEBUGTHIS();
+    set_shutting();
+    auto err = impl()->shutdown(req->impl());
+    if (err) return req->delay([=]{ req->cancel(err); });
 }
 
 void ShutdownRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
-    handle->invoke(handle->_filters.back(), &StreamFilter::handle_shutdown, &Stream::finalize_handle_shutdown, err, this);
+    INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
 
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {

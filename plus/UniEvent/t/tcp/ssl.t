@@ -31,7 +31,7 @@ $srv->connection_callback(sub {
 
     $client->write($data, sub {
         pass("server: written");
-        $client->shutdown();
+        $client->shutdown;
     });
     
     $client->read_callback(sub {

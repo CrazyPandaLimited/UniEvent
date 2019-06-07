@@ -36,6 +36,15 @@ void Pipe::connect (const PipeConnectRequestSP& req) {
 
 void PipeConnectRequest::exec () {
     ConnectRequest::exec();
+    if (handle->filters().size()) {
+        last_filter = handle->filters().front();
+        last_filter->pipe_connect(this);
+    }
+    else finalize_connect();
+}
+
+void PipeConnectRequest::finalize_connect () {
+    _EDEBUGTHIS();
     auto err = handle->impl()->connect(name, impl());
     if (err) return delay([=]{ cancel(err); });
 }
