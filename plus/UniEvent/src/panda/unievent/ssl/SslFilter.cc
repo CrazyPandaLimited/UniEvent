@@ -216,8 +216,8 @@ void SslFilter::negotiation_finished (const CodeError& err) {
     read_stop();
     if (profile == Profile::CLIENT)
         NextFilter::handle_connect(err, static_pointer_cast<ConnectRequest>(std::move(source_request)));
-    else
-        server_filter->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(std::move(source_request)));
+    else if (auto f = server_filter.lock())
+        f->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(std::move(source_request)));
 }
 
 void SslFilter::handle_read (string& encbuf, const CodeError& err) {

@@ -35,13 +35,13 @@ private:
 
     SslFilter (Stream* h, SSL_CTX* context, const SslFilterSP& server_filter);
 
-    SSL*             ssl;
-    BIO*             read_bio;
-    BIO*             write_bio;
-    StreamRequestSP  source_request;
-    State            state;
-    Profile          profile;
-    SslFilter*       server_filter;
+    SSL*              ssl;
+    BIO*              read_bio;
+    BIO*              write_bio;
+    StreamRequestSP   source_request;
+    State             state;
+    Profile           profile;
+    weak<SslFilterSP> server_filter;
 
     void init                 (SSL_CTX*);
     void start_ssl_connection (Profile);

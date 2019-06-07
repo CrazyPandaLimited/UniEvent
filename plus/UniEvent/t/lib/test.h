@@ -47,9 +47,10 @@ void time_guard (const std::chrono::milliseconds& tmt, T fn) {
     fn();
 }
 
-TcpSP make_basic_server (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TcpSP make_server       (Loop* loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TcpSP make_client       (Loop* loop);
+TcpSP make_basic_server (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP make_ssl_server   (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP make_server       (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP make_client       (const LoopSP& loop);
 
 //SSL_CTX* get_ssl_ctx ();
 

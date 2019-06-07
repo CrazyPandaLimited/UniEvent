@@ -20,14 +20,20 @@ SSL_CTX* get_ssl_ctx() {
     return ctx;
 }
 
-TcpSP make_basic_server (Loop* loop, const SockAddr& sa) {
+TcpSP make_basic_server (const LoopSP& loop, const SockAddr& sa) {
     TcpSP server = new Tcp(loop);
     server->bind(sa);
     server->listen(1);
     return server;
 }
 
-TcpSP make_server (Loop* loop, const SockAddr& sa) {
+TcpSP make_ssl_server (const LoopSP& loop, const SockAddr& sa) {
+    auto server = make_basic_server(loop, sa);
+    server->use_ssl(get_ssl_ctx());
+    return server;
+}
+
+TcpSP make_server (const LoopSP& loop, const SockAddr& sa) {
     TcpSP server = new Tcp(loop);
     server->bind(sa);
     if (variation.ssl) server->use_ssl(get_ssl_ctx());
@@ -35,7 +41,7 @@ TcpSP make_server (Loop* loop, const SockAddr& sa) {
     return server;
 }
 
-TcpSP make_client (Loop* loop) {
+TcpSP make_client (const LoopSP& loop) {
     TcpSP client = new Tcp(loop, AF_INET);
 
     if (variation.ssl) client->use_ssl();

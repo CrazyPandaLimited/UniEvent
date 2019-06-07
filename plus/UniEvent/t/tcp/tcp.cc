@@ -49,11 +49,6 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
     test.await(client->write_event);
     client->disconnect();
 
-    if (false) { //TODO we need test params here
-        TimerSP t = Timer::once(10, [](Timer*){}, test.loop);
-        test.await(t->event);
-    }
-
     SECTION ("write") {
         client->write("2");
         client->write_event.add([&](Stream*, const CodeError& err, WriteRequest*) {
@@ -188,21 +183,19 @@ TEST_CASE("reset accepted connection", "[tcp][v-ssl]") {
     test.loop->run();
 }
 
-//TEST_CASE("try use server without certificate 1", "[tcp][v-ssl]") {
-//    AsyncTest test(2000, {});
-//    TcpSP server = new Tcp(test.loop);
-//    server->bind("localhost", 0);
-//    server->listen(1);
-//    REQUIRE_THROWS(server->use_ssl());
-//}
-//
-//TEST_CASE("try use server without certificate 2", "[tcp][v-ssl]") {
-//    AsyncTest test(2000, {});
-//    TcpSP server = new Tcp(test.loop);
-//    server->bind("localhost", 0);
-//    server->use_ssl();
-//    REQUIRE_THROWS(server->listen(1));
-//}
+TEST_CASE("try use server without certificate", "[tcp]") {
+    TcpSP server = new Tcp();
+    server->bind("localhost", 0);
+
+    SECTION("use_ssl after listen") {
+        server->listen(1);
+        REQUIRE_THROWS(server->use_ssl());
+    }
+    SECTION("use_ssl before listen") {
+        server->use_ssl();
+        REQUIRE_THROWS(server->listen(1));
+    }
+}
 
 TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
     AsyncTest test(2000, {"c", "r"});
@@ -261,37 +254,31 @@ TEST_CASE("UniEvent SRV-1273", "[tcp][v-ssl]") {
     REQUIRE(counter == 10);
 }
 
-//TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
-//    AsyncTest test(500, {"connect", "done"});
-//    TcpSP server = make_basic_server(test.loop);
-//    server->use_ssl(get_ssl_ctx());
-//
-//    TcpSP sconn;
-//
-//    server->connection_factory = [&]() {
-//        sconn = new Tcp(test.loop);
-//        return sconn;
-//    };
-//
-//    bool destroyed = false;
-//
-//    server->connection_event.add([&](Stream*, StreamSP, const CodeError&) {
-//        REQUIRE_FALSE(destroyed);
-//    });
-//
-//    TcpSP client = new Tcp(test.loop);
-//    client->connect(server->sockaddr());
-//    test.await(client->connect_event, "connect");
-//
-//    server.reset();
-//    test.loop->run_nowait();
-//    destroyed = true;
-//    client->reset();
-//    client.reset();
-//
-//    test.wait(30);
-//    test.happens("done");
-//}
+TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
+    AsyncTest test(500, {"connect"});
+    TcpSP server = make_ssl_server(test.loop);
+    TcpSP sconn;
+
+    server->connection_factory = [&]() {
+        sconn = new Tcp(test.loop);
+        return sconn;
+    };
+
+    server->connection_event.add([&](auto...) {
+        FAIL("should not be called");
+    });
+
+    TcpSP client = new Tcp(test.loop);
+    client->connect(server->sockaddr());
+    test.await(client->connect_event, "connect");
+
+    server = nullptr;
+    test.loop->run_nowait();
+    client->reset();
+    client = nullptr;
+
+    test.run();
+}
 
 TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
     AsyncTest test(500, {});
