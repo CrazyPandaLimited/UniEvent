@@ -315,5 +315,21 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(res.size() == expected_cnt);
     }
 
+    SECTION("exception safety") {
+        expected_cnt = 2;
+        for (int i = 0; i < 2; ++i) {
+            test.loop->resolver()->resolve("localhost", [&](auto...) {
+                test.happens("r");
+                throw "epta";
+            });
+            REQUIRE_THROWS(test.run());
+        }
+    }
+
+    SECTION("sync_resolve exception") {
+        expected_cnt = 0;
+        REQUIRE_THROWS( sync_resolve(test.loop->backend(), "sukanahblya", 12345) );
+    }
+
     while (expected_cnt-- > 0) test.expected.push_back("r");
 }

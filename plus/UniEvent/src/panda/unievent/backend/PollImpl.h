@@ -8,7 +8,7 @@ struct IPollListener {
 };
 
 struct PollImpl : HandleImpl {
-    PollImpl (LoopImpl*, IPollListener* lst) : HandleImpl(loop), listener(lst) {}
+    PollImpl (LoopImpl* loop, IPollListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual optional<fh_t> fileno () const = 0;
 

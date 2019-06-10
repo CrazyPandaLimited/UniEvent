@@ -51,7 +51,7 @@ for my $i (0..$#primes) {
 my %udp_by_num;
 for my $num (0 .. $#primes) {
     my $udp = new UniEvent::Udp;
-    $udp->bind_addr(SA_LOOPBACK_ANY);
+    rand() > 0.5 ? $udp->bind_addr(SA_LOOPBACK_ANY) : $udp->bind("*", 0);
     my $prime = $primes[$num];
     $udp_by_num{$prime} = $udp;
     $udp->recv_start(sub {

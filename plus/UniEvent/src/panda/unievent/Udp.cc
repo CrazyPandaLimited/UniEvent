@@ -34,6 +34,7 @@ void Udp::bind (const net::SockAddr& sa, unsigned flags) {
 }
 
 void Udp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
+    if (host == "*") return bind(broadcast_addr(port, hints), flags);
     auto ai = sync_resolve(loop()->backend(), host, port, hints);
     bind(ai.addr(), flags);
 }

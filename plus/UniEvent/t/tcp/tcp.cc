@@ -330,3 +330,8 @@ TEST_CASE("canceling queued requests with filter", "[tcp]") {
     h->disconnect();
     h->reset();
 }
+
+TEST_CASE("bind *", "[tcp]") {
+    TcpSP h = new Tcp();
+    h->bind("*", 12345);
+}
