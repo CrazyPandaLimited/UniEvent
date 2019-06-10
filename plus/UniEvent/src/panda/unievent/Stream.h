@@ -42,17 +42,17 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
 
     string buf_alloc (size_t cap) noexcept override;
 
-    bool   readable         () const { return impl()->readable(); }
-    bool   writable         () const { return impl()->writable(); }
-    bool   listening        () const { return flags & LISTENING; }
-    bool   connecting       () const { return flags & CONNECTING; }
-    bool   established      () const { return flags & ESTABLISHED; }
-    bool   connected        () const { return flags & CONNECTED; }
-    bool   wantread         () const { return !(flags & DONTREAD); }
-    bool   shutting_down    () const { return flags & SHUTTING; }
-    bool   is_shut_down     () const { return flags & SHUT; }
-    bool   eof_received     () const { return flags & EOF_RECEIVED; }
-    bool   eof_sent         () const { return flags & EOF_SENT; }
+    bool   readable      () const { return impl()->readable(); }
+    bool   writable      () const { return impl()->writable(); }
+    bool   listening     () const { return flags & LISTENING; }
+    bool   connecting    () const { return flags & CONNECTING; }
+    bool   established   () const { return flags & ESTABLISHED; }
+    bool   connected     () const { return flags & (IN_CONNECTED | OUT_CONNECTED); }
+    bool   in_connected  () const { return flags & IN_CONNECTED; }
+    bool   out_connected () const { return flags & OUT_CONNECTED; }
+    bool   wantread      () const { return !(flags & DONTREAD); }
+    bool   shutting_down () const { return flags & SHUTTING; }
+    bool   is_shut_down  () const { return flags & SHUT; }
 //    size_t write_queue_size () const { return uvsp_const()->write_queue_size; }
 
     void         listen   (int backlog) { listen(nullptr, backlog); }
@@ -120,42 +120,53 @@ protected:
     virtual void on_eof        ();
     virtual void on_shutdown   (const CodeError& err, const ShutdownRequestSP& req);
 
+
     void set_listening   () { flags |= LISTENING; }
     void set_connecting  () { flags |= CONNECTING; }
     void set_established () { flags |= ESTABLISHED; }
 
     CodeError set_connect_result (bool ok) {
-        set_connected(ok);
-        if (ok && wantread()) return _read_start();
-        else return CodeError();
-    }
-
-    void set_connected (bool ok) {
         flags &= ~CONNECTING;
-        if (ok) flags |= CONNECTED|ESTABLISHED;
-        else    flags &= ~CONNECTED;
+        if (ok) {
+            flags |= IN_CONNECTED|OUT_CONNECTED|ESTABLISHED;
+            if (wantread()) return _read_start();
+        }
+        return CodeError();
     }
 
     void set_wantread (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
     void set_reading  (bool on) { on ? (flags |= READING) : (flags &= ~READING); }
     void set_shutting ()        { flags |= SHUTTING; }
-    void set_shutdown (bool ok) { flags &= ~SHUTTING; ok ? (flags |= SHUT) : (flags &= ~SHUT); }
+
+    void clear_out_connected () {
+        flags &= ~OUT_CONNECTED;
+        if (!(flags & IN_CONNECTED)) flags &= ~ESTABLISHED;
+    }
+
+    void clear_in_connected () {
+        flags &= ~IN_CONNECTED;
+        if (!(flags & OUT_CONNECTED)) flags &= ~ESTABLISHED;
+    }
+
+    void set_shutdown (bool ok) {
+        flags &= ~SHUTTING;
+        if (ok) clear_out_connected();
+    }
 
     ~Stream ();
 
 private:
     friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend AcceptRequest;
 
-    static const uint32_t LISTENING    = 1;
-    static const uint32_t CONNECTING   = 2;
-    static const uint32_t ESTABLISHED  = 4; // physically connected
-    static const uint32_t CONNECTED    = 8; // logically connected
-    static const uint32_t DONTREAD     = 16;
-    static const uint32_t READING      = 32;
-    static const uint32_t SHUTTING     = 64;
-    static const uint32_t SHUT         = 128;
-    static const uint32_t EOF_RECEIVED = 256;
-    static const uint32_t EOF_SENT     = 512;
+    static const uint32_t LISTENING     = 1;
+    static const uint32_t CONNECTING    = 2;
+    static const uint32_t ESTABLISHED   = 4;  // physically connected
+    static const uint32_t IN_CONNECTED  = 8;  // logically connected for reading (connected and eof not received)
+    static const uint32_t OUT_CONNECTED = 16; // logically connected for writing (connected and shutdown not done)
+    static const uint32_t DONTREAD      = 32;
+    static const uint32_t READING       = 64;
+    static const uint32_t SHUTTING      = 128;
+    static const uint32_t SHUT          = 256;
 
     uint32_t flags;
     Filters  _filters;
@@ -164,12 +175,12 @@ private:
 
     bool reading () const { return flags & READING; }
 
-    template <class T1, class T2, class...Args>
-    void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
-        if (filter) (filter->*filter_method)(std::forward<Args>(args)...);
-        else        (this->*my_method)(std::forward<Args>(args)...);
-    }
-
+//    template <class T1, class T2, class...Args>
+//    void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
+//        if (filter) (filter->*filter_method)(std::forward<Args>(args)...);
+//        else        (this->*my_method)(std::forward<Args>(args)...);
+//    }
+//
     template <class T, class...Args>
     void invoke_sync (T filter_method, Args&&...args) {
         if (_filters.size()) (_filters.front()->*filter_method)(std::forward<Args>(args)...);

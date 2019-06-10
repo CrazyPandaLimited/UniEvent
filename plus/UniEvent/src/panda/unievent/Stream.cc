@@ -12,9 +12,8 @@ using ssl::SslFilter;
     else   h->hm(__VA_ARGS__);      \
 } while(0)
 
-#define REQUEST_REQUIRE_WRITE_STATE do {                                                                            \
-    if (handle->eof_sent()) return delay([this]{ cancel(std::errc::broken_pipe); });                                \
-    if (!handle->connected() && !handle->eof_received()) return delay([this]{ cancel(std::errc::not_connected); }); \
+#define REQUEST_REQUIRE_WRITE_STATE do {                                                        \
+    if (!handle->out_connected()) return delay([this]{ cancel(std::errc::not_connected); });    \
 } while(0)
 
 Stream::~Stream () {
@@ -176,6 +175,7 @@ void Stream::finalize_write (const WriteRequestSP& req) {
 
 void WriteRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
+    if (err && err.code() == std::errc::broken_pipe) handle->clear_out_connected();
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
@@ -194,8 +194,7 @@ void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
 
 // ===================== EOF ===============================
 void Stream::handle_eof () {
-    flags |= EOF_RECEIVED;
-    set_connected(false);
+    clear_in_connected();
     INVOKE(this, _filters.back(), handle_eof, finalize_handle_eof);
 }
 
@@ -218,7 +217,6 @@ void Stream::shutdown (const ShutdownRequestSP& req) {
 void ShutdownRequest::exec () {
     _EDEBUGTHIS();
     REQUEST_REQUIRE_WRITE_STATE;
-    handle->flags |= Stream::EOF_SENT;
     last_filter = handle->_filters.front();
     INVOKE(handle, last_filter, shutdown, finalize_shutdown, this);
 }
