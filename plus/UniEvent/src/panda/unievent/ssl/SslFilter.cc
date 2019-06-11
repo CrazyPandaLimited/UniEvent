@@ -85,6 +85,7 @@ void SslFilter::reset () {
     source_request = nullptr;
     ERR_clear_error();
     state = State::initial;
+
     // hard reset
     SSL* oldssl = ssl;
     init(SSL_get_SSL_CTX(oldssl));
@@ -152,7 +153,6 @@ int SslFilter::negotiate () {
         int code = SSL_get_error(ssl, ssl_state);
         _ESSL("code=%d", code);
         if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
-            SslBio::steal_buf(read_bio); // avoid clearing by BIO
             negotiation_finished(SSLError(code));
             return 0;
         }
@@ -171,8 +171,8 @@ int SslFilter::negotiate () {
         _ESSL("ssl finished, pending = %li", pending);
         if (wreq) { // negotiation finished on my last write -> call negotiation_finished() later with results for wreq
             wreq->final = true;
-            if (pending) negotiation_finished(SSLError(SSL_ERROR_SSL)); // there should be no ongoing data because client hasn't yet received wreq
-            subreq_write(source_request, wreq);
+            if (!pending) subreq_write(source_request, wreq);
+            else negotiation_finished(SSLError(SSL_ERROR_SSL)); // there should be no ongoing data because client hasn't yet received wreq
             return 0;
         } else {
             negotiation_finished();
@@ -214,10 +214,12 @@ void SslFilter::negotiation_finished (const CodeError& err) {
     state = err ? State::error : State::terminal;
 
     read_stop();
+
+    auto tmp = std::move(source_request);
     if (profile == Profile::CLIENT)
-        NextFilter::handle_connect(err, static_pointer_cast<ConnectRequest>(std::move(source_request)));
+        NextFilter::handle_connect(err, static_pointer_cast<ConnectRequest>(tmp));
     else if (auto f = server_filter.lock())
-        f->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(std::move(source_request)));
+        f->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(tmp));
 }
 
 void SslFilter::handle_read (string& encbuf, const CodeError& err) {
@@ -249,15 +251,14 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
     _EDEBUG("connecting %d, err %s", connecting, err.what());
 
     int pending = encbuf.length();
-    if (connecting && !(pending = negotiate())) { // no more data to read, handshake not completed
-        SslBio::steal_buf(read_bio);
-        return;
-    }
+    if (connecting) pending = negotiate();
+    if (!pending) return;
 
     // TODO: prevent buf_alloc for last fake read (when -1 returned)
     string decbuf;
     int ret;
     while (1) {
+        if (state == State::initial) return; // handle has been reset in negotiate() or handle_read()
         if (decbuf.use_count() > 1) decbuf = handle->buf_alloc(pending); // or it will detach with default allocator
         if (decbuf.capacity() < (unsigned)pending) decbuf.reserve(pending); // TODO: 1) handle cap=0 via ENOMEM, 2) handle (cap < pending) better (multi-alloc)
         ret = SSL_read(ssl, decbuf.buf(), pending);
@@ -317,7 +318,7 @@ void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
         NextFilter::handle_write(err, sslreq->orig);
     }
     else { // negotiation
-        if (err) negotiation_finished(err);
+        if (err) return negotiation_finished(err);
         if (sslreq->final) negotiation_finished(); // delayed negotiation_finished() for server with the results of last write request
     }
 }

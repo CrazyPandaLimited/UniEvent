@@ -89,6 +89,7 @@ private:
     static void on_read (uv_stream_t* p, ssize_t nread, const uv_buf_t* uvbuf) {
         auto h   = get_handle<UVStream*>(p);
         auto buf = uvx_detach_buf(uvbuf);
+        _EDEBUG("%p\n", h);
 
         ssize_t err = 0;
         if      (nread < 0) std::swap(err, nread);

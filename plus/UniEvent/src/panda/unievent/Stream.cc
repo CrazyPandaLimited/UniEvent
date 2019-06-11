@@ -5,7 +5,7 @@ namespace panda { namespace unievent {
 
 using ssl::SslFilter;
 
-#define HOLD_ON StreamSP __hold = this; (void)__hold;
+#define HOLD_ON(what) StreamSP __hold = what; (void)__hold;
 
 #define INVOKE(h, f, fm, hm, ...) do { \
     if (f) f->fm(__VA_ARGS__);      \
@@ -38,6 +38,7 @@ void Stream::listen (connection_fn callback, int backlog) {
 
 void Stream::handle_connection (const CodeError& err) {
     _EDEBUG("[%p] err: %d", this, err.code().value());
+    HOLD_ON(this);
     if (err) INVOKE(this, _filters.back(), handle_connection, finalize_handle_connection, nullptr, err, nullptr);
     else     accept();
 }
@@ -68,7 +69,6 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
     auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
     if (req) client->queue.done(req, []{});
-    HOLD_ON;
     on_connection(client, err);
 }
 
@@ -91,6 +91,7 @@ void ConnectRequest::exec () {
 void ConnectRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     if (!err) handle->set_established();
+    HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
 }
 
@@ -100,7 +101,6 @@ void Stream::finalize_handle_connect (const CodeError& err1, const ConnectReques
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
 
     req->timer = nullptr;
-    HOLD_ON;
 
     // if we are already canceling queue now, do not start recursive cancel
     if (!err || queue.canceling()) {
@@ -141,11 +141,11 @@ void Stream::read_stop () {
 }
 
 void Stream::handle_read (string& buf, const CodeError& err) {
+    HOLD_ON(this);
     INVOKE(this, _filters.back(), handle_read, finalize_handle_read, buf, err);
 }
 
 void Stream::finalize_handle_read (string& buf, const CodeError& err) {
-    HOLD_ON;
     on_read(buf, err);
 }
 
@@ -176,12 +176,12 @@ void Stream::finalize_write (const WriteRequestSP& req) {
 void WriteRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
     if (err && err.code() == std::errc::broken_pipe) handle->clear_out_connected();
+    HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
-    HOLD_ON;
     queue.done(req, [&]{
         req->event(this, err, req);
         on_write(err, req);
@@ -195,11 +195,11 @@ void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
 // ===================== EOF ===============================
 void Stream::handle_eof () {
     clear_in_connected();
+    HOLD_ON(this);
     INVOKE(this, _filters.back(), handle_eof, finalize_handle_eof);
 }
 
 void Stream::finalize_handle_eof () {
-    HOLD_ON;
     on_eof();
 }
 
@@ -230,13 +230,13 @@ void Stream::finalize_shutdown (const ShutdownRequestSP& req) {
 
 void ShutdownRequest::handle_event (const CodeError& err) {
     _EDEBUGTHIS();
+    HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
 
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
-    HOLD_ON;
     queue.done(req, [&]{
         req->event(this, err, req);
         on_shutdown(err, req);
