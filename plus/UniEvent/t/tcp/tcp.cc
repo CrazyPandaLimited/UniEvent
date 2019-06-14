@@ -335,3 +335,28 @@ TEST_CASE("bind *", "[tcp]") {
     TcpSP h = new Tcp();
     h->bind("*", 12345);
 }
+
+//TEST_CASE("write burst", "[tcp]") {
+//    AsyncTest test(500, 5);
+//    auto p = make_p2p(test.loop);
+//
+//    p.sconn->read_event.add([&](auto, auto& str, auto){
+//        test.happens();
+//        CHECK(str == "abcd");
+//    });
+//
+//    string s = "0123456789";
+//    for (int i = 0; i < 20; ++i) s += s;
+//    printf("s len = %lu\n", s.length());
+//
+//    //p.client->write(s);
+//    p.client->write("a");
+//    p.client->write("b");
+//    p.client->write("c");
+//    p.client->write("d");
+//    p.client->write_event.add([&](auto...) {
+//        test.happens();
+//    });
+//
+//    test.loop->run_once();
+//}

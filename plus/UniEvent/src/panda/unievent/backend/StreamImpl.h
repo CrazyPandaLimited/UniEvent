@@ -1,5 +1,6 @@
 #pragma once
 #include "HandleImpl.h"
+#include <panda/expected.h>
 #include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent { namespace backend {
@@ -28,7 +29,7 @@ struct StreamImpl : HandleImpl {
     virtual CodeError accept     (StreamImpl* client) = 0;
     virtual CodeError read_start () = 0;
     virtual void      read_stop  () = 0;
-    virtual CodeError write      (const std::vector<string>& bufs, WriteRequestImpl*) = 0;
+    virtual CodeError write      (const std::vector<string>& bufs, WriteRequestImpl*, bool& completed) = 0;
     virtual CodeError shutdown   (ShutdownRequestImpl*) = 0;
 
     virtual optional<fh_t> fileno () const = 0;

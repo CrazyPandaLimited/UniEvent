@@ -19,7 +19,7 @@ struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected ba
     }
 
 protected:
-    friend struct Queue; friend StreamFilter;
+    friend struct Queue; friend Stream; friend StreamFilter;
     using RequestImpl = backend::RequestImpl;
 
     RequestImpl*  _impl;

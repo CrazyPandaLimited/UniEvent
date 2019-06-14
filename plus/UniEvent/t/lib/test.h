@@ -47,10 +47,23 @@ void time_guard (const std::chrono::milliseconds& tmt, T fn) {
     fn();
 }
 
-TcpSP make_basic_server (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TcpSP make_ssl_server   (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TcpSP make_server       (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
-TcpSP make_client       (const LoopSP& loop);
+struct TcpPair {
+    TcpSP server;
+    TcpSP client;
+};
+
+struct TcpP2P {
+    TcpSP server;
+    TcpSP sconn;
+    TcpSP client;
+};
+
+TcpSP   make_basic_server (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP   make_ssl_server   (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP   make_server       (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpSP   make_client       (const LoopSP& loop);
+TcpPair make_tcp_pair     (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+TcpP2P  make_p2p          (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 
 //SSL_CTX* get_ssl_ctx ();
 

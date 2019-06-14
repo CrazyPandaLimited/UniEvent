@@ -54,6 +54,29 @@ TcpSP make_client (const LoopSP& loop) {
     return client;
 }
 
+TcpPair make_tcp_pair (const LoopSP& loop, const SockAddr& sa) {
+    TcpPair ret;
+    ret.server = make_server(loop, sa);
+    ret.client = make_client(loop);
+    ret.client->connect(ret.server->sockaddr());
+    return ret;
+}
+
+TcpP2P make_p2p (const LoopSP& loop, const SockAddr& sa) {
+    TcpP2P ret;
+    auto p = make_tcp_pair(loop, sa);
+    ret.server = p.server;
+    ret.client = p.client;
+    p.server->connection_event.add([&](auto, auto sconn, auto& err) {
+        if (err) throw err;
+        ret.sconn = panda::dynamic_pointer_cast<Tcp>(sconn);
+        loop->stop();
+    });
+    loop->run();
+    assert(ret.sconn);
+    return ret;
+}
+
 //TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout) {
 //    TimerSP timer = new Timer(stream->loop());
 //    _EDEBUG("read timer %p", static_cast<Handle*>(timer.get()));

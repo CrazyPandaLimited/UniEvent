@@ -42,11 +42,14 @@ struct UVStream : UVHandle<Base, UvReq> {
         uv_read_stop(uvsp());
     }
 
-    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req) {
+    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req, bool& completed) {
         auto req = static_cast<UVWriteRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_write(&req->uvr, uvsp(), uvbufs, bufs.size(), on_write);
-        if (!err) req->active = true;
+        if (!err) {
+            req->active = true;
+            completed = !uvsp()->write_queue_size;
+        }
         return uvx_ce(err);
     }
 

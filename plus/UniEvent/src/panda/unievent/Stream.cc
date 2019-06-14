@@ -169,8 +169,19 @@ void WriteRequest::exec () {
 
 void Stream::finalize_write (const WriteRequestSP& req) {
     _EDEBUGTHIS();
-    auto err = impl()->write(req->bufs, req->impl());
+    bool completed;
+    auto err = impl()->write(req->bufs, req->impl(), completed);
     if (err) return req->delay([=]{ req->cancel(err); });
+//    // TODO: refactor queue to better architecture, for better and safer handling sync-completed writes
+//    if (completed) {
+//        req->finish_exec();
+//        req->delay([=]{
+//            req->handle_event({});
+//        });
+//        Request* top = req.get();
+//        while (top->parent) top = top->parent;
+//        if (dyn_cast<WriteRequest*>(top))
+//    }
 }
 
 void WriteRequest::handle_event (const CodeError& err) {
