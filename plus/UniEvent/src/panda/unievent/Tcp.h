@@ -4,7 +4,7 @@
 #include "AddrInfo.h"
 #include "Resolver.h"
 #include "backend/TcpImpl.h"
-#include <ostream>
+#include <iosfwd>
 
 namespace panda { namespace unievent {
 
