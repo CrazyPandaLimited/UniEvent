@@ -27,10 +27,11 @@ protected:
     RequestSP     subreq;
     StreamFilter* last_filter;
 
-    Request () : _impl(), parent(), last_filter(), _delay_id(0) {}
+    Request () : _impl(), parent(), last_filter(), _delay_id(0), async() {}
 
     void set (BackendHandle* h) {
         _handle = h;
+        async = false;
     }
 
     virtual void exec () = 0;
@@ -42,6 +43,9 @@ protected:
         if (subreq) return subreq->cancel(err);
         handle_event(err);
     }
+
+    // just calls user callbacks with <cancelled> status
+    virtual void notify (const CodeError&) = 0;
 
     // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)
     void finish_exec () {
@@ -62,6 +66,7 @@ protected:
 private:
     BackendHandleSP _handle;
     uint64_t        _delay_id;
+    bool            async;
 };
 
 }}

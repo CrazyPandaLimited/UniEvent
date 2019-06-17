@@ -114,6 +114,7 @@ private:
 
     void exec         () override;
     void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
 };
 
 

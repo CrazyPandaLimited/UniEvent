@@ -91,15 +91,17 @@ void SendRequest::exec () {
     if (err) delay([=]{ cancel(err); });
 }
 
+void SendRequest::notify (const CodeError& err) { handle->on_send(err, this); }
+
 void SendRequest::handle_event (const CodeError& err) {
     HOLD_ON(handle);
-    handle->queue.done(this, [&] {
-        handle->on_send(err, this);
-    });
+    handle->queue.done(this, [=]{ handle->on_send(err, this); });
 }
 
-void Udp::on_send (const CodeError& err, const SendRequestSP& r) {
-    r->event(this, err, r);
+void Udp::on_send (const CodeError& err, const SendRequestSP& req) {
+    UdpSP self = this;
+    req->event(self, err, req);
+    send_event(self, err, req);
 }
 
 void Udp::reset () {

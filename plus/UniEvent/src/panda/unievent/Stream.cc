@@ -95,6 +95,8 @@ void ConnectRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
 }
 
+void ConnectRequest::notify (const CodeError& err) { handle->on_connect(err, this); }
+
 void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
     auto err2 = set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
@@ -104,17 +106,11 @@ void Stream::finalize_handle_connect (const CodeError& err1, const ConnectReques
 
     // if we are already canceling queue now, do not start recursive cancel
     if (!err || queue.canceling()) {
-        queue.done(req, [&]{
-            req->event(this, err, req);
-            on_connect(err, req);
-        });
+        queue.done(req, [=]{ on_connect(err, req); });
     }
     else { // cancel everything till the end of queue, but call connect callback with actual status(err), not with ECANCELED
         queue.cancel([&]{
-            queue.done(req, [&]{
-                req->event(this, err, req);
-                on_connect(err, req);
-            });
+            queue.done(req, [=]{ on_connect(err, req); });
         }, [&]{
             _reset();
         });
@@ -122,7 +118,9 @@ void Stream::finalize_handle_connect (const CodeError& err1, const ConnectReques
 }
 
 void Stream::on_connect (const CodeError& err, const ConnectRequestSP& req) {
-    connect_event(this, err, req);
+    StreamSP self = this;
+    req->event(self, err, req);
+    connect_event(self, err, req);
 }
 
 // ===================== READ ===============================
@@ -171,17 +169,8 @@ void Stream::finalize_write (const WriteRequestSP& req) {
     _EDEBUGTHIS();
     bool completed;
     auto err = impl()->write(req->bufs, req->impl(), completed);
-    if (err) return req->delay([=]{ req->cancel(err); });
-//    // TODO: refactor queue to better architecture, for better and safer handling sync-completed writes
-//    if (completed) {
-//        req->finish_exec();
-//        req->delay([=]{
-//            req->handle_event({});
-//        });
-//        Request* top = req.get();
-//        while (top->parent) top = top->parent;
-//        if (dyn_cast<WriteRequest*>(top))
-//    }
+    if (err) req->cancel(err);
+    else if (completed) req->handle_event({});
 }
 
 void WriteRequest::handle_event (const CodeError& err) {
@@ -191,16 +180,17 @@ void WriteRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
+void WriteRequest::notify (const CodeError& err) { handle->on_write(err, this); }
+
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
-    queue.done(req, [&]{
-        req->event(this, err, req);
-        on_write(err, req);
-    });
+    queue.done(req, [=]{ on_write(err, req); });
 }
 
 void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
-    write_event(this, err, req);
+    StreamSP self = this;
+    req->event(self, err, req);
+    write_event(self, err, req);
 }
 
 // ===================== EOF ===============================
@@ -245,17 +235,18 @@ void ShutdownRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
 
+void ShutdownRequest::notify (const CodeError& err) { handle->on_shutdown(err, this); }
+
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
-    queue.done(req, [&]{
-        req->event(this, err, req);
-        on_shutdown(err, req);
-    });
+    queue.done(req, [=]{ on_shutdown(err, req); });
 }
 
 void Stream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
-    shutdown_event(this, err, req);
+    StreamSP self = this;
+    req->event(self, err, req);
+    shutdown_event(self, err, req);
 }
 
 // ===================== DISCONNECT/RESET/CLEAR ===============================
@@ -265,6 +256,7 @@ struct DisconnectRequest : StreamRequest {
     void exec         ()                                                 override { handle->queue.done(this, [&]{ handle->_reset(); }); }
     void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
     void handle_event (const CodeError&)                                 override {}
+    void notify       (const CodeError&)                                 override {}
 };
 
 void Stream::disconnect () {

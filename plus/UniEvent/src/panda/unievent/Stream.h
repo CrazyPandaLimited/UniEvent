@@ -224,6 +224,7 @@ struct AcceptRequest : StreamRequest, lib::AllocatedObject<AcceptRequest> {
 
     void exec         ()                                                 override {}
     void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
+    void notify       (const CodeError&)                                 override {}
     void handle_event (const CodeError&)                                 override {}
 };
 
@@ -248,6 +249,7 @@ protected:
 
     void exec         () override = 0;
     void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
 };
 
 
@@ -277,6 +279,7 @@ private:
 
     void exec         () override;
     void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
 };
 
 
@@ -298,6 +301,7 @@ private:
 
     void exec         () override;
     void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
 };
 
 inline void Stream::write (const string& data, write_fn callback) {

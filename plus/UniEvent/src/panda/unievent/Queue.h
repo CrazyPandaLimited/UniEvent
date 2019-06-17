@@ -30,8 +30,10 @@ struct Queue {
     Queue () : locked(), cancel_gen() {}
 
     void push (const RequestSP& req) {
+        req->async = false;
         requests.push_back(req);
         if (requests.size() == 1 && !locked) req->exec();
+        req->async = true;
     }
 
     template <class Func>
@@ -41,13 +43,23 @@ struct Queue {
         if (req == cancel_till) cancel_till = nullptr; // stop canceling, as we processed the last request
         req->finish_exec();
         requests.pop_front();
-        ++locked; // lock, so if f() add anything it won't get executed
-        scope_guard([&] {
-            f();
-        }, [&] {
-            --locked;
-            resume(); // execute what has been added
-        });
+
+        if (req->async) { // we can call user callback right now
+            ++locked; // lock, so if f() add anything it won't get executed
+            scope_guard([&] {
+                f();
+            }, [&] {
+                --locked;
+                resume(); // execute what has been added
+            });
+        } else { // we must delay user callback
+            finalized_requests.push_back(req);
+            req->delay([=]{
+                assert(finalized_requests.front() == req);
+                finalized_requests.pop_front();
+                f();
+            });
+        }
     }
 
     template <class Post>
@@ -60,6 +72,12 @@ struct Queue {
         auto gen = cancel_gen;
 
         ExceptionKeeper exk;
+
+        while (finalized_requests.size()) { // don't need <till> because can't be added during callbacks because <locked>
+            auto cur = finalized_requests.front();
+            finalized_requests.pop_front();
+            exk.etry([&]{ cur->notify(CodeError(std::errc::operation_canceled)); });
+        }
 
         exk.etry([&]{ fpre(); });
 
@@ -97,6 +115,7 @@ struct Queue {
 private:
     using Requests = panda::lib::IntrusiveChain<RequestSP>;
     Requests  requests;
+    Requests  finalized_requests;
     uint32_t  locked;
     uint32_t  cancel_gen;
     RequestSP cancel_till;
