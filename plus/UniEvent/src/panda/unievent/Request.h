@@ -64,6 +64,7 @@ protected:
     }
 
     ~Request () {
+        if (subreq) subreq->finish_exec(); // stop sub-request (quiet) if filter forgets parent request
         assert(!_impl);
     }
 
