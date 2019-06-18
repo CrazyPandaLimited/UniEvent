@@ -29,7 +29,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         uvx_strict(uv_listen(uvsp(), backlog, on_connection));
     }
 
-    CodeError accept (StreamImpl* _client) {
+    CodeError accept (StreamImpl* _client) override {
         auto client = static_cast<UVStream*>(_client);
         return uvx_ce(uv_accept(uvsp(), client->uvsp()));
     }
@@ -42,22 +42,21 @@ struct UVStream : UVHandle<Base, UvReq> {
         uv_read_stop(uvsp());
     }
 
-    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req, bool& completed) {
+    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req) override {
         auto req = static_cast<UVWriteRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_write(&req->uvr, uvsp(), uvbufs, bufs.size(), on_write);
-        if (!err) {
-            req->active = true;
-            completed = !uvsp()->write_queue_size;
-        }
-        return uvx_ce(err);
+        if (err) return uvx_code_error(err);
+        req->active = true;
+        if (!uvsp()->write_queue_size) req->handle_event({}); // written synchronously
+        return {};
     }
 
-    CodeError shutdown (ShutdownRequestImpl* _req) {
+    void shutdown (ShutdownRequestImpl* _req) override {
         auto req = static_cast<UVShutdownRequest*>(_req);
         int err = uv_shutdown(&req->uvr, uvsp(), on_shutdown);
-        if (!err) req->active = true;
-        return uvx_ce(err);
+        if (err) return req->handle_event(uvx_code_error(err));
+        req->active = true;
     }
 
     optional<fh_t> fileno () const override { return uvx_fileno(this->template uvhp()); }

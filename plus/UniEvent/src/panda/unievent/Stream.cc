@@ -167,10 +167,8 @@ void WriteRequest::exec () {
 
 void Stream::finalize_write (const WriteRequestSP& req) {
     _EDEBUGTHIS();
-    bool completed;
-    auto err = impl()->write(req->bufs, req->impl(), completed);
-    if (err) req->cancel(err);
-    else if (completed) req->handle_event({});
+    auto err = impl()->write(req->bufs, req->impl());
+    if (err) req->delay([=]{ req->cancel(err); });
 }
 
 void WriteRequest::handle_event (const CodeError& err) {
@@ -225,8 +223,7 @@ void ShutdownRequest::exec () {
 void Stream::finalize_shutdown (const ShutdownRequestSP& req) {
     _EDEBUGTHIS();
     set_shutting();
-    auto err = impl()->shutdown(req->impl());
-    if (err) return req->delay([=]{ req->cancel(err); });
+    impl()->shutdown(req->impl());
 }
 
 void ShutdownRequest::handle_event (const CodeError& err) {

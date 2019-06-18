@@ -41,8 +41,13 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         auto req = static_cast<UVSendRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.get(), on_send);
-        if (!err) req->active = true;
-        return uvx_ce(err);
+        if (err) return uvx_code_error(err);
+        req->active = true;
+        // &uvh.write_queue == uvh.write_queue[0]
+        if (!uvh.send_queue_size) { // not working! never = 0 even if written synchronously
+            req->handle_event({}); // written synchronously
+        }
+        return {};
     }
 
     net::SockAddr sockaddr () override {
