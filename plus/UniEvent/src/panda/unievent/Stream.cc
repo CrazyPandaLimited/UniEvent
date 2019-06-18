@@ -234,9 +234,9 @@ void Stream::shutdown (ShutdownRequest* req) {
     
     int err = uv_shutdown(_pex_(req), uvsp(), uvx_on_shutdown);
     if (err) {
-        Prepare::call_soon([=] {
+        call_soon_or_on_reset([=] {
             filters_.on_shutdown(CodeError(err), req);
-        }, loop());
+        });
         return;
     }
 
