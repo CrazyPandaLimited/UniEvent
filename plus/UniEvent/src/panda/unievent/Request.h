@@ -14,8 +14,15 @@ using RequestSP = iptr<Request>;
 struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected backend::IRequestListener {
     template <class Func>
     void delay (Func&& f) {
-        if (_delay_id) _handle->loop()->cancel_delay(_delay_id);
+        delay_cancel();
         _delay_id = _handle->loop()->delay(f);
+    }
+
+    void delay_cancel () {
+        if (_delay_id) {
+            _handle->loop()->cancel_delay(_delay_id);
+            _delay_id = 0;
+        }
     }
 
 protected:
@@ -49,10 +56,7 @@ protected:
 
     // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)
     void finish_exec () {
-        if (_delay_id) {
-            _handle->loop()->cancel_delay(_delay_id);
-            _delay_id = 0;
-        }
+        delay_cancel();
         if (_impl) {
             _impl->destroy();
             _impl = nullptr;

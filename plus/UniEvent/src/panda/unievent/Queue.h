@@ -76,6 +76,7 @@ struct Queue {
         while (finalized_requests.size()) { // don't need <till> because can't be added during callbacks because <locked>
             auto cur = finalized_requests.front();
             finalized_requests.pop_front();
+            cur->delay_cancel();
             exk.etry([&]{ cur->notify(CodeError(std::errc::operation_canceled)); });
         }
 
