@@ -32,8 +32,8 @@ struct Timer : virtual BackendHandle, private backend::ITimerListener {
     void reset () override;
     void clear () override;
 
-    static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
-    static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
+    static TimerSP once  (uint64_t initial, timer_fn cb, const LoopSP& loop = Loop::default_loop());
+    static TimerSP start (uint64_t repeat,  timer_fn cb, const LoopSP& loop = Loop::default_loop());
 
 protected:
     virtual void on_timer ();

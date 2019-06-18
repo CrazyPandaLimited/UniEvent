@@ -53,3 +53,16 @@ void _benchmark_cached_resolver () {
     
     loop->run();
 }
+
+void _benchmark_timer_start_stop (LoopSP loop, int tmt, int cnt) {
+    TimerSP timer(new Timer(loop));
+    for (int i = 0; i < cnt; ++i) {
+        timer->start(tmt);
+        timer->stop();
+    }
+}
+
+void _benchmark_loop_update_time (int cnt) {
+    LoopSP loop(new Loop);
+    for (int i = 0; i < cnt; ++i) loop->update_time();
+}
