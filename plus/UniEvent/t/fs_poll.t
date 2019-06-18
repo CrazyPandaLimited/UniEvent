@@ -77,7 +77,7 @@ subtest 'reset' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
     $h->callback(check_changes(STAT_MTIME, "mtime"));
-    my $t = UE::Timer->once(0.001, sub { Fs::touch(var 'file') });
+    my $t = UE::Timer->once(0.01, sub { Fs::touch(var 'file') });
     $l->run;
     check_call_cnt(1);
     
