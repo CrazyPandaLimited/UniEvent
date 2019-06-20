@@ -39,7 +39,7 @@ struct Queue {
     template <class Func>
     void done (Request* check, Func&& f) {
         auto req = requests.front();
-        assert(req == check);
+        assert(req == check); (void) check;
         if (req == cancel_till) cancel_till = nullptr; // stop canceling, as we processed the last request
         req->finish_exec();
         requests.pop_front();

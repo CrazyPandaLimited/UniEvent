@@ -79,6 +79,31 @@ subtest 'delay' => sub {
         $loop->run_nowait for 1..3;
         is $i, 111, 'called';
     };
+    subtest 'cancel delay' => sub {
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        $loop->cancel_delay($mark) for 1..2;
+        $loop->run_nowait for 1..3;
+        is $i, 0, 'delay canceled';
+        
+        $loop->cancel_delay($mark);
+        undef $mark;
+    };
+    subtest 'autocancel delay' => sub {
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        undef $mark;
+        $loop->run_nowait for 1..3;
+        is $i, 0, 'delay autocanceled';
+    };
+    subtest 'mark survives the loop' => sub {
+        my $loop = UE::Loop->new;
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        undef $loop;
+        is $i, 0, 'delay autocanceled';
+        undef $mark; # ignore
+    };
 };
 
 subtest 'CLONE_SKIP' => sub {
