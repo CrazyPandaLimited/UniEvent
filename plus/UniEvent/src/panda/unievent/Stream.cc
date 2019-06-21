@@ -154,6 +154,7 @@ void Stream::on_read (string& buf, const CodeError& err) {
 // ===================== WRITE ===============================
 void Stream::write (const WriteRequestSP& req) {
     _EDEBUGTHIS("req: %p", req.get());
+    for (const auto& buf : req->bufs) _wq_size += buf.length();
     req->set(this);
     queue.push(req);
 }
@@ -162,6 +163,7 @@ void WriteRequest::exec () {
     _EDEBUGTHIS();
     REQUEST_REQUIRE_WRITE_STATE;
     last_filter = handle->_filters.front();
+    for (const auto& buf : bufs) handle->_wq_size -= buf.length();
     INVOKE(handle, last_filter, write, finalize_write, this);
 }
 
@@ -270,6 +272,7 @@ void Stream::_reset () {
     BackendHandle::reset();
     invoke_sync(&StreamFilter::reset);
     flags &= DONTREAD; // clear flags except DONTREAD
+    _wq_size = 0;
 }
 
 void Stream::clear () {
@@ -281,6 +284,7 @@ void Stream::_clear () {
     invoke_sync(&StreamFilter::reset);
     _filters.clear();
     flags = 0;
+    _wq_size = 0;
     buf_alloc_callback = nullptr;
     connection_factory = nullptr;
     connection_event.remove_all();

@@ -42,18 +42,18 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
 
     string buf_alloc (size_t cap) noexcept override;
 
-    bool   readable      () const { return impl()->readable(); }
-    bool   writable      () const { return impl()->writable(); }
-    bool   listening     () const { return flags & LISTENING; }
-    bool   connecting    () const { return flags & CONNECTING; }
-    bool   established   () const { return flags & ESTABLISHED; }
-    bool   connected     () const { return flags & (IN_CONNECTED | OUT_CONNECTED); }
-    bool   in_connected  () const { return flags & IN_CONNECTED; }
-    bool   out_connected () const { return flags & OUT_CONNECTED; }
-    bool   wantread      () const { return !(flags & DONTREAD); }
-    bool   shutting_down () const { return flags & SHUTTING; }
-    bool   is_shut_down  () const { return flags & SHUT; }
-//    size_t write_queue_size () const { return uvsp_const()->write_queue_size; }
+    bool   readable         () const { return impl()->readable(); }
+    bool   writable         () const { return impl()->writable(); }
+    bool   listening        () const { return flags & LISTENING; }
+    bool   connecting       () const { return flags & CONNECTING; }
+    bool   established      () const { return flags & ESTABLISHED; }
+    bool   connected        () const { return flags & (IN_CONNECTED | OUT_CONNECTED); }
+    bool   in_connected     () const { return flags & IN_CONNECTED; }
+    bool   out_connected    () const { return flags & OUT_CONNECTED; }
+    bool   wantread         () const { return !(flags & DONTREAD); }
+    bool   shutting_down    () const { return flags & SHUTTING; }
+    bool   is_shut_down     () const { return flags & SHUT; }
+    size_t write_queue_size () const { return _wq_size + impl()->write_queue_size(); }
 
     void         listen   (int backlog) { listen(nullptr, backlog); }
     virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
@@ -104,7 +104,7 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
 protected:
     Queue queue;
 
-    Stream () : flags() {
+    Stream () : flags(), _wq_size() {
         _ECTOR();
     }
 
@@ -170,17 +170,12 @@ private:
 
     uint32_t flags;
     Filters  _filters;
+    size_t   _wq_size;
 
     backend::StreamImpl* impl () const { return static_cast<backend::StreamImpl*>(BackendHandle::impl()); }
 
     bool reading () const { return flags & READING; }
 
-//    template <class T1, class T2, class...Args>
-//    void invoke (const StreamFilterSP& filter, T1 filter_method, T2 my_method, Args&&...args) {
-//        if (filter) (filter->*filter_method)(std::forward<Args>(args)...);
-//        else        (this->*my_method)(std::forward<Args>(args)...);
-//    }
-//
     template <class T, class...Args>
     void invoke_sync (T filter_method, Args&&...args) {
         if (_filters.size()) (_filters.front()->*filter_method)(std::forward<Args>(args)...);

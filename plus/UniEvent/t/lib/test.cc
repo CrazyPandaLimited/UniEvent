@@ -54,8 +54,8 @@ TcpSP make_client (const LoopSP& loop) {
     return client;
 }
 
-TcpPair make_tcp_pair (const LoopSP& loop, const SockAddr& sa) {
-    TcpPair ret;
+TcpP2P make_tcp_pair (const LoopSP& loop, const SockAddr& sa) {
+    TcpP2P ret;
     ret.server = make_server(loop, sa);
     ret.client = make_client(loop);
     ret.client->connect(ret.server->sockaddr());
@@ -63,11 +63,8 @@ TcpPair make_tcp_pair (const LoopSP& loop, const SockAddr& sa) {
 }
 
 TcpP2P make_p2p (const LoopSP& loop, const SockAddr& sa) {
-    TcpP2P ret;
-    auto p = make_tcp_pair(loop, sa);
-    ret.server = p.server;
-    ret.client = p.client;
-    p.server->connection_event.add([&](auto, auto sconn, auto& err) {
+    TcpP2P ret = make_tcp_pair(loop, sa);
+    ret.server->connection_event.add([&](auto, auto sconn, auto& err) {
         if (err) throw err;
         ret.sconn = panda::dynamic_pointer_cast<Tcp>(sconn);
         loop->stop();

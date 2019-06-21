@@ -61,8 +61,9 @@ struct UVStream : UVHandle<Base, UvReq> {
 
     optional<fh_t> fileno () const override { return uvx_fileno(this->template uvhp()); }
 
-    bool readable () const noexcept override { return uv_is_readable(uvsp()); }
-    bool writable () const noexcept override { return uv_is_writable(uvsp()); }
+    bool   readable         () const noexcept override { return uv_is_readable(uvsp()); }
+    bool   writable         () const noexcept override { return uv_is_writable(uvsp()); }
+    size_t write_queue_size () const noexcept override { return uvsp()->write_queue_size; }
 
     int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(this->template uvhp()); }
     void recv_buffer_size (int value) override { uvx_recv_buffer_size(this->template uvhp(), value); }

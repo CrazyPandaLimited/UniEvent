@@ -39,8 +39,9 @@ struct StreamImpl : HandleImpl {
     virtual int  send_buffer_size () const    = 0;
     virtual void send_buffer_size (int value) = 0;
 
-    virtual bool readable () const noexcept = 0;
-    virtual bool writable () const noexcept = 0;
+    virtual bool   readable         () const noexcept = 0;
+    virtual bool   writable         () const noexcept = 0;
+    virtual size_t write_queue_size () const noexcept = 0;
 
     void handle_connection (const CodeError& err) noexcept {
         ltry([&]{ listener->handle_connection(err); });

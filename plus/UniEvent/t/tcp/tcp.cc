@@ -345,11 +345,6 @@ TEST_CASE("write burst", "[tcp]") {
         CHECK(str == "abcd");
     });
 
-    string s = "0123456789";
-    for (int i = 0; i < 20; ++i) s += s;
-    printf("s len = %lu\n", s.length());
-
-    //p.client->write(s);
     p.client->write("a");
     p.client->write("b");
     p.client->write("c");
@@ -359,4 +354,46 @@ TEST_CASE("write burst", "[tcp]") {
     });
 
     test.loop->run_once();
+}
+
+TEST_CASE("write queue size", "[tcp]") {
+    AsyncTest test(500, {});
+    SECTION("queued") {
+        auto p = make_tcp_pair(test.loop);
+        CHECK(p.client->write_queue_size() == 0);
+        p.client->write("a");
+        CHECK(p.client->write_queue_size() == 1);
+        p.client->write("b", [&](auto...){ test.loop->stop(); });
+        CHECK(p.client->write_queue_size() == 2);
+        test.run();
+        CHECK(p.client->write_queue_size() == 0);
+    }
+    SECTION("sync") {
+        auto p = make_p2p(test.loop);
+        CHECK(p.client->write_queue_size() == 0);
+        p.client->write("a");
+        CHECK(p.client->write_queue_size() == 0);
+        p.client->write("b");
+        CHECK(p.client->write_queue_size() == 0);
+    }
+    SECTION("reset") {
+        auto p = make_tcp_pair(test.loop);
+        p.client->write("12345");
+        CHECK(p.client->write_queue_size() == 5);
+        p.client->write("67890");
+        CHECK(p.client->write_queue_size() == 10);
+        p.client->reset();
+        CHECK(p.client->write_queue_size() == 0);
+    }
+    SECTION("sync-async") {
+        auto p = make_p2p(test.loop);
+        p.client->send_buffer_size(100000000);
+        CHECK(p.client->write_queue_size() == 0);
+        p.client->write("abcd");
+        CHECK(p.client->write_queue_size() == 0);
+        string epta;
+        for (int i = 0; i < 1000000; ++i) epta += "1234567890";
+        p.client->write(epta);
+        CHECK(p.client->write_queue_size() > 0);
+    }
 }
