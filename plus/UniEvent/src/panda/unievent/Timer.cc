@@ -37,7 +37,6 @@ TimerSP Timer::once (uint64_t initial, timer_fn cb, const LoopSP& loop) {
 }
 
 TimerSP Timer::start (uint64_t repeat, timer_fn cb, const LoopSP& loop) {
-    loop->update_time();
     TimerSP timer = new Timer(loop);
     timer->event.add(cb);
     timer->start(repeat);
