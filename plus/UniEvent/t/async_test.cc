@@ -47,7 +47,7 @@ TEST_CASE("async_test multi", "[async_test]") {
     REQUIRE(called == 2);
 }
 
-TEST_CASE("async_test call_soon", "[async_test]") {
+TEST_CASE("async_test delay", "[async_test]") {
     AsyncTest test(200, {"call"});
     size_t count = 0;
     test.loop->delay([&]() {

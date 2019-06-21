@@ -23,7 +23,7 @@ $sock->listen(4500, sub {
     $sock->read_start;
     $sock->read_callback(sub {
     });
-    my $t = Panda::Event::Timer->new; $t->once(3); $t->timer_callback(sub {
+    my $t = Panda::Event::Timer->new; $t->once(3); $t->callback(sub {
         $sock->write("123456");
         $sock->disconnect;
         undef $t;
