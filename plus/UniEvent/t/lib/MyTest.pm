@@ -8,7 +8,7 @@ use Test2::IPC;
 use Test::Catch;
 use Test::Exception;
 
-XS::Loader::load_tests('MyTest');
+XS::Loader::load('MyTest');
 
 $SIG{PIPE} = 'IGNORE';
 
