@@ -9,7 +9,7 @@ use Test::Catch;
 use Test::Exception;
 use File::Path qw/make_path remove_tree/;
 
-XS::Loader::load_tests('MyTest');
+XS::Loader::load('MyTest');
 
 $SIG{PIPE} = 'IGNORE';
 
