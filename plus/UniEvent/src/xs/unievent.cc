@@ -42,7 +42,7 @@ Stash xs::unievent::get_perl_class_for_err (const Error& err) {
     return stash;
 }
 
-Stash perl_class_for_handle (Handle* h) {
+Stash xs::unievent::perl_class_for_handle (Handle* h) {
     auto& ca = _perl_handle_classes;
     if (!ca.size()) {
         ca[Prepare::TYPE] = Stash("UniEvent::Prepare", GV_ADD);
@@ -61,6 +61,35 @@ Stash perl_class_for_handle (Handle* h) {
 //        ca[File::TYPE]    = Stash("UniEvent::File",    GV_ADD);
     }
     return ca.at(h->type());
+}
+
+string xs::unievent::sv2buf (const Sv& sv) {
+    string buf;
+    if (sv.is_array_ref()) { // [$str1, $str2, ...]
+        Array wlist(sv);
+        STRLEN sum = 0;
+        for (auto it = wlist.cbegin(); it != wlist.cend(); ++it) {
+            STRLEN len;
+            SvPV(*it, len);
+            sum += len;
+        }
+        if (!sum) return string();
+
+        char* ptr = buf.reserve(sum);
+        for (auto it = wlist.cbegin(); it != wlist.cend(); ++it) {
+            STRLEN len;
+            const char* data = SvPV(*it, len);
+            memcpy(ptr, data, len);
+            ptr += len;
+        }
+        buf.length(sum);
+    } else { // $str
+        STRLEN len;
+        const char* data = SvPV(sv, len);
+        if (!len) return string();
+        buf.assign(data, len);
+    }
+    return buf;
 }
 
 static inline void xscall (const Object& handle, const Simple& evname, std::initializer_list<Scalar> args = {}) {
