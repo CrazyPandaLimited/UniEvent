@@ -95,7 +95,7 @@ TEST_CASE("resolver", "[resolver]") {
             test.run();
             CHECK(resolver->cache_size() == 1);
 
-            req->hints(AddrInfoHints(AF_INET6));
+            req->hints(AddrInfoHints(AF_INET, SOCK_STREAM));
             req->run();
             test.run();
             CHECK(resolver->cache_size() == 2);
@@ -318,7 +318,7 @@ TEST_CASE("resolver", "[resolver]") {
     SECTION("exception safety") {
         expected_cnt = 2;
         for (int i = 0; i < 2; ++i) {
-            test.loop->resolver()->resolve("localhost", [&](auto...) {
+            test.loop->resolver()->resolve("localhost", [&](auto, auto, auto) {
                 test.happens("r");
                 throw "epta";
             });

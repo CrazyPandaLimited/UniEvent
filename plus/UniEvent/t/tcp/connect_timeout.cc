@@ -2,7 +2,7 @@
 #include <thread>
 
 TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
-    AsyncTest test(10000, {"connected", "reset"});
+    AsyncTest test(2000, {"connected", "reset"});
 
     auto sa = test.get_refused_addr();
     size_t counter = 0;

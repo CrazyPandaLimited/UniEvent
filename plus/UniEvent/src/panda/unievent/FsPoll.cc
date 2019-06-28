@@ -7,7 +7,7 @@ FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched() {
     _init(loop);
     fsr   = new Fs::Request(loop);
     timer = new Timer(loop);
-    timer->event.add([this](auto...) {
+    timer->event.add([this](auto) {
         if (fsr->busy()) return; // filesystem has not yet completed the request -> skip one cycle
         do_stat();
     });

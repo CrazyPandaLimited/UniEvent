@@ -10,25 +10,7 @@ namespace panda { namespace unievent { namespace test {
 using panda::net::SockAddr;
 
 SockAddr AsyncTest::get_refused_addr () {
-    static SockAddr ret;
-    while (!ret) {
-        auto sock = socket(AF_INET, SOCK_STREAM, 0);   if (sock == -1) throw std::runtime_error("should not happen1");
-        SockAddr sa = SockAddr::Inet4("127.0.0.1", 0);
-        auto err = bind(sock, sa.get(), sa.length());  if (err == -1) throw std::runtime_error("should not happen2");
-        socklen_t sz = sizeof(sa);
-        err = getsockname(sock, sa.get(), &sz);        if (err == -1 || !sa) throw std::runtime_error("should not happen3");
-
-        auto usock = socket(AF_INET, SOCK_DGRAM, 0);   if (usock == -1) throw std::runtime_error("should not happen4");
-        err = bind(usock, sa.get(), sa.length());
-        if (!err) {
-            ret = sa;
-            break;
-        }
-
-        err = close(sock);  if (err == -1) throw std::runtime_error("should not happen5");
-        err = close(usock); if (err == -1) throw std::runtime_error("should not happen6");
-    }
-    return ret;
+    return SockAddr::Inet4("255.255.255.0", 12345);
 }
 
 SockAddr AsyncTest::get_blackhole_addr () {

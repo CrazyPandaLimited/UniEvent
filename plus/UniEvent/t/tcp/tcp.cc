@@ -264,7 +264,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
         return sconn;
     };
 
-    server->connection_event.add([&](auto...) {
+    server->connection_event.add([&](auto, auto, auto) {
         FAIL("should not be called");
     });
 
@@ -281,7 +281,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
 }
 
 TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
-    AsyncTest test(500, {});
+    AsyncTest test(1000, {});
     SockAddr addr = test.get_refused_addr();
 
     TcpSP client = new Tcp(test.loop);
@@ -343,17 +343,18 @@ TEST_CASE("write burst", "[tcp]") {
     p.sconn->read_event.add([&](auto, auto& str, auto){
         test.happens();
         CHECK(str == "abcd");
+        test.loop->stop();
     });
 
     p.client->write("a");
     p.client->write("b");
     p.client->write("c");
     p.client->write("d");
-    p.client->write_event.add([&](auto...) {
+    p.client->write_event.add([&](auto, auto, auto) {
         test.happens();
     });
 
-    test.loop->run_once();
+    test.loop->run();
 }
 
 TEST_CASE("write queue size", "[tcp]") {
@@ -363,7 +364,7 @@ TEST_CASE("write queue size", "[tcp]") {
         CHECK(p.client->write_queue_size() == 0);
         p.client->write("a");
         CHECK(p.client->write_queue_size() == 1);
-        p.client->write("b", [&](auto...){ test.loop->stop(); });
+        p.client->write("b", [&](auto, auto, auto){ test.loop->stop(); });
         CHECK(p.client->write_queue_size() == 2);
         test.run();
         CHECK(p.client->write_queue_size() == 0);
@@ -384,16 +385,5 @@ TEST_CASE("write queue size", "[tcp]") {
         CHECK(p.client->write_queue_size() == 10);
         p.client->reset();
         CHECK(p.client->write_queue_size() == 0);
-    }
-    SECTION("sync-async") {
-        auto p = make_p2p(test.loop);
-        p.client->send_buffer_size(100000000);
-        CHECK(p.client->write_queue_size() == 0);
-        p.client->write("abcd");
-        CHECK(p.client->write_queue_size() == 0);
-        string epta;
-        for (int i = 0; i < 1000000; ++i) epta += "1234567890";
-        p.client->write(epta);
-        CHECK(p.client->write_queue_size() > 0);
     }
 }
