@@ -2,6 +2,7 @@
 #include <thread>
 #include <sstream>
 #include <set>
+#include <panda/log.h>
 
 namespace {
     static int dcnt = 0;

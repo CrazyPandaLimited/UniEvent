@@ -2,6 +2,13 @@ use 5.012;
 use lib 't/lib';
 use MyTest;
 use UniEvent::Error;
+use Panda::Lib::Logger;
+
+#set_log_level(LOG_VERBOSE_DEBUG);
+#set_native_logger(sub {
+#    my ($level, $cp, $msg) = @_;
+#    warn "$cp $msg";
+#});
 
 catch_run('[resolver]');
 
