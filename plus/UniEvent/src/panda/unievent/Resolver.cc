@@ -90,7 +90,8 @@ void Resolver::Worker::resolve (const RequestSP& req) {
 
 void Resolver::Worker::handle_timer () {
     panda_log_verbose_debug(this << " timed out req:" << request.get());
-    finish_resolve(nullptr, CodeError(std::errc::timed_out));
+    auto req = request;
+    resolver->finish_resolve(req, nullptr, CodeError(std::errc::timed_out));
 }
 
 void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
