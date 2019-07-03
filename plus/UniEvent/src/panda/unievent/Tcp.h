@@ -65,7 +65,7 @@ struct TcpConnectRequest : ConnectRequest, panda::lib::AllocatedObject<TcpConnec
     bool          cached;
     AddrInfoHints hints;
 
-    TcpConnectRequest (Tcp* h = nullptr) : port(), cached(), handle(h) {}
+    TcpConnectRequest (Tcp* h = nullptr) : port(), cached(true), handle(h) {}
 
     TcpConnectRequestSP to (const string& host, uint16_t port, const AddrInfoHints& hints = Tcp::defhints) {
         this->host  = host;
