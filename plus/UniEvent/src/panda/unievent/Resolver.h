@@ -19,6 +19,8 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 5000;  // [ms]
     static constexpr uint32_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
     static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
+    static constexpr uint32_t DEFAULT_QUERY_TIMEOUT         = 5000;  // [ms]
+    static constexpr uint32_t DEFAULT_WORKERS               = 5;
 
     struct Request;
     using RequestSP = iptr<Request>;
@@ -26,9 +28,22 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     using resolve_fptr = void(const AddrInfo&, const CodeError&, const RequestSP&);
     using resolve_fn   = function<resolve_fptr>;
 
-    static ResolverSP create_loop_resolver (const LoopSP& loop, uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
+    struct Config {
+        uint32_t cache_expiration_time;
+        size_t   cache_limit;
+        uint32_t query_timeout;
+        uint32_t workers;
 
-    Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
+        Config (uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT,
+                uint32_t query_timeout = DEFAULT_QUERY_TIMEOUT, uint32_t workers = DEFAULT_WORKERS)
+            : cache_expiration_time(exptime), cache_limit(limit), query_timeout(query_timeout), workers(workers) {}
+    };
+
+    static ResolverSP create_loop_resolver (const LoopSP& loop);
+
+    Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT)
+        : Resolver(loop, Config(exptime, limit)) {}
+    Resolver (const LoopSP& loop, const Config&);
 
     Resolver (Resolver& other) = delete;
     Resolver& operator= (Resolver& other) = delete;
@@ -44,15 +59,15 @@ struct Resolver : Refcnt, private backend::ITimerListener {
 
     AddrInfo find (const string& node, const string& service, const AddrInfoHints& hints);
 
-    uint32_t cache_expiration_time () const { return expiration_time; }
-    size_t   cache_limit           () const { return limit; }
+    uint32_t cache_expiration_time () const { return cfg.cache_expiration_time; }
+    size_t   cache_limit           () const { return cfg.cache_limit; }
     size_t   cache_size            () const { return cache.size(); }
 
-    void cache_expiration_time (uint32_t val) { expiration_time = val; }
+    void cache_expiration_time (uint32_t val) { cfg.cache_expiration_time = val; }
 
     void cache_limit (size_t val) {
-        limit = val;
-        if (cache.size() > limit) clear_cache();
+        cfg.cache_limit = val;
+        if (cache.size() > val) clear_cache();
     }
 
     void clear_cache ();
@@ -135,15 +150,14 @@ private:
 
     Loop*    _loop;
     LoopSP   _loop_hold;
+    Config   cfg;
     BTimer*  dns_roll_timer;
     Workers  workers;
     Requests queue;
     Requests cache_delayed;
     Cache    cache;
-    time_t   expiration_time;
-    size_t   limit;
 
-    Resolver (uint32_t expiration_time, size_t limit, Loop* loop);
+    Resolver (const Config&, Loop*);
 
     void add_worker ();
 

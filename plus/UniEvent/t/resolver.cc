@@ -148,14 +148,10 @@ TEST_CASE("resolver", "[resolver]") {
     }
 
     SECTION("timeout") {
-        // will make it in required time
-        resolver->resolve("localhost", [&](const AddrInfo& ai, const CodeError& err, const Resolver::RequestSP&) {
-            test.happens("r");
-            CHECK(!err);
-            CHECK(ai);
-        }, 1000);
-        test.run();
-        CHECK(resolver->cache_size() == 1);
+        Resolver::Config cfg;
+        cfg.workers = 1;
+        cfg.query_timeout = 50;
+        resolver = new Resolver(test.loop, cfg);
 
         // will not make it
         resolver->resolve("ya.ru", [&](const AddrInfo& ai, const CodeError& err, Resolver::RequestSP) {
@@ -163,7 +159,12 @@ TEST_CASE("resolver", "[resolver]") {
             CHECK(err.code() == std::errc::timed_out);
             CHECK(!ai);
         }, 1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+        // put next request to worker to be processed after timeout
+        resolver->resolve("localhost", success_cb, 1000);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(51));
+
         test.run();
         CHECK(resolver->cache_size() == 1);
     }

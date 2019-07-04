@@ -7,8 +7,7 @@
 
 namespace panda { namespace unievent {
 
-static constexpr const int    DNS_ROLL_TIMEOUT = 1000; // [ms]
-static constexpr const size_t MAX_WORKERS      = 5;
+static constexpr const int DNS_ROLL_TIMEOUT = 1000; // [ms]
 
 Resolver::Worker::Worker (Resolver* r) : resolver(r), sock(), poll(), timer(), ares_async() {
     panda_log_verbose_debug(this << " new for resolver " << r);
@@ -23,6 +22,9 @@ Resolver::Worker::Worker (Resolver* r) : resolver(r), sock(), poll(), timer(), a
 
     options.flags = ARES_FLAG_NOALIASES;
     optmask |= ARES_OPT_FLAGS;
+
+    options.timeout = r->cfg.query_timeout;
+    optmask |= ARES_OPT_TIMEOUTMS;
 
     if (ares_init_options(&channel, &options, optmask) != ARES_SUCCESS) throw Error("resolver couldn't init c-ares");
 }
@@ -92,6 +94,7 @@ void Resolver::Worker::handle_timer () {
     panda_log_verbose_debug(this << " timed out req:" << request.get());
     auto req = request;
     resolver->finish_resolve(req, nullptr, CodeError(std::errc::timed_out));
+    //finish_resolve(nullptr, CodeError(std::errc::timed_out));
 }
 
 void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
@@ -152,15 +155,15 @@ void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError& er
 }
 
 
-ResolverSP Resolver::create_loop_resolver (const LoopSP& loop, uint32_t exptime, size_t limit) {
-    return new Resolver(exptime, limit, loop.get());
+ResolverSP Resolver::create_loop_resolver (const LoopSP& loop) {
+    return new Resolver(Config(), loop.get());
 }
 
-Resolver::Resolver (const LoopSP& loop, uint32_t exptime, size_t limit) : Resolver(exptime, limit, loop.get()) {
+Resolver::Resolver (const LoopSP& loop, const Config& cfg) : Resolver(cfg, loop.get()) {
     _loop_hold = loop;
 }
 
-Resolver::Resolver (uint32_t expiration_time, size_t limit, Loop* loop) : _loop(loop), expiration_time(expiration_time), limit(limit) {
+Resolver::Resolver (const Config& cfg, Loop* loop) : _loop(loop), cfg(cfg) {
     panda_log_verbose_debug(this);
     add_worker();
     dns_roll_timer = _loop->impl()->new_timer(this);
@@ -183,7 +186,7 @@ void Resolver::handle_timer () {
 }
 
 void Resolver::add_worker () {
-    assert(workers.size() < MAX_WORKERS);
+    assert(workers.size() < cfg.workers);
     auto worker = new Worker(this);
     workers.emplace_back(worker);
 }
@@ -195,7 +198,7 @@ void Resolver::resolve (const RequestSP& req) {
     req->running   = true;
     req->loop      = _loop; // keep loop (for loop resolvers)
 
-    if (req->_use_cache && limit) {
+    if (req->_use_cache && cfg.cache_limit) {
         auto ai = find(req->_node, req->_service, req->_hints);
         if (ai) {
             req->_use_cache = false;
@@ -216,12 +219,14 @@ void Resolver::resolve (const RequestSP& req) {
 
     for (auto& w : workers) {
         if (w->request) continue;
-        if (!dns_roll_timer->active()) dns_roll_timer->start(DNS_ROLL_TIMEOUT, DNS_ROLL_TIMEOUT);
+        uint32_t roll_tmt = cfg.query_timeout / 5;
+        if (roll_tmt < 10) roll_tmt = 10;
+        if (!dns_roll_timer->active()) dns_roll_timer->start(roll_tmt, roll_tmt);
         w->resolve(req);
         return;
     }
 
-    if (workers.size() < MAX_WORKERS) {
+    if (workers.size() < cfg.workers) {
         add_worker();
         workers.back()->resolve(req);
     } else {
@@ -248,8 +253,8 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
         cache_delayed.erase(req);
     }
 
-    if (!err && req->_use_cache && limit) {
-        if (cache.size() >= limit) {
+    if (!err && req->_use_cache && cfg.cache_limit) {
+        if (cache.size() >= cfg.cache_limit) {
             panda_log_verbose_debug(this << " cleaning cache " << cache.size());
             cache.clear();
         }
@@ -311,7 +316,7 @@ AddrInfo Resolver::find (const string& node, const string& service, const AddrIn
         panda_log_verbose_debug(this << " found in cache " << node);
 
         time_t now = time(0);
-        if (!it->second.expired(now, expiration_time)) return it->second.address;
+        if (!it->second.expired(now, cfg.cache_expiration_time)) return it->second.address;
 
         panda_log_verbose_debug(this << " expired " << node);
         cache.erase(it);
