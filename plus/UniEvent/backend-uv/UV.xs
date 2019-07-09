@@ -4,7 +4,7 @@
 using xs::Stash;
 using panda::unievent::backend::Backend;
 
-MODULE = UniEvent::UV                PACKAGE = UniEvent::Backend
+MODULE = UniEvent::Backend::UV                PACKAGE = UniEvent::Backend
 PROTOTYPES: DISABLE
 
 BOOT {
