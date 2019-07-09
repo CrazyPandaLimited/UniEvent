@@ -281,7 +281,7 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
         while (!queue.empty()) {
             auto req = queue.front();
 
-            if (req->_use_cache) {
+            if (req->_use_cache) { // if just completed request filled cache for queued requests -> dont resolve them
                 auto ai = find(req->_node, req->_service, req->_hints);
                 if (ai) {
                     req->_use_cache = false;
