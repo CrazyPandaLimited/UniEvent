@@ -57,10 +57,11 @@ void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
 
 void Resolver::Worker::handle_poll (int events, const CodeError& err) {
     panda_log_verbose_debug(this << " events:" << events << " err:" << err.what());
-    for (const auto& row : polls) {
-        auto sock = row.first;
-        ares_process_fd(channel, sock, sock);
-    }
+    auto sz = polls.size();
+    sock_t socks[sz];
+    size_t i = 0;
+    for (const auto& row : polls) socks[i++] = row.first;
+    for (i = 0; i < sz; ++i) ares_process_fd(channel, socks[i], socks[i]);
     if (exc) std::rethrow_exception(std::move(exc));
 }
 

@@ -169,6 +169,18 @@ TEST_CASE("resolver", "[resolver]") {
         CHECK(resolver->cache_size() == 1);
     }
 
+    SECTION("ares query timeout") {
+        expected_cnt = 10;
+        Resolver::Config cfg;
+        cfg.workers = 10;
+        cfg.query_timeout = 1;
+        resolver = new Resolver(test.loop, cfg);
+
+        for (int i = 0; i < 10; ++i) resolver->resolve("ya.ru", success_cb, 1000);
+
+        test.run();
+    }
+
     auto canceled_cb = [&](const AddrInfo& ai, const CodeError& err, const Resolver::RequestSP&) {
         test.happens("r");
         CHECK(err.code() == std::errc::operation_canceled);
