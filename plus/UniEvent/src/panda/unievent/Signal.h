@@ -8,7 +8,9 @@ namespace panda { namespace unievent {
 struct Signal : virtual BackendHandle, private backend::ISignalListener {
     using signal_fptr = void(const SignalSP& handle, int signum);
     using signal_fn = function<signal_fptr>;
-    
+
+    static const HandleType TYPE;
+
     CallbackDispatcher<signal_fptr> event;
 
     Signal (const LoopSP& loop = Loop::default_loop()) {
@@ -29,7 +31,7 @@ struct Signal : virtual BackendHandle, private backend::ISignalListener {
 
     void call_now (int signum) { on_signal(signum); }
 
-    static const HandleType TYPE;
+    static SignalSP watch (int signum, signal_fn cb, const LoopSP& loop = Loop::default_loop());
 
     static const string& signame (int signum);
 

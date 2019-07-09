@@ -64,6 +64,12 @@ void Signal::once (int signum, signal_fn callback) {
     impl()->once(signum);
 }
 
+SignalSP Signal::watch (int signum, signal_fn callback, const LoopSP& loop) {
+    SignalSP h = new Signal(loop);
+    h->start(signum, callback);
+    return h;
+}
+
 void Signal::stop () {
     impl()->stop();
 }

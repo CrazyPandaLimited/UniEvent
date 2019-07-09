@@ -102,6 +102,19 @@ subtest 'call_now' => sub {
     is $sig, SIGHUP;
 };
 
+subtest 'watch' => sub {
+    my $l = UE::Loop->new;
+    my $signum = SIGHUP;
+    my $rcv;
+    my $h = UniEvent::Signal->watch($signum, sub {
+        $rcv = $_[1];
+        $l->stop;
+    }, $l);
+    trigger($l, $signum);
+    $l->run;
+    is $rcv, $signum
+};
+
 sub many {
     my $sub = shift;
     foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {
