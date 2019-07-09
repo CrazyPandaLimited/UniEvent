@@ -266,18 +266,33 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     scope_guard([&]{
         on_resolve(addr, err, req);
     }, [&]{
-        if (worker && !worker->request) { // worker might have been used again in callback
-            if (queue.size()) {
-                worker->resolve(queue.front());
-                queue.pop_front();
-            } else { // worker became free, check if any requests left
-                bool busy = false;
-                for (auto& w : workers) if (w->request) {
-                    busy = true;
-                    break;
-                }
-                if (!busy) dns_roll_timer->stop();
+        if (!worker || worker->request) return; // worker might have been used again in callback
+
+        if (queue.empty()) { // worker became free, check if any requests left
+            bool busy = false;
+            for (auto& w : workers) if (w->request) {
+                busy = true;
+                break;
             }
+            if (!busy) dns_roll_timer->stop();
+            return;
+        }
+
+        while (!queue.empty()) {
+            auto req = queue.front();
+
+            if (req->_use_cache) {
+                auto ai = find(req->_node, req->_service, req->_hints);
+                if (ai) {
+                    req->_use_cache = false;
+                    finish_resolve(req, ai, {});
+                    continue;
+                }
+            }
+
+            queue.pop_front();
+            worker->resolve(req);
+            break;
         }
     });
 }
