@@ -6,6 +6,7 @@
 #include "Request.h"
 #include "AddrInfo.h"
 
+#include <map>
 #include <ctime>
 #include <vector>
 #include <ares.h>
@@ -21,6 +22,7 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
     static constexpr uint32_t DEFAULT_QUERY_TIMEOUT         = 5000;  // [ms]
     static constexpr uint32_t DEFAULT_WORKERS               = 5;
+    static constexpr size_t   MAX_WORKER_POLLS              = 3;
 
     struct Request;
     using RequestSP = iptr<Request>;
@@ -62,6 +64,7 @@ struct Resolver : Refcnt, private backend::ITimerListener {
     uint32_t cache_expiration_time () const { return cfg.cache_expiration_time; }
     size_t   cache_limit           () const { return cfg.cache_limit; }
     size_t   cache_size            () const { return cache.size(); }
+    size_t   queue_size            () const { return queue.size(); }
 
     void cache_expiration_time (uint32_t val) { cfg.cache_expiration_time = val; }
 
@@ -120,7 +123,7 @@ private:
     using BTimer = backend::TimerImpl;
     using BPoll  = backend::PollImpl;
 
-    struct Worker : private backend::ITimerListener, private backend::IPollListener {
+    struct Worker : private backend::IPollListener {
         Worker  (Resolver*);
         ~Worker ();
 
@@ -132,14 +135,13 @@ private:
         void finish_resolve (const AddrInfo&, const CodeError& err);
         void cancel ();
 
-        void handle_timer () override;
-        void handle_poll  (int, const CodeError&) override;
+        void handle_poll (int, const CodeError&) override;
+
+        using Polls = std::map<sock_t, BPoll*>;
 
         Resolver*          resolver;
         ares_channel       channel;
-        sock_t             sock;
-        BPoll*             poll;
-        BTimer*            timer;
+        Polls              polls;
         RequestSP          request;
         bool               ares_async;
         std::exception_ptr exc;
@@ -189,7 +191,7 @@ struct Resolver::Request : Refcnt, panda::lib::IntrusiveChainNode<Resolver::Requ
         return self;
     }
 
-    void cancel ();
+    void cancel (const CodeError& = std::errc::operation_canceled);
 
 protected:
     ~Request ();
@@ -207,6 +209,7 @@ private:
     bool          _use_cache;
     uint64_t      _timeout;
     Worker*       worker;
+    TimerSP       timer;
     uint64_t      delayed;
     bool          running;
     bool          queued;

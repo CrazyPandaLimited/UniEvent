@@ -7,10 +7,9 @@
 
 namespace panda { namespace unievent {
 
-static constexpr const int DNS_ROLL_TIMEOUT = 1000; // [ms]
-
-Resolver::Worker::Worker (Resolver* r) : resolver(r), sock(), poll(), timer(), ares_async() {
+Resolver::Worker::Worker (Resolver* r) : resolver(r), ares_async() {
     panda_log_verbose_debug(this << " new for resolver " << r);
+
     ares_options options;
     int optmask = 0;
 
@@ -31,34 +30,37 @@ Resolver::Worker::Worker (Resolver* r) : resolver(r), sock(), poll(), timer(), a
 
 Resolver::Worker::~Worker () {
     panda_log_verbose_debug(this);
-    if (poll) poll->destroy();
-    if (timer) timer->destroy();
     ares_destroy(channel);
+    for (auto& row : polls) row.second->destroy();
 }
 
 void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
-    panda_log_verbose_debug(this << " resolver:" << resolver << " sock:" << sock << " mysock:" << this->sock << " read:" << read << " write:" << write);
+    panda_log_verbose_debug(this << " resolver:" << resolver << " sock:" << sock << " mysocks:" << polls.size() << " read:" << read << " write:" << write);
+
+    auto it = polls.find(sock);
+    auto poll = (it == polls.end()) ? nullptr : it->second;
 
     if (!read && !write) { // c-ares notifies us that the socket is closed
-        assert(this->sock == sock);
+        assert(poll);
         poll->destroy();
-        poll = nullptr;
-        //if (resolver->connections.empty()) resolver->dns_roll_timer->stop();
+        polls.erase(it);
         return;
     }
 
     if (!poll) {
-        this->sock = sock;
         poll = resolver->_loop->impl()->new_poll_sock(this, sock);
+        polls.emplace(sock, poll);
     }
-    else assert(this->sock == sock);
 
     poll->start((read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0));
 }
 
 void Resolver::Worker::handle_poll (int events, const CodeError& err) {
     panda_log_verbose_debug(this << " events:" << events << " err:" << err.what());
-    ares_process_fd(channel, sock, sock);
+    for (const auto& row : polls) {
+        auto sock = row.first;
+        ares_process_fd(channel, sock, sock);
+    }
     if (exc) std::rethrow_exception(std::move(exc));
 }
 
@@ -66,11 +68,6 @@ void Resolver::Worker::resolve (const RequestSP& req) {
     panda_log_verbose_debug(this << " req:" << req.get() << " node:" << req->_node << " service:" << req->_service << " tmt:" << req->_timeout);
     request = req;
     request->worker = this;
-
-    if (req->_timeout) {
-        if (!timer) timer = resolver->_loop->impl()->new_timer(this);
-        timer->start(0, req->_timeout);
-    }
 
     UE_NULL_TERMINATE(req->_node, node_cstr);
     UE_NULL_TERMINATE(req->_service, service_cstr);
@@ -88,13 +85,6 @@ void Resolver::Worker::resolve (const RequestSP& req) {
         this
     );
     ares_async = true;
-}
-
-void Resolver::Worker::handle_timer () {
-    panda_log_verbose_debug(this << " timed out req:" << request.get());
-    auto req = request;
-    resolver->finish_resolve(req, nullptr, CodeError(std::errc::timed_out));
-    //finish_resolve(nullptr, CodeError(std::errc::timed_out));
 }
 
 void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
@@ -143,13 +133,11 @@ void Resolver::Worker::cancel () {
     if (!request) return;
     request->worker = nullptr;
     request = nullptr;
-    if (timer) timer->stop();
     ares_cancel(channel);
 }
 
 void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError& err) {
     panda_log_verbose_debug(this << " req:" << request.get() << " err:" << err.what());
-    if (timer) timer->stop();
     auto req = std::move(request);
     resolver->finish_resolve(req, addr, err);
 }
@@ -211,28 +199,33 @@ void Resolver::resolve (const RequestSP& req) {
         }
     }
 
-    if (queue.size()) {
-        req->queued = true;
-        queue.push_back(req);
-        return;
+    if (req->_timeout) {
+        auto reqp = req.get();
+        req->timer = Timer::once(req->_timeout, [this, reqp](auto&){
+            panda_log_verbose_debug(this << " timed out req:" << reqp);
+            reqp->cancel(std::errc::timed_out);
+        }, _loop);
     }
 
-    for (auto& w : workers) {
-        if (w->request) continue;
-        uint32_t roll_tmt = cfg.query_timeout / 5;
-        if (roll_tmt < 10) roll_tmt = 10;
-        if (!dns_roll_timer->active()) dns_roll_timer->start(roll_tmt, roll_tmt);
-        w->resolve(req);
-        return;
+    if (queue.empty()) {
+        for (auto& w : workers) {
+            if (w->request) continue;
+            uint32_t roll_tmt = cfg.query_timeout / 5;
+            if (roll_tmt < 1) roll_tmt = 1;
+            if (!dns_roll_timer->active()) dns_roll_timer->start(roll_tmt, roll_tmt);
+            w->resolve(req);
+            return;
+        }
+
+        if (workers.size() < cfg.workers) {
+            add_worker();
+            workers.back()->resolve(req);
+            return;
+        }
     }
 
-    if (workers.size() < cfg.workers) {
-        add_worker();
-        workers.back()->resolve(req);
-    } else {
-        req->queued = true;
-        queue.push_back(req);
-    }
+    req->queued = true;
+    queue.push_back(req);
 }
 
 void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError& err) {
@@ -242,6 +235,11 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     if (req->delayed) {
         loop()->cancel_delay(req->delayed);
         req->delayed = 0;
+    }
+
+    if (req->timer) {
+        req->timer->stop();
+        req->timer = nullptr;
     }
 
     auto worker = req->worker;
@@ -336,9 +334,9 @@ Resolver::Request::Request (const ResolverSP& r)
 
 Resolver::Request::~Request () { panda_log_verbose_debug(this); }
 
-void Resolver::Request::cancel () {
+void Resolver::Request::cancel (const CodeError& err) {
     panda_log_verbose_debug(this);
-    if (_resolver) _resolver->finish_resolve(this, nullptr, CodeError(std::errc::operation_canceled));
+    if (_resolver) _resolver->finish_resolve(this, nullptr, err);
 }
 
 }}
