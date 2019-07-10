@@ -30,6 +30,7 @@ TEST_CASE("resolver", "[resolver]") {
         res.push_back(ai);
     };
     auto noop_cb = [&](const AddrInfo&, const CodeError&, const Resolver::RequestSP&) {};
+    auto happens_cb = [&](const AddrInfo&, const CodeError&, const Resolver::RequestSP&) { test.happens("r"); };
     auto req = resolver->resolve()->node("localhost")->on_resolve(success_cb);
     int expected_cnt = 2;
     auto full = getenv("TEST_FULL");
@@ -176,7 +177,7 @@ TEST_CASE("resolver", "[resolver]") {
         cfg.query_timeout = 1;
         resolver = new Resolver(test.loop, cfg);
 
-        for (int i = 0; i < 10; ++i) resolver->resolve("ya.ru", success_cb, 1000);
+        for (int i = 0; i < 10; ++i) resolver->resolve("ya.ru", happens_cb, 1000);
 
         test.run();
     }
