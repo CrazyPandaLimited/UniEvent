@@ -12,10 +12,10 @@ backend::HandleImpl* Pipe::new_impl () {
     return loop()->impl()->new_pipe(this, _ipc);
 }
 
-void Pipe::open (fd_t file, Ownership ownership) {
+void Pipe::open (fd_t file, Ownership ownership, bool connected) {
     if (ownership == Ownership::SHARE) file = file_dup(file);
     impl()->open(file);
-    if (peername()) {
+    if (connected || peername()) {
         auto err = set_connect_result(true);
         if (err) throw err;
     }

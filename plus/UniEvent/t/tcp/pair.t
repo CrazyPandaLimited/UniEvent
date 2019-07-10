@@ -5,7 +5,7 @@ use UniEvent;
 
 my $loop = UniEvent::Loop->default_loop;
 
-*spair = \&UniEvent::Tcp::socketpair;
+*spair = \&UniEvent::Tcp::pair;
 
 subtest 'basic' => sub {
     test_pair(spair(), $loop);
