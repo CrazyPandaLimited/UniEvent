@@ -14,6 +14,7 @@ subtest 'basic' => sub {
 subtest 'custom loop' => sub {
     my $loop = UE::Loop->new;
     test_pair(spair({loop => $loop}), $loop);
+    test_pair(spair($loop), $loop);
 };
 
 subtest 'custom handles' => sub {
