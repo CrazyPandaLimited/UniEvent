@@ -71,6 +71,22 @@ sub test_resolve {
     $l->run;
     
     is $i, 3;
+
+    $resolver->resolve({
+        node       => 'localhost',
+        port       => 80,
+        use_cache  => $cached,
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            ok !$err;
+            is $addr->[0]->port, 80;
+            $i += 4;
+        },
+    });
+
+    $l->run;
+
+    is $i, 7;
     
     if ($cached) {
         $resolver->resolve({
@@ -82,7 +98,7 @@ sub test_resolve {
             },
         });
         $l->run_nowait;
-        is $i, 13;
+        is $i, 17;
     }
 }
 
