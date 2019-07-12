@@ -67,7 +67,7 @@ struct AsyncTest {
             happens(event);
             e.next(args...);
         };
-        dispatcher.add(wrapper);
+        dispatcher.add_event_listener(wrapper);
 
         run();
         return result;
@@ -160,7 +160,7 @@ private:
                 e.next(args...);
             }
         );
-        dispatcher.add(wrapper);
+        dispatcher.add_event_listener(wrapper);
         return 1; // for fake foreach
     }
 
