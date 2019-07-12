@@ -35,14 +35,6 @@ subtest 'custom handles' => sub {
 };
 
 subtest 'error' => sub {
-    subtest 'busy handle' => sub {
-        my $h = UE::Tcp->new;
-        $h->connect('localhost', 80);
-        $loop->run_nowait;
-        select undef, undef, undef, 0.01;
-        $loop->run_nowait;
-        dies_ok { spair({handle2 => $h}) };
-    };
     subtest 'wrong domain' => sub {
         dies_ok { spair({domain => AF_INET}) };
     };
