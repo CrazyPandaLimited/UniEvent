@@ -184,8 +184,8 @@ struct SimpleResolver : virtual Refcnt {
     SimpleResolver& operator=(SimpleResolver& other) = delete;
 
     virtual ResolveRequestSP resolve(
-            std::string_view node,
-            std::string_view service,
+            string_view node,
+            string_view service,
             const AddrInfoHintsSP& hints,
             ResolveFunction callback,
             bool use_cache = false);
@@ -222,13 +222,13 @@ struct Resolver : SimpleResolver {
     Resolver& operator=(Resolver& other) = delete;
 
     // search in cache, will remove the record if expired
-    std::tuple<ResolverCacheType::const_iterator, bool> find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints);
+    std::tuple<ResolverCacheType::const_iterator, bool> find(string_view node, string_view service, const AddrInfoHintsSP& hints);
 
     // resolve if not in cache and save in cache afterwards
     // will trigger expunge if the cache is too big
     ResolveRequestSP resolve(
-            std::string_view node,
-            std::string_view service,
+            string_view node,
+            string_view service,
             const AddrInfoHintsSP& hints,
             ResolveFunction callback,
             bool use_cache = true) override;

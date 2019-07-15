@@ -121,7 +121,7 @@ void FSRequest::chown (file_t file, uid_t uid, gid_t gid) {
     }, {});
 }
 
-string FSRequest::read (file_t file, size_t length, int64_t offset) {
+panda::string FSRequest::read (file_t file, size_t length, int64_t offset) {
     string ret;
     char* ptr = ret.reserve(length);
     uv_buf_t uvbuf;
@@ -212,7 +212,7 @@ void FSRequest::symlink (string_view path, string_view new_path, SymlinkFlags fl
     }, {});
 }
 
-string FSRequest::readlink (string_view path) {
+panda::string FSRequest::readlink (string_view path) {
     string ret;
     PEXS_NULL_TERMINATE(path, path_str);
     PE_FS_CALL_SYNC({
@@ -223,7 +223,7 @@ string FSRequest::readlink (string_view path) {
     return ret;
 }
 
-string FSRequest::realpath (string_view path) {
+panda::string FSRequest::realpath (string_view path) {
     string ret;
     PEXS_NULL_TERMINATE(path, path_str);
     PE_FS_CALL_SYNC({
@@ -262,7 +262,7 @@ bool FSRequest::access (string_view path, int mode) {
     return ret;
 }
 
-string FSRequest::mkdtemp (string_view path) {
+panda::string FSRequest::mkdtemp (string_view path) {
     string ret;
     PEXS_NULL_TERMINATE(path, path_str);
     PE_FS_CALL_SYNC({

@@ -8,9 +8,6 @@
 
 namespace panda { namespace unievent {
 
-using panda::string;
-using std::string_view;
-
 struct Error : std::exception {
     Error () {}
     Error (const string&);

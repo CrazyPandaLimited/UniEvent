@@ -6,7 +6,6 @@
 
 namespace panda { namespace unievent {
 
-using std::string_view;
 using panda::net::SockAddr;
 
 struct UDP : virtual Handle, AllocatedObject<UDP> {

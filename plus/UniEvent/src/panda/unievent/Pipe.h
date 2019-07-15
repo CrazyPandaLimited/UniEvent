@@ -4,8 +4,6 @@
 
 namespace panda { namespace unievent {
 
-using std::string_view;
-
 struct Pipe : virtual Stream {
     Pipe (bool ipc = false, Loop* loop = Loop::default_loop()) : ipc(ipc) {
         uv_pipe_init(_pex_(loop), &uvh, ipc);

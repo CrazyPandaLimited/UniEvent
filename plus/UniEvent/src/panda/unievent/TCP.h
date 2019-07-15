@@ -37,7 +37,7 @@ struct TCP : virtual Stream, AllocatedObject<TCP> {
 
     virtual void bind (const SockAddr&, unsigned int flags = 0);
 
-    virtual void bind (std::string_view host, uint16_t port, const AddrInfoHintsSP& hints = default_hints());
+    virtual void bind (string_view host, uint16_t port, const AddrInfoHintsSP& hints = default_hints());
 
     virtual void connect (TCPConnectRequest* tcp_connect_request);
 

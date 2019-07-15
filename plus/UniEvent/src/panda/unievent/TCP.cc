@@ -39,7 +39,7 @@ void TCP::bind(const SockAddr& sa, unsigned int flags) {
     if (err) throw CodeError(err);
 }
 
-void TCP::bind(std::string_view host, uint16_t port, const AddrInfoHintsSP& hints) {
+void TCP::bind(string_view host, uint16_t port, const AddrInfoHintsSP& hints) {
     PEXS_NULL_TERMINATE(host, host_cstr);
 
     addrinfo h = hints->to<addrinfo>();

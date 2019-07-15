@@ -2,6 +2,9 @@
 
 namespace xs { namespace unievent {
 
+using panda::string;
+using panda::string_view;
+
 static thread_local Stash _perl_handle_classes[HTYPE_MAX+1];
 
 static const auto evname_on_prepare           = Simple::shared("on_prepare");

@@ -17,7 +17,7 @@ Stash xs::unievent::get_perl_class_for_err (const Error& err) {
     std::string stash_name(perl_errns);
     stash_name.append(cpp_class_name + cpp_errns.length());
     free(cpp_class_name);
-    Stash stash(std::string_view(stash_name.data(), stash_name.length()));
+    Stash stash(panda::string_view(stash_name.data(), stash_name.length()));
     if (!stash) throw Simple::format("[UniEvent] !critical! no error package: %s", stash_name.c_str());
     return stash;
 }

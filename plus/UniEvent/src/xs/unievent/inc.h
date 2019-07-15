@@ -16,7 +16,7 @@ struct Typemap<addrinfo*, TYPE_PTR> : TypemapBase<addrinfo*, TYPE_PTR> {
 
     static Sv create (pTHX_ TYPE_PTR var, Sv = Sv()) {
         if (!var) return &PL_sv_undef;
-        return Simple(std::string_view(reinterpret_cast<char*>(var), sizeof(TYPE)));
+        return Simple(panda::string_view(reinterpret_cast<char*>(var), sizeof(TYPE)));
     }
 };
 

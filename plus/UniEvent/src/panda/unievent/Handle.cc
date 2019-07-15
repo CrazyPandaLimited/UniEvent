@@ -133,7 +133,7 @@ void Handle::call_delayed() {
 
 Handle::~Handle() { _EDTOR(); }
 
-string Handle::buf_alloc (size_t cap) {
+panda::string Handle::buf_alloc (size_t cap) {
     if (buf_alloc_event) return buf_alloc_event(this, cap);
     string ret(cap);
     return ret;

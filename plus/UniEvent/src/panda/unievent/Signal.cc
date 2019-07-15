@@ -1,7 +1,7 @@
 #include "Signal.h"
 using namespace panda::unievent;
 
-string Signal::_signames[NSIG];
+panda::string Signal::_signames[NSIG];
 bool Signal::__init_ = __init();
 
 bool Signal::__init () {

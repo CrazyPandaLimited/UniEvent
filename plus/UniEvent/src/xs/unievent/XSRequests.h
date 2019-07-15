@@ -24,7 +24,7 @@ struct XSTCPConnectRequest : TCPConnectRequest {
     XSCallback xscb;
 
     XSTCPConnectRequest(
-        bool reconnect, const SockAddr& sa, const string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, SV* xs_callback)
+        bool reconnect, const SockAddr& sa, const panda::string& host, uint16_t port, const AddrInfoHintsSP& hints, uint64_t timeout, SV* xs_callback)
             : TCPConnectRequest(reconnect, sa, host, port, hints, timeout, xs_callback ? _cb : connect_fn(nullptr)) {
         xscb.set(xs_callback);
     }

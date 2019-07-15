@@ -1,12 +1,10 @@
 #pragma once
 #include "Loop.h"
 #include "Request.h"
+#include <panda/string.h>
 #include <panda/string_view.h>
 
 namespace panda { namespace unievent {
-
-using panda::string;
-using std::string_view;
 
 struct DirEntry {
     enum class Type {

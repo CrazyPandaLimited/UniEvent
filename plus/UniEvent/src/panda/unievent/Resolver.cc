@@ -90,7 +90,7 @@ void SimpleResolver::ares_sockstate_cb(void* data, sock_t sock, int read, int wr
     }
 }
 
-ResolveRequestSP SimpleResolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
+ResolveRequestSP SimpleResolver::resolve(string_view node, string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
     ResolveRequestSP resolve_request(new ResolveRequest(callback, this));
     if(use_cache) {
         resolve_request->key = new ResolverCacheKey(string(node), string(service), hints->clone());
@@ -174,7 +174,7 @@ void SimpleResolver::stop() {
 }
 
 std::tuple<ResolverCacheType::const_iterator, bool>
-Resolver::find(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints) {
+Resolver::find(string_view node, string_view service, const AddrInfoHintsSP& hints) {
     _EDEBUGTHIS("looking in cache [%.*s:%.*s] cache_size: %zd", (int)node.length(), node.data(), (int)service.length(), service.data(), cache_.size());
     auto address_pos = cache_.find({string(node), string(service), hints});
     if (address_pos != end(cache_)) {
@@ -192,7 +192,7 @@ Resolver::find(std::string_view node, std::string_view service, const AddrInfoHi
     return std::make_tuple<ResolverCacheType::const_iterator, bool>(address_pos, false);
 }
 
-ResolveRequestSP Resolver::resolve(std::string_view node, std::string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
+ResolveRequestSP Resolver::resolve(string_view node, string_view service, const AddrInfoHintsSP& hints, ResolveFunction callback, bool use_cache) {
     _EDEBUGTHIS("use_cache: %d", use_cache);
     if(use_cache) {
         ResolverCacheType::const_iterator address_pos;

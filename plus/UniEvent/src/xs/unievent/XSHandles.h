@@ -95,7 +95,7 @@ struct XSStream : virtual Stream, XSHandle {
 protected:
     void on_connection (StreamSP, const CodeError*) override;
     void on_connect    (const CodeError*, ConnectRequest*) override;
-    void on_read       (string&, const CodeError*) override;
+    void on_read       (panda::string&, const CodeError*) override;
     void on_write      (const CodeError*, WriteRequest*) override;
     void on_shutdown   (const CodeError*, ShutdownRequest*) override;
     void on_eof        () override;
@@ -120,7 +120,7 @@ struct XSTCP : TCP, XSStream {
     template<class Builder>
     static Builder construct_connect(SV* host_or_sa, SV* port_or_callback, float timeout, const AddrInfoHintsSP& hints, bool reconnect) {
         if (port_or_callback && !SvROK(port_or_callback)) {
-            return Builder().to(xs::in<string>(host_or_sa), xs::in<uint16_t>(port_or_callback), hints).timeout(timeout).reconnect(reconnect);
+            return Builder().to(xs::in<panda::string>(host_or_sa), xs::in<uint16_t>(port_or_callback), hints).timeout(timeout).reconnect(reconnect);
         } else {
             return Builder().to(xs::in<SockAddr>(host_or_sa)).timeout(timeout).reconnect(reconnect);
         }
@@ -142,7 +142,7 @@ struct XSUDP : UDP, XSHandle {
         UDP::bind(sa, flags | get_bind_flags());
     }
     
-    void bind (string_view host, string_view service, const addrinfo* hints = nullptr, unsigned flags = 0) override {
+    void bind (panda::string_view host, panda::string_view service, const addrinfo* hints = nullptr, unsigned flags = 0) override {
         UDP::bind(host, service, hints, flags | get_bind_flags());
     }
 
@@ -182,7 +182,7 @@ struct XSUDP : UDP, XSHandle {
     }
     
 protected:
-    void on_receive (string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) override;
+    void on_receive (panda::string& buf, const SockAddr& sa, unsigned flags, const CodeError* err) override;
     void on_send    (const CodeError* err, SendRequest* req) override;
 
 private:
