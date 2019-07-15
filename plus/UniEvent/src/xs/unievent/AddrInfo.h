@@ -10,7 +10,7 @@ template <> struct Typemap<panda::unievent::AddrInfoHints> : TypemapBase<panda::
     static Hints in (pTHX_ SV* arg);
 
     static Sv create (pTHX_ const Hints& var, Sv = Sv()) {
-        return Simple(std::string_view(reinterpret_cast<const char*>(&var), sizeof(Hints)));
+        return Simple(panda::string_view(reinterpret_cast<const char*>(&var), sizeof(Hints)));
     }
 };
 

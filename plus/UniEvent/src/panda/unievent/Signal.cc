@@ -1,7 +1,7 @@
 #include "Signal.h"
 using namespace panda::unievent;
 
-static string signames[NSIG];
+static panda::string signames[NSIG];
 
 static bool init () {
     signames[SIGHUP]    = "SIGHUP";
@@ -92,7 +92,7 @@ void Signal::handle_signal (int signum) {
     on_signal(signum);
 }
 
-const string& Signal::signame (int signum) {
+const panda::string& Signal::signame (int signum) {
     if (signum < 0 || signum >= NSIG) throw std::invalid_argument("signum must be >= 0 and < NSIG");
     return signames[signum];
 }

@@ -9,7 +9,7 @@ FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched() {
     timer = new Timer(loop);
     timer->event.add([this](auto) {
         if (fsr->busy()) return; // filesystem has not yet completed the request -> skip one cycle
-        do_stat();
+        this->do_stat();
     });
 }
 
@@ -17,7 +17,7 @@ const HandleType& FsPoll::type () const {
     return TYPE;
 }
 
-void FsPoll::start (std::string_view path, unsigned int interval, const fs_poll_fn& callback) {
+void FsPoll::start (string_view path, unsigned int interval, const fs_poll_fn& callback) {
     if (timer->active()) throw Error("cannot start FsPoll: it is already active");
     if (callback) event.add(callback);
     _path = string(path);
@@ -47,11 +47,11 @@ void FsPoll::do_stat () {
         if (err) {
             if (err != prev_err) {
                 prev_err = err;
-                on_fs_poll(prev, stat, err); // accessing <stat> is UB
+                this->on_fs_poll(prev, stat, err); // accessing <stat> is UB
             }
         }
         else if (!fetched || prev != stat) {
-            if (fetched) on_fs_poll(prev, stat, err);
+            if (fetched) this->on_fs_poll(prev, stat, err);
             prev = stat;
         }
 

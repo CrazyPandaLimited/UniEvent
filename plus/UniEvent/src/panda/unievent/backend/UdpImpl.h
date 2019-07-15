@@ -46,10 +46,10 @@ struct UdpImpl : HandleImpl {
     virtual int  send_buffer_size () const    = 0;
     virtual void send_buffer_size (int value) = 0;
 
-    virtual void set_membership          (std::string_view multicast_addr, std::string_view interface_addr, Membership m) = 0;
+    virtual void set_membership          (string_view multicast_addr, string_view interface_addr, Membership m) = 0;
     virtual void set_multicast_loop      (bool on) = 0;
     virtual void set_multicast_ttl       (int ttl) = 0;
-    virtual void set_multicast_interface (std::string_view interface_addr) = 0;
+    virtual void set_multicast_interface (string_view interface_addr) = 0;
     virtual void set_broadcast           (bool on) = 0;
     virtual void set_ttl                 (int ttl) = 0;
 

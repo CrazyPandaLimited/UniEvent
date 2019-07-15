@@ -53,10 +53,10 @@ struct Udp : virtual BackendHandle, panda::lib::AllocatedObject<Udp>, private ba
     int  send_buffer_size () const    { return impl()->send_buffer_size(); }
     void send_buffer_size (int value) { impl()->send_buffer_size(value); }
 
-    void set_membership          (std::string_view multicast_addr, std::string_view interface_addr, Membership membership);
+    void set_membership          (string_view multicast_addr, string_view interface_addr, Membership membership);
     void set_multicast_loop      (bool on);
     void set_multicast_ttl       (int ttl);
-    void set_multicast_interface (std::string_view interface_addr);
+    void set_multicast_interface (string_view interface_addr);
     void set_broadcast           (bool on);
     void set_ttl                 (int ttl);
 

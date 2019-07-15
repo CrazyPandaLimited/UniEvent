@@ -65,7 +65,7 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
     int  send_buffer_size ()    const override { return uvx_send_buffer_size(uvhp()); }
     void send_buffer_size (int value) override { uvx_send_buffer_size(uvhp(), value); }
 
-    void set_membership (std::string_view multicast_addr, std::string_view interface_addr, Membership membership) override {
+    void set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) override {
         uv_membership uvmemb = uv_membership();
         switch (membership) {
             case Membership::LEAVE_GROUP : uvmemb = UV_LEAVE_GROUP; break;
@@ -84,7 +84,7 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         uvx_strict(uv_udp_set_multicast_ttl(&uvh, ttl));
     }
 
-    void set_multicast_interface (std::string_view interface_addr) override {
+    void set_multicast_interface (string_view interface_addr) override {
         UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
         uvx_strict(uv_udp_set_multicast_interface(&uvh, interface_addr_cstr));
     }

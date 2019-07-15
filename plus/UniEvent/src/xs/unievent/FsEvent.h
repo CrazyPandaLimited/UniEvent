@@ -8,7 +8,7 @@ namespace xs { namespace unievent {
 struct XSFsEvent : panda::unievent::FsEvent {
     using FsEvent::FsEvent;
 protected:
-    void on_fs_event (const std::string_view& file, int events, const panda::unievent::CodeError&) override;
+    void on_fs_event (const panda::string_view& file, int events, const panda::unievent::CodeError&) override;
 };
 
 }}

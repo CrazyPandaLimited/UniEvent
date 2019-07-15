@@ -3,6 +3,8 @@
 #include "util.h"
 
 using namespace panda::unievent;
+using panda::string;
+using panda::string_view;
 
 template <class T>
 using ex = Fs::ex<T>;

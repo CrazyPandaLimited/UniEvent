@@ -16,7 +16,7 @@ const HandleType& Udp::type () const {
     return TYPE;
 }
 
-string Udp::buf_alloc (size_t cap) noexcept {
+panda::string Udp::buf_alloc (size_t cap) noexcept {
     try {
         return buf_alloc_callback ? buf_alloc_callback(cap) : string(cap);
     } catch (...) {
@@ -48,7 +48,7 @@ void Udp::connect (string_view host, uint16_t port, const AddrInfoHints& hints) 
     connect(ai.addr());
 }
 
-void Udp::set_membership (std::string_view multicast_addr, std::string_view interface_addr, Membership membership) {
+void Udp::set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) {
     impl()->set_membership(multicast_addr, interface_addr, membership);
 }
 
@@ -60,7 +60,7 @@ void Udp::set_multicast_ttl (int ttl) {
     impl()->set_multicast_ttl(ttl);
 }
 
-void Udp::set_multicast_interface (std::string_view interface_addr) {
+void Udp::set_multicast_interface (string_view interface_addr) {
     impl()->set_multicast_interface(interface_addr);
 }
 

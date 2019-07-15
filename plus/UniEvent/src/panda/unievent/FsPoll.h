@@ -23,7 +23,7 @@ struct FsPoll : virtual Handle {
     void set_weak   () override { timer->weak(true); }
     void unset_weak () override { timer->weak(false); }
 
-    virtual void start (std::string_view path, unsigned int interval = 1000, const fs_poll_fn& callback = {});
+    virtual void start (string_view path, unsigned int interval = 1000, const fs_poll_fn& callback = {});
     virtual void stop  ();
 
     void reset () override;

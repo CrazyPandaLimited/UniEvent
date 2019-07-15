@@ -8,9 +8,6 @@
 
 namespace panda { namespace unievent {
 
-using panda::string;
-using std::string_view;
-
 enum class errc {
     ssl_error = 1,
     socks_error,

@@ -8,9 +8,9 @@ struct PipeImpl : StreamImpl {
     PipeImpl (LoopImpl* loop, IStreamListener* lst) : StreamImpl(loop, lst) {}
 
     virtual void open (fd_t file) = 0;
-    virtual void bind (std::string_view name) = 0;
+    virtual void bind (string_view name) = 0;
 
-    virtual CodeError connect (std::string_view name, ConnectRequestImpl* req) = 0;
+    virtual CodeError connect (string_view name, ConnectRequestImpl* req) = 0;
 
     virtual optional<string> sockname () const = 0;
     virtual optional<string> peername () const = 0;

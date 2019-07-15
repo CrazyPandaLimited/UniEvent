@@ -9,7 +9,7 @@ struct UVFsEvent : UVHandle<FsEventImpl, uv_fs_event_t> {
         uvx_strict(uv_fs_event_init(loop->uvloop, &uvh));
     }
 
-    void start (std::string_view path, unsigned flags) override {
+    void start (string_view path, unsigned flags) override {
         unsigned uv_flags = 0;
         if (flags & Flags::RECURSIVE) uv_flags |= UV_FS_EVENT_RECURSIVE;
         UE_NULL_TERMINATE(path, path_str);
@@ -22,7 +22,7 @@ struct UVFsEvent : UVHandle<FsEventImpl, uv_fs_event_t> {
 
 private:
     static void on_fs_event (uv_fs_event_t* p, const char* filename, int uv_events, int status) {
-        auto sv = status ? std::string_view() : std::string_view(filename);
+        auto sv = status ? string_view() : string_view(filename);
         int events = 0;
         if (uv_events & UV_RENAME) events |= Event::RENAME;
         if (uv_events & UV_CHANGE) events |= Event::CHANGE;

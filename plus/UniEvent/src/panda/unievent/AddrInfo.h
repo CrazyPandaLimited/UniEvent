@@ -31,14 +31,14 @@ struct AddrInfo {
     AddrInfo ()                  : cur(nullptr) {}
     AddrInfo (ares_addrinfo* ai) : src(new DataSource(ai)), cur(ai) {}
 
-    int              flags     () const { return cur->ai_flags; }
-    int              family    () const { return cur->ai_family; }
-    int              socktype  () const { return cur->ai_socktype; }
-    int              protocol  () const { return cur->ai_protocol; }
-    net::SockAddr    addr      () const { return cur->ai_addr; }
-    std::string_view canonname () const { return cur->ai_canonname; }
-    AddrInfo         next      () const { return AddrInfo(src, cur->ai_next); }
-    AddrInfo         first     () const { return AddrInfo(src, src->ai); }
+    int           flags     () const { return cur->ai_flags; }
+    int           family    () const { return cur->ai_family; }
+    int           socktype  () const { return cur->ai_socktype; }
+    int           protocol  () const { return cur->ai_protocol; }
+    net::SockAddr addr      () const { return cur->ai_addr; }
+    string_view   canonname () const { return cur->ai_canonname; }
+    AddrInfo      next      () const { return AddrInfo(src, cur->ai_next); }
+    AddrInfo      first     () const { return AddrInfo(src, src->ai); }
 
     explicit operator bool () const { return cur; }
 

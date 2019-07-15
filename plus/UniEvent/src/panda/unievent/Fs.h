@@ -122,7 +122,7 @@ struct Fs {
     static ex<DirEntries> scandir    (string_view);
     static ex<void>       remove_all (string_view);
 
-    static ex<fd_t>       open     (std::string_view, int flags, int mode = DEFAULT_FILE_MODE);
+    static ex<fd_t>       open     (string_view, int flags, int mode = DEFAULT_FILE_MODE);
     static ex<void>       close    (fd_t);
     static ex<Stat>       stat     (string_view);
     static ex<Stat>       stat     (fd_t);

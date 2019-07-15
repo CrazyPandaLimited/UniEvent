@@ -6,6 +6,8 @@ using xs::my_perl;
 using namespace xs;
 using namespace xs::unievent;
 using namespace panda::unievent;
+using panda::string;
+using panda::string_view;
 
 static const std::string cpp_errns  = "panda::unievent::";
 static const std::string perl_errns = "UniEvent::";
@@ -37,7 +39,7 @@ Stash xs::unievent::get_perl_class_for_err (const Error& err) {
     std::string stash_name(perl_errns);
     stash_name.append(cpp_class_name + cpp_errns.length());
     free(cpp_class_name);
-    Stash stash(std::string_view(stash_name.data(), stash_name.length()));
+    Stash stash(string_view(stash_name.data(), stash_name.length()));
     if (!stash) throw Simple::format("[UniEvent] !critical! no error package: %s", stash_name.c_str());
     return stash;
 }
@@ -306,7 +308,7 @@ void XSFsPoll::on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const Code
 }
 
 
-void XSFsEvent::on_fs_event (const std::string_view& file, int events, const CodeError& err) {
+void XSFsEvent::on_fs_event (const string_view& file, int events, const CodeError& err) {
     auto self = xs::out<FsEvent*>(this);
     xscall(self, evname_on_fs_event, {
         Simple(file),

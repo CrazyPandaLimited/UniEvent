@@ -8,7 +8,7 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
     using FsEventImpl   = backend::FsEventImpl;
     using Event         = FsEventImpl::Event;
     using Flags         = FsEventImpl::Flags;
-    using fs_event_fptr = void(const FsEventSP&, const std::string_view& file, int events, const CodeError&);
+    using fs_event_fptr = void(const FsEventSP&, const string_view& file, int events, const CodeError&);
     using fs_event_fn   = function<fs_event_fptr>;
     
     CallbackDispatcher<fs_event_fptr> event;
@@ -21,7 +21,7 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
 
     const string& path () const { return _path; }
 
-    virtual void start (const std::string_view& path, int flags = 0, fs_event_fn callback = nullptr);
+    virtual void start (const string_view& path, int flags = 0, fs_event_fn callback = nullptr);
     virtual void stop  ();
 
     void reset () override;
@@ -30,12 +30,12 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
     static const HandleType TYPE;
 
 protected:
-    virtual void on_fs_event (const std::string_view& file, int events, const CodeError&);
+    virtual void on_fs_event (const string_view& file, int events, const CodeError&);
 
 private:
     string _path;
 
-    void handle_fs_event (const std::string_view& file, int events, const CodeError&) override;
+    void handle_fs_event (const string_view& file, int events, const CodeError&) override;
 
     FsEventImpl* impl () const { return static_cast<FsEventImpl*>(_impl); }
 };
