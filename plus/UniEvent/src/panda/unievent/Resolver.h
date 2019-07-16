@@ -124,8 +124,8 @@ private:
     using BPoll  = backend::PollImpl;
 
     struct Worker : private backend::IPollListener {
-        Worker  (Resolver*);
-        ~Worker ();
+        Worker (Resolver*);
+        virtual ~Worker ();
 
         void on_sockstate (sock_t sock, int read, int write);
 

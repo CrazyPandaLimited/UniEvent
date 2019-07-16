@@ -309,9 +309,10 @@ void SslFilter::write (const WriteRequestSP& req) {
 }
 
 void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
-    assert(typeid(*(req.get())) == typeid(SslWriteRequest));
+    auto reqp = req.get();
+    assert(typeid(*reqp) == typeid(SslWriteRequest));
     subreq_done(req);
-    auto sslreq = static_cast<SslWriteRequest*>(req.get());
+    auto sslreq = static_cast<SslWriteRequest*>(reqp);
 
     _ESSL("state=%d request=%p regular=%d ERR=%s", (int)state, sslreq, sslreq->orig ? 1 : 0, err.what());
     if (sslreq->orig) { // regular write

@@ -1,4 +1,6 @@
 #include "Handle.h"
+#include <ostream>
+
 namespace panda { namespace unievent {
 
 const HandleType Handle::UNKNOWN_TYPE("unknown");

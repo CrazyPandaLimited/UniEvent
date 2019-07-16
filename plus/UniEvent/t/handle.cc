@@ -20,7 +20,7 @@ TEST_CASE("handle", "[handle]") {
         TimerSP t = new Timer(l);
         t->event.add([](const TimerSP& t){ t->stop(); });
         CHECK(!t->active());
-        t->start(0.01);
+        t->start(10);
         CHECK(t->active());
         l->run(); // timer stops himself on callback
         CHECK(!t->active());

@@ -1,6 +1,6 @@
 #include "Tcp.h"
 #include "util.h"
-//#include "ssl/SSLFilter.h"
+#include <ostream>
 
 namespace panda { namespace unievent {
 

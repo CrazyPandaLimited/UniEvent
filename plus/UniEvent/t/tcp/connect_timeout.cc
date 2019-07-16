@@ -89,7 +89,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
         auto client = clients[i] = make_client(test.loop);
         client->connect()->to(ip, port)->timeout(10)->use_cache(i % 2)->run();
 
-        client->connect_event.add([&, i](Stream*, const CodeError& err, ConnectRequest*) {
+        client->connect_event.add([&](Stream*, const CodeError& err, ConnectRequest*) {
             ++connected;
             err ? ++errors : ++successes;
         });

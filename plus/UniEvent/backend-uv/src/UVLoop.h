@@ -73,8 +73,8 @@ struct UVLoop : LoopImpl {
     WorkImpl*    new_work      (IWorkListener*)               override;
     FsEventImpl* new_fs_event  (IFsEventListener*)            override;
 
-    uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) { return _delayer.add(f, guard); }
-    void     cancel_delay (uint64_t id) noexcept                                { _delayer.cancel(id); }
+    uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) override { return _delayer.add(f, guard); }
+    void     cancel_delay (uint64_t id)                                noexcept override { _delayer.cancel(id); }
 
 private:
     uv_loop_t _uvloop_body;
