@@ -256,7 +256,7 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::mkdir(dir);
             auto ret = Fs::unlink(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::is_a_directory);
+            // can't check error - could be any on various platforms
         }
     }
 

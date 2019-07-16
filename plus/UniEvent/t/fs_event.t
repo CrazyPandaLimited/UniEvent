@@ -7,6 +7,8 @@ use UniEvent::FsEvent;
 
 BEGIN { *Fs:: = *UniEvent::Fs:: }
 
+plan skip_all => "FsEvent doesn't work on FreeBSD" if $^O eq 'freebsd';
+
 # TODO: check WATCH_ENTRY / STAT / RECURSIVE flags behaviour when they become working in libuv
 
 my $l = UniEvent::Loop->default_loop;

@@ -13,5 +13,6 @@ void LoopImpl::capture_exception () {
 
 void LoopImpl::throw_exception () {
     auto exc = std::move(_exception);
+    _exception = nullptr;
     std::rethrow_exception(exc);
 }
