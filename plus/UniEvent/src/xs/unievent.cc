@@ -14,22 +14,47 @@ static const std::string perl_errns = "UniEvent::";
 
 static thread_local std::map<HandleType, Stash> _perl_handle_classes;
 
-static const auto evname_on_prepare           = Simple::shared("on_prepare");
-static const auto evname_on_check             = Simple::shared("on_check");
-static const auto evname_on_idle              = Simple::shared("on_idle");
-static const auto evname_on_timer             = Simple::shared("on_timer");
-static const auto evname_on_fs_event          = Simple::shared("on_fs_event");
-static const auto evname_on_fs_poll           = Simple::shared("on_fs_poll");
-static const auto evname_on_signal            = Simple::shared("on_signal");
-static const auto evname_on_connection        = Simple::shared("on_connection");
-static const auto evname_on_read              = Simple::shared("on_read");
-static const auto evname_on_write             = Simple::shared("on_write");
-static const auto evname_on_shutdown          = Simple::shared("on_shutdown");
-static const auto evname_on_eof               = Simple::shared("on_eof");
-static const auto evname_on_connect           = Simple::shared("on_connect");
-static const auto evname_on_receive           = Simple::shared("on_receive");
-static const auto evname_on_send              = Simple::shared("on_send");
-static const auto evname_on_create_connection = Simple::shared("on_create_connection");
+static auto evname_on_prepare           = Simple::shared("on_prepare");
+static auto evname_on_check             = Simple::shared("on_check");
+static auto evname_on_idle              = Simple::shared("on_idle");
+static auto evname_on_timer             = Simple::shared("on_timer");
+static auto evname_on_fs_event          = Simple::shared("on_fs_event");
+static auto evname_on_fs_poll           = Simple::shared("on_fs_poll");
+static auto evname_on_signal            = Simple::shared("on_signal");
+static auto evname_on_connection        = Simple::shared("on_connection");
+static auto evname_on_read              = Simple::shared("on_read");
+static auto evname_on_write             = Simple::shared("on_write");
+static auto evname_on_shutdown          = Simple::shared("on_shutdown");
+static auto evname_on_eof               = Simple::shared("on_eof");
+static auto evname_on_connect           = Simple::shared("on_connect");
+static auto evname_on_receive           = Simple::shared("on_receive");
+static auto evname_on_send              = Simple::shared("on_send");
+static auto evname_on_create_connection = Simple::shared("on_create_connection");
+
+static bool _init () {
+    xs::at_perl_destroy([]() {
+        evname_on_prepare.reset();
+        evname_on_check.reset();
+        evname_on_idle.reset();
+        evname_on_timer.reset();
+        evname_on_fs_event.reset();
+        evname_on_fs_poll.reset();
+        evname_on_signal.reset();
+        evname_on_connection.reset();
+        evname_on_read.reset();
+        evname_on_write.reset();
+        evname_on_shutdown.reset();
+        evname_on_eof.reset();
+        evname_on_connect.reset();
+        evname_on_receive.reset();
+        evname_on_send.reset();
+        evname_on_create_connection.reset();
+
+        _perl_handle_classes.clear();
+    });
+    return true;
+}
+static bool __init = _init();
 
 Stash xs::unievent::get_perl_class_for_err (const Error& err) {
     int status;
