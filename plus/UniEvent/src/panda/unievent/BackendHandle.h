@@ -9,8 +9,8 @@ struct BackendHandle : Handle {
 
     bool active () const override { return _impl ? _impl->active() : false; }
 
-    virtual void reset () = 0;
-    virtual void clear () = 0;
+    void reset () override = 0;
+    void clear () override = 0;
 
 protected:
     mutable HandleImpl* _impl;
