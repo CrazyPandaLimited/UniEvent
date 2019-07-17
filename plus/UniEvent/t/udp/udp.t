@@ -35,15 +35,16 @@ my @primes = (
 #     2699, 2707, 2711, 2713, 2719, 2729, 2731, 2741
 );
    
-my @magic_nums;
-my %creds;
+my @list;
+my (%creds, %valid);
 my $cnt;
 for my $i (0..$#primes) {
     for my $j (($i + 1)..$#primes) {
     	my ($prime1, $prime2) = ($primes[$i], $primes[$j]);
     	my $magic = $prime1 * $prime2;
     	$creds{$magic} = [$prime1, $prime2];
-    	push @magic_nums, $magic;
+        $valid{$magic} = 1;
+        push @list, $magic;
     	++$cnt;
     }
 }
@@ -51,31 +52,25 @@ for my $i (0..$#primes) {
 my %udp_by_num;
 for my $num (0 .. $#primes) {
     my $udp = new UniEvent::Udp;
-    rand() > 0.5 ? $udp->bind_addr(SA_LOOPBACK_ANY) : $udp->bind("*", 0);
+    $udp->bind_addr(SA_LOOPBACK_ANY);
     my $prime = $primes[$num];
     $udp_by_num{$prime} = $udp;
     $udp->recv_start(sub {
         my ($udp, $msg, $sa, $flags, $err) = @_;
         die $err if $err;
-        my $ids = delete $creds{$msg};
-        unless ($ids) {
-            fail("Got foreign message: $msg");
-        }
+        delete $creds{$msg};
+        fail("Got foreign message: $msg") unless $valid{$msg};
         $l->stop unless %creds;
     });
 }
 
-my $magic = 0;
-my ($small_prime, $big_prime);
-
 $p->start(sub {
-    $_[0]->stop() unless @magic_nums;
-    unless (exists $creds{$magic}) {
-       $magic = shift @magic_nums;
-       ($small_prime, $big_prime) = @{$creds{$magic}};
-    }
+    $_[0]->stop(), return unless %creds;
+    my $magic = @list ? (shift @list) : (keys %creds)[0];
+    my ($small_prime, $big_prime) = @{$creds{$magic}};
     my $receiver = $udp_by_num{$small_prime};
     $udp_by_num{$big_prime}->send($magic, $receiver->sockaddr);
+    $udp_by_num{$big_prime}->send_callback(sub { die $_[1] if $_[1] });
 });
 
 $l->run();

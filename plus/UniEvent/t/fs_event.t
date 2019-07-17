@@ -7,7 +7,8 @@ use UniEvent::FsEvent;
 
 BEGIN { *Fs:: = *UniEvent::Fs:: }
 
-plan skip_all => "FsEvent doesn't work on FreeBSD" if $^O eq 'freebsd';
+plan skip_all => "FsEvent support on FreeBSD is limited so no tests will run" if freebsd();
+plan skip_all => "FsEvent support on MacOS is limited so no tests will run" if darwin();
 
 # TODO: check WATCH_ENTRY / STAT / RECURSIVE flags behaviour when they become working in libuv
 
