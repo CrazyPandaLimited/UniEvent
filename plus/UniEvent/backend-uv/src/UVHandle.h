@@ -29,7 +29,7 @@ protected:
 
     void destroy () noexcept override {
         _EDEBUGTHIS("%s", _type_name(uvhp()));
-        this->template listener = nullptr;
+        this->listener = nullptr;
         uv_close(uvhp(), uvx_on_close);
     }
 

@@ -59,16 +59,16 @@ struct UVStream : UVHandle<Base, UvReq> {
         req->active = true;
     }
 
-    optional<fh_t> fileno () const override { return uvx_fileno(this->template uvhp()); }
+    optional<fh_t> fileno () const override { return uvx_fileno(this->uvhp()); }
 
     bool   readable         () const noexcept override { return uv_is_readable(uvsp()); }
     bool   writable         () const noexcept override { return uv_is_writable(uvsp()); }
     size_t write_queue_size () const noexcept override { return uvsp()->write_queue_size; }
 
-    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(this->template uvhp()); }
-    void recv_buffer_size (int value) override { uvx_recv_buffer_size(this->template uvhp(), value); }
-    int  send_buffer_size ()    const override { return uvx_send_buffer_size(this->template uvhp()); }
-    void send_buffer_size (int value) override { uvx_send_buffer_size(this->template uvhp(), value); }
+    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(this->uvhp()); }
+    void recv_buffer_size (int value) override { uvx_recv_buffer_size(this->uvhp(), value); }
+    int  send_buffer_size ()    const override { return uvx_send_buffer_size(this->uvhp()); }
+    void send_buffer_size (int value) override { uvx_send_buffer_size(this->uvhp(), value); }
 
 protected:
     static void on_connect (uv_connect_t* p, int status) {
@@ -78,7 +78,7 @@ protected:
     }
 
 private:
-    uv_stream_t* uvsp () const { return (uv_stream_t*)&this->template uvh; }
+    uv_stream_t* uvsp () const { return (uv_stream_t*)&this->uvh; }
 
     static void on_connection (uv_stream_t* p, int status) {
         get_handle<UVStream*>(p)->handle_connection(uvx_ce(status));
