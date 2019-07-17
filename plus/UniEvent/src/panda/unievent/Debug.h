@@ -3,7 +3,9 @@
 
 // to use inside the library
 
+#ifndef EVENT_LIB_DEBUG
 #define EVENT_LIB_DEBUG 0
+#endif
 
 #if EVENT_LIB_DEBUG >= 3
 #define _ANSI_COLOR_RED "\x1b[31m"

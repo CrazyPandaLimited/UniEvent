@@ -106,8 +106,7 @@ subtest 'again' => sub {
     $t->event->add(sub {
         ++(state $i);
         count();
-        $i == 1 ? check_mark(0.01, "first call in 0.01 because last time t2 didn't reset") :
-                  check_mark(0.02, "repeating ok after again");
+        check_mark(0.02, "repeating ok after again");
         shift->stop if $i > 5;
         time_mark();
     });
@@ -115,9 +114,8 @@ subtest 'again' => sub {
         my $me = shift;
         check_count(0, "'again' resets repeating timer");
         ++(state $i);
-        if ($i < 5) {
-            $t->again;
-        } else {
+        $t->again;
+        if ($i == 5) {
             $me->stop;
             time_mark();
         }
