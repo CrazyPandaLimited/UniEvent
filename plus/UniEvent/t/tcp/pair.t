@@ -60,13 +60,16 @@ sub test_pair {
     $h2->write("suka");
     $loop->run;
     is $cnt, 2;
-    
-    $cnt = 0;
-    $h1->shutdown;
-    $h2->eof_callback(sub { $cnt++; shift->shutdown });
-    $h1->eof_callback(sub { $cnt++; $loop->stop });
-    $loop->run;
-    is $cnt, 2;
+
+    SKIP: {
+        skip "shutdown() doesn't trigger EOF on socketpair in Windows WSL" if winWSL();
+        $cnt = 0;
+        $h1->shutdown;
+        $h2->eof_callback(sub { $cnt++; shift->shutdown });
+        $h1->eof_callback(sub { $cnt++; $loop->stop });
+        $loop->run;
+        is $cnt, 2;
+    }
 }
 
 done_testing();
