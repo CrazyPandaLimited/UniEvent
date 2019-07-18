@@ -388,7 +388,7 @@ TEST_CASE("write queue size", "[tcp]") {
     }
 }
 
-TEST_CASE("disconnection should be caught as EOF") {
+TEST_CASE("disconnection should be caught as EOF", "[tcp]") {
     AsyncTest test(500, 1);
     auto p = make_p2p(test.loop);
     p.sconn->read_event.add([&](auto, auto, auto& err) {
