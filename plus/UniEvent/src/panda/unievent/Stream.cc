@@ -139,6 +139,7 @@ void Stream::read_stop () {
 }
 
 void Stream::handle_read (string& buf, const CodeError& err) {
+    if (err == std::errc::connection_reset) return handle_eof(); // sometimes (when we were WRITING) read with error occurs instead of EOF
     HOLD_ON(this);
     INVOKE(this, _filters.back(), handle_read, finalize_handle_read, buf, err);
 }
@@ -195,6 +196,7 @@ void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
 
 // ===================== EOF ===============================
 void Stream::handle_eof () {
+    if (!in_connected()) return;
     clear_in_connected();
     HOLD_ON(this);
     INVOKE(this, _filters.back(), handle_eof, finalize_handle_eof);
