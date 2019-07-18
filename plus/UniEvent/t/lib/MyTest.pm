@@ -92,7 +92,11 @@ sub variate_catch {
         foreach my $name (@names) {
             $add .= "[v-$name]" if MyTest->can("variate_$name")->();
         }
-        catch_run($catch_name.$add);
+        SKIP: {
+            skip "variation ssl+buf may break many tests, set VARIATE_SSL_BUF=1 if you really want"
+                if variate_ssl() && variate_buf() && !$ENV{VARIATE_SSL_BUF};
+            catch_run($catch_name.$add);
+        }
     });
 }
 
