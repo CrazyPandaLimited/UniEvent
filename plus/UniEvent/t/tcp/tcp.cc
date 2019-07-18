@@ -387,3 +387,24 @@ TEST_CASE("write queue size", "[tcp]") {
         CHECK(p.client->write_queue_size() == 0);
     }
 }
+
+TEST_CASE("disconnection should be caught as EOF") {
+    AsyncTest test(500, 1);
+    auto p = make_p2p(test.loop);
+    p.sconn->read_event.add([&](auto, auto, auto& err) {
+        FAIL("read event called err=" << err.what());
+        test.loop->stop();
+    });
+    p.sconn->eof_event.add([&](auto...){
+        test.happens();
+        test.loop->stop();
+    });
+    panda::string str = "9";
+    for (int i = 0; i < 20; ++i) str += str;
+    p.sconn->write(str);
+    p.sconn->write_event.add([](auto, auto& err, auto){
+        WARN("write event err " << err.what());
+    });
+    p.client->disconnect();
+    test.run();
+}
