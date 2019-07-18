@@ -197,7 +197,7 @@ TEST_CASE("try use server without certificate", "[tcp]") {
     }
 }
 
-TEST_CASE("server read", "[tcp][v-ssl][v-buf]") {
+TEST_CASE("server read", "[tcp][v-ssl]") {
     AsyncTest test(2000, {"c", "r"});
     TcpSP client = make_client(test.loop);
     TcpSP server = make_server(test.loop);
@@ -340,16 +340,23 @@ TEST_CASE("write burst", "[tcp]") {
     AsyncTest test(500, 5);
     auto p = make_p2p(test.loop);
 
+    panda::string rcv;
     p.sconn->read_event.add([&](auto, auto& str, auto){
-        test.happens();
-        CHECK(str == "abcd");
-        test.loop->stop();
+        rcv += str;
+        if (rcv == "abcd") {
+            test.happens();
+            test.loop->stop();
+        }
     });
 
     p.client->write("a");
+    CHECK(p.client->write_queue_size() == 0);
     p.client->write("b");
+    CHECK(p.client->write_queue_size() == 0);
     p.client->write("c");
+    CHECK(p.client->write_queue_size() == 0);
     p.client->write("d");
+    CHECK(p.client->write_queue_size() == 0);
     p.client->write_event.add([&](auto, auto, auto) {
         test.happens();
     });

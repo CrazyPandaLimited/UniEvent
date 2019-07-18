@@ -10,7 +10,11 @@ namespace panda { namespace unievent { namespace test {
 using panda::net::SockAddr;
 
 SockAddr AsyncTest::get_refused_addr () {
+    #ifdef __FreeBSD__
+    return SockAddr::Inet4("0.0.0.0", 12345);
+    #else
     return SockAddr::Inet4("0.1.1.1", 12345);
+    #endif
 }
 
 SockAddr AsyncTest::get_blackhole_addr () {
