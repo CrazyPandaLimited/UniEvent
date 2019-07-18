@@ -395,7 +395,7 @@ TEST_CASE("disconnection should be caught as EOF") {
         FAIL("read event called err=" << err.what());
         test.loop->stop();
     });
-    p.sconn->eof_event.add([&](auto...){
+    p.sconn->eof_event.add([&](auto){
         test.happens();
         test.loop->stop();
     });
