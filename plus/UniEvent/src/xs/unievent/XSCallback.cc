@@ -30,6 +30,6 @@ bool XSCallback::call (const Object& handle, const Simple& evname, std::initiali
     if (!cv) cv = callback;
     if (!cv) return false;
 
-    cv.call(handle.ref(), args);
+    cv.call<void>(handle.ref(), args);
     return true;
 }
