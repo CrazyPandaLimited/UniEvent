@@ -122,7 +122,7 @@ string xs::unievent::sv2buf (const Sv& sv) {
 static inline void xscall (const Object& handle, const Simple& evname, std::initializer_list<Scalar> args = {}) {
     if (!handle) return; // object is being destroyed
     Sub cv = handle.method(evname); // evname is recommended to be a shared hash string for performance.
-    if (cv) cv.call(handle.ref(), args);
+    if (cv) cv.call<void>(handle.ref(), args);
 }
 
 static inline void throw_bad_hints () { throw "argument is not a valid AddrInfoHints"; }
