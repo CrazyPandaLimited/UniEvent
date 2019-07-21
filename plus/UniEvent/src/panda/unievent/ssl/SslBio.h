@@ -4,7 +4,7 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <panda/string.h>
-#include <panda/lib/memory.h>
+#include <panda/memory.h>
 
 namespace panda { namespace unievent { namespace ssl {
 
@@ -42,7 +42,7 @@ namespace panda { namespace unievent { namespace ssl {
 #endif
 
 struct SslBio {
-    struct membuf_t : panda::lib::AllocatedObject<membuf_t> {
+    struct membuf_t : AllocatedObject<membuf_t> {
         Stream* handle;
         string  buf;    // current read buf
     };

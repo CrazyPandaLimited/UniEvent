@@ -44,7 +44,7 @@ private:
 };
 
 
-struct PipeConnectRequest : ConnectRequest, panda::lib::AllocatedObject<PipeConnectRequest> {
+struct PipeConnectRequest : ConnectRequest, AllocatedObject<PipeConnectRequest> {
     string name;
 
     PipeConnectRequest (const string& name, Stream::connect_fn callback = nullptr)

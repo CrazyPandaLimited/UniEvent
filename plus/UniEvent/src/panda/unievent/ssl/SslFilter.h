@@ -1,14 +1,13 @@
 #pragma once
 #include "../Stream.h"
 #include <openssl/ssl.h>
-#include <panda/lib/memory.h>
 
 namespace panda { namespace unievent { namespace ssl {
 
 struct SslFilter;
 using SslFilterSP = iptr<SslFilter>;
 
-struct SslFilter : StreamFilter, panda::lib::AllocatedObject<SslFilter> {
+struct SslFilter : StreamFilter, AllocatedObject<SslFilter> {
     static constexpr double PRIORITY = 1;
     static const     void*  TYPE;
 

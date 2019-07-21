@@ -4,14 +4,14 @@
 #include <vector>
 #include <panda/string.h>
 #include <panda/refcnt.h>
-#include <panda/lib/intrusive_chain.h>
+#include <panda/intrusive_chain.h>
 
 namespace panda { namespace unievent {
 
 struct Request;
 using RequestSP = iptr<Request>;
 
-struct Request : panda::lib::IntrusiveChainNode<RequestSP>, Refcnt, protected backend::IRequestListener {
+struct Request : IntrusiveChainNode<RequestSP>, Refcnt, protected backend::IRequestListener {
     template <class Func>
     void delay (Func&& f) {
         delay_cancel();

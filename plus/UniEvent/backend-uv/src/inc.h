@@ -7,8 +7,6 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-using panda::lib::AllocatedObject;
-
 static inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
 static inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
 

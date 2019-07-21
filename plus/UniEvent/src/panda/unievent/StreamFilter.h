@@ -1,11 +1,11 @@
 #pragma once
 #include "forward.h"
 #include "Error.h"
-#include <panda/lib/intrusive_chain.h>
+#include <panda/intrusive_chain.h>
 
 namespace panda { namespace unievent {
 
-struct StreamFilter : Refcnt, panda::lib::IntrusiveChainNode<StreamFilterSP> {
+struct StreamFilter : Refcnt, IntrusiveChainNode<StreamFilterSP> {
     const void* type     () const { return _type; }
     double      priority () const { return _priority; }
 

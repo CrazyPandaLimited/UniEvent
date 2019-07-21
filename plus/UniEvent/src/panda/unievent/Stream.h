@@ -14,7 +14,7 @@ struct ssl_st;        typedef ssl_st SSL;
 namespace panda { namespace unievent {
 
 struct Stream : virtual BackendHandle, protected backend::IStreamListener {
-    using Filters         = panda::lib::IntrusiveChain<StreamFilterSP>;
+    using Filters         = IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP()>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
     using connection_fn   = function<connection_fptr>;
@@ -214,7 +214,7 @@ protected:
 using StreamRequestSP = iptr<StreamRequest>;
 
 
-struct AcceptRequest : StreamRequest, lib::AllocatedObject<AcceptRequest> {
+struct AcceptRequest : StreamRequest, AllocatedObject<AcceptRequest> {
     AcceptRequest (Stream* h) { set(h); }
 
     void exec         ()                                                 override {}
@@ -248,7 +248,7 @@ protected:
 };
 
 
-struct WriteRequest : StreamRequest, lib::AllocatedObject<WriteRequest> {
+struct WriteRequest : StreamRequest, AllocatedObject<WriteRequest> {
     CallbackDispatcher<Stream::write_fptr> event;
     std::vector<string> bufs;
 

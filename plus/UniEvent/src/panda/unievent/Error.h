@@ -2,7 +2,6 @@
 #include "inc.h"
 #include <stdexcept>
 #include <system_error>
-#include <panda/lib.h>
 #include <panda/string.h>
 #include <panda/string_view.h>
 

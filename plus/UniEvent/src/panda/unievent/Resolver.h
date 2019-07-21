@@ -147,7 +147,7 @@ private:
         std::exception_ptr exc;
     };
 
-    using Requests = panda::lib::IntrusiveChain<RequestSP>;
+    using Requests = IntrusiveChain<RequestSP>;
     using Workers  = std::vector<std::unique_ptr<Worker>>;
 
     Loop*    _loop;
@@ -170,7 +170,7 @@ private:
     friend Request; friend Worker;
 };
 
-struct Resolver::Request : Refcnt, panda::lib::IntrusiveChainNode<Resolver::RequestSP>, panda::lib::AllocatedObject<Resolver::Request> {
+struct Resolver::Request : Refcnt, IntrusiveChainNode<Resolver::RequestSP>, AllocatedObject<Resolver::Request> {
     CallbackDispatcher<resolve_fptr> event;
 
     Request (const ResolverSP& r = {});

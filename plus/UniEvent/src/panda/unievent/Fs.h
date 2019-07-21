@@ -218,7 +218,7 @@ struct Fs {
     }
 
     // async object methods
-    struct Request : Work, lib::AllocatedObject<Request> {
+    struct Request : Work, AllocatedObject<Request> {
         Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _busy(), _fd() {}
         ~Request () { assert(!_busy); }
 

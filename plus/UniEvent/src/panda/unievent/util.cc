@@ -86,7 +86,7 @@ std::vector<InterfaceAddress> interface_info () {
         auto& uvrow = uvlist[i];
         InterfaceAddress row;
         row.name = uvrow.name;
-        std::memcpy(row.phys_addr, uvrow.phys_addr, sizeof(uvrow.phys_addr));
+        memcpy(row.phys_addr, uvrow.phys_addr, sizeof(uvrow.phys_addr));
         row.is_internal = uvrow.is_internal;
         row.address = SockAddr((sockaddr*)&uvrow.address);
         row.netmask = SockAddr((sockaddr*)&uvrow.netmask);

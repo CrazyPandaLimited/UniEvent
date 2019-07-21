@@ -1,6 +1,6 @@
 #pragma once
 #include "Request.h"
-#include <panda/lib/intrusive_chain.h>
+#include <panda/intrusive_chain.h>
 
 namespace panda { namespace unievent {
 
@@ -114,7 +114,7 @@ struct Queue {
     bool   canceling () const { return cancel_till; }
 
 private:
-    using Requests = panda::lib::IntrusiveChain<RequestSP>;
+    using Requests = IntrusiveChain<RequestSP>;
     Requests  requests;
     Requests  finalized_requests;
     uint32_t  locked;

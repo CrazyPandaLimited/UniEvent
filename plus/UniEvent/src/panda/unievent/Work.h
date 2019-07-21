@@ -1,11 +1,11 @@
 #pragma once
 #include "Loop.h"
 #include "backend/WorkImpl.h"
-#include <panda/lib/memory.h>
+#include <panda/memory.h>
 
 namespace panda { namespace unievent {
 
-struct Work : Refcnt, lib::IntrusiveChainNode<WorkSP>, lib::AllocatedObject<Work>, private backend::IWorkListener {
+struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private backend::IWorkListener {
     using WorkImpl   = backend::WorkImpl;
     using work_fn       = function<void(Work*)>;
     using after_work_fn = function<void(const WorkSP&, const CodeError&)>;

@@ -105,7 +105,7 @@ static inline Fs::FileType uvx_ftype (uv_dirent_type_t uvt) {
 }
 
 bool Fs::Stat::operator== (const Fs::Stat& oth) const {
-    return std::memcmp(this, &oth, sizeof(Fs::Stat)) == 0;
+    return memcmp(this, &oth, sizeof(Fs::Stat)) == 0;
 }
 
 /* ===============================================================================================
@@ -190,10 +190,10 @@ static inline ex<void> _rmtree (string_view path) {
             auto fnlen = plen + elen + 1;
             char _fn[fnlen];
             char* ptr = _fn;
-            std::memcpy(ptr, path.data(), plen);
+            memcpy(ptr, path.data(), plen);
             ptr += plen;
             *ptr++ = UE_SLASH;
-            std::memcpy(ptr, entry.name().data(), elen);
+            memcpy(ptr, entry.name().data(), elen);
 
             string_view fname(_fn, fnlen);
             if (entry.type() == Fs::FileType::DIR) {

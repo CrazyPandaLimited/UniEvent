@@ -8,9 +8,9 @@
 
 namespace panda { namespace unievent {
 
-struct Tcp : virtual Stream, panda::lib::AllocatedObject<Tcp> {
+struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     using TcpImpl = backend::TcpImpl;
-    using Flags      = TcpImpl::Flags;
+    using Flags   = TcpImpl::Flags;
 
     static const HandleType TYPE;
 
@@ -58,7 +58,7 @@ private:
     HandleImpl* new_impl () override;
 };
 
-struct TcpConnectRequest : ConnectRequest, panda::lib::AllocatedObject<TcpConnectRequest> {
+struct TcpConnectRequest : ConnectRequest, AllocatedObject<TcpConnectRequest> {
     net::SockAddr addr;
     string        host;
     uint16_t      port;

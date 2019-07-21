@@ -3,8 +3,8 @@
 #include "forward.h"
 #include "backend/Backend.h"
 #include <vector>
+#include <panda/intrusive_chain.h>
 #include <panda/CallbackDispatcher.h>
-#include <panda/lib/intrusive_chain.h>
 
 namespace panda { namespace unievent {
 
@@ -14,7 +14,7 @@ void              set_default_backend (backend::Backend* backend);
 struct Loop : Refcnt {
     using Backend  = backend::Backend;
     using LoopImpl = backend::LoopImpl;
-    using Handles  = panda::lib::IntrusiveChain<Handle*>;
+    using Handles  = IntrusiveChain<Handle*>;
     using RunMode  = LoopImpl::RunMode;
 
     static LoopSP global_loop () {
@@ -66,7 +66,7 @@ protected:
 
 private:
     friend Handle; friend Work;
-    using Works = panda::lib::IntrusiveChain<WorkSP>;
+    using Works = IntrusiveChain<WorkSP>;
 
     Backend*   _backend;
     LoopImpl*  _impl;

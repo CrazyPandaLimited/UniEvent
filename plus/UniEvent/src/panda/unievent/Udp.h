@@ -7,14 +7,14 @@
 
 namespace panda { namespace unievent {
 
-struct Udp : virtual BackendHandle, panda::lib::AllocatedObject<Udp>, private backend::IUdpListener {
-    using receive_fptr  = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
-    using receive_fn    = function<receive_fptr>;
-    using send_fptr     = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
-    using send_fn       = function<send_fptr>;
-    using UdpImpl    = backend::UdpImpl;
-    using Flags         = UdpImpl::Flags;
-    using Membership    = UdpImpl::Membership;
+struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpListener {
+    using receive_fptr = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
+    using receive_fn   = function<receive_fptr>;
+    using send_fptr    = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
+    using send_fn      = function<send_fptr>;
+    using UdpImpl      = backend::UdpImpl;
+    using Flags        = UdpImpl::Flags;
+    using Membership   = UdpImpl::Membership;
 
     buf_alloc_fn                     buf_alloc_callback;
     CallbackDispatcher<receive_fptr> receive_event;
@@ -81,7 +81,7 @@ private:
 };
 
 
-struct SendRequest : Request, lib::AllocatedObject<SendRequest> {
+struct SendRequest : Request, AllocatedObject<SendRequest> {
     CallbackDispatcher<Udp::send_fptr> event;
     net::SockAddr                      addr;
     std::vector<string>                bufs;

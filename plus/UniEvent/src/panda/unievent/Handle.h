@@ -4,7 +4,7 @@
 #include "Error.h"
 #include <cstdint>
 #include <panda/string.h>
-#include <panda/lib/memory.h>
+#include <panda/memory.h>
 
 namespace panda { namespace unievent {
 
@@ -16,7 +16,7 @@ struct HandleType {
 };
 std::ostream& operator<< (std::ostream& out, const HandleType&);
 
-struct Handle : Refcnt, panda::lib::IntrusiveChainNode<Handle*> {
+struct Handle : Refcnt, IntrusiveChainNode<Handle*> {
     const LoopSP& loop () const { return _loop; }
 
     virtual const HandleType& type () const = 0;
