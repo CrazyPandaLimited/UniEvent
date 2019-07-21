@@ -1,9 +1,6 @@
 #pragma once
-
 #include <new>
 #include <algorithm>
-
-#include <panda/lib/memory.h>
 
 #include "Fwd.h"
 #include "Handle.h"

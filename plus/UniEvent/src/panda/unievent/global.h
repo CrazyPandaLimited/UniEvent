@@ -79,9 +79,9 @@ inline uv_errno_t _err_gai2uv (int syscode) {
 template <class T, class X> static T hcast (X* h) { return panda::dyn_cast<T>(static_cast<Handle*>(h->data)); }
 template <class T, class X> static T rcast (X* r) { return panda::dyn_cast<T>(static_cast<Request*>(r->data)); }
 
-#define PEXS_NULL_TERMINATE(what, to)            \
-    char to[what.length()+1];                      \
-    std::memcpy(to, what.data(), what.length()); \
+#define PEXS_NULL_TERMINATE(what, to)       \
+    char to[what.length()+1];               \
+    memcpy(to, what.data(), what.length()); \
     to[what.length()] = 0;
 
 }}

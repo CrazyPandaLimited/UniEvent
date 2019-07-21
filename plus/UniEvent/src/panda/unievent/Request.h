@@ -5,12 +5,11 @@
 #include <functional>
 #include <panda/log.h>
 #include <panda/refcnt.h>
-#include <panda/lib/memory.h>
+#include <panda/memory.h>
 #include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent {
 
-using panda::lib::AllocatedObject;
 struct Handle; struct UDP; struct Stream; struct Timer;
 
 struct Request : virtual Refcnt {
