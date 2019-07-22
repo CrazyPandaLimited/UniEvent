@@ -10,6 +10,8 @@ void Tty::reset_mode () {
 
 Tty::Tty (fd_t fd, const LoopSP& loop) : fd(fd) {
     _init(loop, loop->impl()->new_tty(this, fd));
+    read_stop(); // dont read automatically, fd may not support it
+    set_connect_result(true);
 }
 
 const HandleType& Tty::type () const {
@@ -30,4 +32,9 @@ void Tty::set_mode (Mode mode) {
 
 Tty::WinSize Tty::get_winsize () {
     return impl()->get_winsize();
+}
+
+void Tty::on_reset () {
+    read_stop();
+    set_connect_result(true);
 }

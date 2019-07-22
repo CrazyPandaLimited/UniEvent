@@ -153,6 +153,8 @@ protected:
         if (ok) clear_out_connected();
     }
 
+    virtual void on_reset () {}
+
     ~Stream ();
 
 private:

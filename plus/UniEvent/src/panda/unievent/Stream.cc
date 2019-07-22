@@ -275,6 +275,7 @@ void Stream::_reset () {
     invoke_sync(&StreamFilter::reset);
     flags &= DONTREAD; // clear flags except DONTREAD
     _wq_size = 0;
+    on_reset();
 }
 
 void Stream::clear () {
@@ -295,6 +296,7 @@ void Stream::_clear () {
     write_event.remove_all();
     shutdown_event.remove_all();
     eof_event.remove_all();
+    on_reset();
 }
 
 // ===================== FILTERS ADD/REMOVE ===============================

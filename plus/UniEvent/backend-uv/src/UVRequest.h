@@ -3,10 +3,10 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-template <class BASE, class UVTYPE>
+template <class BASE, class Uvr>
 struct UVRequest : BASE {
-    bool   active;
-    UVTYPE uvr;
+    bool active;
+    Uvr  uvr;
 
     UVRequest (HandleImpl* h, IRequestListener* l) : BASE(h, l), active() {
         uvr.data = static_cast<RequestImpl*>(this);
@@ -19,8 +19,8 @@ struct UVRequest : BASE {
 
 private:
     template <class...Args>
-    static inline void set_stub (void (**cbptr)(UVTYPE*, Args...)) {
-        *cbptr = [](UVTYPE* p, Args...) { delete get_request(p); };
+    static inline void set_stub (void (**cbptr)(Uvr*, Args...)) {
+        *cbptr = [](Uvr* p, Args...) { delete get_request(p); };
     }
 };
 

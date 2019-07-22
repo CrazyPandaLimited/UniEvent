@@ -24,6 +24,7 @@ protected:
     fd_t fd;
 
     StreamSP create_connection () override;
+    void     on_reset          () override;
 
 private:
     TtyImpl*    impl     () const { return static_cast<TtyImpl*>(BackendHandle::impl()); }
