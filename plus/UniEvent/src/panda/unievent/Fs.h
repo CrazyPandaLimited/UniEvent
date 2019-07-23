@@ -293,6 +293,8 @@ struct Fs {
         void _write (std::vector<string>&&, int64_t offset, const fn&);
     };
 
+    static const HandleType TYPE;
+
 private:
     static ex<void>  _write (fd_t file, _buf_t* bufs, size_t nbufs, int64_t offset);
     static RequestSP _write (fd_t, std::vector<string>&&, int64_t offset, const fn&, const LoopSP&);

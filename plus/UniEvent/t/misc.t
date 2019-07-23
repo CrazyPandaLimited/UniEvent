@@ -92,7 +92,8 @@ subtest 'get_rusage' => sub {
 };
 
 subtest 'guess_type' => sub {
-    is UniEvent::guess_type(0), UniEvent::Handle::UNKNOWN_TYPE;
+    # 0 is stdin ant it may be Tty for terminal and Pipe for redirected input (happens on jenkins)
+    cmp_deeply UniEvent::guess_type(0), any(UniEvent::Tty::TYPE, UniEvent::Pipe::TYPE);
     # TODO
     #is UniEvent::guess_type(*STDIN{IO}), UniEvent::TTY::TYPE;
     # for PIPE ?

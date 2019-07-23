@@ -3,6 +3,9 @@
 #include "Udp.h"
 #include "Pipe.h"
 #include "Resolver.h"
+#include "Tty.h"
+#include "Fs.h"
+
 #include <uv.h>
 #include <ostream>
 
@@ -155,8 +158,8 @@ ResourceUsage get_rusage () {
 const HandleType& guess_type (fd_t file) {
     auto uvt = uv_guess_handle(file);
     switch (uvt) {
-        //case UV_TTY       : return TTY::TYPE;
-        //case UV_FILE      : ???;
+        case UV_TTY       : return Tty::TYPE;
+        case UV_FILE      : return Fs::TYPE;
         case UV_NAMED_PIPE: return Pipe::TYPE;
         case UV_UDP       : return Udp::TYPE;
         case UV_TCP       : return Tcp::TYPE;

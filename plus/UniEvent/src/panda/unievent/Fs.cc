@@ -15,6 +15,8 @@ using ex = Fs::ex<T>;
     #define UE_SLASH '/'
 #endif
 
+const HandleType Fs::TYPE("fs");
+
 const int Fs::OpenFlags::APPEND      = UV_FS_O_APPEND;
 const int Fs::OpenFlags::CREAT       = UV_FS_O_CREAT;
 const int Fs::OpenFlags::DIRECT      = UV_FS_O_DIRECT;
