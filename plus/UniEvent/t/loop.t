@@ -1,115 +1,113 @@
 use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
-use UniEvent::Error qw/ERRNO_EBUSY/;
-use UniEvent::Handle;
+catch_run('[loop]');
 
-my ($loop, $now, $h, $err, @hlist, $var);
+subtest 'basic' => sub {
+    my $loop = UniEvent::Loop->new();
+    is ref $loop, 'UniEvent::Loop';
+    ok !$loop->alive, 'no handles yet in loop';
+    ok !$loop->is_default, 'this loop is not default';
+    ok !$loop->is_global, 'this loop is not global';
+};
 
-$loop = UniEvent::Loop->new();
-is(ref $loop, 'UniEvent::Loop');
+subtest 'now/update_time' => sub {
+    my $loop = UniEvent::Loop->new();
+    my $now = $loop->now;
+    select undef, undef, undef, 0.01;
+    is $now, $loop->now, 'now isnt changed until update_time';
+    $loop->update_time;
+    isnt $now, $loop->now, 'now changes after update_time';
+};
 
-ok(!$loop->alive, 'no handles yet in loop');
-ok(!$loop->is_default, 'this loop is not default');
+subtest 'default loop' => sub {
+    my $loop = UniEvent::Loop->default;
+    is(ref $loop, 'UniEvent::Loop');
+    ok $loop->is_default, 'this loop is default';
+    ok $loop->is_global, 'this loop is global';
+    is(UniEvent::Loop->default, UniEvent::Loop->default, "default loop returns the same");
+    is(UniEvent::Loop->global, UniEvent::Loop->global, "global loop returns the same");
+    is(UniEvent::Loop->global, UniEvent::Loop->default, "global loop is the same as default loop in main thread");
+};
 
-$loop->backend_timeout; # just check it works
+my $loop = UniEvent::Loop->default;
 
-$now = $loop->now;
-select undef, undef, undef, 0.01;
-is($now, $loop->now, 'now isnt changed until update_time');
-$loop->update_time;
-isnt($now, $loop->now, 'now changes after update_time');
+subtest 'handles' => sub {
+    my $loop = new UniEvent::Loop;
+    cmp_deeply $loop->handles, [], "no handles in fresh loop";
+    
+    my @h = map { new UniEvent::Prepare($loop) } 1..3;
+    is scalar $loop->handles->@*, 3, "handles count ok";
+    foreach my $h ($loop->handles->@*) {
+        is ref($h), 'UniEvent::Prepare', 'handle class ok';
+    }
+    undef @h;
+    
+    cmp_deeply $loop->handles, [], "no handles left";
+};
 
-$loop = UniEvent::Loop->default_loop;
-is(ref $loop, 'UniEvent::Loop');
-ok(!$loop->alive, 'no handles yet in loop');
-ok($loop->is_default, 'this loop is default');
+subtest 'run/stop' => sub {
+    alarm(1);
+    ok !$loop->run_once, 'run_once';
+    ok !$loop->run, 'run';
+    ok !$loop->run_nowait, 'run_nowait';
+    
+    my $h = new UniEvent::Prepare;
+    $h->start(sub {
+        ok $loop->alive;
+        $loop->stop;
+    });
+    ok $loop->run;
+    alarm(0);
+};
 
-$now = $loop->now;
-select undef, undef, undef, 0.01;
-is($now, $loop->now);
-UniEvent::Loop->default_loop->update_time;
-isnt($now, $loop->now, 'default_loop always returns same objects');
+subtest 'delay' => sub {
+    subtest 'simple' => sub {
+        my $i = 0;
+        $loop->delay(sub { $i++ });
+        $loop->run_nowait for 1..3;
+        is $i, 1, 'called once';
+    };
+    subtest 'recursive' => sub {
+        my $i = 0;
+        $loop->delay(sub { $i++ });
+        $loop->run_nowait for 1..3;
+        $loop->delay(sub {
+            $i += 10;
+            $loop->delay(sub { $i += 100 });
+        });
+        $loop->run_nowait for 1..3;
+        is $i, 111, 'called';
+    };
+    subtest 'cancel delay' => sub {
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        $loop->cancel_delay($mark) for 1..2;
+        $loop->run_nowait for 1..3;
+        is $i, 0, 'delay canceled';
+        
+        $loop->cancel_delay($mark);
+        undef $mark;
+    };
+    subtest 'autocancel delay' => sub {
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        undef $mark;
+        $loop->run_nowait for 1..3;
+        is $i, 0, 'delay autocanceled';
+    };
+    subtest 'mark survives the loop' => sub {
+        my $loop = UE::Loop->new;
+        my $i = 0;
+        my $mark = $loop->delay(sub { $i++ });
+        undef $loop;
+        is $i, 0, 'delay autocanceled';
+        undef $mark; # ignore
+    };
+};
 
-alarm(1);
-$loop->run_once;
-$loop->run;
-alarm(0);
-is($loop->run_nowait, 0, "loop is empty so that doesnt block");
-
-$now = $loop->now;
-select undef, undef, undef, 0.01;
-$loop->close;
-$loop = UniEvent::Loop->default_loop;
-isnt($now, $loop->now, 'default_loop is recreated after close (another object)');
-
-$h = new UniEvent::Prepare;
-$h->start(sub {
-    ok($loop->alive, 'loop is alive while handle exists');
-    $loop->stop;
-});
-alarm(1);
-$loop->run;
-alarm(0);
-is(1, 1, 'loop stopped on stop');
-ok($loop->alive, 'loop is still alive');
-$h->stop;
-ok(!$loop->alive, 'handle stopped, loop is not alive');
-
-alarm(1);
-$loop->run;
-alarm(0);
-ok(1, 'loop won\'t run anymore');
-
-$h->start(sub {
-    ok($loop->alive, 'loop is alive while handle exists 2');
-    my $hh = shift;
-    $hh->stop;
-});
-alarm(1);
-$loop->run;
-alarm(0);
-ok(!$loop->alive, 'loop exits when no more active handles');
-
-$h->start(sub {});
-
-undef $h;
-alarm(1);
-$loop->run;
-alarm(0);
-is(1, 1, 'loop exits when no more handles');
-$loop->close();
-$loop = undef;
-
-$loop = new UniEvent::Loop;
-$h = new UniEvent::Prepare($loop);
-$h->start(sub {});
-$loop->run_nowait;
-dies_ok { $loop->close } 'Non-empty loop dies on close';
-$err = $@;
-ok($err, 'error exists');
-is(ref $err, 'UniEvent::CodeError', 'error is an object');
-is($err->name, 'EBUSY', 'error is EBUSY');
-is($err->code, ERRNO_EBUSY, 'error code is correct');
-
-undef $h;
-$loop->run_nowait;
-ok(!$loop->alive, 'loop isnt alive anymore');
-$loop->close();
-$loop = undef;
-
-$loop = UniEvent::Loop::default_loop();
-@hlist = (new UniEvent::Prepare(), new UniEvent::Prepare(), new UniEvent::Prepare());
-#map { $_->start(sub {}) } @hlist;
-$var = 0;
-$loop->walk(sub {
-    my $cur_handle = shift;
-    is(ref $cur_handle, 'UniEvent::Prepare', 'walk handle works');
-    $var++;
-});
-is($var, 3, 'walk walked through all the handles');
-
-# CLONE_SKIP
-is(UniEvent::Loop::CLONE_SKIP() + UniEvent::Loop->CLONE_SKIP(), 2, "Loop has CLONE_SKIP set to 1");
+subtest 'CLONE_SKIP' => sub {
+    is UniEvent::Loop::CLONE_SKIP(), 1;
+};
 
 done_testing();

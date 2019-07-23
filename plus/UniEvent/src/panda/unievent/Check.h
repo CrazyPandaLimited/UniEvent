@@ -1,34 +1,38 @@
 #pragma once
-#include "Handle.h"
+#include "BackendHandle.h"
+#include "backend/CheckImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Check : virtual Handle {
-    using check_fptr = void(Check*);
-    using check_fn = panda::function<check_fptr>;
+struct Check : virtual BackendHandle, private backend::ICheckListener {
+    using check_fptr = void(const CheckSP&);
+    using check_fn   = function<check_fptr>;
 
-    CallbackDispatcher<check_fptr> check_event;
+    CallbackDispatcher<check_fptr> event;
 
-    Check (Loop* loop = Loop::default_loop()) {
-        int err = uv_check_init(_pex_(loop), &uvh);
-        if (err) throw CodeError(err);
-        _init(&uvh);
+    Check (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_check(this));
     }
+
+    const HandleType& type () const override;
 
     virtual void start (check_fn callback = nullptr);
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
-    void call_on_check () { on_check(); }
+    void call_now () { on_check(); }
+
+    static const HandleType TYPE;
 
 protected:
     virtual void on_check ();
 
 private:
-    uv_check_t uvh;
+    void handle_check () override;
 
-    static void uvx_on_check (uv_check_t* handle);
+    backend::CheckImpl* impl () const { return static_cast<backend::CheckImpl*>(_impl); }
 };
 
 }}

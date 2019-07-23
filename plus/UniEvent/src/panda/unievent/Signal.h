@@ -1,48 +1,47 @@
 #pragma once
-#include "Handle.h"
+#include "BackendHandle.h"
 #include <signal.h>
+#include "backend/SignalImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Signal : virtual Handle {
-    using signal_fptr = void(Signal* handle, int signum);
+struct Signal : virtual BackendHandle, private backend::ISignalListener {
+    using signal_fptr = void(const SignalSP& handle, int signum);
     using signal_fn = function<signal_fptr>;
-    
-    CallbackDispatcher<signal_fptr> signal_event;
 
-    Signal (Loop* loop = Loop::default_loop()) {
-        int err = uv_signal_init(_pex_(loop), &uvh);
-        if (err) throw CodeError(err);
-        _init(&uvh);
+    static const HandleType TYPE;
+
+    CallbackDispatcher<signal_fptr> event;
+
+    Signal (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_signal(this));
     }
 
-    int           signum  () const { return uvh.signum; }
-    const string& signame () const { return signame(uvh.signum); }
+    const HandleType& type () const override;
 
-    virtual void start      (int signum, signal_fn callback = nullptr);
-    virtual void start_once (int signum, signal_fn callback = nullptr);
-    virtual void stop       ();
+    int           signum  () const { return impl()->signum(); }
+    const string& signame () const { return signame(signum()); }
+
+    virtual void start (int signum, signal_fn callback = {});
+    virtual void once  (int signum, signal_fn callback = {});
+    virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
-    static const string& signame (int signum) {
-        if (signum < 0 || signum >= NSIG) throw Error("[Signal.signame] signum must be >= 0 and < NSIG");
-        return _signames[signum];
-    }
+    void call_now (int signum) { on_signal(signum); }
 
-    void call_on_signal (int signum) { on_signal(signum); }
+    static SignalSP watch (int signum, signal_fn cb, const LoopSP& loop = Loop::default_loop());
+
+    static const string& signame (int signum);
 
 protected:
     virtual void on_signal (int signum);
 
 private:
-    uv_signal_t uvh;
+    void handle_signal (int signum) override;
 
-    static string _signames[NSIG];
-
-    static bool __init_;
-    static bool __init ();
-    static void uvx_on_signal (uv_signal_t* handle, int signum);
+    backend::SignalImpl* impl () const { return static_cast<backend::SignalImpl*>(_impl); }
 };
 
 }}

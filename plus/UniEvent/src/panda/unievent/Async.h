@@ -1,33 +1,41 @@
 #pragma once
-#include "Handle.h"
+#include "BackendHandle.h"
+#include "backend/AsyncImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Async : virtual Handle {
-    typedef function<void(Async* handle)> async_fn;
+struct Async : virtual BackendHandle, private backend::IAsyncListener {
+    using async_fptr = void(const AsyncSP&);
+    using async_fn   = function<async_fptr>;
     
-    async_fn async_callback;
+    CallbackDispatcher<async_fptr> event;
 
-    Async (async_fn callback, Loop* loop = Loop::default_loop()) {
-        async_callback =  callback;
-        _init(&uvh);
-        int err = uv_async_init(_pex_(loop), &uvh, uvx_on_async);
-        if (err) throw CodeError(err);
+    Async (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_async(this));
     }
+
+    Async (async_fn cb, Loop* loop = Loop::default_loop()) : Async(loop) {
+        if (cb) event.add(cb);
+    }
+
+    const HandleType& type () const override;
 
     virtual void send ();
 
-    void reset () override;
+    void reset () override {}
+    void clear () override { weak(false); }
 
-    void call_on_async () { on_async(); }
+    void call_now () { on_async(); }
+
+    static const HandleType TYPE;
 
 protected:
     virtual void on_async ();
 
 private:
-    uv_async_t uvh;
+    void handle_async () override;
 
-    static void uvx_on_async (uv_async_t* handle);
+    backend::AsyncImpl* impl () const { return static_cast<backend::AsyncImpl*>(_impl); }
 };
 
 }}

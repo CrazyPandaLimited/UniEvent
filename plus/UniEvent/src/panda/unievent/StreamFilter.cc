@@ -1,118 +1,102 @@
-#include "TCP.h"
-#include "Stream.h"
 #include "StreamFilter.h"
+#include "Tcp.h"
+#include "Pipe.h"
 
-namespace panda { namespace unievent {
+using namespace panda::unievent;
 
-void StreamFilters::connect (ConnectRequest* req) {
-    if (size()) front()->connect(req);
-    else        dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
-}
-
-void StreamFilters::on_connect (const CodeError* err, ConnectRequest* req) {
-    if (size()) back()->on_connect(err, req);
-    else        handle->do_on_connect(err, req);
-}
-
-void StreamFilters::on_connection (StreamSP stream, const CodeError* err) {
-    if (size()) back()->on_connection(stream, err);
-    else        handle->do_on_connection(stream, err);
-}
-
-void StreamFilters::write (WriteRequest* req) {
-    if (size()) front()->write(req);
-    else        handle->do_write(req);
-}
-
-void StreamFilters::on_write (const CodeError* err, WriteRequest* req) {
-    if (size()) back()->on_write(err, req);
-    else        handle->do_on_write(err, req);
-}
-
-void StreamFilters::on_read (string& buf, const CodeError* err) {
-    if (size()) back()->on_read(buf, err);
-    else        handle->do_on_read(buf, err);
-}
-
-void StreamFilters::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-    if (size()) back()->on_shutdown(err, req);
-    else        handle->do_on_shutdown(err, req);
-
-}
-
-void StreamFilters::on_eof () {
-    if (size()) back()->on_eof();
-    else        handle->do_on_eof();
-}
+#define INVOKE(f, fm, hm, ...) do { \
+    if (f) f->fm(__VA_ARGS__);      \
+    else   handle->hm(__VA_ARGS__); \
+} while(0)
 
 StreamFilter::StreamFilter (Stream* h, const void* type, double priority) : handle(h), _type(type), _priority(priority) {}
 
-void StreamFilter::set_connecting () {
-    handle->set_connecting();
-}
-
-void StreamFilter::set_connected (bool success) {
-    handle->set_connected(success);
-}
-
-void StreamFilter::set_shutdown (bool success) {
-    handle->set_shutdown(success);
-}
-
-bool StreamFilter::is_secure () {
-    return false;
-}
-
-CodeError StreamFilter::temp_read_start () {
+CodeError StreamFilter::read_start () {
     return handle->_read_start();
 }
 
-void StreamFilter::restore_read_start () {
+void StreamFilter::read_stop () {
     if (!handle->wantread()) handle->read_stop();
 }
 
-void StreamFilter::connect (ConnectRequest* req) {
-    if (next_) next_->connect(req);
-    else       dyn_cast<TCP*>(handle)->do_connect(static_cast<TCPConnectRequest*>(req));
+void StreamFilter::subreq_tcp_connect (const StreamRequestSP& parent, const TcpConnectRequestSP& req) {
+    parent->subreq   = req;
+    req->parent      = parent;
+    req->last_filter = this;
+    req->set(panda::dyn_cast<Tcp*>(handle)); // TODO: find a better way
+    NextFilter::tcp_connect(req);
 }
 
-void StreamFilter::on_connect (const CodeError* err, ConnectRequest* req) {
-    if (prev_) prev_->on_connect(err, req);
-    else       handle->do_on_connect(err, req);
+void StreamFilter::subreq_pipe_connect (const StreamRequestSP& parent, const PipeConnectRequestSP& req) {
+    parent->subreq   = req;
+    req->parent      = parent;
+    req->last_filter = this;
+    req->set(panda::dyn_cast<Pipe*>(handle)); // TODO: find a better way
+    NextFilter::pipe_connect(req);
 }
 
-void StreamFilter::on_connection (StreamSP stream, const CodeError* err) {
-    if (prev_) prev_->on_connection(stream, err);
-    else       handle->do_on_connection(stream, err);
+void StreamFilter::subreq_write (const StreamRequestSP& parent, const WriteRequestSP& req) {
+    parent->subreq   = req;
+    req->parent      = parent;
+    req->last_filter = this;
+    req->set(handle);
+    NextFilter::write(req);
 }
 
-void StreamFilter::write (WriteRequest* req) {
-    if (next_) next_->write(req);
-    else       handle->do_write(req);
+void StreamFilter::subreq_done (const StreamRequestSP& req) {
+    assert(!req->subreq);
+    req->finish_exec();
+    req->parent->subreq = nullptr;
+    req->parent         = nullptr;
+    req->last_filter    = nullptr;
 }
 
-void StreamFilter::on_write (const CodeError* err, WriteRequest* req) {
-    if (prev_) prev_->on_write(err, req);
-    else       handle->do_on_write(err, req);
+void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err, const AcceptRequestSP& req) {
+    INVOKE(prev, handle_connection, finalize_handle_connection, client, err, req);
 }
 
-void StreamFilter::on_read (string& buf, const CodeError* err) {
-    if (prev_) prev_->on_read(buf, err);
-    else       handle->do_on_read(buf, err);
+void StreamFilter::tcp_connect (const TcpConnectRequestSP& req) {
+    if (next) {
+        req->last_filter = next;
+        next->tcp_connect(req);
+    }
+    else req->finalize_connect();
 }
 
-void StreamFilter::on_shutdown (const CodeError* err, ShutdownRequest* req) {
-    if (prev_) prev_->on_shutdown(err, req);
-    else       handle->do_on_shutdown(err, req);
+void StreamFilter::pipe_connect (const PipeConnectRequestSP& req) {
+    if (next) {
+        req->last_filter = next;
+        next->pipe_connect(req);
+    }
+    else req->finalize_connect();
 }
 
-void StreamFilter::on_eof () {
-    if (prev_) prev_->on_eof();
-    else       handle->do_on_eof();
+void StreamFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
+    INVOKE(prev, handle_connect, finalize_handle_connect, err, req);
 }
 
-void StreamFilter::on_reinit () {
-    if (prev_) prev_->on_reinit();
+void StreamFilter::handle_read (string& buf, const CodeError& err) {
+    INVOKE(prev, handle_read, finalize_handle_read, buf, err);
 }
 
-}} // namespace panda::event
+void StreamFilter::write (const WriteRequestSP& req) {
+    if (next) req->last_filter = next;
+    INVOKE(next, write, finalize_write, req);
+}
+
+void StreamFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
+    INVOKE(prev, handle_write, finalize_handle_write, err, req);
+}
+
+void StreamFilter::handle_eof () {
+    INVOKE(prev, handle_eof, finalize_handle_eof);
+}
+
+void StreamFilter::shutdown (const ShutdownRequestSP& req) {
+    if (next) req->last_filter = next;
+    INVOKE(next, shutdown, finalize_shutdown, req);
+}
+
+void StreamFilter::handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
+    INVOKE(prev, handle_shutdown, finalize_handle_shutdown, err, req);
+}

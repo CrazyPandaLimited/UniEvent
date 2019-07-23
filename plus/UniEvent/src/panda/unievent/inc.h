@@ -1,25 +1,83 @@
 #pragma once
-#include <uv.h>
+#include <iosfwd>
+#include <stdint.h>
 #include <type_traits>
+#if defined(_WIN32)
+    #include <winsock2.h>
+#endif
+
+#define UE_NULL_TERMINATE(what, to)         \
+    char to[what.length()+1];               \
+    memcpy(to, what.data(), what.length()); \
+    to[what.length()] = 0;
 
 namespace panda { namespace unievent {
 
-typedef uv_os_sock_t sock_t;
-typedef uv_file      file_t;
-typedef uv_uid_t     uid_t;
-typedef uv_gid_t     gid_t;
-typedef uv_stat_t    stat_t;
+#if defined(_WIN32)
+    using fd_t   = int;
+    using sock_t = SOCKET;
+    using fh_t   = HANDLE;
+#else
+    using fd_t   = int;
+    using sock_t = int;
+    using fh_t   = int;
+#endif
 
-typedef enum {
-#define PEV__ERRNO_GEN(name,val) ERRNO_##name = UV_##name,
-  UV_ERRNO_MAP(PEV__ERRNO_GEN)
-#undef PEV__ERRNO_GEN
-  ERRNO_SSL = UV_ERRNO_MAX,
-  ERRNO_SOCKS = UV_ERRNO_MAX+1,
-  ERRNO_RESOLVE = UV_ERRNO_MAX+2,
-  ERRNO_MAX = UV_ERRNO_MAX+3
-} errno_t;
+enum class Ownership {
+    TRANSFER = 0,
+    SHARE
+};
 
-typedef typename std::underlying_type<errno_t>::type errno_underlying_t;
+struct TimeVal {
+  int64_t sec;
+  int32_t usec;
+
+  double get () const { return (double)sec + (double)usec / 1000000; }
+
+  TimeVal& operator= (double val) {
+      sec  = val;
+      usec = (val - sec) * 1000000;
+      return *this;
+  }
+
+  bool operator== (const TimeVal& oth) const { return sec == oth.sec && usec == oth.usec; }
+  bool operator!= (const TimeVal& oth) const { return !operator==(oth); }
+  bool operator>= (const TimeVal& oth) const { return sec > oth.sec || (sec == oth.sec && usec >= oth.usec); }
+  bool operator>  (const TimeVal& oth) const { return sec > oth.sec || (sec == oth.sec && usec > oth.usec); }
+  bool operator<= (const TimeVal& oth) const { return !operator>(oth); }
+  bool operator<  (const TimeVal& oth) const { return !operator>=(oth); }
+};
+std::ostream& operator<< (std::ostream& os, const TimeVal&);
+
+struct TimeSpec {
+    long sec;
+    long nsec;
+
+    double get () const { return (double)sec + (double)nsec / 1000000000; }
+
+    TimeSpec& operator= (double val) {
+        sec  = val;
+        nsec = (val - sec) * 1000000000;
+        return *this;
+    }
+
+    bool operator== (const TimeSpec& oth) const { return sec == oth.sec && nsec == oth.nsec; }
+    bool operator!= (const TimeSpec& oth) const { return !operator==(oth); }
+    bool operator>= (const TimeSpec& oth) const { return sec > oth.sec || (sec == oth.sec && nsec >= oth.nsec); }
+    bool operator>  (const TimeSpec& oth) const { return sec > oth.sec || (sec == oth.sec && nsec > oth.nsec); }
+    bool operator<= (const TimeSpec& oth) const { return !operator>(oth); }
+    bool operator<  (const TimeSpec& oth) const { return !operator>=(oth); }
+};
+std::ostream& operator<< (std::ostream& os, const TimeSpec&);
+
+template <class F1, class F2>
+void scope_guard (F1&& code, F2&& guard) {
+    try { code(); }
+    catch (...) {
+        guard();
+        throw;
+    }
+    guard();
+}
 
 }}

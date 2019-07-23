@@ -1,28 +1,43 @@
 #include "Work.h"
-#include "global.h"
 using namespace panda::unievent;
 
-void Work::uvx_on_work (uv_work_t* req) {
-    Work* r = rcast<Work*>(req);
-    r->on_work();
-}
-
-void Work::uvx_on_after_work (uv_work_t* req, int) {
-    Work* r = rcast<Work*>(req);
-    r->on_after_work();
+WorkSP Work::queue (const work_fn& wcb, const after_work_fn& awcb, const LoopSP& loop) {
+    WorkSP ret = new Work(loop);
+    ret->work_cb = wcb;
+    ret->after_work_cb = awcb;
+    ret->queue();
+    return ret;
 }
 
 void Work::queue () {
-    int err = uv_queue_work(uvr.loop, &uvr, uvx_on_work, uvx_on_after_work);
-    if (err) throw CodeError(err);
+    _loop->register_work(this);
+    impl()->queue();
+    _active = true;
+}
+
+bool Work::cancel () {
+    if (!_active) return true;
+    if (!_impl->destroy()) return false;
+    _impl = nullptr;
+    handle_after_work(CodeError(std::errc::operation_canceled));
+    return true;
 }
 
 void Work::on_work () {
-    if (work_event) work_event(this);
-    else throw ImplRequiredError("Work::on_work");
+    work_cb(this);
 }
 
-void Work::on_after_work () {
-    if (after_work_event) after_work_event(this);
-    else throw ImplRequiredError("Work::on_after_work");
+void Work::on_after_work (const CodeError& err) {
+    if (after_work_cb) after_work_cb(this, err);
+}
+
+void Work::handle_work () {
+    on_work();
+}
+
+void Work::handle_after_work (const CodeError& err) {
+    WorkSP self = this; // hold
+    _loop->unregister_work(self);
+    _active = false;
+    on_after_work(err);
 }

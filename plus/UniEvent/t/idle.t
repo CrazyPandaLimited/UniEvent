@@ -2,56 +2,69 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
-my ($l, $idle, $i, $j, $t, $low_loaded_cnt, $high_loaded_cnt);
+catch_run('[idle]');
 
-$i = $j = 0;
-$l = UniEvent::Loop->default_loop;
-$idle = new UniEvent::Idle;
-$t = new UniEvent::Timer;
-$t->timer_callback(sub { $l->stop if $j++ > 10 });
-$t->start(0.001);
+my $l = UniEvent::Loop->default_loop;
 
-is($idle->type, UniEvent::Handle::HTYPE_IDLE);
+subtest 'start/stop/reset' => sub {
+    my $h = new UniEvent::Idle;
+    is $h->type, UniEvent::Idle::TYPE, 'type ok';
+    
+    my $i = 0;
+    $h->start(sub { $i++ });
+    ok $l->run_nowait, 'holds loop';
+    is $i, 1, 'idle works';
+    
+    $h->stop;
+    ok !$l->run_nowait, 'stopped';
+    is $i, 1, 'stop works';
+    
+    $h->start;
+    ok $l->run_nowait;
+    is $i, 2, 'started again';
 
-# start
-$idle->idle_callback(sub { $i++; });
-$idle->start;
-$l->run;
-cmp_ok($i, '>', 0, "idle works");
-$low_loaded_cnt = $i;
-$i = $j = 0;
+    $h->reset;
+    ok !$l->run_nowait;
+    is $i, 2, 'reset works';
+};
 
-# stop
-$idle->stop;
-$l->run;
-is($i, 0, "stop works");
-$i = $j = 0;
+subtest 'runs rarely when loop is high loaded' => sub {
+    my $t = new UniEvent::Timer;
+    $t->event->add(sub { $l->stop if ++(state $j) % 10 == 0 });
+    $t->start(0.001);
+    
+    my $i = 0;
+    my $h = new UniEvent::Idle;
+    $h->start(sub { $i++ });
+    $l->run;
+    
+    my $low_loaded_cnt = $i;
+    $i = 0;
+    
+    my @a;
+    for (0..10000) {
+        my $tt = new UniEvent::Timer;
+        push @a, $tt;
+        $tt->event->add(sub {});
+        $tt->start(0.001);
+    }
 
-# reset
-$idle->start(sub { $i-- });
-$l->run;
-cmp_ok($i, '<', 0, "start sets idle_callback");
-$i = $j = 0;
-$idle->reset;
-$l->run;
-is($i, 0, "reset works");
-$i = $j = 0;
+    $l->run;
+    cmp_ok($i, '<', $low_loaded_cnt, "runs rarely");
+    my $high_loaded_cnt = $i;
+    $i = 0;
+    undef @a;
+    $l->run;
+    
+    cmp_ok($i, '>', $high_loaded_cnt, "runs often again");
+};
 
-# idle has less change to run when high loaded
-my @a;
-for (0..10000) {
-    my $tt = new UniEvent::Timer;
-    push @a, $tt;
-    $tt->timer_callback(sub {});
-    $tt->start(0.001);
-}
-$idle->idle_callback(sub { $i++; });
-$idle->start;
-$l->run;
-cmp_ok($i, '<', $low_loaded_cnt, "idle runs rarely when the loop is high loaded");
-$high_loaded_cnt = $i;
-$i = $j = 0;
-undef @a; $l->run;
-cmp_ok($i, '>', $high_loaded_cnt, "idle runs often again");
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Idle;
+    my $i = 0;
+    $h->event->add(sub { $i++ });
+    $h->call_now for 1..5;
+    is $i, 5;
+};
 
 done_testing();

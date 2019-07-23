@@ -1,5 +1,6 @@
 #pragma once
 #include <panda/unievent.h>
+#include <panda/net/sockaddr.h>
 #include <panda/CallbackDispatcher.h>
 
 namespace panda { namespace unievent { namespace test {
@@ -10,11 +11,11 @@ using sp = iptr<T>;
 using panda::string;
 
 struct AsyncTest {
+    using SockAddr = panda::net::SockAddr;
     LoopSP loop;
     std::vector<string> expected;
     std::vector<string> happened;
     TimerSP timer;
-    bool broken_state;
 
     struct Error : std::runtime_error {
         Error(std::string msg, AsyncTest& test);
@@ -23,17 +24,23 @@ struct AsyncTest {
     static SockAddr get_refused_addr   ();
     static SockAddr get_blackhole_addr ();
 
-    AsyncTest (uint64_t timeout, const std::vector<string>& expected);
+    AsyncTest (uint64_t timeout, unsigned count = 0, const LoopSP& loop = nullptr);
+    AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop = nullptr);
     virtual ~AsyncTest() noexcept(false);
 
-    void run ();
-    void happens (string event);
+    void set_expected (unsigned);
+    void set_expected (const std::vector<string>&);
+
+    void run        ();
+    void run_once   ();
+    void run_nowait ();
+    void happens    (string event = "<event>");
 
     template<typename F>
     static TimerSP timer_once (uint64_t timeout, Loop* loop, F&& f) {
         TimerSP timer = new Timer(loop);
         timer->once(timeout);
-        timer->timer_event.add([f](Timer* t) {
+        timer->event.add([f](Timer* t) {
             t->stop();
             f();
         });
@@ -46,7 +53,7 @@ struct AsyncTest {
     }
 
     template <class T> static inline T _await_copy (T arg) { return arg; }
-    static inline CodeError _await_copy (const CodeError* err) { return err ? *err : CodeError(); }
+    static inline CodeError _await_copy (const CodeError& err) { return err; }
 
     template <typename Ret, typename... Args, typename Dispatcher = CallbackDispatcher<Ret(Args...)>>
     std::tuple<decltype(_await_copy(std::declval<Args>()))...>

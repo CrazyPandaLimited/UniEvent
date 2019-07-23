@@ -1,23 +1,35 @@
 #include "Idle.h"
+using namespace panda::unievent;
 
-namespace panda { namespace unievent {
+const HandleType Idle::TYPE("idle");
 
-void Idle::uvx_on_idle (uv_idle_t* handle) {
-    Idle* h = hcast<Idle*>(handle);
-    h->call_on_idle();
-}
-
-void Idle::on_idle () {
-    if (idle_event.has_listeners()) idle_event(this);
-    else throw ImplRequiredError("Idle::on_idle");
+const HandleType& Idle::type () const {
+    return TYPE;
 }
 
 void Idle::start (idle_fn callback) {
-    if (callback) idle_event.add(callback);
-    uv_idle_start(&uvh, uvx_on_idle);
+    if (callback) event.add(callback);
+    impl()->start();
 }
 
-void Idle::stop  () { uv_idle_stop(&uvh); }
-void Idle::reset () { uv_idle_stop(&uvh); }
+void Idle::stop () {
+    impl()->stop();
+}
 
-}}
+void Idle::reset () {
+    impl()->stop();
+}
+
+void Idle::clear () {
+    impl()->stop();
+    weak(false);
+    event.remove_all();
+}
+
+void Idle::on_idle () {
+    event(this);
+}
+
+void Idle::handle_idle () {
+    on_idle();
+}

@@ -1,32 +1,47 @@
 #pragma once
 #include "Loop.h"
-#include "Request.h"
+#include "backend/WorkImpl.h"
+#include <panda/memory.h>
 
 namespace panda { namespace unievent {
 
-struct Work : Request, AllocatedObject<Work> {
-    typedef panda::function<void(Work*)> work_fn;
-    typedef panda::function<void(Work*)> after_work_fn;
+struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private backend::IWorkListener {
+    using WorkImpl   = backend::WorkImpl;
+    using work_fn       = function<void(Work*)>;
+    using after_work_fn = function<void(const WorkSP&, const CodeError&)>;
 
-    work_fn       work_event;
-    after_work_fn after_work_event;
+    work_fn       work_cb;
+    after_work_fn after_work_cb;
 
-    Work (Loop* loop = Loop::default_loop()) {
-        uvr.loop = _pex_(loop);
-        _init(&uvr);
+    static WorkSP queue (const work_fn&, const after_work_fn&, const LoopSP& = Loop::default_loop());
+
+    Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop), _impl(), _active() {}
+
+    const LoopSP& loop () const { return _loop; }
+
+    virtual void queue  ();
+    virtual bool cancel ();
+
+    ~Work () {
+        if (_impl) assert(_impl->destroy());
     }
-
-    virtual void queue ();
 
 protected:
     virtual void on_work       ();
-    virtual void on_after_work ();
+    virtual void on_after_work (const CodeError& err);
 
 private:
-    uv_work_t uvr;
+    LoopSP       _loop;
+    WorkImpl* _impl;
+    bool         _active;
 
-    static void uvx_on_work       (uv_work_t* req);
-    static void uvx_on_after_work (uv_work_t* req, int status);
+    void handle_work       () override;
+    void handle_after_work (const CodeError& err) override;
+
+    WorkImpl* impl () {
+        if (!_impl) _impl = _loop->impl()->new_work(this);
+        return _impl;
+    }
 };
 
 }}

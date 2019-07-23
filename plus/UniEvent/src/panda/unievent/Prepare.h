@@ -1,37 +1,40 @@
 #pragma once
-
-#include "Fwd.h"
-#include "Handle.h"
+#include "BackendHandle.h"
+#include "backend/PrepareImpl.h"
 
 namespace panda { namespace unievent {
 
-struct Prepare : virtual Handle {
-    using prepare_fptr = void(Prepare* handle);
-    using prepare_fn = function<prepare_fptr>;
+struct Prepare : virtual BackendHandle, private backend::IPrepareListener {
+    using prepare_fptr = void(const PrepareSP&);
+    using prepare_fn   = function<prepare_fptr>;
 
-    CallbackDispatcher<prepare_fptr> prepare_event;
+    CallbackDispatcher<prepare_fptr> event;
 
-    Prepare (Loop* loop = Loop::default_loop()) {
-        uv_prepare_init(_pex_(loop), &uvh);
-        _init(&uvh);
+    Prepare (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_prepare(this));
     }
+
+    ~Prepare () { _EDTOR(); }
+
+    const HandleType& type () const override;
 
     virtual void start (prepare_fn callback = nullptr);
     virtual void stop  ();
 
     void reset () override;
+    void clear () override;
 
-    void call_on_prepare () { on_prepare(); }
+    void call_now () { on_prepare(); }
 
-    static PrepareSP call_soon(function<void()> f, Loop* loop = Loop::default_loop());
+    static const HandleType TYPE;
 
 protected:
     virtual void on_prepare ();
 
 private:
-    uv_prepare_t uvh;
+    void handle_prepare () override;
 
-    static void uvx_on_prepare (uv_prepare_t* handle);
+    backend::PrepareImpl* impl () const { return static_cast<backend::PrepareImpl*>(_impl); }
 };
 
 }}

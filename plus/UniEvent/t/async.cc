@@ -1,66 +1,47 @@
 #include "lib/test.h"
 
-TEST_CASE("async simple", "[async]") {
-    bool called = false;
-    AsyncTest test(200, {"timer"});
+TEST_CASE("async", "[async]") {
+    SECTION("send") {
+        AsyncTest test(100, {"async"});
 
-    auto timer = test.timer_once(10, [&]() {
-        called = true;
-    });
-    auto res = test.await(timer->timer_event, "timer");
-    REQUIRE(called);
-    REQUIRE(std::get<0>(res) == timer.get());
-}
+        AsyncSP async = new Async([&](Async*) {
+            test.happens("async");
+            test.loop->stop();
+        }, test.loop);
 
-TEST_CASE("async dispatcher", "[async]") {
-    bool called = false;
-    AsyncTest test(200, {"dispatched"});
-
-    CallbackDispatcher<void(int)> d;
-    auto timer1 = test.timer_once(10, [&]() {
-        called = true;
-        d(10);
-    });
-
-    auto res = test.await(d, "dispatched");
-    REQUIRE(called);
-    REQUIRE(std::get<0>(res) == 10);
-}
-
-
-TEST_CASE("async multi", "[async]") {
-    int called = 0;
-    AsyncTest test(200, {});
-
-    CallbackDispatcher<void(void)> d1;
-    auto timer1 = test.timer_once(10, [&]() {
-        called++;
-        d1();
-    });
-    CallbackDispatcher<void(void)> d2;
-    auto timer2 = test.timer_once(20, [&]() {
-        called++;
-        d2();
-    });
-
-    test.await_multi(d2, d1);
-    REQUIRE(called == 2);
-}
-
-TEST_CASE("call_soon", "[async]") {
-    AsyncTest test(200, {"call"});
-    size_t count = 0;
-    Prepare::call_soon([&]() {
-        count++;
-        if (count >= 2) {
-            FAIL("called twice");
+        SECTION("from this thread") {
+            SECTION("after run") {
+                test.loop->delay([&]{
+                    async->send();
+                });
+            }
+            SECTION("before run") {
+                async->send();
+            }
+            test.run();
         }
-        test.happens("call");
-        test.loop->stop();
-    }, test.loop);
-    test.run();
-    TimerSP timer = Timer::once(50, [&](Timer*){
-        test.loop->stop();
-    }, test.loop);
-    REQUIRE(count == 1);
+
+        SECTION("from another thread") {
+            std::thread t;
+            SECTION("after run") {
+                t = std::thread([](Async* h) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    h->send();
+                }, async);
+                test.run();
+            }
+            SECTION("before run") {
+                t = std::thread([](Async* h) {
+                    h->send();
+                }, async);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                test.run();
+            }
+            t.join();
+        }
+
+        SECTION("call_now") {
+            async->call_now();
+        }
+    }
 }

@@ -1,33 +1,105 @@
 use 5.012;
 use lib 't/lib';
 use MyTest;
+use UniEvent::Error;
+use Panda::Lib::Logger;
+
+#set_log_level(LOG_VERBOSE_DEBUG);
+#set_native_logger(sub {
+#    my ($level, $cp, $msg) = @_;
+#    warn "$cp $msg";
+#});
 
 catch_run('[resolver]');
 
 my $l = UniEvent::Loop->default_loop();
 
-sub test_cached_resolver { 
-    my ($check_ip, $check_port) = ('8.8.8.8', 53);
-    my $r = new UniEvent::Resolver($l);
-    my $sa1;
-    # not in cacne, async call
-    $r->resolve('google-public-dns-a.google.com', 'domain', sub { (my $r, $sa1, my $err) = @_; }, {"family" => UniEvent::AF_INET});
-    
-    $l->run();
-    
-    is($sa1->[0]->ip, $check_ip, 'Google public DNS IP resolution');
-    is($sa1->[0]->port, $check_port, 'Google public DNS port resolution');
-    
-    my $sa2;
-    # in cache, sync call
-    $r->resolve('google-public-dns-a.google.com', 'domain', sub { (my $r, $sa2, my $err) = @_; }, {"family" => UniEvent::AF_INET});
-    
-    $l->run_nowait();
+subtest 'not cached' => \&test_resolve, 0;
+subtest 'cached'     => \&test_resolve, 1;
 
-    is($sa2->[0]->ip, $check_ip, 'Google public DNS IP resolution');
-    is($sa2->[0]->port, $check_port, 'Google public DNS port resolution');
+subtest 'cancel' => sub {
+    my $resolver = new UniEvent::Resolver();
+    my $i;
+    my $req = $resolver->resolve({
+        node       => 'ya.ru',
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            is $err->code, ECANCELED;
+            $i++;
+        },
+    });
+    
+    $req->cancel;
+    is $i, 1;
+    
+    $l->run;
+};
+
+sub test_resolve {
+    my $cached = shift;
+    my $resolver = new UniEvent::Resolver();
+    my $host = "ya.ru";
+    
+    my $i = 0;
+    
+    $resolver->resolve({
+        node       => $host,
+        use_cache  => $cached,
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            ok !$err;
+            ok $addr, "@$addr";
+            ok $req;
+            $i++;
+        },
+    });
+    
+    $resolver->resolve({
+        node       => 'localhost',
+        use_cache  => $cached,
+        hints      => {family => UniEvent::AF_INET},
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            ok !$err;
+            ok $addr, "@$addr";
+            ok $req;
+            is $addr->[0]->ip, "127.0.0.1";
+            $i += 2;
+        },
+    });
+    
+    $l->run;
+    
+    is $i, 3;
+
+    $resolver->resolve({
+        node       => 'localhost',
+        port       => 80,
+        use_cache  => $cached,
+        on_resolve => sub {
+            my ($addr, $err, $req) = @_;
+            ok !$err;
+            is $addr->[0]->port, 80;
+            $i += 4;
+        },
+    });
+
+    $l->run;
+
+    is $i, 7;
+    
+    if ($cached) {
+        $resolver->resolve({
+            node       => $host,
+            on_resolve => sub {
+                my ($addr, $err, $req) = @_;
+                ok !$err;
+                $i += 10;
+            },
+        });
+        $l->run_nowait;
+        is $i, 17;
+    }
 }
-
-test_cached_resolver();
 
 done_testing();

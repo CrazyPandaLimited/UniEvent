@@ -13,9 +13,9 @@ my @primes = (
     283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397,
     401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503,
     509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619,
-    631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743,
-    751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863,
-    877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997,
+#    631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743,
+#    751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863,
+#    877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997,
 #     1009, 1013, 1019, 1021, 1031, 1033, 1039, 1049, 1051, 1061, 1063, 1069, 1087, 1091,
 #     1093, 1097, 1103, 1109, 1117, 1123, 1129, 1151, 1153, 1163, 1171, 1181, 1187, 1193,
 #     1201, 1213, 1217, 1223, 1229, 1231, 1237, 1249, 1259, 1277, 1279, 1283, 1289, 1291,
@@ -33,53 +33,47 @@ my @primes = (
 #     2467, 2473, 2477, 2503, 2521, 2531, 2539, 2543, 2549, 2551, 2557, 2579, 2591, 2593,
 #     2609, 2617, 2621, 2633, 2647, 2657, 2659, 2663, 2671, 2677, 2683, 2687, 2689, 2693,
 #     2699, 2707, 2711, 2713, 2719, 2729, 2731, 2741
-   );
+);
    
-my @magic_nums;
-my %creds;
+my @list;
+my (%creds, %valid);
 my $cnt;
 for my $i (0..$#primes) {
     for my $j (($i + 1)..$#primes) {
     	my ($prime1, $prime2) = ($primes[$i], $primes[$j]);
     	my $magic = $prime1 * $prime2;
     	$creds{$magic} = [$prime1, $prime2];
-    	push @magic_nums, $magic;
+        $valid{$magic} = 1;
+        push @list, $magic;
     	++$cnt;
     }
 }
 
 my %udp_by_num;
 for my $num (0 .. $#primes) {
-    my $udp = new UniEvent::UDP;
-    $udp->bind(SA_LOOPBACK_ANY);
+    my $udp = new UniEvent::Udp;
+    $udp->bind_addr(SA_LOOPBACK_ANY);
     my $prime = $primes[$num];
     $udp_by_num{$prime} = $udp;
-    $udp->receive_callback(sub {
+    $udp->recv_start(sub {
         my ($udp, $msg, $sa, $flags, $err) = @_;
         die $err if $err;
-        my $ids = delete $creds{$msg};
-        unless ($ids) {
-            fail("Got foreign message: $msg");
-        }
+        delete $creds{$msg};
+        fail("Got foreign message: $msg") unless $valid{$msg};
         $l->stop unless %creds;
-	});
-    $udp->want_recv(1);
+    });
 }
 
-my $magic = 0;
-my ($small_prime, $big_prime);
-my $sender = sub {
-    $_[0]->stop() unless @magic_nums;
-    unless (exists $creds{$magic}) {
-       $magic = shift @magic_nums;
-       ($small_prime, $big_prime) = @{$creds{$magic}};
-    }
+$p->start(sub {
+    $_[0]->stop(), return unless %creds;
+    my $magic = @list ? (shift @list) : (keys %creds)[0];
+    my ($small_prime, $big_prime) = @{$creds{$magic}};
     my $receiver = $udp_by_num{$small_prime};
-    $udp_by_num{$big_prime}->send($magic, $receiver->get_sockaddr);
-};
+    $udp_by_num{$big_prime}->send($magic, $receiver->sockaddr);
+    $udp_by_num{$big_prime}->send_callback(sub { die $_[1] if $_[1] });
+});
 
-$p->start($sender);
 $l->run();
-pass("All sent and received");
+pass("All sent and received: $cnt");
 
 done_testing();

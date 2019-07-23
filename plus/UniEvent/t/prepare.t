@@ -2,44 +2,38 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
-my ($l, $p, $i, $j, $t);
+catch_run('[prepare]');
 
-$i = $j = 0;
-$l = UniEvent::Loop->default_loop;
-$p = new UniEvent::Prepare;
-$t = new UniEvent::Timer;
-$t->timer_callback(sub { $l->stop if $j++ > 10 });
-$t->start(0.001);
+my $l = UniEvent::Loop->default_loop;
 
-is($p->type, UniEvent::Handle::HTYPE_PREPARE);
+subtest 'start/stop/reset' => sub {
+    my $h = new UniEvent::Prepare;
+    is $h->type, UniEvent::Prepare::TYPE, 'type ok';
+    
+    my $i = 0;
+    $h->start(sub { $i++ });
+    ok $l->run_nowait, 'holds loop';
+    is $i, 1, 'prepare works';
+    
+    $h->stop;
+    ok !$l->run_nowait, 'stopped';
+    is $i, 1, 'stop works';
+    
+    $h->start;
+    ok $l->run_nowait;
+    is $i, 2, 'started again';
 
-# start
-$p->prepare_callback(sub { $i++ });
-$p->start;
-$l->run;
-cmp_ok($i, '>', 0, "prepare works");
-$i = $j = 0;
+    $h->reset;
+    ok !$l->run_nowait;
+    is $i, 2, 'reset works';
+};
 
-# stop
-$p->stop;
-$l->run;
-is($i, 0, "stop works");
-$i = $j = 0;
-
-# reset
-$p->start(sub { $i-- });
-$l->run;
-cmp_ok($i, '<', 0, "start sets prepare_callback");
-$i = $j = 0;
-$p->reset;
-$l->run;
-is($i, 0, "reset works");
-
-my $called = 0;
-UniEvent::Prepare::call_soon(sub {
-    $called = 1;
-});
-$l->run;
-ok($called, 'call_soon');
+subtest 'call_now' => sub {
+    my $h = new UniEvent::Prepare;
+    my $i = 0;
+    $h->event->add(sub { $i++ });
+    $h->call_now for 1..5;
+    is $i, 5;
+};
 
 done_testing();

@@ -1,78 +1,98 @@
 #include "Signal.h"
 using namespace panda::unievent;
 
-panda::string Signal::_signames[NSIG];
-bool Signal::__init_ = __init();
+static panda::string signames[NSIG];
 
-bool Signal::__init () {
-    _signames[SIGHUP]    = "SIGHUP";
-    _signames[SIGINT]    = "SIGINT";
-    _signames[SIGQUIT]   = "SIGQUIT";
-    _signames[SIGILL]    = "SIGILL";
-    _signames[SIGTRAP]   = "SIGTRAP";
-    _signames[SIGABRT]   = "SIGABRT";
-    _signames[SIGBUS]    = "SIGBUS";
-    _signames[SIGFPE]    = "SIGFPE";
-    _signames[SIGKILL]   = "SIGKILL";
-    _signames[SIGUSR1]   = "SIGUSR1";
-    _signames[SIGSEGV]   = "SIGSEGV";
-    _signames[SIGUSR2]   = "SIGUSR2";
-    _signames[SIGPIPE]   = "SIGPIPE";
-    _signames[SIGALRM]   = "SIGALRM";
-    _signames[SIGTERM]   = "SIGTERM";
+static bool init () {
+    signames[SIGHUP]    = "SIGHUP";
+    signames[SIGINT]    = "SIGINT";
+    signames[SIGQUIT]   = "SIGQUIT";
+    signames[SIGILL]    = "SIGILL";
+    signames[SIGTRAP]   = "SIGTRAP";
+    signames[SIGABRT]   = "SIGABRT";
+    signames[SIGBUS]    = "SIGBUS";
+    signames[SIGFPE]    = "SIGFPE";
+    signames[SIGKILL]   = "SIGKILL";
+    signames[SIGUSR1]   = "SIGUSR1";
+    signames[SIGSEGV]   = "SIGSEGV";
+    signames[SIGUSR2]   = "SIGUSR2";
+    signames[SIGPIPE]   = "SIGPIPE";
+    signames[SIGALRM]   = "SIGALRM";
+    signames[SIGTERM]   = "SIGTERM";
 #if defined(SIGSTKFLT)
-    _signames[SIGSTKFLT] = "SIGSTKFLT";
+    signames[SIGSTKFLT] = "SIGSTKFLT";
 #endif
-    _signames[SIGCHLD]   = "SIGCHLD";
-    _signames[SIGCONT]   = "SIGCONT";
-    _signames[SIGSTOP]   = "SIGSTOP";
-    _signames[SIGTSTP]   = "SIGTSTP";
-    _signames[SIGTTIN]   = "SIGTTIN";
-    _signames[SIGTTOU]   = "SIGTTOU";
-    _signames[SIGURG]    = "SIGURG";
-    _signames[SIGXCPU]   = "SIGXCPU";
-    _signames[SIGXFSZ]   = "SIGXFSZ";
-    _signames[SIGVTALRM] = "SIGVTALRM";
-    _signames[SIGPROF]   = "SIGPROF";
-    _signames[SIGWINCH]  = "SIGWINCH";
+    signames[SIGCHLD]   = "SIGCHLD";
+    signames[SIGCONT]   = "SIGCONT";
+    signames[SIGSTOP]   = "SIGSTOP";
+    signames[SIGTSTP]   = "SIGTSTP";
+    signames[SIGTTIN]   = "SIGTTIN";
+    signames[SIGTTOU]   = "SIGTTOU";
+    signames[SIGURG]    = "SIGURG";
+    signames[SIGXCPU]   = "SIGXCPU";
+    signames[SIGXFSZ]   = "SIGXFSZ";
+    signames[SIGVTALRM] = "SIGVTALRM";
+    signames[SIGPROF]   = "SIGPROF";
+    signames[SIGWINCH]  = "SIGWINCH";
 #if defined(SIGIO)
-    _signames[SIGIO]     = "SIGIO";
+    signames[SIGIO]     = "SIGIO";
 #endif
 #if defined(SIGPOLL)
-    _signames[SIGPOLL]   = "SIGPOLL";
+    signames[SIGPOLL]   = "SIGPOLL";
 #endif
 #if defined(SIGPWR)
-    _signames[SIGPWR]    = "SIGPWR";
+    signames[SIGPWR]    = "SIGPWR";
 #endif
-    _signames[SIGSYS]    = "SIGSYS";
+    signames[SIGSYS]    = "SIGSYS";
     return true;
 }
+static bool _init = init();
 
-void Signal::uvx_on_signal (uv_signal_t* handle, int signum) {
-    Signal* h = hcast<Signal*>(handle);
-    h->call_on_signal(signum);
+const HandleType Signal::TYPE("signal");
+
+const HandleType& Signal::type () const {
+    return TYPE;
 }
 
 void Signal::start (int signum, signal_fn callback) {
-    if (callback) signal_event.add(callback);
-    int err = uv_signal_start(&uvh, uvx_on_signal, signum);
-    if (err) throw CodeError(err);
+    if (callback) event.add(callback);
+    impl()->start(signum);
 }
 
-void Signal::start_once (int signum, signal_fn callback) {
-    if (callback) signal_event.add(callback);
-    int err = uv_signal_start_oneshot(&uvh, uvx_on_signal, signum);
-    if (err) throw CodeError(err);
+void Signal::once (int signum, signal_fn callback) {
+    if (callback) event.add(callback);
+    impl()->once(signum);
+}
+
+SignalSP Signal::watch (int signum, signal_fn callback, const LoopSP& loop) {
+    SignalSP h = new Signal(loop);
+    h->start(signum, callback);
+    return h;
 }
 
 void Signal::stop () {
-    int err = uv_signal_stop(&uvh);
-    if (err) throw CodeError(err);
+    impl()->stop();
 }
 
-void Signal::reset () { stop(); }
+void Signal::reset () {
+    stop();
+}
+
+void Signal::clear () {
+    stop();
+    weak(false);
+    event.remove_all();
+}
 
 void Signal::on_signal (int signum) {
-    if (signal_event.has_listeners()) signal_event(this, signum);
-    else throw ImplRequiredError("Signal::on_signal");
+    event(this, signum);
+}
+
+void Signal::handle_signal (int signum) {
+    on_signal(signum);
+}
+
+const panda::string& Signal::signame (int signum) {
+    if (signum < 0 || signum >= NSIG) throw std::invalid_argument("signum must be >= 0 and < NSIG");
+    return signames[signum];
 }

@@ -6,4 +6,3 @@ use Test::Catch;
 variate_catch('[tcp]', qw/ssl buf/);
 
 done_testing();
- 

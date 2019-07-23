@@ -1,4 +1,5 @@
 #include "AsyncTest.h"
+#include <uv.h> // for getaddrinfo
 #include <sstream>
 #include <iostream>
 #include <unistd.h>
@@ -6,26 +7,14 @@
 
 namespace panda { namespace unievent { namespace test {
 
+using panda::net::SockAddr;
+
 SockAddr AsyncTest::get_refused_addr () {
-    static SockAddr ret;
-    while (!ret) {
-        auto sock = socket(AF_INET, SOCK_STREAM, 0);   if (sock == -1) throw std::runtime_error("should not happen1");
-        SockAddr sa = SockAddr::Inet4("127.0.0.1", 0);
-        auto err = bind(sock, sa.get(), sa.length());  if (err == -1) throw std::runtime_error("should not happen2");
-        socklen_t sz = sizeof(sa);
-        err = getsockname(sock, sa.get(), &sz);        if (err == -1 || !sa) throw std::runtime_error("should not happen3");
-
-        auto usock = socket(AF_INET, SOCK_DGRAM, 0);   if (usock == -1) throw std::runtime_error("should not happen4");
-        err = bind(usock, sa.get(), sa.length());
-        if (!err) {
-            ret = sa;
-            break;
-        }
-
-        err = close(sock);  if (err == -1) throw std::runtime_error("should not happen5");
-        err = close(usock); if (err == -1) throw std::runtime_error("should not happen6");
-    }
-    return ret;
+    #ifdef __FreeBSD__
+    return SockAddr::Inet4("0.0.0.0", 12345);
+    #else
+    return SockAddr::Inet4("0.1.1.1", 12345);
+    #endif
 }
 
 SockAddr AsyncTest::get_blackhole_addr () {
@@ -35,55 +24,36 @@ SockAddr AsyncTest::get_blackhole_addr () {
     return res->ai_addr;
 }
 
-AsyncTest::AsyncTest(uint64_t timeout, const std::vector<string>& expected)
-    : loop(new Loop())
+AsyncTest::AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
+    : loop(loop ? loop : LoopSP(new Loop()))
     , expected(expected)
     , timer(create_timeout(timeout))
-    , broken_state(false)
 {}
 
+AsyncTest::AsyncTest (uint64_t timeout, unsigned count, const LoopSP& loop) : AsyncTest(timeout, std::vector<string>(), loop) {
+    set_expected(count);
+}
+
 AsyncTest::~AsyncTest() noexcept(false) {
-    timer.reset();
-    loop->run_nowait(); // wait for all events trigered
-    loop->run_nowait(); // in case of async close
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait(); 
-    loop->run_nowait();
-    loop->walk([](Handle* h){
-         panda_log_debug("smth is in Loop when destroing " << h->type() << ", "  << h << ", " <<  h->refcnt());
-    }); 
-    if (!broken_state && !happened_as_expected() && !std::uncaught_exception()) {
+    if (!happened_as_expected() && !std::uncaught_exception()) {
         throw Error("Test exits in bad state", *this);
     }
 }
 
-void AsyncTest::run() {
-    try {
-        loop->run();
-    } catch (AsyncTest::Error& e) {
-        //assume that test can not be continued after our own error
-        string loop_err = destroy_loop();
-        string err(e.what());
-        if (loop_err) {
-            err += ",\nAlso there was a problem with destroing a loop after this:\n" + loop_err;
-        }
-        throw Error(err, *this);
-    } catch(panda::unievent::Error& e) {
-        throw Error(e.what(), *this);
-    } catch (std::exception& e) {
-        throw Error(e.what(), *this);
-    }
+void AsyncTest::set_expected (unsigned count) {
+    expected.clear();
+    for (unsigned i = 0; i < count; ++i) expected.push_back("<event>");
 }
 
-void AsyncTest::happens(string event) {
+void AsyncTest::set_expected (const std::vector<string>& v) {
+    expected = v;
+}
+
+void AsyncTest::run        () { loop->run(); }
+void AsyncTest::run_once   () { loop->run_once(); }
+void AsyncTest::run_nowait () { loop->run_nowait(); }
+
+void AsyncTest::happens (string event) {
     if (event) {
         happened.push_back(event);
     }
@@ -122,19 +92,6 @@ std::string AsyncTest::generate_report() {
     return out.str();
 }
 
-string AsyncTest::destroy_loop() {
-    try {
-        loop = nullptr;
-    } catch (panda::unievent::Error& e) {
-        // we have a problem with loop, destructor will throw anyway and we do not want it
-        // to prevent destructor from call
-        loop->retain(); // yes it is memory leak, but test will fail anyway
-        broken_state = true;
-        return e.whats();
-    }
-    return "";
-}
-
 bool AsyncTest::happened_as_expected() {
     if (happened.size() != expected.size()) {
         return false;
@@ -148,9 +105,11 @@ bool AsyncTest::happened_as_expected() {
 }
 
 sp<Timer> AsyncTest::create_timeout(uint64_t timeout) {
-    return timer_once(timeout, loop, [&]() {
+    auto ret = timer_once(timeout, loop, [&]() {
         throw Error("AsyncTest timeout", *this);
     });
+    ret->weak(true);
+    return ret;
 }
 
 AsyncTest::Error::Error(std::string msg, AsyncTest& test)

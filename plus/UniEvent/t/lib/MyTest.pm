@@ -7,7 +7,6 @@ use Test::Deep;
 use Test2::IPC;
 use Test::Catch;
 use Test::Exception;
-use File::Path qw/make_path remove_tree/;
 
 XS::Loader::load('MyTest');
 
@@ -21,12 +20,14 @@ my %used_mtimes;
 init();
 
 sub init {
-    remove_tree($rdir, {error => \my $err} );
+    # for file tests
+    UniEvent::Fs::remove_all($rdir) if -d $rdir;
+    UniEvent::Fs::mkpath($rdir);
+    
     # if something goes wrong, loop hangs. Make tests fail with SIGALRM instead of hanging forever.
     # each test must not last longer than 10 seconds. If needed, set alarm(more_than_10s) in your test
     alarm(10) unless defined $DB::header;
 
-    make_path($rdir, {mode => 0755});
 }
 
 sub import {
@@ -34,13 +35,20 @@ sub import {
 
     my $caller = caller();
     foreach my $sym_name (qw/
+        linux freebsd win32 darwin winWSL
         is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan variate variate_catch
         var create_file create_dir move change_file_mtime change_file unlink_file remove_dir subtest new_ok dies_ok catch_run
     /) {
         no strict 'refs';
-        *{"${caller}::$sym_name"} = *$sym_name;
+        *{"${caller}::$sym_name"} = \&{$sym_name};
     }
 }
+
+sub linux   { $^O eq 'linux' }
+sub freebsd { $^O eq 'freebsd' }
+sub win32   { $^O eq 'MSWin32' }
+sub darwin  { $^O eq 'darwin' }
+sub winWSL  { linux() && `egrep "(Microsoft|WSL)" /proc/version` }
 
 sub time_mark {
     return unless $have_time_hires;
@@ -84,70 +92,18 @@ sub variate_catch {
         foreach my $name (@names) {
             $add .= "[v-$name]" if MyTest->can("variate_$name")->();
         }
-        catch_run($catch_name.$add);
+        SKIP: {
+            skip "variation ssl+buf may break many tests, set VARIATE_SSL_BUF=1 if you really want"
+                if variate_ssl() && variate_buf() && !$ENV{VARIATE_SSL_BUF};
+            catch_run($catch_name.$add);
+        }
     });
 }
 
 sub var ($) { return "$rdir/$_[0]" }
 
-sub create_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        open my $fh, '>', $path or die "$path: $!";
-        close $fh;
-    };
-}
-
-sub create_dir {
-    my $path = "$rdir/".shift();
-    return sub {
-        make_path($path, {mode => 0755});
-    };
-}
-
-sub move {
-    my $old = "$rdir/".shift();
-    my $new = "$rdir/".shift();
-    return sub {
-        rename $old, $new or die "rename $old -> $new: $!";
-    };
-}
-
-sub change_file_mtime {
-    my $path = "$rdir/".shift();
-    return sub {
-        my $time = time();
-        my $rnd;
-        do { $rnd = int rand 10000000 } while $used_mtimes{$rnd}++;
-        utime($time-$rnd, $time-$rnd, $path) or die "$path: $!";
-    };
-}
-
-sub change_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        open my $fh, '>>', $path or die "$path: $!";
-        print $fh "content".int(rand 2**32)."\n";
-        close $fh;
-    };
-}
-
-sub unlink_file {
-    my $path = "$rdir/".shift();
-    return sub {
-        unlink($path);
-    };
-}
-
-sub remove_dir {
-    my $path = "$rdir/".shift();
-    return sub {
-        remove_tree($path);
-    };
-}
-
-END {
-    remove_tree($rdir);
+END { # clean up after file tests
+    UniEvent::Fs::remove_all($rdir) if -d $rdir;
 }
 
 1;

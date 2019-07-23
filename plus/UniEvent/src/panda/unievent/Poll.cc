@@ -1,25 +1,48 @@
 #include "Poll.h"
+#include "util.h"
 using namespace panda::unievent;
 
-void Poll::uvx_on_poll (uv_poll_t* handle, int status, int events) {
-    Poll* h = hcast<Poll*>(handle);
-    h->call_on_poll(events, CodeError(status));
+const HandleType Poll::TYPE("poll");
+
+Poll::Poll (Socket sock, const LoopSP& loop, Ownership ownership) {
+    _ECTOR();
+    if (ownership == Ownership::SHARE) sock.val = sock_dup(sock.val);
+    _init(loop, loop->impl()->new_poll_sock(this, sock.val));
 }
 
-void Poll::on_poll (int events, const CodeError* err) {
-    if (poll_event.has_listeners()) poll_event(this, events, err);
-    else throw ImplRequiredError("Poll::on_poll");
+Poll::Poll (Fd fd, const LoopSP& loop, Ownership ownership) {
+    _ECTOR();
+    if (ownership == Ownership::SHARE) fd.val = file_dup(fd.val);
+    _init(loop, loop->impl()->new_poll_fd(this, fd.val));
+}
+
+const HandleType& Poll::type () const {
+    return TYPE;
 }
 
 void Poll::start (int events, poll_fn callback) {
-    if (callback) poll_event.add(callback);
-    int err = uv_poll_start(&uvh, events, uvx_on_poll);
-    if (err) throw CodeError(err);
+    if (callback) event.add(callback);
+    impl()->start(events);
 }
 
 void Poll::stop () {
-    int err = uv_poll_stop(&uvh);
-    if (err) throw CodeError(err);
+    impl()->stop();
 }
 
-void Poll::reset () { stop(); }
+void Poll::reset () {
+    stop();
+}
+
+void Poll::clear () {
+    stop();
+    weak(false);
+    event.remove_all();
+}
+
+void Poll::on_poll (int events, const CodeError& err) {
+    event(this, events, err);
+}
+
+void Poll::handle_poll (int events, const CodeError& err) {
+    on_poll(events, err);
+}

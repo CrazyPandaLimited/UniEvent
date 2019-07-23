@@ -1,101 +1,83 @@
 #include "Loop.h"
-
-#include <thread>
-
-#include "Debug.h"
+#include "Error.h"
+#include "Handle.h"
+#include "Prepare.h"
 #include "Resolver.h"
+#include <panda/unievent/backend/uv.h>
+#include <thread>
 
 namespace panda { namespace unievent {
 
-Loop* Loop::_global_loop = nullptr;
-thread_local Loop* Loop::_default_loop = nullptr;
-
 static std::thread::id main_thread_id = std::this_thread::get_id();
 
+static backend::Backend* _default_backend = nullptr;
+
+LoopSP              Loop::_global_loop;
+thread_local LoopSP Loop::_default_loop;
+
+thread_local std::vector<SyncLoop::Item> SyncLoop::loops;
+
+backend::Backend* default_backend () {
+    return _default_backend ? _default_backend : backend::UV;
+}
+
+void set_default_backend (backend::Backend* backend) {
+    if (!backend) throw std::invalid_argument("backend can not be nullptr");
+    if (Loop::_global_loop || Loop::_default_loop) throw Error("default backend can not be set after global/default loop first used");
+    _default_backend = backend;
+}
+
 void Loop::_init_global_loop () {
-    _global_loop = new Loop(true);
-    _global_loop->retain(); // make immortal
+    _global_loop = new Loop(nullptr, LoopImpl::Type::GLOBAL);
 }
 
 void Loop::_init_default_loop () {
     if (std::this_thread::get_id() == main_thread_id) _default_loop = global_loop();
-    else _default_loop = new Loop();
-    _default_loop->retain(); // make immortal
+    else _default_loop = new Loop(nullptr, LoopImpl::Type::DEFAULT);
 }
 
-Loop::Loop () : closed(false) {
+Loop::Loop (Backend* backend, LoopImpl::Type type) {
     _ECTOR();
-    _uvloop = &_uvloop_body;
-    int err = uv_loop_init(_uvloop);
-    if (err) throw CodeError(err);
-    _uvloop->data = this;
-}
-
-// constructor for global default loop
-Loop::Loop (bool) : closed(false) {
-    _ECTOR();
-    _uvloop = uv_default_loop();
-    if (!_uvloop) throw Error("Cannot create default loop: uv_default_loop() failed");
-    _uvloop->data = this;
-}
-
-void Loop::uvx_walk_cb (uv_handle_t* uvh, void* arg) {
-    Handle* handle = static_cast<Handle*>(uvh->data);
-    walk_fn* callback = static_cast<walk_fn*>(arg);
-    (*callback)(handle);
-}
-
-int  Loop::run        () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_DEFAULT); }
-int  Loop::run_once   () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_ONCE); }
-int  Loop::run_nowait () { _EDEBUGTHIS(); return uv_run(_uvloop, UV_RUN_NOWAIT); }
-
-void Loop::stop() {
-    _EDEBUGTHIS();
-    uv_stop(_uvloop);
-}
-
-void Loop::walk (walk_fn cb) {
-    uv_walk(_uvloop, uvx_walk_cb, &cb);
-}
-
-ResolverSP Loop::resolver () {
-    if (!resolver_) {
-        resolver_ = new Resolver(this);
-    }
-    return resolver_;
-}
-
-void Loop::close () {
-    _EDEBUG();
-
-    resolver_ = nullptr;
-
-    // give resolver a chance to stop
-    run_nowait();
-
-    int err = uv_loop_close(_uvloop);
-    if (err) throw CodeError(err);
-    closed = true;
-    if (is_default()) {
-        _default_loop = nullptr;
-        release();
-    }
-    if (is_global()) {
-        _global_loop = nullptr;
-        release();
-    }
-}
-
-void Loop::handle_fork () {
-    int err = uv_loop_fork(_uvloop);
-    if (err) {
-        throw CodeError(err);
-    }
+    if (!backend) backend = default_backend();
+    _backend = backend;
+    _impl = backend->new_loop(type);
 }
 
 Loop::~Loop () {
     _EDTOR();
-    assert(closed);
+    _resolver = nullptr;
+    assert(!_handles.size());
+    delete _impl;
+}
+
+bool Loop::run (RunMode mode) {
+    LoopSP hold = this; (void)hold;
+    return _impl->run(mode);
+}
+
+void Loop::stop () {
+    _impl->stop();
+}
+
+void Loop::handle_fork () {
+    _impl->handle_fork();
+}
+
+void Loop::dump () const {
+    for (auto h : _handles) {
+        printf("%p %s%s [%s%s]\n",
+            h,
+            h->active() && !h->weak() ? "": "-",
+            h->type().name,
+            h->active() ? "A" : "",
+            h->weak()   ? "W" : ""
+        );
+    }
+}
+
+Resolver* Loop::resolver () {
+    if (!_resolver) _resolver = Resolver::create_loop_resolver(this); // does not hold strong backref to loop
+    return _resolver.get();
 }
 
 }}

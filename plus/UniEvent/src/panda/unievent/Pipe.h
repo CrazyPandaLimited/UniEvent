@@ -1,70 +1,72 @@
 #pragma once
 #include "Stream.h"
-#include <panda/string_view.h>
+#include "backend/PipeImpl.h"
 
 namespace panda { namespace unievent {
 
 struct Pipe : virtual Stream {
-    Pipe (bool ipc = false, Loop* loop = Loop::default_loop()) : ipc(ipc) {
-        uv_pipe_init(_pex_(loop), &uvh, ipc);
-        _init(&uvh);
+    static const HandleType TYPE;
+
+    Pipe (Loop* loop = Loop::default_loop(), bool ipc = false) : _ipc(ipc) {
+        _ECTOR();
+        _init(loop, loop->impl()->new_pipe(this, ipc));
     }
 
-    StreamSP on_create_connection () override;
+    Pipe (bool ipc) : Pipe(Loop::default_loop(), ipc) {}
 
-    virtual void open              (file_t file);
-    virtual void bind              (string_view name);
-    virtual void connect           (const string& name, ConnectRequest* req = nullptr);
+    ~Pipe () { _EDTOR(); }
+
+    const HandleType& type () const override;
+
+    bool ipc () const { return _ipc; }
+
+    virtual void open    (fd_t file, Ownership ownership = Ownership::TRANSFER, bool connected = false);
+    virtual void bind    (string_view name);
+    virtual void connect (const PipeConnectRequestSP& req);
+    /*INL*/ void connect (const string& name, connect_fn callback = nullptr);
+
     virtual void pending_instances (int count);
 
-    void connect (const string& name, connect_fn callback = nullptr) {
-        connect(name, new ConnectRequest(callback));
-    }
-    
-    size_t getsocknamelen () const {
-        return getsockname(nullptr, 0);
-    }
-
-    size_t getpeernamelen () const {
-        return getpeername(nullptr, 0);
-    }
-    
-    size_t getsockname (char* name, size_t namelen) const {
-        int err = uv_pipe_getsockname(&uvh, name, &namelen);
-        if (err && err != UV_ENOBUFS) throw CodeError(err);
-        return namelen;
-    }
-
-    size_t getpeername (char* name, size_t namelen) const {
-        int err = uv_pipe_getpeername(&uvh, name, &namelen);
-        if (err && err != UV_ENOBUFS) throw CodeError(err);
-        return namelen;
-    }
-    
-    panda::string getsockname () const {
-        panda::string str(getsocknamelen());
-        getsockname(str.buf(), (size_t)-1);
-        return str;
-    }
-    
-    panda::string getpeername () const {
-        panda::string str(getpeernamelen());
-        getpeername(str.buf(), (size_t)-1);
-        return str;
-    }
-    
-    using Handle::set_recv_buffer_size;
-    using Handle::set_send_buffer_size;
-
-    ~Pipe () override { printf("~pipe\n"); }
+    optional<string> sockname () const { return impl()->sockname(); }
+    optional<string> peername () const { return impl()->peername(); }
 
 protected:
-    void on_handle_reinit () override;
-
-    bool ipc;
+    StreamSP create_connection () override;
 
 private:
-    uv_pipe_t uvh;
+    friend PipeConnectRequest;
+
+    bool _ipc;
+
+    backend::PipeImpl* impl () const { return static_cast<backend::PipeImpl*>(BackendHandle::impl()); }
+
+    HandleImpl* new_impl () override;
 };
+
+
+struct PipeConnectRequest : ConnectRequest, AllocatedObject<PipeConnectRequest> {
+    string name;
+
+    PipeConnectRequest (const string& name, Stream::connect_fn callback = nullptr)
+        : ConnectRequest(callback), name(name) {}
+
+private:
+    friend Pipe; friend StreamFilter;
+    Pipe* handle;
+
+    void set (Pipe* h) {
+        handle = h;
+        ConnectRequest::set(h);
+    }
+
+    void exec             () override;
+    void finalize_connect ();
+};
+
+
+inline void Pipe::connect (const string& name, connect_fn callback) {
+    connect(new PipeConnectRequest(name, callback));
+}
+
 
 }}

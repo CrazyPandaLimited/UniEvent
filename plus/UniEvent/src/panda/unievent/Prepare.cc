@@ -1,36 +1,35 @@
 #include "Prepare.h"
 using namespace panda::unievent;
 
-void Prepare::uvx_on_prepare (uv_prepare_t* handle) {
-    Prepare* h = hcast<Prepare*>(handle);
-    h->call_on_prepare();
-}
+const HandleType Prepare::TYPE("prepare");
 
-void Prepare::on_prepare () {
-    if (prepare_event.has_listeners()) prepare_event(this);
-    else throw ImplRequiredError("Prepare::on_prepare");
+const HandleType& Prepare::type () const {
+    return TYPE;
 }
 
 void Prepare::start (prepare_fn callback) {
-    if (callback) prepare_event.add(callback);
-    uv_prepare_start(&uvh, uvx_on_prepare);
+    if (callback) event.add(callback);
+    impl()->start();
 }
 
 void Prepare::stop () {
-    uv_prepare_stop(&uvh);
+    impl()->stop();
 }
 
 void Prepare::reset () {
-    uv_prepare_stop(&uvh);
+    impl()->stop();
 }
 
-PrepareSP Prepare::call_soon(function<void ()> f, Loop* loop) {
-    // capturing object to lambda makes a circle reference. It breaks
-    PrepareSP handle = new Prepare(loop);
-    handle->prepare_event.add([=](Prepare*) mutable {
-        f();
-        handle.reset();
-    });
-    handle->start();
-    return handle;
+void Prepare::clear () {
+    impl()->stop();
+    weak(false);
+    event.remove_all();
+}
+
+void Prepare::on_prepare () {
+    event(this);
+}
+
+void Prepare::handle_prepare () {
+    on_prepare();
 }

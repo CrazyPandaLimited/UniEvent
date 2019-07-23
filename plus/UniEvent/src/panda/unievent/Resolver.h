@@ -1,272 +1,224 @@
 #pragma once
+#include "Loop.h"
+#include "Poll.h"
+#include "Timer.h"
+#include "Debug.h"
+#include "Request.h"
+#include "AddrInfo.h"
 
 #include <map>
 #include <ctime>
-#include <cstdlib>
-#include <sstream>
-#include <iostream>
-#include <unordered_map>
-
+#include <vector>
 #include <ares.h>
-
+#include <cstdlib>
+#include <unordered_map>
 #include <panda/string_view.h>
-
-#include "Fwd.h"
-#include "Debug.h"
-#include "Loop.h"
-#include "Poll.h"
-#include "Handle.h"
-#include "Request.h"
-#include "Timer.h"
-#include "global.h"
-#include "Request.h"
 
 namespace panda { namespace unievent {
 
-// addrinfo extract, there are fields needed for hinting only
-struct AddrInfoHints : virtual Refcnt {
-    AddrInfoHints(int family = AF_UNSPEC, int socktype = SOCK_STREAM, int proto = 0, int flags = AI_PASSIVE) : 
-        ai_family(family), ai_socktype(socktype), ai_protocol(proto), ai_flags(flags) {}
+struct Resolver : Refcnt, private backend::ITimerListener {
+    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 5000;  // [ms]
+    static constexpr uint32_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
+    static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
+    static constexpr uint32_t DEFAULT_QUERY_TIMEOUT         = 5000;  // [ms]
+    static constexpr uint32_t DEFAULT_WORKERS               = 5;
+    static constexpr size_t   MAX_WORKER_POLLS              = 3;
 
-    bool operator==(const AddrInfoHints& other) const {
-        return ai_family == other.ai_family && ai_socktype == other.ai_socktype && ai_protocol == other.ai_protocol && ai_flags == other.ai_flags;
-    }
+    struct Request;
+    using RequestSP = iptr<Request>;
 
-    AddrInfoHintsSP clone() const {
-        return new AddrInfoHints(ai_family, ai_socktype, ai_protocol, ai_flags);
-    }
+    using resolve_fptr = void(const AddrInfo&, const CodeError&, const RequestSP&);
+    using resolve_fn   = function<resolve_fptr>;
 
-    template <typename T> T to() const {
-        return T {
-            ai_flags,
-            ai_family,
-            ai_socktype,
-            ai_protocol,
-            0,
-            nullptr,
-            nullptr,
-            nullptr
-        };
-    }
+    struct Config {
+        uint32_t cache_expiration_time;
+        size_t   cache_limit;
+        uint32_t query_timeout;
+        uint32_t workers;
 
-    int ai_family;
-    int ai_socktype;
-    int ai_protocol;
-    int ai_flags;
-};
-
-struct AddrInfo : virtual Refcnt {
-    ~AddrInfo() {
-        if (head) {
-            ares_freeaddrinfo(head);
-        }
-    }
-
-    explicit AddrInfo(ares_addrinfo* addr) : head(addr) {
-    }
-
-    AddrInfo(AddrInfo&& other) {
-        head       = other.head;
-        other.head = 0;
-    }
-
-    AddrInfo& operator=(AddrInfo&& other) {
-        head       = other.head;
-        other.head = 0;
-        return *this;
-    }
-
-    AddrInfo(const AddrInfo& other) = delete;
-    AddrInfo& operator=(const AddrInfo& other) = delete;
-
-    void detach() { head = nullptr; }
-
-    std::string to_string();
-
-    ares_addrinfo* head;
-};
-
-std::ostream& operator<<(std::ostream& os, const AddrInfo& ai);
-
-struct CachedAddress {
-    CachedAddress(AddrInfoSP address, std::time_t update_time = std::time(0)) : address(address), update_time(update_time) {
-    }
-
-    bool expired(time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
-
-    AddrInfoSP  address;
-    std::time_t update_time;
-};
-
-struct ResolverCacheHash;
-struct ResolverCacheKey : virtual Refcnt {
-    friend ResolverCacheHash;
-
-    ResolverCacheKey(const string& node, const string& service, const AddrInfoHintsSP& hints) : node_(node), service_(service), hints_(hints) {}
-    bool operator==(const ResolverCacheKey& other) const 
-    {
-        if(hints_ == other.hints_) { 
-            // same hints or nullptr hints
-            return node_ == other.node_ && service_ == other.service_; 
-        }
-        else if(hints_ && other.hints_) { 
-            // some comparable hints
-            return node_ == other.node_ && service_ == other.service_ && *hints_ == *other.hints_; 
-        } else {
-            // different hints
-            return false;
-        }
-    }
-
-private:
-    string          node_;
-    string          service_;
-    AddrInfoHintsSP hints_;
-};
-
-struct ResolverCacheHash {
-    template <class T> inline void hash_combine(std::size_t& seed, const T& v) const {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-
-    std::size_t operator()(const ResolverCacheKey& p) const {
-        std::size_t seed = 0;
-        hash_combine(seed, p.node_);
-        hash_combine(seed, p.service_);
-        hash_combine(seed, p.hints_->ai_flags);
-        hash_combine(seed, p.hints_->ai_family);
-        hash_combine(seed, p.hints_->ai_socktype);
-        hash_combine(seed, p.hints_->ai_protocol);
-        return seed;
-    }
-};
-
-using ResolverCacheKeySP   = iptr<ResolverCacheKey>;
-using ResolverCacheType    = std::unordered_map<ResolverCacheKey, CachedAddress, ResolverCacheHash>;
-
-struct AresTask : virtual Refcnt {
-    ~AresTask() {
-        _EDTOR();
-        if (poll) {
-            poll->stop();
-        }
-    }
-
-    AresTask(Loop* loop) : loop(loop) {
-        _ECTOR();
-    }
-
-    void start(sock_t sock, int events, Poll::poll_fn callback) {
-        if (!poll)
-            poll = new Poll(-1, sock, loop);
-
-        poll->start(events, callback);
-    }
-
-    LoopSP loop;
-    PollSP poll;
-};
-
-struct SimpleResolver : virtual Refcnt {
-    // channel inactivity timeout 
-    static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT = 1000; // [ms]
-
-    // keep in sync with xsi constants
-    enum { 
-        UE_AI_CANONNAME   = ARES_AI_CANONNAME,
-        UE_AI_NUMERICSERV = ARES_AI_NUMERICSERV
+        Config (uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT,
+                uint32_t query_timeout = DEFAULT_QUERY_TIMEOUT, uint32_t workers = DEFAULT_WORKERS)
+            : cache_expiration_time(exptime), cache_limit(limit), query_timeout(query_timeout), workers(workers) {}
     };
 
-    ~SimpleResolver();
-    SimpleResolver(Loop* loop);
-    SimpleResolver(SimpleResolver& other) = delete; 
-    SimpleResolver& operator=(SimpleResolver& other) = delete;
+    static ResolverSP create_loop_resolver (const LoopSP& loop);
 
-    virtual ResolveRequestSP resolve(
-            string_view node,
-            string_view service,
-            const AddrInfoHintsSP& hints,
-            ResolveFunction callback,
-            bool use_cache = false);
+    Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT)
+        : Resolver(loop, Config(exptime, limit)) {}
+    Resolver (const LoopSP& loop, const Config&);
 
-    virtual void stop();
+    Resolver (Resolver& other) = delete;
+    Resolver& operator= (Resolver& other) = delete;
 
-    virtual void call_on_resolve(ResolveRequest* resolve_request, const AddrInfoSP& addr, CodeError err);
-protected:
-    virtual void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr);
-    
-private:
-    static void ares_resolve_cb(void *arg, int status, int timeouts, ares_addrinfo* ai);
-    static void ares_sockstate_cb(void* data, sock_t sock, int read, int write);
+    LoopSP loop () const { return _loop; }
 
-    TimerSP timer;
+    RequestSP resolve ();
+    RequestSP resolve (string node, resolve_fn callback, uint64_t timeout = DEFAULT_RESOLVE_TIMEOUT);
 
-public:
-    Loop*        loop;
-    ares_channel channel;
+    virtual void resolve (const RequestSP&);
 
-    using AresTasks = std::map<sock_t, AresTaskSP>;
-    AresTasks tasks;
-};
+    virtual void reset ();
 
-struct Resolver : SimpleResolver {
-    static constexpr time_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
-    static constexpr size_t DEFAULT_CACHE_LIMIT           = 10000; // [records]
+    AddrInfo find (const string& node, const string& service, const AddrInfoHints& hints);
 
-    ~Resolver();
+    uint32_t cache_expiration_time () const { return cfg.cache_expiration_time; }
+    size_t   cache_limit           () const { return cfg.cache_limit; }
+    size_t   cache_size            () const { return cache.size(); }
+    size_t   queue_size            () const { return queue.size(); }
 
-    Resolver(Loop* loop, time_t expiration_time = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT);
-    
-    Resolver(Resolver& other) = delete; 
-    Resolver& operator=(Resolver& other) = delete;
+    void cache_expiration_time (uint32_t val) { cfg.cache_expiration_time = val; }
 
-    // search in cache, will remove the record if expired
-    std::tuple<ResolverCacheType::const_iterator, bool> find(string_view node, string_view service, const AddrInfoHintsSP& hints);
-
-    // resolve if not in cache and save in cache afterwards
-    // will trigger expunge if the cache is too big
-    ResolveRequestSP resolve(
-            string_view node,
-            string_view service,
-            const AddrInfoHintsSP& hints,
-            ResolveFunction callback,
-            bool use_cache = true) override;
-
-    size_t cache_size() const { return cache_.size(); }
-
-    void clear() { cache_.clear(); }
-
-protected:
-    void on_resolve(SimpleResolverSP resolver, ResolveRequestSP resolve_request, AddrInfoSP address, const CodeError* err = nullptr) override;
-
-private:
-    bool expunge_cache() {
-        if (cache_.size() >= limit_) {
-            _EDEBUG("cleaning cache %p %ld", this, cache_.size());
-            cache_.clear();
-            return true;
-        }
-        return false;
+    void cache_limit (size_t val) {
+        cfg.cache_limit = val;
+        if (cache.size() > val) clear_cache();
     }
 
+    void clear_cache ();
+
+protected:
+    virtual void on_resolve (const AddrInfo&, const CodeError&, const RequestSP&);
+
+    ~Resolver ();
+
 private:
-    ResolverCacheType cache_;
-    time_t            expiration_time_;
-    size_t            limit_;
+    struct CachedAddress {
+        CachedAddress (const AddrInfo& ai, std::time_t update_time = std::time(0)) : address(ai), update_time(update_time) {}
+
+        bool expired (time_t now, time_t expiration_time) const { return update_time + expiration_time < now; }
+
+        AddrInfo    address;
+        std::time_t update_time;
+    };
+
+    struct CacheKey : Refcnt {
+        CacheKey (const string& node, const string& service, const AddrInfoHints& hints) : node(node), service(service), hints(hints) {}
+
+        bool operator== (const CacheKey& other) const {
+            return node == other.node && service == other.service && hints == other.hints;
+        }
+
+        string        node;
+        string        service;
+        AddrInfoHints hints;
+    };
+
+    struct CacheHash {
+        template <class T> inline void hash_combine (std::size_t& seed, const T& v) const {
+            seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+
+        std::size_t operator() (const CacheKey& p) const {
+            std::size_t seed = 0;
+            hash_combine(seed, p.node);
+            hash_combine(seed, p.service);
+            hash_combine(seed, p.hints.flags);
+            hash_combine(seed, p.hints.family);
+            hash_combine(seed, p.hints.socktype);
+            hash_combine(seed, p.hints.protocol);
+            return seed;
+        }
+    };
+
+    using Cache  = std::unordered_map<CacheKey, CachedAddress, CacheHash>;
+    using BTimer = backend::TimerImpl;
+    using BPoll  = backend::PollImpl;
+
+    struct Worker : private backend::IPollListener {
+        Worker (Resolver*);
+        virtual ~Worker ();
+
+        void on_sockstate (sock_t sock, int read, int write);
+
+        void resolve    (const RequestSP&);
+        void on_resolve (int status, int timeouts, ares_addrinfo* ai);
+
+        void finish_resolve (const AddrInfo&, const CodeError& err);
+        void cancel ();
+
+        void handle_poll (int, const CodeError&) override;
+
+        using Polls = std::map<sock_t, BPoll*>;
+
+        Resolver*          resolver;
+        ares_channel       channel;
+        Polls              polls;
+        RequestSP          request;
+        bool               ares_async;
+        std::exception_ptr exc;
+    };
+
+    using Requests = IntrusiveChain<RequestSP>;
+    using Workers  = std::vector<std::unique_ptr<Worker>>;
+
+    Loop*    _loop;
+    LoopSP   _loop_hold;
+    Config   cfg;
+    BTimer*  dns_roll_timer;
+    Workers  workers;
+    Requests queue;
+    Requests cache_delayed;
+    Cache    cache;
+
+    Resolver (const Config&, Loop*);
+
+    void add_worker ();
+
+    void finish_resolve (const RequestSP&, const AddrInfo&, const CodeError&);
+
+    void handle_timer () override;
+
+    friend Request; friend Worker;
 };
 
-struct ResolveRequest : virtual Refcnt, AllocatedObject<ResolveRequest, true> {
-    ~ResolveRequest(); 
-    ResolveRequest(ResolveFunction callback, SimpleResolver* resolver);
+struct Resolver::Request : Refcnt, IntrusiveChainNode<Resolver::RequestSP>, AllocatedObject<Resolver::Request> {
+    CallbackDispatcher<resolve_fptr> event;
 
-    virtual void cancel();
+    Request (const ResolverSP& r = {});
 
-    CallbackDispatcher<ResolveFunctionPlain> event;
-    SimpleResolver* resolver;
-    ResolverCacheKeySP key;
-    bool async;
-    bool done;
+    const ResolverSP& resolver () const { return _resolver; }
+
+    RequestSP node       (string val)               { _node      = val; return this; }
+    RequestSP service    (string val)               { _service   = val; return this; }
+    RequestSP port       (uint16_t val)             { _port      = val; return this; }
+    RequestSP hints      (const AddrInfoHints& val) { _hints     = val; return this; }
+    RequestSP on_resolve (const resolve_fn& val)    { event.add(val);   return this; }
+    RequestSP use_cache  (bool val)                 { _use_cache = val; return this; }
+    RequestSP timeout    (uint64_t val)             { _timeout   = val; return this; }
+
+    RequestSP run () {
+        RequestSP self = this;
+        _resolver->resolve(self);
+        return self;
+    }
+
+    void cancel (const CodeError& = std::errc::operation_canceled);
+
+protected:
+    ~Request ();
+
+private:
+    friend Resolver;
+
+    LoopSP        loop;      // keep loop (for loop resolvers where resolver doesn't have strong ref to loop)
+    ResolverSP    _resolver; // keep resolver
+    string        _node;
+    string        _service;
+    uint16_t      _port;
+    AddrInfoHints _hints;
+    resolve_fn    _callback;
+    bool          _use_cache;
+    uint64_t      _timeout;
+    Worker*       worker;
+    TimerSP       timer;
+    uint64_t      delayed;
+    bool          running;
+    bool          queued;
 };
 
-}} // namespace panda::unievent
+inline Resolver::RequestSP Resolver::resolve () { return new Request(this); }
+
+inline Resolver::RequestSP Resolver::resolve (string node, resolve_fn callback, uint64_t timeout) {
+    return resolve()->node(node)->on_resolve(callback)->timeout(timeout)->run();
+}
+
+}}

@@ -1,19 +1,20 @@
 #include "Async.h"
 using namespace panda::unievent;
 
-void Async::uvx_on_async (uv_async_t* handle) {
-    Async* h = hcast<Async*>(handle);
-    h->call_on_async();
+const HandleType Async::TYPE("async");
+
+const HandleType& Async::type () const {
+    return TYPE;
 }
 
 void Async::send () {
-    int err = uv_async_send(&uvh);
-    if (err) throw CodeError(err);
+    impl()->send();
 }
 
-void Async::reset () {}
-
 void Async::on_async () {
-    if (async_callback) async_callback(this);
-    else throw ImplRequiredError("Async::on_async");
+    event(this);
+}
+
+void Async::handle_async () {
+    on_async();
 }

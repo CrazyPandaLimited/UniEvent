@@ -5,20 +5,20 @@ use Net::SockAddr;
 
 my $loop = UniEvent::Loop::default_loop();
 
-my $server = UniEvent::TCP->new();
+my $server = UE::Tcp->new($loop);
 my $cl;
 my $pid;
-$server->tcp_nodelay(1);
-$server->bind(SA_LOOPBACK_ANY);
+$server->set_nodelay(1);
+$server->bind_addr(SA_LOOPBACK_ANY);
 $server->listen(8);
-my $sa = $server->get_sockaddr;
+my $sa = $server->sockaddr;
 
 $server->connection_callback(sub {
     my ($srv, $cl, $err) = @_;
     die $err if $err;
     ok(1, "server: connection");
     
-    $cl->read_start(sub {
+    $cl->read_callback(sub {
         my ($handle, $data, $err) = @_;
         die $err if $err;
         is($data, "client_data", "server: read"); #1
@@ -30,16 +30,16 @@ $server->connection_callback(sub {
     });
 });
 
-my $timer = UniEvent::Timer->new;
-$timer->timer_callback(sub {
+my $timer = UE::Timer->new($loop);
+$timer->event->add(sub {
     $pid = fork();
     unless ($pid) {
         $loop->handle_fork();
         
         $server->reset();
         
-        my $client = UniEvent::TCP->new();
-        $client->tcp_nodelay(1);
+        my $client = UE::Tcp->new();
+        $client->set_nodelay(1);
         
         $client->connect_callback(sub {
             my ($handle, $err) = @_;
@@ -48,7 +48,7 @@ $timer->timer_callback(sub {
             $handle->write("client_data");
         });
         
-        $client->read_start(sub {
+        $client->read_callback(sub {
             my ($handle, $data, $err) = @_;
             die $err if $err;
             is($data, "data", "child: read");
@@ -58,7 +58,7 @@ $timer->timer_callback(sub {
             $client->shutdown;
         });
         
-        $client->connect($sa);
+        $client->connect_addr($sa);
     }
 });
 $timer->start(0, 0.01);

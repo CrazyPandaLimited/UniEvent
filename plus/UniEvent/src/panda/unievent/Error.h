@@ -1,11 +1,42 @@
 #pragma once
 #include "inc.h"
-#include "Fwd.h"
 #include <stdexcept>
+#include <system_error>
 #include <panda/string.h>
 #include <panda/string_view.h>
 
 namespace panda { namespace unievent {
+
+enum class errc {
+    ssl_error = 1,
+    socks_error,
+    resolve_error,
+    ai_address_family_not_supported,
+    ai_temporary_failure,
+    ai_bad_flags,
+    ai_bad_hints,
+    ai_request_canceled,
+    ai_permanent_failure,
+    ai_family_not_supported,
+    ai_out_of_memory,
+    ai_no_address,
+    ai_unknown_node_or_service,
+    ai_argument_buffer_overflow,
+    ai_resolved_protocol_unknown,
+    ai_service_not_available_for_socket_type,
+    ai_socket_type_not_supported,
+    invalid_unicode_character,
+    not_on_network,
+    transport_endpoint_shutdown,
+    unknown_error,
+    host_down,
+    remote_io
+};
+
+struct ErrorCategory : std::error_category {
+    const char* name () const throw() override;
+    std::string message (int condition) const throw() override;
+};
 
 struct Error : std::exception {
     Error () {}
@@ -18,43 +49,30 @@ protected:
     virtual string _mkwhat () const;
 };
 
-struct ImplRequiredError : Error {
-    ImplRequiredError (const string& what);
-    virtual ImplRequiredError* clone () const override;
-};
-
 struct CodeError : Error {
-    CodeError (uv_errno_t code) : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (int code = 0)    : CodeError(static_cast<errno_t>(code)) {}
-    CodeError (errno_t code)    : Error(), _code(code)                  {}
+    CodeError () {}
+    CodeError (errc code);
+    CodeError (std::errc code);
+    CodeError (const std::error_code& code);
 
-    virtual errno_t code () const;
-    virtual string  name () const;
-    virtual string  str  () const;
+    const std::error_code& code () const;
+
+    virtual string descr () const;
 
     virtual CodeError* clone () const override;
 
     explicit
-    operator bool() const { return _code != 0; }
+    operator bool () const { return _code.value(); }
 
-    operator const CodeError* () const { return _code ? this : nullptr; }
+    static ErrorCategory category;
+
+    bool operator== (const CodeError& oth) const { return code() == oth.code(); }
+    bool operator!= (const CodeError& oth) const { return !operator==(oth); }
 
 protected:
-    errno_t _code;
-    string _mkwhat () const override;
-};
-
-struct DyLibError : CodeError {
-    DyLibError (int code = 0, uv_lib_t* lib = nullptr) : CodeError(code), lib(lib) {}
-
-    virtual string dlerror () const;
+    std::error_code _code;
 
     string _mkwhat () const override;
-
-    virtual DyLibError* clone () const override;
-
-private:
-    uv_lib_t* lib;
 };
 
 struct SSLError : CodeError {
@@ -64,7 +82,6 @@ struct SSLError : CodeError {
     int ssl_code     () const;
     int openssl_code () const;
 
-    string name () const override;
     int library  () const;
     int function () const;
     int reason   () const;
@@ -73,7 +90,7 @@ struct SSLError : CodeError {
     string function_str () const;
     string reason_str   () const;
 
-    string str () const override;
+    string descr () const override;
 
     virtual SSLError* clone () const override;
 

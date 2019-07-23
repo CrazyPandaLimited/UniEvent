@@ -5,21 +5,21 @@ use Net::SockAddr;
 
 my $loop = UniEvent::Loop->default_loop;
 
-my $s = new UniEvent::TCP;
-$s->bind(SA_LOOPBACK_ANY);
+my $s = new UniEvent::Tcp;
+$s->bind_addr(SA_LOOPBACK_ANY);
 $s->listen;
 $s->connection_callback(sub {});
-my $sa = $s->get_sockaddr;
+my $sa = $s->sockaddr;
 
-my $cl = new UniEvent::TCP;
-$cl->connect($sa, sub {
+my $cl = new UniEvent::Tcp;
+$cl->connect_addr($sa, sub {
     my ($handler, $err) = @_;
     fail $err if $err;
     pass "first connected";
 });
 $cl->write('1');
 $cl->disconnect;
-$cl->connect($sa, sub {
+$cl->connect_addr($sa, sub {
     my ($handler, $err) = @_;
     fail $err if $err;
     pass "second connected";

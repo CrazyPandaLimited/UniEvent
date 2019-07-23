@@ -1,26 +1,23 @@
 #pragma once
-
-#include "Fwd.h"
-#include "Handle.h"
+#include "BackendHandle.h"
+#include "backend/TimerImpl.h"
 
 namespace panda { namespace unievent {
 
 // All the values are in milliseconds.
-struct Timer : virtual Handle, AllocatedObject<Timer> {
-    using timer_fptr = void(Timer* handle);
+struct Timer : virtual BackendHandle, private backend::ITimerListener {
+    using timer_fptr = void(const TimerSP& handle);
     using timer_fn = function<timer_fptr>;
-    
-    CallbackDispatcher<timer_fptr> timer_event;
 
-    ~Timer() {
-        _EDTOR();
+    static const HandleType TYPE;
+
+    CallbackDispatcher<timer_fptr> event;
+
+    Timer (const LoopSP& loop = Loop::default_loop()) {
+        _init(loop, loop->impl()->new_timer(this));
     }
 
-    Timer (Loop* loop = Loop::default_loop()) {
-        _ECTOR();
-        uv_timer_init(_pex_(loop), &uvh);
-        _init(&uvh);
-    }
+    const HandleType& type () const override;
 
     void once     (uint64_t initial) { start(0, initial); }
     void start    (uint64_t repeat)  { start(repeat, repeat); }
@@ -33,17 +30,18 @@ struct Timer : virtual Handle, AllocatedObject<Timer> {
     virtual void     repeat (uint64_t repeat);
 
     void reset () override;
+    void clear () override;
 
-    static TimerSP once  (uint64_t initial, timer_fn cb, Loop* loop = Loop::default_loop());
-    static TimerSP start (uint64_t repeat,  timer_fn cb, Loop* loop = Loop::default_loop());
+    static TimerSP once  (uint64_t initial, timer_fn cb, const LoopSP& loop = Loop::default_loop());
+    static TimerSP start (uint64_t repeat,  timer_fn cb, const LoopSP& loop = Loop::default_loop());
 
 protected:
     virtual void on_timer ();
 
 private:
-    uv_timer_t uvh;
+    void handle_timer () override;
 
-    static void uvx_on_timer (uv_timer_t* handle);
+    backend::TimerImpl* impl () const { return static_cast<backend::TimerImpl*>(_impl); }
 };
 
 }}
