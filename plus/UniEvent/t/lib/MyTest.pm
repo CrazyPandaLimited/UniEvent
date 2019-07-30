@@ -75,7 +75,7 @@ sub variate {
     };
     
     my ($code, $end) = ('') x 2;
-    $code .= "foreach my \$${_}_val (\$valvars->{$_}->\@*) {\n" for @names;
+    $code .= "foreach my \$${_}_val (\@{\$valvars->{$_}}) {\n" for @names;
     $code .= "variate_$_(\$${_}_val);\n" for @names;
     my $stname = 'variation '.join(', ', map {"$_=\$${_}_val"} @names);
     $code .= qq#subtest "$stname" => \$sub;\n#;

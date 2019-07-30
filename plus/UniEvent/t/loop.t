@@ -37,8 +37,8 @@ subtest 'handles' => sub {
     cmp_deeply $loop->handles, [], "no handles in fresh loop";
     
     my @h = map { new UniEvent::Prepare($loop) } 1..3;
-    is scalar $loop->handles->@*, 3, "handles count ok";
-    foreach my $h ($loop->handles->@*) {
+    is scalar @{$loop->handles}, 3, "handles count ok";
+    foreach my $h (@{$loop->handles}) {
         is ref($h), 'UniEvent::Prepare', 'handle class ok';
     }
     undef @h;
