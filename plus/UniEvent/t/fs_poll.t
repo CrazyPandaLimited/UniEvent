@@ -93,6 +93,9 @@ subtest 'file remove' => sub {
     Fs::touch(var 'file');
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.005);
+    $l->run_nowait;
+    select undef, undef, undef, 0.01;
+    $l->run_nowait;
     $h->callback(check_err(ENOENT, "file remove"));
     my $t = UE::Timer->once(0.01, sub { Fs::unlink(var 'file') });
     $l->run;
@@ -105,6 +108,7 @@ sub check_err {
     my ($err_code, $name) = @_;
     return sub {
         my ($h, $prev, $curr, $err) = @_;
+        return unless $err;
         is($err && $err->code, $err_code, "fspoll callback error code correct ($name)");
         $call_cnt++;
         $l->stop;
