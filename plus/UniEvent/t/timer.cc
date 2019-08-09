@@ -14,30 +14,56 @@ static int64_t get_time() {
 
 #define REQUIRE_ELAPSED(T0, EXPECTED) do{auto diff = get_time() - T0; REQUIRE(diff >= EXPECTED); REQUIRE((diff / EXPECTED) < 1.6);} while(0)
 
-TEST_CASE("Timer static once", "[timer]") {
-    auto t0 = get_time();
-    AsyncTest test(200, {"timer"});
-    int timeout = 30;
-    auto timer = Timer::once(timeout, [&](Timer*) {
-        test.happens("timer");
-        REQUIRE_ELAPSED(t0, timeout);
-    }, test.loop);
-    test.await(timer->event);
+TEST_CASE("timer", "[timer]") {
+    AsyncTest test(200, 0);
+
+    SECTION("static once") {
+        test.set_expected(1);
+        auto t0 = get_time();
+        int timeout = 30;
+        auto timer = Timer::once(timeout, [&](auto) {
+            test.happens();
+            REQUIRE_ELAPSED(t0, timeout);
+        }, test.loop);
+        test.await(timer->event);
+    }
+
+    SECTION("static repeat") {
+        test.set_expected(3);
+        int timeout = 30;
+        auto t0 = get_time();
+        size_t counter = 3;
+        auto timer = Timer::start(timeout, [&](auto& t) {
+            test.happens();
+            REQUIRE_ELAPSED(t0, timeout);
+            if (--counter == 0) t->stop();
+            t0 = get_time();
+        }, test.loop);
+        test.run();
+    }
+
+    SECTION("event listener") {
+        auto s = [](auto lst) {
+            TimerSP h = new Timer;
+            h->event_listener(&lst);
+            h->event.add([&](auto){ lst.cnt += 10; });
+            h->call_now();
+            CHECK(lst.cnt == 11);
+        };
+        SECTION("std") {
+            struct Lst : ITimerListener {
+                int cnt = 0;
+                void on_timer (const TimerSP&) override { ++cnt; }
+            };
+            s(Lst());
+        }
+        SECTION("self") {
+            struct Lst : ITimerSelfListener {
+                int cnt = 0;
+                void on_timer () override { ++cnt; }
+            };
+            s(Lst());
+        }
+    }
 }
 
-TEST_CASE("Timer static repeat", "[timer]") {
-    AsyncTest test(200, {"timer", "timer", "timer"});
-    int timeout = 30;
-    auto t0 = get_time();
-    size_t counter = 3;
-    auto timer = Timer::start(timeout, [&](Timer* t) {
-        test.happens("timer");
-        REQUIRE_ELAPSED(t0, timeout);
-        if (--counter == 0) {
-            t->stop();
-            test.loop->stop();
-        }
-        t0 = get_time();
-    }, test.loop);
-    test.run();
-}

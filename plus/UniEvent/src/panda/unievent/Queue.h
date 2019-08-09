@@ -55,7 +55,8 @@ struct Queue {
         } else { // we must delay user callback
             finalized_requests.push_back(req);
             req->delay([=]{
-                assert(finalized_requests.front() == req);
+                auto req = finalized_requests.front();
+                assert(req == check);
                 finalized_requests.pop_front();
                 f();
             });

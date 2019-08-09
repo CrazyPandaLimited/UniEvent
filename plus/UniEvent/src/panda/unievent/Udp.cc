@@ -2,8 +2,6 @@
 #include "util.h"
 using namespace panda::unievent;
 
-#define HOLD_ON(h) UdpSP __hold = h; (void)__hold;
-
 const HandleType Udp::TYPE("udp");
 
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, AddrInfoHints::PASSIVE);
@@ -91,17 +89,17 @@ void SendRequest::exec () {
     if (err) delay([=]{ cancel(err); });
 }
 
-void SendRequest::notify (const CodeError& err) { handle->on_send(err, this); }
+void SendRequest::notify (const CodeError& err) { handle->notify_on_send(err, this); }
 
 void SendRequest::handle_event (const CodeError& err) {
-    HOLD_ON(handle);
-    handle->queue.done(this, [=]{ handle->on_send(err, this); });
+    handle->queue.done(this, [=]{ handle->notify_on_send(err, this); });
 }
 
-void Udp::on_send (const CodeError& err, const SendRequestSP& req) {
+void Udp::notify_on_send (const CodeError& err, const SendRequestSP& req) {
     UdpSP self = this;
     req->event(self, err, req);
     send_event(self, err, req);
+    if (_listener) _listener->on_send(self, err, req);
 }
 
 void Udp::reset () {
@@ -113,16 +111,14 @@ void Udp::clear () {
         BackendHandle::clear();
         domain = AF_UNSPEC;
         buf_alloc_callback = nullptr;
+        _listener = nullptr;
         receive_event.remove_all();
         send_event.remove_all();
     });
 }
 
 void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
-    HOLD_ON(this);
-    on_receive(buf, sa, flags, err);
-}
-
-void Udp::on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
-    receive_event(this, buf, sa, flags, err);
+    UdpSP self = this;
+    receive_event(self, buf, sa, flags, err);
+    if (_listener) _listener->on_receive(self, buf, sa, flags, err);
 }

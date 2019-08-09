@@ -3,12 +3,14 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct ISignalListener {
+struct ISignalImplListener {
     virtual void handle_signal (int signum) = 0;
 };
 
 struct SignalImpl : HandleImpl {
-    SignalImpl (LoopImpl* loop, ISignalListener* lst) : HandleImpl(loop), listener(lst) {}
+    ISignalImplListener* listener;
+
+    SignalImpl (LoopImpl* loop, ISignalImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual int signum () const = 0;
 
@@ -19,8 +21,6 @@ struct SignalImpl : HandleImpl {
     void handle_signal (int signum) noexcept {
         ltry([&]{ listener->handle_signal(signum); });
     }
-
-    ISignalListener* listener;
 };
 
 }}}

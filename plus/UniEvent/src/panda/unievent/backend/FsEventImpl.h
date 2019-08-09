@@ -3,7 +3,7 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IFsEventListener {
+struct IFsEventImplListener {
     virtual void handle_fs_event (const string_view& file, int events, const CodeError&) = 0;
 };
 
@@ -17,7 +17,9 @@ struct FsEventImpl : HandleImpl {
         static constexpr int RECURSIVE = 1;
     };
 
-    FsEventImpl (LoopImpl* loop, IFsEventListener* lst) : HandleImpl(loop), listener(lst) {}
+    IFsEventImplListener* listener;
+
+    FsEventImpl (LoopImpl* loop, IFsEventImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual void start (string_view path, unsigned flags) = 0;
     virtual void stop  () = 0;
@@ -25,8 +27,6 @@ struct FsEventImpl : HandleImpl {
     void handle_fs_event (const string_view& file, int events, const CodeError& err) noexcept {
         ltry([&]{ listener->handle_fs_event(file, events, err); });
     }
-
-    IFsEventListener* listener;
 };
 
 }}}

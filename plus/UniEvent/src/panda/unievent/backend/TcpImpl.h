@@ -8,7 +8,7 @@ struct TcpImpl : StreamImpl {
         static const constexpr int IPV6ONLY = 1;
     };
 
-    TcpImpl (LoopImpl* loop, IStreamListener* lst) : StreamImpl(loop, lst) {}
+    TcpImpl (LoopImpl* loop, IStreamImplListener* lst) : StreamImpl(loop, lst) {}
 
     virtual void open (sock_t) = 0;
     virtual void bind (const net::SockAddr&, unsigned flags) = 0;

@@ -58,20 +58,20 @@ struct UVLoop : LoopImpl {
         if (err) throw uvx_code_error(err);
     }
 
-    TimerImpl*   new_timer     (ITimerListener*)              override;
-    PrepareImpl* new_prepare   (IPrepareListener*)            override;
-    CheckImpl*   new_check     (ICheckListener*)              override;
-    IdleImpl*    new_idle      (IIdleListener*)               override;
-    AsyncImpl*   new_async     (IAsyncListener*)              override;
-    SignalImpl*  new_signal    (ISignalListener*)             override;
-    PollImpl*    new_poll_sock (IPollListener*, sock_t sock)  override;
-    PollImpl*    new_poll_fd   (IPollListener*, int fd)       override;
-    UdpImpl*     new_udp       (IUdpListener*, int domain)    override;
-    PipeImpl*    new_pipe      (IStreamListener*, bool ipc)   override;
-    TcpImpl*     new_tcp       (IStreamListener*, int domain) override;
-    TtyImpl*     new_tty       (IStreamListener*, fd_t)       override;
-    WorkImpl*    new_work      (IWorkListener*)               override;
-    FsEventImpl* new_fs_event  (IFsEventListener*)            override;
+    TimerImpl*   new_timer     (ITimerImplListener*)              override;
+    PrepareImpl* new_prepare   (IPrepareImplListener*)            override;
+    CheckImpl*   new_check     (ICheckImplListener*)              override;
+    IdleImpl*    new_idle      (IIdleImplListener*)               override;
+    AsyncImpl*   new_async     (IAsyncImplListener*)              override;
+    SignalImpl*  new_signal    (ISignalImplListener*)             override;
+    PollImpl*    new_poll_sock (IPollImplListener*, sock_t sock)  override;
+    PollImpl*    new_poll_fd   (IPollImplListener*, int fd)       override;
+    UdpImpl*     new_udp       (IUdpImplListener*, int domain)    override;
+    PipeImpl*    new_pipe      (IStreamImplListener*, bool ipc)   override;
+    TcpImpl*     new_tcp       (IStreamImplListener*, int domain) override;
+    TtyImpl*     new_tty       (IStreamImplListener*, fd_t)       override;
+    WorkImpl*    new_work      (IWorkImplListener*)               override;
+    FsEventImpl* new_fs_event  (IFsEventImplListener*)            override;
 
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) override { return _delayer.add(f, guard); }
     void     cancel_delay (uint64_t id)                                noexcept override { _delayer.cancel(id); }

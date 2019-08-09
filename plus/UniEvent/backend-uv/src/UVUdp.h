@@ -10,7 +10,7 @@ struct UVSendRequest : UVRequest<SendRequestImpl, uv_udp_send_t>, AllocatedObjec
 };
 
 struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
-    UVUdp (UVLoop* loop, IUdpListener* lst, int domain) : UVHandle<UdpImpl, uv_udp_t>(loop, lst) {
+    UVUdp (UVLoop* loop, IUdpImplListener* lst, int domain) : UVHandle<UdpImpl, uv_udp_t>(loop, lst) {
         uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop->uvloop, &uvh) : uv_udp_init_ex(loop->uvloop, &uvh, domain));
     }
 

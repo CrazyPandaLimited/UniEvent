@@ -19,7 +19,7 @@ struct UVShutdownRequest : UVRequest<ShutdownRequestImpl, uv_shutdown_t>, Alloca
 
 template <class Base, class UvReq>
 struct UVStream : UVHandle<Base, UvReq> {
-    UVStream (UVLoop* loop, IStreamListener* lst) : UVHandle<Base, UvReq>(loop, lst) {}
+    UVStream (UVLoop* loop, IStreamImplListener* lst) : UVHandle<Base, UvReq>(loop, lst) {}
 
     ConnectRequestImpl*  new_connect_request  (IRequestListener* l) override { return new UVConnectRequest(this, l); }
     WriteRequestImpl*    new_write_request    (IRequestListener* l) override { return new UVWriteRequest(this, l); }

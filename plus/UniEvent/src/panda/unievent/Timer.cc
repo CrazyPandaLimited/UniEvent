@@ -50,13 +50,12 @@ void Timer::reset () {
 void Timer::clear () {
     impl()->stop();
     weak(false);
+    _listener = nullptr;
     event.remove_all();
 }
 
-void Timer::on_timer () {
-    event(this);
-}
-
 void Timer::handle_timer () {
-    on_timer();
+    TimerSP self = this;
+    event(self);
+    if (_listener) _listener->on_timer(self);
 }

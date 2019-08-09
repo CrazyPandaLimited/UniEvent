@@ -4,6 +4,9 @@
 
 namespace panda { namespace unievent {
 
+struct IPipeListener     : IStreamListener     {};
+struct IPipeSelfListener : IStreamSelfListener {};
+
 struct Pipe : virtual Stream {
     static const HandleType TYPE;
 

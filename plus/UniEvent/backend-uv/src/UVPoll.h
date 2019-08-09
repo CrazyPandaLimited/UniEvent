@@ -5,11 +5,11 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVPoll : UVHandle<PollImpl, uv_poll_t> {
-    UVPoll (UVLoop* loop, IPollListener* lst, sock_t sock) : UVHandle<PollImpl, uv_poll_t>(loop, lst) {
+    UVPoll (UVLoop* loop, IPollImplListener* lst, sock_t sock) : UVHandle<PollImpl, uv_poll_t>(loop, lst) {
         uvx_strict(uv_poll_init_socket(loop->uvloop, &uvh, sock));
     }
 
-    UVPoll (UVLoop* loop, IPollListener* lst, int fd, std::nullptr_t) : UVHandle<PollImpl, uv_poll_t>(loop, lst) {
+    UVPoll (UVLoop* loop, IPollImplListener* lst, int fd, std::nullptr_t) : UVHandle<PollImpl, uv_poll_t>(loop, lst) {
         uvx_strict(uv_poll_init(loop->uvloop, &uvh, fd));
     }
 

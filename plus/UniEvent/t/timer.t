@@ -2,7 +2,7 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
-catch_run('[timer]');
+catch_run('timer');
 
 my $l = UniEvent::Loop->default;
 
@@ -150,6 +150,18 @@ subtest 'new once' => sub {
     my $t = UE::Timer->once(0.001, sub {++$cnt});
     $l->run for 1..3;
     is $cnt, 1;
+};
+
+subtest 'event listener' => sub {
+    no warnings 'once';
+    my $cnt;
+    *MyLst::on_timer = sub { $cnt += 10 };
+    my $h = new UE::Timer;
+    $h->event_listener(bless {}, 'MyLst');
+    $h->callback(sub { $cnt++ });
+    
+    $h->call_now;
+    is $cnt, 11, "listener&event called";
 };
 
 done_testing();

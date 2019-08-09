@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVDelayer : Delayer, private IIdleListener {
+struct UVDelayer : Delayer, private IIdleImplListener {
     UVDelayer (LoopImpl* loop) : Delayer(loop), handle() {}
 
     uint64_t add (const delayed_fn& f, const iptr<Refcnt>& guard = {}) {

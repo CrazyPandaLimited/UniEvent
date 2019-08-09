@@ -4,6 +4,16 @@
 
 namespace panda { namespace unievent {
 
+struct IFsPollListener {
+    virtual void on_fs_poll (const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&) = 0;
+};
+
+struct IFsPollSelfListener : IFsPollListener {
+    virtual void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&) = 0;
+private:
+    void on_fs_poll (const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
+};
+
 struct FsPoll : virtual Handle {
     using fs_poll_fptr = void(const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&);
     using fs_poll_fn   = function<fs_poll_fptr>;
@@ -15,6 +25,9 @@ struct FsPoll : virtual Handle {
     FsPoll (const LoopSP& loop = Loop::default_loop());
 
     const HandleType& type () const override;
+
+    IFsPollListener* event_listener () const             { return _listener; }
+    void             event_listener (IFsPollListener* l) { _listener = l; }
 
     const string& path () const { return _path; }
 
@@ -29,9 +42,6 @@ struct FsPoll : virtual Handle {
     void reset () override;
     void clear () override;
 
-protected:
-    virtual void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&);
-
 private:
     TimerSP           timer;
     Fs::RequestSP     fsr;
@@ -40,8 +50,10 @@ private:
     Fs::Stat          prev;
     CodeError         prev_err;
     bool              fetched;
+    IFsPollListener*  _listener;
 
     void do_stat ();
+    void notify  (const Fs::Stat&, const Fs::Stat&, const CodeError&);
 };
 
 }}

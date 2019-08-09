@@ -9,7 +9,7 @@ TEST_CASE("check", "[check]") {
         CheckSP h = new Check;
         CHECK(h->type() == Check::TYPE);
 
-        h->event.add([&](const CheckSP&){ cnt++; });
+        h->event.add([&](auto){ cnt++; });
         h->start();
         CHECK(l->run_nowait());
         CHECK(cnt == 1);
@@ -29,9 +29,9 @@ TEST_CASE("check", "[check]") {
 
     SECTION("runs after prepare") {
         PrepareSP p = new Prepare;
-        p->start([&](const PrepareSP&){ cnt++; });
+        p->start([&](auto){ cnt++; });
         CheckSP c = new Check;
-        c->start([&](const CheckSP&) {
+        c->start([&](auto) {
             CHECK(cnt == 1);
             cnt += 10;
         });
@@ -41,8 +41,32 @@ TEST_CASE("check", "[check]") {
 
     SECTION("call_now") {
         CheckSP h = new Check;
-        h->event.add([&](const CheckSP&){ cnt++; });
+        h->event.add([&](auto){ cnt++; });
         for (int i = 0; i < 5; ++i) h->call_now();
         CHECK(cnt == 5);
     };
+
+    SECTION("event listener") {
+        auto s = [](auto lst) {
+            CheckSP h = new Check;
+            h->event_listener(&lst);
+            h->event.add([&](auto){ lst.cnt += 10; });
+            h->call_now();
+            CHECK(lst.cnt == 11);
+        };
+        SECTION("std") {
+            struct Lst : ICheckListener {
+                int cnt = 0;
+                void on_check (const CheckSP&) override { ++cnt; }
+            };
+            s(Lst());
+        }
+        SECTION("self") {
+            struct Lst : ICheckSelfListener {
+                int cnt = 0;
+                void on_check () override { ++cnt; }
+            };
+            s(Lst());
+        }
+    }
 }

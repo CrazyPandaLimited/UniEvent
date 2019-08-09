@@ -22,14 +22,13 @@ void Check::reset () {
 
 void Check::clear () {
     impl()->stop();
-    event.remove_all();
     weak(false);
-}
-
-void Check::on_check () {
-    event(this);
+    _listener = nullptr;
+    event.remove_all();
 }
 
 void Check::handle_check () {
-    on_check();
+    CheckSP self = this;
+    event(self);
+    if (_listener) _listener->on_check(self);
 }

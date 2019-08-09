@@ -13,9 +13,37 @@ struct ssl_st;        typedef ssl_st SSL;
 
 namespace panda { namespace unievent {
 
-struct Stream : virtual BackendHandle, protected backend::IStreamListener {
+struct IStreamListener {
+    virtual StreamSP create_connection (const StreamSP&)                                             { return {}; }
+    virtual void     on_connection     (const StreamSP&, const StreamSP&, const CodeError&)          {}
+    virtual void     on_connect        (const StreamSP&, const CodeError&, const ConnectRequestSP&)  {}
+    virtual void     on_read           (const StreamSP&, string&, const CodeError&)                  {}
+    virtual void     on_write          (const StreamSP&, const CodeError&, const WriteRequestSP&)    {}
+    virtual void     on_shutdown       (const StreamSP&, const CodeError&, const ShutdownRequestSP&) {}
+    virtual void     on_eof            (const StreamSP&)                                             {}
+};
+
+struct IStreamSelfListener : IStreamListener {
+    virtual StreamSP create_connection ()                                           { return {}; }
+    virtual void     on_connection     (const StreamSP&, const CodeError&)          {}
+    virtual void     on_connect        (const CodeError&, const ConnectRequestSP&)  {}
+    virtual void     on_read           (string&, const CodeError&)                  {}
+    virtual void     on_write          (const CodeError&, const WriteRequestSP&)    {}
+    virtual void     on_shutdown       (const CodeError&, const ShutdownRequestSP&) {}
+    virtual void     on_eof            ()                                           {}
+private:
+    StreamSP create_connection (const StreamSP&)                                                     override { return create_connection(); }
+    void     on_connection     (const StreamSP&, const StreamSP& cli, const CodeError& err)          override { on_connection(cli, err); }
+    void     on_connect        (const StreamSP&, const CodeError& err, const ConnectRequestSP& req)  override { on_connect(err, req); }
+    void     on_read           (const StreamSP&, string& buf, const CodeError& err)                  override { on_read(buf, err); }
+    void     on_write          (const StreamSP&, const CodeError& err, const WriteRequestSP& req)    override { on_write(err, req); }
+    void     on_shutdown       (const StreamSP&, const CodeError& err, const ShutdownRequestSP& req) override { on_shutdown(err, req); }
+    void     on_eof            (const StreamSP&)                                                     override { on_eof(); }
+};
+
+struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     using Filters         = IntrusiveChain<StreamFilterSP>;
-    using conn_factory_fn = function<StreamSP()>;
+    using conn_factory_fn = function<StreamSP(const StreamSP&)>;
     using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
     using connection_fn   = function<connection_fptr>;
     using connect_fptr    = void(const StreamSP& handle, const CodeError& err, const ConnectRequestSP& req);
@@ -39,6 +67,9 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
     CallbackDispatcher<write_fptr>      write_event;
     CallbackDispatcher<shutdown_fptr>   shutdown_event;
     CallbackDispatcher<eof_fptr>        eof_event;
+
+    IStreamListener* event_listener () const             { return _listener; }
+    void             event_listener (IStreamListener* l) { _listener = l; }
 
     string buf_alloc (size_t cap) noexcept override;
 
@@ -104,7 +135,7 @@ struct Stream : virtual BackendHandle, protected backend::IStreamListener {
 protected:
     Queue queue;
 
-    Stream () : flags(), _wq_size() {
+    Stream () : flags(), _wq_size(), _listener() {
         _ECTOR();
     }
 
@@ -112,14 +143,6 @@ protected:
     virtual void accept (const StreamSP& client);
 
     virtual StreamSP create_connection () = 0;
-
-    virtual void on_connection (const StreamSP& client, const CodeError& err);
-    virtual void on_connect    (const CodeError& err, const ConnectRequestSP& req);
-    virtual void on_read       (string& buf, const CodeError& err);
-    virtual void on_write      (const CodeError& err, const WriteRequestSP& req);
-    virtual void on_eof        ();
-    virtual void on_shutdown   (const CodeError& err, const ShutdownRequestSP& req);
-
 
     void set_listening   () { flags |= LISTENING; }
     void set_connecting  () { flags |= CONNECTING; }
@@ -170,9 +193,10 @@ private:
     static const uint32_t SHUTTING      = 128;
     static const uint32_t SHUT          = 256;
 
-    uint32_t flags;
-    Filters  _filters;
-    size_t   _wq_size;
+    uint32_t         flags;
+    Filters          _filters;
+    size_t           _wq_size;
+    IStreamListener* _listener;
 
     backend::StreamImpl* impl () const { return static_cast<backend::StreamImpl*>(BackendHandle::impl()); }
 
@@ -186,14 +210,17 @@ private:
     void handle_connection          (const CodeError&) override;
     void finalize_handle_connection (const StreamSP& client, const CodeError&, const AcceptRequestSP&);
     void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
+    void notify_on_connect          (const CodeError&, const ConnectRequestSP&);
     void handle_read                (string&, const CodeError&) override;
     void finalize_handle_read       (string& buf, const CodeError&);
     void finalize_write             (const WriteRequestSP&);
     void finalize_handle_write      (const CodeError&, const WriteRequestSP&);
+    void notify_on_write            (const CodeError&, const WriteRequestSP&);
     void handle_eof                 () override;
     void finalize_handle_eof        ();
     void finalize_shutdown          (const ShutdownRequestSP&);
     void finalize_handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
+    void notify_on_shutdown         (const CodeError&, const ShutdownRequestSP&);
 
     void _reset ();
     void _clear ();

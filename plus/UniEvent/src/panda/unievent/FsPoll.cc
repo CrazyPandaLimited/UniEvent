@@ -3,7 +3,7 @@ using namespace panda::unievent;
 
 const HandleType FsPoll::TYPE("fs_poll");
 
-FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched() {
+FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched(), _listener() {
     _init(loop);
     fsr   = new Fs::Request(loop);
     timer = new Timer(loop);
@@ -47,11 +47,11 @@ void FsPoll::do_stat () {
         if (err) {
             if (err != prev_err) {
                 prev_err = err;
-                this->on_fs_poll(prev, stat, err); // accessing <stat> is UB
+                this->notify(prev, stat, err); // accessing <stat> is UB
             }
         }
         else if (!fetched || prev != stat) {
-            if (fetched) this->on_fs_poll(prev, stat, err);
+            if (fetched) this->notify(prev, stat, err);
             prev = stat;
         }
 
@@ -66,9 +66,12 @@ void FsPoll::reset () {
 void FsPoll::clear () {
     stop();
     weak(false);
+    _listener = nullptr;
     event.remove_all();
 }
 
-void FsPoll::on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) {
-    event(this, prev, cur, err);
+void FsPoll::notify (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) {
+    FsPollSP self = this;
+    event(self, prev, cur, err);
+    if (_listener) _listener->on_fs_poll(self, prev, cur, err);
 }

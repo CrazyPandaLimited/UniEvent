@@ -51,4 +51,31 @@ TEST_CASE("work", "[work]") {
         r = nullptr; // request must be alive while not completed
         test.run();
     }
+
+    SECTION("event listener") {
+        auto s = [&](auto lst) {
+            w->event_listener(&lst);
+
+            w->queue();
+            test.run();
+
+            CHECK(lst.cnt == 11);
+        };
+        SECTION("std") {
+            struct Lst : IWorkListener {
+                int cnt = 0;
+                void on_work       (Work*)                           override { ++cnt; }
+                void on_after_work (const WorkSP&, const CodeError&) override { cnt += 10; }
+            };
+            s(Lst());
+        }
+        SECTION("self") {
+            struct Lst : IWorkSelfListener {
+                int cnt = 0;
+                void on_work       ()                 override { ++cnt; }
+                void on_after_work (const CodeError&) override { cnt += 10; }
+            };
+            s(Lst());
+        }
+    }
 }

@@ -51,7 +51,7 @@ protected:
         handle_event(err);
     }
 
-    // just calls user callbacks with <cancelled> status
+    // just calls user callbacks with some status
     virtual void notify (const CodeError&) = 0;
 
     // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)

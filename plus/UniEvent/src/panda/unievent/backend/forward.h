@@ -6,33 +6,33 @@ struct LoopImpl;
 struct HandleImpl;
 
 struct PrepareImpl;
-struct IPrepareListener;
+struct IPrepareImplListener;
 
 struct CheckImpl;
-struct ICheckListener;
+struct ICheckImplListener;
 
 struct IdleImpl;
-struct IIdleListener;
+struct IIdleImplListener;
 
 struct TimerImpl;
-struct ITimerListener;
+struct ITimerImplListener;
 
 struct AsyncImpl;
-struct IAsyncListener;
+struct IAsyncImplListener;
 
 struct SignalImpl;
-struct ISignalListener;
+struct ISignalImplListener;
 
 struct PollImpl;
-struct IPollListener;
+struct IPollImplListener;
 
 struct UdpImpl;
-struct IUdpListener;
+struct IUdpImplListener;
 struct ISendListener;
 struct SendRequestImpl;
 
 struct StreamImpl;
-struct IStreamListener;
+struct IStreamImplListener;
 struct IConnectListener;
 struct ConnectRequestImpl;
 struct IWriteListener;
@@ -45,9 +45,9 @@ struct TcpImpl;
 struct TtyImpl;
 
 struct WorkImpl;
-struct IWorkListener;
+struct IWorkImplListener;
 
 struct FsEventImpl;
-struct IFsEventListener;
+struct IFsEventImplListener;
 
 }}};

@@ -23,21 +23,17 @@ bool Work::cancel () {
     return true;
 }
 
-void Work::on_work () {
-    work_cb(this);
-}
-
-void Work::on_after_work (const CodeError& err) {
-    if (after_work_cb) after_work_cb(this, err);
-}
-
 void Work::handle_work () {
-    on_work();
+    if (work_cb) work_cb(this);
+    else if (_listener) _listener->on_work(this);
+    else throw std::logic_error("work callback must be set");
 }
 
 void Work::handle_after_work (const CodeError& err) {
-    WorkSP self = this; // hold
+    WorkSP self = this;
     _loop->unregister_work(self);
     _active = false;
-    on_after_work(err);
+    if (after_work_cb) after_work_cb(self, err);
+    else if (_listener) _listener->on_after_work(self, err);
+    else throw std::logic_error("after_work callback must be set");
 }

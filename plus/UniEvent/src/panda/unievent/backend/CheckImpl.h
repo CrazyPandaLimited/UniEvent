@@ -3,12 +3,14 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct ICheckListener {
+struct ICheckImplListener {
     virtual void handle_check () = 0;
 };
 
 struct CheckImpl : HandleImpl {
-    CheckImpl (LoopImpl* loop, ICheckListener* lst) : HandleImpl(loop), listener(lst) {}
+    ICheckImplListener* listener;
+
+    CheckImpl (LoopImpl* loop, ICheckImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual void start () = 0;
     virtual void stop  () = 0;
@@ -16,8 +18,6 @@ struct CheckImpl : HandleImpl {
     void handle_check () noexcept {
         ltry([&]{ listener->handle_check(); });
     }
-
-    ICheckListener* listener;
 };
 
 }}}

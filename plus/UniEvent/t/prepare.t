@@ -36,4 +36,16 @@ subtest 'call_now' => sub {
     is $i, 5;
 };
 
+subtest 'event listener' => sub {
+    no warnings 'once';
+    my $cnt;
+    *MyLst::on_prepare = sub { $cnt += 10 };
+    my $h = new UniEvent::Prepare;
+    $h->event_listener(bless {}, 'MyLst');
+    $h->callback(sub { $cnt++ });
+    
+    $h->call_now;
+    is $cnt, 11, "listener&event called";
+};
+
 done_testing();

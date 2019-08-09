@@ -7,7 +7,20 @@
 
 namespace panda { namespace unievent {
 
-struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpListener {
+struct IUdpListener {
+    virtual void on_receive (const UdpSP&, string&, const net::SockAddr&, unsigned/*flags*/, const CodeError&) {}
+    virtual void on_send    (const UdpSP&, const CodeError&, const SendRequestSP&)                             {}
+};
+
+struct IUdpSelfListener : IUdpListener {
+    virtual void on_receive (string&, const net::SockAddr&, unsigned/*flags*/, const CodeError&) {}
+    virtual void on_send    (const CodeError&, const SendRequestSP&)                             {}
+private:
+    void on_receive (const UdpSP&, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) override { on_receive(buf, addr, flags, err); }
+    void on_send    (const UdpSP&, const CodeError& err, const SendRequestSP& req)                               override { on_send(err, req); }
+};
+
+struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpImplListener {
     using receive_fptr = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err);
     using receive_fn   = function<receive_fptr>;
     using send_fptr    = void(const UdpSP& handle, const CodeError& err, const SendRequestSP& req);
@@ -20,12 +33,15 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpL
     CallbackDispatcher<receive_fptr> receive_event;
     CallbackDispatcher<send_fptr>    send_event;
 
-    Udp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC) : domain(domain) {
+    Udp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC) : domain(domain), _listener() {
         _ECTOR();
         _init(loop, loop->impl()->new_udp(this, domain));
     }
 
     const HandleType& type () const override;
+
+    IUdpListener* event_listener () const          { return _listener; }
+    void          event_listener (IUdpListener* l) { _listener = l; }
 
     string buf_alloc (size_t cap) noexcept override;
 
@@ -62,22 +78,20 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpL
 
     static const HandleType TYPE;
 
-protected:
-    virtual void on_send    (const CodeError& err, const SendRequestSP& req);
-    virtual void on_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err);
-
 private:
     friend SendRequest;
     static AddrInfoHints defhints;
 
-    int   domain;
-    Queue queue;
+    int           domain;
+    Queue         queue;
+    IUdpListener* _listener;
 
     UdpImpl* impl () const { return static_cast<UdpImpl*>(BackendHandle::impl()); }
 
     HandleImpl* new_impl () override;
 
     void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) override;
+    void notify_on_send (const CodeError&, const SendRequestSP&);
 };
 
 

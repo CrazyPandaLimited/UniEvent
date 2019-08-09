@@ -11,10 +11,14 @@ void Async::send () {
     impl()->send();
 }
 
-void Async::on_async () {
-    event(this);
+void Async::clear () {
+    weak(false);
+    _listener = nullptr;
+    event.remove_all();
 }
 
 void Async::handle_async () {
-    on_async();
+    AsyncSP self = this;
+    event(self);
+    if (_listener) _listener->on_async(self);
 }

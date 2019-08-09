@@ -8,7 +8,7 @@ struct UVWork : WorkImpl {
     bool      active;
     uv_work_t uvr;
 
-    UVWork (UVLoop* loop, IWorkListener* lst) : WorkImpl(loop, lst), active() {
+    UVWork (UVLoop* loop, IWorkImplListener* lst) : WorkImpl(loop, lst), active() {
         uvr.loop = loop->uvloop;
         uvr.data = this;
     }

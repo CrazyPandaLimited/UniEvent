@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVTty : UVStream<TtyImpl, uv_tty_t> {
-    UVTty (UVLoop* loop, IStreamListener* lst, fd_t fd) : UVStream<TtyImpl, uv_tty_t>(loop, lst) {
+    UVTty (UVLoop* loop, IStreamImplListener* lst, fd_t fd) : UVStream<TtyImpl, uv_tty_t>(loop, lst) {
         uvx_strict(uv_tty_init(loop->uvloop, &uvh, fd, /*not used*/0));
     }
 

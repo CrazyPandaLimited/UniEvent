@@ -8,6 +8,9 @@
 
 namespace panda { namespace unievent {
 
+struct ITcpListener     : IStreamListener     {};
+struct ITcpSelfListener : IStreamSelfListener {};
+
 struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     using TcpImpl = backend::TcpImpl;
     using Flags   = TcpImpl::Flags;

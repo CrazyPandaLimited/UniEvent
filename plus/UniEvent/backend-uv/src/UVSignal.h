@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVSignal : UVHandle<SignalImpl, uv_signal_t> {
-    UVSignal (UVLoop* loop, ISignalListener* lst) : UVHandle<SignalImpl, uv_signal_t>(loop, lst) {
+    UVSignal (UVLoop* loop, ISignalImplListener* lst) : UVHandle<SignalImpl, uv_signal_t>(loop, lst) {
         uvx_strict(uv_signal_init(loop->uvloop, &uvh));
     }
 

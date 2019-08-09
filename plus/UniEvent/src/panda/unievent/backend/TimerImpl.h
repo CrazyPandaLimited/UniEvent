@@ -3,12 +3,14 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct ITimerListener {
+struct ITimerImplListener {
     virtual void handle_timer () = 0;
 };
 
 struct TimerImpl : HandleImpl {
-    TimerImpl (LoopImpl* loop, ITimerListener* lst) : HandleImpl(loop), listener(lst) {}
+    ITimerImplListener* listener;
+
+    TimerImpl (LoopImpl* loop, ITimerImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual void     start  (uint64_t repeat, uint64_t initial) = 0;
     virtual void     stop   () noexcept = 0;
@@ -19,8 +21,6 @@ struct TimerImpl : HandleImpl {
     void handle_timer () noexcept {
         ltry([&]{ listener->handle_timer(); });
     }
-
-    ITimerListener* listener;
 };
 
 }}}

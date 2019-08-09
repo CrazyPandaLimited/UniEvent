@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
-    UVTcp (UVLoop* loop, IStreamListener* lst, int domain) : UVStream<TcpImpl, uv_tcp_t>(loop, lst) {
+    UVTcp (UVLoop* loop, IStreamImplListener* lst, int domain) : UVStream<TcpImpl, uv_tcp_t>(loop, lst) {
         if (domain == AF_UNSPEC) uvx_strict(uv_tcp_init(loop->uvloop, &uvh));
         else                     uvx_strict(uv_tcp_init_ex(loop->uvloop, &uvh, domain));
     }

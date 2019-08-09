@@ -81,15 +81,14 @@ void Signal::reset () {
 void Signal::clear () {
     stop();
     weak(false);
+    _listener = nullptr;
     event.remove_all();
 }
 
-void Signal::on_signal (int signum) {
-    event(this, signum);
-}
-
 void Signal::handle_signal (int signum) {
-    on_signal(signum);
+    SignalSP self = this;
+    event(self, signum);
+    if (_listener) _listener->on_signal(self, signum);
 }
 
 const panda::string& Signal::signame (int signum) {

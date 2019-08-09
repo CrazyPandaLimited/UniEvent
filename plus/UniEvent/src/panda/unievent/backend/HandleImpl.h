@@ -10,7 +10,7 @@ namespace panda { namespace unievent { namespace backend {
 struct HandleImpl {
     static constexpr const size_t MIN_ALLOC_SIZE = 1024;
 
-    uint64_t     id;
+    uint64_t  id;
     LoopImpl* loop;
 
     HandleImpl (LoopImpl* loop) : id(++last_id), loop(loop) {}
@@ -43,7 +43,7 @@ struct IRequestListener {
 };
 
 struct RequestImpl {
-    HandleImpl*    handle;
+    HandleImpl*       handle;
     IRequestListener* listener;
 
     RequestImpl (HandleImpl* h, IRequestListener* l) : handle(h), listener(l) { _ECTOR(); }

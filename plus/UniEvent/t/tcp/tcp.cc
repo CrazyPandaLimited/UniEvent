@@ -259,7 +259,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
     TcpSP server = make_ssl_server(test.loop);
     TcpSP sconn;
 
-    server->connection_factory = [&]() {
+    server->connection_factory = [&](auto) {
         sconn = new Tcp(test.loop);
         return sconn;
     };

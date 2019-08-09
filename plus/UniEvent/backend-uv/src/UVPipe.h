@@ -19,7 +19,7 @@ static inline optional<string> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
 }
 
 struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
-    UVPipe (UVLoop* loop, IStreamListener* lst, bool ipc) : UVStream<PipeImpl, uv_pipe_t>(loop, lst) {
+    UVPipe (UVLoop* loop, IStreamImplListener* lst, bool ipc) : UVStream<PipeImpl, uv_pipe_t>(loop, lst) {
         uvx_strict(uv_pipe_init(loop->uvloop, &uvh, ipc));
     }
 

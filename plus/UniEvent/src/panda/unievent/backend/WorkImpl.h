@@ -5,16 +5,16 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IWorkListener {
+struct IWorkImplListener {
     virtual void handle_work       () = 0;
     virtual void handle_after_work (const CodeError&) = 0;
 };
 
 struct WorkImpl {
-    LoopImpl*   loop;
-    IWorkListener* listener;
+    LoopImpl*          loop;
+    IWorkImplListener* listener;
 
-    WorkImpl (LoopImpl* loop, IWorkListener* lst) : loop(loop), listener(lst) { _ECTOR(); }
+    WorkImpl (LoopImpl* loop, IWorkImplListener* lst) : loop(loop), listener(lst) { _ECTOR(); }
 
     virtual void queue () = 0;
 

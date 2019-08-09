@@ -4,7 +4,7 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IUdpListener {
+struct IUdpImplListener {
     virtual string buf_alloc      (size_t cap) = 0;
     virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) = 0;
 };
@@ -23,7 +23,9 @@ struct UdpImpl : HandleImpl {
         JOIN_GROUP
     };
 
-    UdpImpl (LoopImpl* loop, IUdpListener* lst) : HandleImpl(loop), listener(lst) {}
+    IUdpImplListener* listener;
+
+    UdpImpl (LoopImpl* loop, IUdpImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual RequestImpl* new_send_request (IRequestListener*) = 0;
 
@@ -56,8 +58,6 @@ struct UdpImpl : HandleImpl {
     void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });
     }
-
-    IUdpListener* listener;
 };
 
 }}}

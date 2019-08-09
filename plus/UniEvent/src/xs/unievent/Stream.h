@@ -5,21 +5,6 @@
 #include "Request.h"
 #include <panda/unievent/Stream.h>
 
-namespace xs { namespace unievent {
-
-struct XSStream : virtual panda::unievent::Stream {
-    using Stream::Stream;
-protected:
-    void on_connection (const panda::unievent::StreamSP&, const panda::unievent::CodeError&) override;
-    void on_connect    (const panda::unievent::CodeError&, const panda::unievent::ConnectRequestSP&) override;
-    void on_read       (panda::string&, const panda::unievent::CodeError&) override;
-    void on_write      (const panda::unievent::CodeError&, const panda::unievent::WriteRequestSP&) override;
-    void on_shutdown   (const panda::unievent::CodeError&, const panda::unievent::ShutdownRequestSP&) override;
-    void on_eof        () override;
-};
-
-}}
-
 namespace xs {
 
 template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {

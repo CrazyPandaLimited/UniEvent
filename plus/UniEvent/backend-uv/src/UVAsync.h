@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVAsync : UVHandle<AsyncImpl, uv_async_t> {
-    UVAsync (UVLoop* loop, IAsyncListener* lst) : UVHandle<AsyncImpl, uv_async_t>(loop, lst) {
+    UVAsync (UVLoop* loop, IAsyncImplListener* lst) : UVHandle<AsyncImpl, uv_async_t>(loop, lst) {
         int err = uv_async_init(loop->uvloop, &uvh, [](uv_async_t* p){
             get_handle<UVAsync*>(p)->handle_async();
         });

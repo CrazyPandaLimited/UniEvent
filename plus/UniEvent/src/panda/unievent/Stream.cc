@@ -44,7 +44,14 @@ void Stream::handle_connection (const CodeError& err) {
 }
 
 void Stream::accept () {
-    accept(connection_factory ? connection_factory() : create_connection());
+    StreamSP self = this;
+    StreamSP client;
+    if (connection_factory) client = connection_factory(self);
+    else {
+        if (_listener) client = _listener->create_connection(self);
+        if (!client)   client = create_connection();
+    }
+    accept(client);
 }
 
 void Stream::accept (const StreamSP& client) {
@@ -69,11 +76,9 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
     auto& err = err1 ? err1 : err2;
     _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
     if (req) client->queue.done(req, []{});
-    on_connection(client, err);
-}
-
-void Stream::on_connection (const StreamSP& client, const CodeError& err) {
-    connection_event(this, client, err);
+    StreamSP self = this;
+    connection_event(self, client, err);
+    if (_listener) _listener->on_connection(self, client, err);
 }
 
 // ===================== CONNECT ===============================
@@ -95,7 +100,7 @@ void ConnectRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
 }
 
-void ConnectRequest::notify (const CodeError& err) { handle->on_connect(err, this); }
+void ConnectRequest::notify (const CodeError& err) { handle->notify_on_connect(err, this); }
 
 void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
     auto err2 = set_connect_result(!err1);
@@ -106,21 +111,22 @@ void Stream::finalize_handle_connect (const CodeError& err1, const ConnectReques
 
     // if we are already canceling queue now, do not start recursive cancel
     if (!err || queue.canceling()) {
-        queue.done(req, [=]{ on_connect(err, req); });
+        queue.done(req, [=]{ notify_on_connect(err, req); });
     }
     else { // cancel everything till the end of queue, but call connect callback with actual status(err), not with ECANCELED
         queue.cancel([&]{
-            queue.done(req, [=]{ on_connect(err, req); });
+            queue.done(req, [=]{ notify_on_connect(err, req); });
         }, [&]{
             _reset();
         });
     }
 }
 
-void Stream::on_connect (const CodeError& err, const ConnectRequestSP& req) {
+void Stream::notify_on_connect (const CodeError& err, const ConnectRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     connect_event(self, err, req);
+    if (_listener) _listener->on_connect(self, err, req);
 }
 
 // ===================== READ ===============================
@@ -145,11 +151,9 @@ void Stream::handle_read (string& buf, const CodeError& err) {
 }
 
 void Stream::finalize_handle_read (string& buf, const CodeError& err) {
-    on_read(buf, err);
-}
-
-void Stream::on_read (string& buf, const CodeError& err) {
-    read_event(this, buf, err);
+    StreamSP self = this;
+    read_event(self, buf, err);
+    if (_listener) _listener->on_read(self, buf, err);
 }
 
 // ===================== WRITE ===============================
@@ -181,17 +185,18 @@ void WriteRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
-void WriteRequest::notify (const CodeError& err) { handle->on_write(err, this); }
+void WriteRequest::notify (const CodeError& err) { handle->notify_on_write(err, this); }
 
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
-    queue.done(req, [=]{ on_write(err, req); });
+    queue.done(req, [=]{ notify_on_write(err, req); });
 }
 
-void Stream::on_write (const CodeError& err, const WriteRequestSP& req) {
+void Stream::notify_on_write (const CodeError& err, const WriteRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     write_event(self, err, req);
+    if (_listener) _listener->on_write(self, err, req);
 }
 
 // ===================== EOF ===============================
@@ -203,11 +208,9 @@ void Stream::handle_eof () {
 }
 
 void Stream::finalize_handle_eof () {
-    on_eof();
-}
-
-void Stream::on_eof () {
-    eof_event(this);
+    StreamSP self = this;
+    eof_event(self);
+    if (_listener) _listener->on_eof(self);
 }
 
 // ===================== SHUTDOWN ===============================
@@ -236,18 +239,19 @@ void ShutdownRequest::handle_event (const CodeError& err) {
     INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
 
-void ShutdownRequest::notify (const CodeError& err) { handle->on_shutdown(err, this); }
+void ShutdownRequest::notify (const CodeError& err) { handle->notify_on_shutdown(err, this); }
 
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
-    queue.done(req, [=]{ on_shutdown(err, req); });
+    queue.done(req, [=]{ notify_on_shutdown(err, req); });
 }
 
-void Stream::on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
+void Stream::notify_on_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     shutdown_event(self, err, req);
+    if (_listener) _listener->on_shutdown(self, err, req);
 }
 
 // ===================== DISCONNECT/RESET/CLEAR ===============================
@@ -286,8 +290,9 @@ void Stream::_clear () {
     BackendHandle::clear();
     invoke_sync(&StreamFilter::reset);
     _filters.clear();
-    flags = 0;
-    _wq_size = 0;
+    flags              = 0;
+    _wq_size           = 0;
+    _listener          = nullptr;
     buf_alloc_callback = nullptr;
     connection_factory = nullptr;
     connection_event.remove_all();

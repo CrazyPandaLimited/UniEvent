@@ -102,6 +102,18 @@ subtest 'file remove' => sub {
     check_call_cnt(1);
 };
 
+subtest 'event listener' => sub {
+    no warnings 'once';
+    my $cnt;
+    *MyLst::on_fs_poll = sub { $cnt += 10 };
+    my $h = new UE::FsPoll;
+    $h->event_listener(bless {}, 'MyLst');
+    $h->callback(sub { $cnt++; $l->stop });
+    $h->start(var 'file', 0.01);
+    $l->run;
+    is $cnt, 11, "listener&event called";
+};
+
 done_testing();
 
 sub check_err {

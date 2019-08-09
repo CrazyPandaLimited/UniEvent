@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVPrepare : UVHandle<PrepareImpl, uv_prepare_t> {
-    UVPrepare (UVLoop* loop, IPrepareListener* lst) : UVHandle<PrepareImpl, uv_prepare_t>(loop, lst) {
+    UVPrepare (UVLoop* loop, IPrepareImplListener* lst) : UVHandle<PrepareImpl, uv_prepare_t>(loop, lst) {
         uv_prepare_init(loop->uvloop, &uvh);
     }
 

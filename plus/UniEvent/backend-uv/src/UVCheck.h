@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVCheck : UVHandle<CheckImpl, uv_check_t> {
-    UVCheck (UVLoop* loop, ICheckListener* lst) : UVHandle<CheckImpl, uv_check_t>(loop, lst) {
+    UVCheck (UVLoop* loop, ICheckImplListener* lst) : UVHandle<CheckImpl, uv_check_t>(loop, lst) {
         uv_check_init(loop->uvloop, &uvh);
     }
 

@@ -4,6 +4,9 @@
 
 namespace panda { namespace unievent {
 
+struct ITtyListener     : IStreamListener     {};
+struct ITtySelfListener : IStreamSelfListener {};
+
 struct Tty : virtual Stream {
     using TtyImpl = backend::TtyImpl;
     using Mode       = TtyImpl::Mode;
@@ -17,16 +20,18 @@ struct Tty : virtual Stream {
 
     const HandleType& type () const override;
 
+    fd_t fd () const { return _fd; }
+
     virtual void    set_mode    (Mode);
     virtual WinSize get_winsize ();
 
 protected:
-    fd_t fd;
-
     StreamSP create_connection () override;
     void     on_reset          () override;
 
 private:
+    fd_t _fd;
+
     TtyImpl*    impl     () const { return static_cast<TtyImpl*>(BackendHandle::impl()); }
     HandleImpl* new_impl () override;
 };

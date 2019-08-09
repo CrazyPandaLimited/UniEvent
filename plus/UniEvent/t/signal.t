@@ -115,6 +115,19 @@ subtest 'watch' => sub {
     is $rcv, $signum
 };
 
+subtest 'event listener' => sub {
+    no warnings 'once';
+    my ($cnt, $rcv);
+    *MyLst::on_signal = sub { $cnt += 10; $rcv = $_[2] };
+    my $h = new UE::Signal;
+    $h->event_listener(bless {}, 'MyLst');
+    $h->callback(sub { $cnt++ });
+    
+    $h->call_now(SIGHUP);
+    is $cnt, 11, "listener&event called";
+    is $rcv, SIGHUP, "signal passed";
+};
+
 sub many {
     my $sub = shift;
     foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {

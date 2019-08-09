@@ -31,20 +31,20 @@ struct LoopImpl {
     virtual bool stopped     () const = 0;
     virtual void handle_fork () = 0;
 
-    virtual TimerImpl*   new_timer     (ITimerListener*)              = 0;
-    virtual PrepareImpl* new_prepare   (IPrepareListener*)            = 0;
-    virtual CheckImpl*   new_check     (ICheckListener*)              = 0;
-    virtual IdleImpl*    new_idle      (IIdleListener*)               = 0;
-    virtual AsyncImpl*   new_async     (IAsyncListener*)              = 0;
-    virtual SignalImpl*  new_signal    (ISignalListener*)             = 0;
-    virtual PollImpl*    new_poll_sock (IPollListener*, sock_t sock)  = 0;
-    virtual PollImpl*    new_poll_fd   (IPollListener*, int fd)       = 0;
-    virtual UdpImpl*     new_udp       (IUdpListener*, int domain)    = 0;
-    virtual PipeImpl*    new_pipe      (IStreamListener*, bool ipc)   = 0;
-    virtual TcpImpl*     new_tcp       (IStreamListener*, int domain) = 0;
-    virtual TtyImpl*     new_tty       (IStreamListener*, fd_t)       = 0;
-    virtual WorkImpl*    new_work      (IWorkListener*)               = 0;
-    virtual FsEventImpl* new_fs_event  (IFsEventListener*)            = 0;
+    virtual TimerImpl*   new_timer     (ITimerImplListener*)              = 0;
+    virtual PrepareImpl* new_prepare   (IPrepareImplListener*)            = 0;
+    virtual CheckImpl*   new_check     (ICheckImplListener*)              = 0;
+    virtual IdleImpl*    new_idle      (IIdleImplListener*)               = 0;
+    virtual AsyncImpl*   new_async     (IAsyncImplListener*)              = 0;
+    virtual SignalImpl*  new_signal    (ISignalImplListener*)             = 0;
+    virtual PollImpl*    new_poll_sock (IPollImplListener*, sock_t sock)  = 0;
+    virtual PollImpl*    new_poll_fd   (IPollImplListener*, int fd)       = 0;
+    virtual UdpImpl*     new_udp       (IUdpImplListener*, int domain)    = 0;
+    virtual PipeImpl*    new_pipe      (IStreamImplListener*, bool ipc)   = 0;
+    virtual TcpImpl*     new_tcp       (IStreamImplListener*, int domain) = 0;
+    virtual TtyImpl*     new_tty       (IStreamImplListener*, fd_t)       = 0;
+    virtual WorkImpl*    new_work      (IWorkImplListener*)               = 0;
+    virtual FsEventImpl* new_fs_event  (IFsEventImplListener*)            = 0;
 
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;
     virtual void     cancel_delay (uint64_t id) noexcept = 0;

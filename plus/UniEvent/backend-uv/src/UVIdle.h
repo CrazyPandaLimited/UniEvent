@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVIdle : UVHandle<IdleImpl, uv_idle_t> {
-    UVIdle (UVLoop* loop, IIdleListener* lst) : UVHandle<IdleImpl, uv_idle_t>(loop, lst) {
+    UVIdle (UVLoop* loop, IIdleImplListener* lst) : UVHandle<IdleImpl, uv_idle_t>(loop, lst) {
         uv_idle_init(loop->uvloop, &uvh);
     }
 

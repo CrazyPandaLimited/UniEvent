@@ -5,8 +5,21 @@
 
 namespace panda { namespace unievent {
 
-struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private backend::IWorkListener {
-    using WorkImpl   = backend::WorkImpl;
+struct IWorkListener {
+    virtual void on_work       (Work*)                           = 0;
+    virtual void on_after_work (const WorkSP&, const CodeError&) = 0;
+};
+
+struct IWorkSelfListener : IWorkListener {
+    virtual void on_work       ()                 = 0;
+    virtual void on_after_work (const CodeError&) = 0;
+private:
+    void on_work       (Work*)                               override { on_work(); }
+    void on_after_work (const WorkSP&, const CodeError& err) override { on_after_work(err); }
+};
+
+struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private backend::IWorkImplListener {
+    using WorkImpl      = backend::WorkImpl;
     using work_fn       = function<void(Work*)>;
     using after_work_fn = function<void(const WorkSP&, const CodeError&)>;
 
@@ -15,9 +28,12 @@ struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private
 
     static WorkSP queue (const work_fn&, const after_work_fn&, const LoopSP& = Loop::default_loop());
 
-    Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop), _impl(), _active() {}
+    Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop), _impl(), _listener(), _active() {}
 
     const LoopSP& loop () const { return _loop; }
+
+    IWorkListener* event_listener () const           { return _listener; }
+    void           event_listener (IWorkListener* l) { _listener = l; }
 
     virtual void queue  ();
     virtual bool cancel ();
@@ -26,14 +42,11 @@ struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private
         if (_impl) assert(_impl->destroy());
     }
 
-protected:
-    virtual void on_work       ();
-    virtual void on_after_work (const CodeError& err);
-
 private:
-    LoopSP       _loop;
-    WorkImpl* _impl;
-    bool         _active;
+    LoopSP         _loop;
+    WorkImpl*      _impl;
+    IWorkListener* _listener;
+    bool           _active;
 
     void handle_work       () override;
     void handle_after_work (const CodeError& err) override;

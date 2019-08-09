@@ -5,7 +5,7 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IStreamListener {
+struct IStreamImplListener {
     virtual string buf_alloc         (size_t cap) = 0;
     virtual void   handle_connection (const CodeError&) = 0;
     virtual void   handle_read       (string&, const CodeError&) = 0;
@@ -17,7 +17,9 @@ struct WriteRequestImpl    : RequestImpl { using RequestImpl::RequestImpl; };
 struct ShutdownRequestImpl : RequestImpl { using RequestImpl::RequestImpl; };
 
 struct StreamImpl : HandleImpl {
-    StreamImpl (LoopImpl* loop, IStreamListener* lst) : HandleImpl(loop), listener(lst) {}
+    IStreamImplListener* listener;
+
+    StreamImpl (LoopImpl* loop, IStreamImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual ConnectRequestImpl*  new_connect_request  (IRequestListener*) = 0;
     virtual WriteRequestImpl*    new_write_request    (IRequestListener*) = 0;
@@ -54,8 +56,6 @@ struct StreamImpl : HandleImpl {
     void handle_eof () noexcept {
         ltry([&]{ listener->handle_eof(); });
     }
-
-    IStreamListener* listener;
 };
 
 }}}

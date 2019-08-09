@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVTimer : UVHandle<TimerImpl, uv_timer_t> {
-    UVTimer (UVLoop* loop, ITimerListener* lst) : UVHandle<TimerImpl, uv_timer_t>(loop, lst) {
+    UVTimer (UVLoop* loop, ITimerImplListener* lst) : UVHandle<TimerImpl, uv_timer_t>(loop, lst) {
         uv_timer_init(loop->uvloop, &uvh);
     }
 

@@ -11,7 +11,7 @@ struct TtyImpl : StreamImpl {
         int height;
     };
 
-    TtyImpl (LoopImpl* loop, IStreamListener* lst) : StreamImpl(loop, lst) {}
+    TtyImpl (LoopImpl* loop, IStreamImplListener* lst) : StreamImpl(loop, lst) {}
 
     virtual void    set_mode    (Mode) = 0;
     virtual WinSize get_winsize ()     = 0;

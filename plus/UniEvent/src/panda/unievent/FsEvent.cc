@@ -23,14 +23,13 @@ void FsEvent::reset () {
 
 void FsEvent::clear () {
     impl()->stop();
-    event.remove_all();
     weak(false);
+    _listener = nullptr;
+    event.remove_all();
 }
 
 void FsEvent::handle_fs_event (const string_view& file, int events, const CodeError& err) {
-    on_fs_event(file, events, err);
-}
-
-void FsEvent::on_fs_event (const string_view& file, int events, const CodeError& err) {
-    event(this, file, events, err);
+    FsEventSP self = this;
+    event(self, file, events, err);
+    if (_listener) _listener->on_fs_event(self, file, events, err);
 }

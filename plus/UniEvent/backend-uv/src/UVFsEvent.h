@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 struct UVFsEvent : UVHandle<FsEventImpl, uv_fs_event_t> {
-    UVFsEvent (UVLoop* loop, IFsEventListener* lst) : UVHandle<FsEventImpl, uv_fs_event_t>(loop, lst) {
+    UVFsEvent (UVLoop* loop, IFsEventImplListener* lst) : UVHandle<FsEventImpl, uv_fs_event_t>(loop, lst) {
         uvx_strict(uv_fs_event_init(loop->uvloop, &uvh));
     }
 

@@ -23,13 +23,12 @@ void Idle::reset () {
 void Idle::clear () {
     impl()->stop();
     weak(false);
+    _listener = nullptr;
     event.remove_all();
 }
 
-void Idle::on_idle () {
-    event(this);
-}
-
 void Idle::handle_idle () {
-    on_idle();
+    IdleSP self = this;
+    event(self);
+    if (_listener) _listener->on_idle(self);
 }

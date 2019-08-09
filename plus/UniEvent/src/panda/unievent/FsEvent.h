@@ -4,7 +4,17 @@
 
 namespace panda { namespace unievent {
 
-struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
+struct IFsEventListener {
+    virtual void on_fs_event (const FsEventSP&, const string_view& file, int events, const CodeError&) = 0;
+};
+
+struct IFsEventSelfListener : IFsEventListener {
+    virtual void on_fs_event (const string_view& file, int events, const CodeError&) = 0;
+private:
+    void on_fs_event (const FsEventSP&, const string_view& file, int events, const CodeError& err) override { on_fs_event(file, events, err); }
+};
+
+struct FsEvent : virtual BackendHandle, private backend::IFsEventImplListener {
     using FsEventImpl   = backend::FsEventImpl;
     using Event         = FsEventImpl::Event;
     using Flags         = FsEventImpl::Flags;
@@ -13,11 +23,14 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
     
     CallbackDispatcher<fs_event_fptr> event;
 
-    FsEvent (const LoopSP& loop = Loop::default_loop()) {
+    FsEvent (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_fs_event(this));
     }
 
     const HandleType& type () const override;
+
+    IFsEventListener* event_listener () const              { return _listener; }
+    void              event_listener (IFsEventListener* l) { _listener = l; }
 
     const string& path () const { return _path; }
 
@@ -29,11 +42,9 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventListener {
 
     static const HandleType TYPE;
 
-protected:
-    virtual void on_fs_event (const string_view& file, int events, const CodeError&);
-
 private:
-    string _path;
+    string            _path;
+    IFsEventListener* _listener;
 
     void handle_fs_event (const string_view& file, int events, const CodeError&) override;
 

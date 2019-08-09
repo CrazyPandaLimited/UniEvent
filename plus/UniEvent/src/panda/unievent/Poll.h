@@ -4,7 +4,17 @@
 
 namespace panda { namespace unievent {
 
-struct Poll : virtual BackendHandle, private backend::IPollListener {
+struct IPollListener {
+    virtual void on_poll (const PollSP&, int events, const CodeError&) = 0;
+};
+
+struct IPollSelfListener : IPollListener {
+    virtual void on_poll (int events, const CodeError&) = 0;
+private:
+    void on_poll (const PollSP&, int events, const CodeError& err) override { on_poll(events, err); }
+};
+
+struct Poll : virtual BackendHandle, private backend::IPollImplListener {
     using poll_fptr = void(const PollSP& handle, int events, const CodeError& err);
     using poll_fn = panda::function<poll_fptr>;
 
@@ -21,11 +31,10 @@ struct Poll : virtual BackendHandle, private backend::IPollListener {
     Poll (Socket sock, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
     Poll (Fd       fd, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
 
-    ~Poll () {
-        _EDTOR();
-    }
-
     const HandleType& type () const override;
+
+    IPollListener* event_listener () const           { return _listener; }
+    void           event_listener (IPollListener* l) { _listener = l; }
 
     virtual void start (int events, poll_fn callback = nullptr);
     virtual void stop  ();
@@ -33,16 +42,15 @@ struct Poll : virtual BackendHandle, private backend::IPollListener {
     void reset () override;
     void clear () override;
 
-    void call_now (int events, const CodeError& err) { on_poll(events, err); }
+    void call_now (int events, const CodeError& err) { handle_poll(events, err); }
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
     static const HandleType TYPE;
 
-protected:
-    virtual void on_poll (int events, const CodeError& err);
-
 private:
+    IPollListener* _listener;
+
     void handle_poll (int events, const CodeError& err) override;
 
     backend::PollImpl* impl () const { return static_cast<backend::PollImpl*>(_impl); }

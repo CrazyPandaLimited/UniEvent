@@ -3,12 +3,14 @@
 
 namespace panda { namespace unievent { namespace backend {
 
-struct IPollListener {
+struct IPollImplListener {
     virtual void handle_poll (int events, const CodeError& err) = 0;
 };
 
 struct PollImpl : HandleImpl {
-    PollImpl (LoopImpl* loop, IPollListener* lst) : HandleImpl(loop), listener(lst) {}
+    IPollImplListener* listener;
+
+    PollImpl (LoopImpl* loop, IPollImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
     virtual optional<fh_t> fileno () const = 0;
 
@@ -18,8 +20,6 @@ struct PollImpl : HandleImpl {
     void handle_poll (int events, const CodeError& err) noexcept {
         ltry([&]{ listener->handle_poll(events, err); });
     }
-
-    IPollListener* listener;
 };
 
 }}}

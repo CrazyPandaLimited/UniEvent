@@ -23,13 +23,12 @@ void Prepare::reset () {
 void Prepare::clear () {
     impl()->stop();
     weak(false);
+    _listener = nullptr;
     event.remove_all();
 }
 
-void Prepare::on_prepare () {
-    event(this);
-}
-
 void Prepare::handle_prepare () {
-    on_prepare();
+    PrepareSP self = this;
+    event(self);
+    if (_listener) _listener->on_prepare(self);
 }

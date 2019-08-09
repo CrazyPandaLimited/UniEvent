@@ -16,7 +16,7 @@
 
 namespace panda { namespace unievent {
 
-struct Resolver : Refcnt, private backend::ITimerListener {
+struct Resolver : Refcnt, private backend::ITimerImplListener {
     static constexpr uint64_t DEFAULT_RESOLVE_TIMEOUT       = 5000;  // [ms]
     static constexpr uint32_t DEFAULT_CACHE_EXPIRATION_TIME = 20*60; // [s]
     static constexpr size_t   DEFAULT_CACHE_LIMIT           = 10000; // [records]
@@ -123,7 +123,7 @@ private:
     using BTimer = backend::TimerImpl;
     using BPoll  = backend::PollImpl;
 
-    struct Worker : private backend::IPollListener {
+    struct Worker : private backend::IPollImplListener {
         Worker (Resolver*);
         virtual ~Worker ();
 
