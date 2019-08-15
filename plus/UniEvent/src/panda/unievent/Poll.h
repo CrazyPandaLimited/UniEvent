@@ -42,7 +42,7 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
     void reset () override;
     void clear () override;
 
-    void call_now (int events, const CodeError& err) { handle_poll(events, err); }
+    void call_now (int events, const CodeError& err = {}) { handle_poll(events, err); }
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
