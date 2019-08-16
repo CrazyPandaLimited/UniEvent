@@ -7,6 +7,8 @@
 
 namespace panda { namespace unievent {
 
+log::Module resolver_log_module("EachResolve", log::Level::Warning);
+
 Resolver::Worker::Worker (Resolver* r) : resolver(r), ares_async() {
     panda_log_verbose_debug(this << " new for resolver " << r);
 
@@ -182,7 +184,8 @@ void Resolver::add_worker () {
 
 void Resolver::resolve (const RequestSP& req) {
     if (req->_port) req->_service = string::from_number(req->_port);
-    panda_log_verbose_debug(this << " req:" << req.get() << " [" << req->_node << ":" << req->_service << "] use_cache:" << req->_use_cache);
+    panda_log_m(resolver_log_module, log::Level::Debug,
+                this << " req:" << req.get() << " [" << req->_node << ":" << req->_service << "] use_cache:" << req->_use_cache);
     req->_resolver = this;
     req->running   = true;
     req->loop      = _loop; // keep loop (for loop resolvers)
@@ -231,7 +234,8 @@ void Resolver::resolve (const RequestSP& req) {
 
 void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError& err) {
     if (!req->running) return;
-    panda_log_verbose_debug(this << " request:" << req.get() << " err:" << err.what());
+    panda_log_m(resolver_log_module, log::Level::Debug,
+                this << " req done:" << req.get() << " [" << req->_node << ":" << req->_service << "], err:" << err.what());
 
     if (req->delayed) {
         loop()->cancel_delay(req->delayed);
@@ -327,12 +331,12 @@ void Resolver::reset () {
 AddrInfo Resolver::find (const string& node, const string& service, const AddrInfoHints& hints) {
     auto it = cache.find({node, service, hints});
     if (it != cache.end()) {
-        panda_log_verbose_debug(this << " found in cache " << node);
+        panda_log_m(resolver_log_module, log::Level::Debug, this << " found in cache " << node);
 
         time_t now = time(0);
         if (!it->second.expired(now, cfg.cache_expiration_time)) return it->second.address;
 
-        panda_log_verbose_debug(this << " expired " << node);
+        panda_log_m(resolver_log_module, log::Level::Debug,this << " expired " << node);
         cache.erase(it);
     }
     return {};
