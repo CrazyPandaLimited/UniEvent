@@ -8,7 +8,7 @@
 namespace xs {
 
 template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
-    static SSL_CTX* in (pTHX_ SV* arg) {
+    static SSL_CTX* in (SV* arg) {
         if (!SvOK(arg)) return nullptr;
         return reinterpret_cast<SSL_CTX*>(SvIV(arg));
     }

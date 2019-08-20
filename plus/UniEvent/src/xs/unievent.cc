@@ -74,7 +74,7 @@ namespace xs {
 
 static inline void throw_bad_hints () { throw "argument is not a valid AddrInfoHints"; }
 
-AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
+AddrInfoHints Typemap<AddrInfoHints>::in (SV* arg) {
     if (!SvOK(arg)) return AddrInfoHints();
 
     if (SvPOK(arg)) {
@@ -96,7 +96,7 @@ AddrInfoHints Typemap<AddrInfoHints>::in (pTHX_ SV* arg) {
     return ret;
 }
 
-Sv Typemap<Fs::Stat>::out (pTHX_ const Fs::Stat& s, const Sv&) {
+Sv Typemap<Fs::Stat>::out (const Fs::Stat& s, const Sv&) {
     return Ref::create(Array::create({
         Simple(s.dev),
         Simple(s.ino),
@@ -119,7 +119,7 @@ Sv Typemap<Fs::Stat>::out (pTHX_ const Fs::Stat& s, const Sv&) {
     }));
 }
 
-Fs::Stat Typemap<Fs::Stat>::in (pTHX_ const Array& a) {
+Fs::Stat Typemap<Fs::Stat>::in (const Array& a) {
     Fs::Stat ret;
     ret.dev       = Simple(a[0]);
     ret.ino       = Simple(a[1]);
@@ -140,14 +140,14 @@ Fs::Stat Typemap<Fs::Stat>::in (pTHX_ const Array& a) {
     return ret;
 }
 
-Sv Typemap<Fs::DirEntry>::out (pTHX_ const Fs::DirEntry& de, const Sv&) {
+Sv Typemap<Fs::DirEntry>::out (const Fs::DirEntry& de, const Sv&) {
     return Ref::create(Array::create({
         Simple(de.name()),
         Simple((int)de.type())
     }));
 }
 
-Fs::DirEntry Typemap<Fs::DirEntry>::in (pTHX_ const Array& a) {
+Fs::DirEntry Typemap<Fs::DirEntry>::in (const Array& a) {
     return Fs::DirEntry(Simple(a[0]).as_string(), (Fs::FileType)(int)Simple(a[1]));
 }
 
