@@ -31,8 +31,8 @@ AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, co
 }
 
 net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& hints) {
-    if (hints.family == AF_INET6) return SockAddr::Inet6(SockAddr::Inet6::ADDR_ANY, port);
-    else                          return SockAddr::Inet4(SockAddr::Inet4::ADDR_ANY, port);
+    if (hints.family == AF_INET6) return SockAddr::Inet6(SockAddr::Inet6::addr_any, port);
+    else                          return SockAddr::Inet4(SockAddr::Inet4::addr_any, port);
 }
 
 int getpid  () { return uv_os_getpid(); }
