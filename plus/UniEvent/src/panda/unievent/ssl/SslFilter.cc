@@ -171,8 +171,7 @@ int SslFilter::negotiate () {
         _ESSL("ssl finished, pending = %li", pending);
         if (wreq) { // negotiation finished on my last write -> call negotiation_finished() later with results for wreq
             wreq->final = true;
-            if (!pending) subreq_write(source_request, wreq);
-            else negotiation_finished(SSLError(SSL_ERROR_SSL)); // there should be no ongoing data because client hasn't yet received wreq
+            subreq_write(source_request, wreq);
             return 0;
         } else {
             negotiation_finished();
@@ -245,14 +244,19 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
         }
         return;
     }
-
     SslBio::set_buf(read_bio, encbuf);
 
     _EDEBUG("connecting %d, err %s", connecting, err.what());
 
-    int pending = encbuf.length();
+    auto was_in_read = BIO_ctrl(read_bio, BIO_CTRL_PENDING, 0, nullptr);
+    int pending = was_in_read + encbuf.length();
     if (connecting) pending = negotiate();
     if (!pending) return;
+
+    if (state == State::negotiating) { // SSL_is_init_finished but we are waiting for handle_write to finish negotiation
+        // data has alrready collected by SslBio::set_buf(read_bio, encbuf);
+        return;
+    }
 
     // TODO: prevent buf_alloc for last fake read (when -1 returned)
     string decbuf;
@@ -320,7 +324,14 @@ void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
     }
     else { // negotiation
         if (err) return negotiation_finished(err);
-        if (sslreq->final) negotiation_finished(); // delayed negotiation_finished() for server with the results of last write request
+        if (sslreq->final) {
+            negotiation_finished(); // delayed negotiation_finished() for server with the results of last write request
+            auto has_messge = BIO_ctrl(read_bio, BIO_CTRL_PENDING, 0, nullptr);
+            if (has_messge) {
+                string fake;
+                handle_read(fake, {});
+            }
+        }
     }
 }
 
