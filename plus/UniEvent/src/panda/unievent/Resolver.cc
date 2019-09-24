@@ -31,7 +31,6 @@ Resolver::Worker::Worker (Resolver* r) : resolver(r), ares_async() {
 }
 
 Resolver::Worker::~Worker () {
-    panda_log_verbose_debug(this);
     ares_destroy(channel);
     for (auto& row : polls) row.second->destroy();
 }
@@ -162,7 +161,6 @@ Resolver::Resolver (const Config& cfg, Loop* loop) : _loop(loop), cfg(cfg) {
 }
 
 Resolver::~Resolver () {
-    panda_log_verbose_debug(this);
     for (auto& w : workers) assert(!w || !w->request);
     assert(!queue.size());
     dns_roll_timer->destroy();
