@@ -415,3 +415,32 @@ TEST_CASE("disconnection should be caught as EOF", "[tcp]") {
     p.client->disconnect();
     test.run();
 }
+
+TEST_CASE("disconnect during ssl handshake", "[tcp][v-ssl]") {
+    AsyncTest test(2000, {"done"});
+    CallbackDispatcher<void()> killed;
+
+    struct TcpTracer : Tcp {
+        CallbackDispatcher<void()>& killed;
+
+        TcpTracer(CallbackDispatcher<void()>& killed, LoopSP loop) : Tcp(loop), killed(killed) {}
+
+        ~TcpTracer() {
+            killed();
+
+        }
+    };
+
+    TcpSP server = make_server(test.loop);
+    SockAddr sa = server->sockaddr();
+
+    TcpSP client = new Tcp(test.loop, AF_INET);
+    client->connect(sa);
+
+    server->connection_factory = [&](auto&){
+        client->reset();
+        return new TcpTracer(killed, test.loop);
+    };
+
+    test.await(killed, "done");
+}

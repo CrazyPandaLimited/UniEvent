@@ -201,7 +201,7 @@ void Stream::notify_on_write (const CodeError& err, const WriteRequestSP& req) {
 
 // ===================== EOF ===============================
 void Stream::handle_eof () {
-    if (!in_connected()) return;
+    if (!established()) return;
     clear_in_connected();
     HOLD_ON(this);
     INVOKE(this, _filters.back(), handle_eof, finalize_handle_eof);
