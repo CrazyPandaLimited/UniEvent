@@ -325,6 +325,11 @@ void Stream::add_filter (const StreamFilterSP& filter) {
     else _filters.push_back(filter);
 }
 
+void Stream::remove_filter (const StreamFilterSP& filter) {
+    if (connecting() || connected()) throw Error("can't remove filter when connecting or connected");
+    _filters.erase(filter);
+}
+
 StreamFilterSP Stream::get_filter (const void* type) const {
     for (const auto& f : _filters) if (f->type() == type) return f;
     return {};
@@ -338,6 +343,12 @@ bool Stream::is_secure () const { return get_filter(SslFilter::TYPE); }
 SSL* Stream::get_ssl () const {
     auto filter = get_filter<SslFilter>();
     return filter ? filter->get_ssl() : nullptr;
+}
+
+void Stream::no_ssl () {
+    auto filter = get_filter<SslFilter>();
+    if (!filter) return;
+    remove_filter(filter);
 }
 
 }}

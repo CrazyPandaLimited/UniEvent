@@ -110,11 +110,13 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
 
     void use_ssl (SSL_CTX* context);
     void use_ssl (const SSL_METHOD* method = nullptr);
+    void no_ssl  ();
 
     SSL* get_ssl   () const;
     bool is_secure () const;
 
-    void add_filter (const StreamFilterSP&);
+    void add_filter    (const StreamFilterSP&);
+    void remove_filter (const StreamFilterSP&);
 
     template <typename F>
     iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
