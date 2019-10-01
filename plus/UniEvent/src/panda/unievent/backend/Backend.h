@@ -6,7 +6,7 @@ namespace panda { namespace unievent { namespace backend {
 
 struct Backend {
 
-    panda::string name () const { return _name; }
+    const panda::string& name () const { return _name; }
 
     virtual LoopImpl* new_loop (LoopImpl::Type type) = 0;
 
