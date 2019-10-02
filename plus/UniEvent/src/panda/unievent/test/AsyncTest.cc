@@ -28,7 +28,9 @@ SockAddr AsyncTest::get_blackhole_addr () {
     addrinfo* res;
     int syserr = getaddrinfo("google.com", "81", NULL, &res);
     if (syserr) throw std::system_error(std::make_error_code(((std::errc)syserr)));
-    return res->ai_addr;
+    SockAddr result = res->ai_addr;
+    freeaddrinfo(res);
+    return result;
 }
 
 AsyncTest::AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
