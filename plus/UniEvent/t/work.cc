@@ -7,7 +7,7 @@ TEST_CASE("work", "[work]") {
     SECTION("main") {
         test.set_expected({"w", "aw"});
         auto main_id = std::this_thread::get_id();
-        w->work_cb = [&](const WorkSP&) {
+        w->work_cb = [&](Work*) {
             CHECK(std::this_thread::get_id() != main_id);
             test.happens("w");
         };
@@ -22,14 +22,14 @@ TEST_CASE("work", "[work]") {
 
     SECTION("cancel") {
         SECTION("not active") {
-            w->work_cb       = [&](const WorkSP&) { FAIL(); };
+            w->work_cb       = [&](Work*) { FAIL(); };
             w->after_work_cb = [&](const WorkSP&, const CodeError&) { FAIL(); };
             w->cancel();
             test.run(); // noop
         }
         SECTION("active") {
             test.set_expected(1);
-            w->work_cb       = [&](const WorkSP&) {};
+            w->work_cb       = [&](Work*) {};
             w->after_work_cb = [&](const WorkSP&, const CodeError& err) {
                 CHECK(err.code() == std::errc::operation_canceled);
                 test.happens();
@@ -43,7 +43,7 @@ TEST_CASE("work", "[work]") {
     SECTION("factory") {
         test.set_expected(2);
         auto r = Work::queue(
-            [&](const WorkSP&) { test.happens(); },
+            [&](Work*) { test.happens(); },
             [&](const WorkSP&, const CodeError&) { test.happens(); },
             test.loop
         );
