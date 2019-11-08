@@ -45,7 +45,6 @@ inline void BackendHandle::reset () {
     if (!_impl) return;
     _impl->destroy();
     _impl = nullptr;
-    if (weak()) _impl->set_weak(); // preserve weak
 }
 
 inline void BackendHandle::clear () {
