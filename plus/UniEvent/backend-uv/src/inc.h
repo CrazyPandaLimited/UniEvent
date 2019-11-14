@@ -29,6 +29,10 @@ static inline void uvx_buf_alloc (string& buf, uv_buf_t* uvbuf) {
 
     auto availcap = cap - sizeof(string);
 
+    //TODO: optimize me. writing in the end is bad. size is usually 64k, which is 16 pages.
+    //data size is usually less than 4k and can be stored in one page, but writing in the and always needs 2 pagees: first and last
+    //buf.data() is not aligned because of string internal data, so align it before writeing
+    //also align ptr data + sizeof(string) in case of odd size of string itself
     new ((string*)(ptr + availcap)) string(buf); // save string object at the end of the buffer, keeping it's internal ptr alive
 
     uvbuf->base = ptr;
