@@ -79,3 +79,5 @@ void _bench_loop_iter (int cnt) {
     auto l = Loop::default_loop();
     for (int i = 0; i < cnt; ++i) l->run_nowait();
 }
+
+INCLUDE: BenchTcp.xsi
