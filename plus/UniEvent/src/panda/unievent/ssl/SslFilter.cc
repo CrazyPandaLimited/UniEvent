@@ -302,6 +302,7 @@ void SslFilter::write (const WriteRequestSP& req) {
         if (res <= 0) {
             // TODO: handle renegotiation status
             _ESSL("ssl failed");
+            SSLError error(SSL_ERROR_SSL);
             req->delay([weak_req=req.get(), error, this]{ NextFilter::handle_write(error, weak_req); });
             return;
         }
