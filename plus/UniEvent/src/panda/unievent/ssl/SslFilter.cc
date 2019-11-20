@@ -302,7 +302,7 @@ void SslFilter::write (const WriteRequestSP& req) {
         if (res <= 0) {
             // TODO: handle renegotiation status
             _ESSL("ssl failed");
-            req->delay([&]{ NextFilter::handle_write(SSLError(SSL_ERROR_SSL), req); });
+            req->delay([weak_req=req.get(), error, this]{ NextFilter::handle_write(error, weak_req); });
             return;
         }
         string buf = SslBio::steal_buf(write_bio);
