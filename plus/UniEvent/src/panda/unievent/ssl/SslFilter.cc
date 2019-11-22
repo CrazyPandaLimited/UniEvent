@@ -259,8 +259,8 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
     }
 
     // TODO: prevent buf_alloc for last fake read (when -1 returned)
-    string decbuf;
     int ret;
+    string decbuf = handle->buf_alloc(pending);
     while (1) {
         if (state == State::initial) return; // handle has been reset in negotiate() or handle_read()
         if (decbuf.use_count() > 1) decbuf = handle->buf_alloc(pending); // or it will detach with default allocator
@@ -269,6 +269,9 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
         if (ret <= 0) break;
         decbuf.length(ret);
         NextFilter::handle_read(decbuf, err);
+        if (!handle->wantread()) {
+            return;
+        }
     }
 
     int ssl_code = SSL_get_error(ssl, ret);

@@ -444,3 +444,40 @@ TEST_CASE("disconnect during ssl handshake", "[tcp][v-ssl]") {
 
     test.await(killed, "done");
 }
+
+TEST_CASE("no on_read after read_stop", "[tcp][v-ssl][v-buf]") {
+    variation.ssl = true;
+    AsyncTest test(2000, {"conn", "read", "read"});
+    TcpSP server = make_server(test.loop);
+    TcpSP client = make_client(test.loop);
+    TcpSP sconn;
+
+    server->connection_event.add([&](const StreamSP&, const StreamSP& cl, const CodeError& err) {
+        REQUIRE_FALSE(err);
+        sconn = dynamic_pointer_cast<Tcp>(cl);
+        cl->read_stop();
+    });
+
+    client->connect(server->sockaddr());
+    test.await(server->connection_event, "conn");
+
+    //idea: read 2 ssl packends in one tcp read
+    //tcp uses Nagle's algorithm: the first message would be sent immediately, but ths second would wait for new messages for some shor timeout
+    //so the third would be sent in batch with the second and hopefully it would be read the same way
+    client->write("01");
+    test.wait(1);  // to prevent from UniEvent write batching
+    client->write("ab");
+    test.wait(1); // to prevent from UniEvent write batching
+    client->write("cd");
+    client->shutdown();
+
+    sconn->read_start();
+    sconn->read_event.add([&](const StreamSP&, string& msg, const CodeError& err){
+        if (msg.size() >= 2 && msg.substr(0,2) == "ab") sconn->read_stop();
+        test.happens("read");
+        test.loop->stop();
+    });
+    test.run();
+
+    test.wait(10); //just in case of dangling messages
+}
