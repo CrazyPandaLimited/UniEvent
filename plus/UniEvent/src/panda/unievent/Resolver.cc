@@ -4,10 +4,24 @@
 #include <algorithm>
 #include <functional>
 #include <panda/log.h>
+#include <panda/net/sockaddr.h>
 
 namespace panda { namespace unievent {
 
 log::Module resolver_log_module("EachResolve", log::Level::Warning);
+
+static void log_socket(const sock_t& sock) {
+    net::SockAddr sock_peer, sock_from;
+    struct sockaddr_storage sa;
+    socklen_t sa_len = sizeof(sa);
+    if (getpeername(sock, (sockaddr*)&sa, &sa_len) != -1) {
+        sock_peer = (sockaddr*)&sa;
+    }
+    if (getsockname(sock, (sockaddr*)&sa, &sa_len) != -1) {
+        sock_from = (sockaddr*)&sa;
+    }
+    panda_log_m(resolver_log_module, log::Level::VerboseDebug, "sock from: " << sock_from << ", to: " << sock_peer);
+}
 
 Resolver::Worker::Worker (Resolver* r) : resolver(r), ares_async() {
     panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " new for resolver " << r);
@@ -37,6 +51,7 @@ Resolver::Worker::~Worker () {
 
 void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
     panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " resolver:" << resolver << " sock:" << sock << " mysocks:" << polls.size() << " read:" << read << " write:" << write);
+    log_socket(sock);
 
     auto it = polls.find(sock);
     auto poll = (it == polls.end()) ? nullptr : it->second;
@@ -62,7 +77,10 @@ void Resolver::Worker::handle_poll (int events, const CodeError& err) {
     sock_t socks[sz];
     size_t i = 0;
     for (const auto& row : polls) socks[i++] = row.first;
-    for (i = 0; i < sz; ++i) ares_process_fd(channel, socks[i], socks[i]);
+    for (i = 0; i < sz; ++i) {
+        ares_process_fd(channel, socks[i], socks[i]);
+        log_socket(socks[i]);
+    }
     if (exc) std::rethrow_exception(std::move(exc));
 }
 
