@@ -51,8 +51,11 @@ for my $i (0..$#primes) {
 
 my %udp_by_num;
 for my $num (0 .. $#primes) {
-    my $udp = new UniEvent::Udp;
-    $udp->bind_addr(SA_LOOPBACK_ANY);
+    my $udp;
+    do {
+        $udp = new UniEvent::Udp;
+        $udp->bind_addr(SA_LOOPBACK_ANY);
+    } until ($udp->sockaddr->port != 53); # blacklist DNS port
     my $prime = $primes[$num];
     $udp_by_num{$prime} = $udp;
     $udp->recv_start(sub {
