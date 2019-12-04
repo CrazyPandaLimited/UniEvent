@@ -68,17 +68,25 @@ void TcpConnectRequest::finalize_connect () {
         return;
     }
 
-    resolve_request = handle->loop()->resolver()->resolve()
-        ->node(host)
-        ->port(port)
-        ->hints(hints)
-        ->use_cache(cached)
-        ->on_resolve([this](const AddrInfo& res, const CodeError& res_err, const Resolver::RequestSP) {
-            resolve_request = nullptr;
-            if (res_err) return cancel(res_err);
-            auto err = handle->impl()->connect(res.addr(), impl());
-            if (err) cancel(err);
-        });
+    if (!resolve_request) {
+        resolve_request = handle->loop()->resolver()->resolve();
+    }
+    if (host) {
+        resolve_request->node(host);
+    }
+    if (port) {
+        resolve_request->port(port);
+    }
+
+    resolve_request
+       ->hints(hints)
+       ->use_cache(cached)
+       ->on_resolve([this](const AddrInfo& res, const CodeError& res_err, const Resolver::RequestSP) {
+           resolve_request = nullptr;
+           if (res_err) return cancel(res_err);
+           auto err = handle->impl()->connect(res.addr(), impl());
+           if (err) cancel(err);
+       });
     resolve_request->run();
 }
 

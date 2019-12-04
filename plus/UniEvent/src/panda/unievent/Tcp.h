@@ -78,6 +78,7 @@ struct TcpConnectRequest : ConnectRequest, AllocatedObject<TcpConnectRequest> {
     }
 
     TcpConnectRequestSP to         (const net::SockAddr& val)      { addr = val; return this; }
+    TcpConnectRequestSP to         (const Resolver::RequestSP& val){ resolve_request = val; return this; }
     TcpConnectRequestSP timeout    (uint64_t val)                  { this->ConnectRequest::timeout = val; return this; }
     TcpConnectRequestSP on_connect (const Stream::connect_fn& val) { event.add(val); return this; }
     TcpConnectRequestSP use_cache  (bool val)                      { cached = val; return this; }

@@ -472,7 +472,7 @@ TEST_CASE("no on_read after read_stop", "[tcp][v-ssl][v-buf]") {
     client->shutdown();
 
     sconn->read_start();
-    sconn->read_event.add([&](const StreamSP&, string& msg, const CodeError& err){
+    sconn->read_event.add([&](const StreamSP&, string& msg, const CodeError&){
         if (msg.size() >= 2 && msg.substr(0,2) == "ab") sconn->read_stop();
         test.happens("read");
         test.loop->stop();
@@ -480,4 +480,31 @@ TEST_CASE("no on_read after read_stop", "[tcp][v-ssl][v-buf]") {
     test.run();
 
     test.wait(10); //just in case of dangling messages
+}
+
+TEST_CASE("connect with resolv request", "[tcp][v-ssl][v-buf]") {
+    AsyncTest test(2000, {"resolve", "connection"});
+    TcpSP server = make_server(test.loop);
+    net::SockAddr sa = server->sockaddr();
+
+    TcpSP client = make_client(test.loop);
+    Resolver::RequestSP res_req = new Resolver::Request(test.loop->resolver());
+    res_req->on_resolve([&](const AddrInfo&, const CodeError&, const Resolver::RequestSP&){
+        test.happens("resolve");
+    });
+    TcpConnectRequestSP con_req = client->connect();
+    SECTION("host in") {
+        res_req->node(sa.ip())->port(sa.port());
+    }
+    SECTION("host overwirite") {
+        con_req->to(sa.ip(), sa.port());
+    }
+    SECTION("host conflict") {
+        auto blackhole = test.get_blackhole_addr();
+        res_req->node(blackhole.ip())->port(blackhole.port());
+        con_req->to(sa.ip(), sa.port());
+    }
+
+    con_req->to(res_req)->run();
+    test.await(server->connection_event, "connection");
 }
