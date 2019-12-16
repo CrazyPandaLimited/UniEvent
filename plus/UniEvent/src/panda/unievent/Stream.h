@@ -90,8 +90,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
     virtual void write    (const WriteRequestSP&);
     /*INL*/ void write    (const string& buf, write_fn callback = nullptr);
-    template <class It>
-    /*INL*/ void write    (It begin, It end, write_fn callback = nullptr);
+    template <class ItBegin, class ItEnd, typename = decltype(std::distance(std::declval<ItBegin>(), std::declval<ItEnd>()))>
+    /*INL*/ void write (ItBegin begin, ItEnd end, write_fn callback = nullptr);
     virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
 
@@ -289,9 +289,9 @@ struct WriteRequest : StreamRequest, AllocatedObject<WriteRequest> {
         bufs.push_back(data);
     }
 
-    template <class It>
-    WriteRequest (It begin, It end) {
-        bufs.reserve(end - begin);
+    template <class ItBegin, class ItEnd>
+    WriteRequest (ItBegin begin, ItEnd end) {
+        bufs.reserve(std::distance(begin, end));
         for (; begin != end; ++begin) bufs.push_back(*begin);
     }
 
@@ -336,8 +336,8 @@ inline void Stream::write (const string& data, write_fn callback) {
     write(req);
 }
 
-template <class It>
-inline void Stream::write (It begin, It end, write_fn callback) {
+template <class ItBegin, class ItEnd, typename = decltype(std::distance(std::declval<ItBegin>(), std::declval<ItEnd>()))>
+inline void Stream::write (ItBegin begin, ItEnd end, write_fn callback) {
     auto req = new WriteRequest(begin, end);
     if (callback) req->event.add(callback);
     write(req);
