@@ -90,8 +90,10 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
     virtual void write    (const WriteRequestSP&);
     /*INL*/ void write    (const string& buf, write_fn callback = nullptr);
-    template <class ItBegin, class ItEnd, typename = decltype(std::distance(std::declval<ItBegin>(), std::declval<ItEnd>()))>
-    /*INL*/ void write (ItBegin begin, ItEnd end, write_fn callback = nullptr);
+    template <class It>
+    /*INL*/ void write (const It& begin, const It& end, write_fn callback = nullptr);
+    template <class Range, typename = typename std::enable_if<std::is_convertible<decltype(*std::declval<Range>().begin()), string>::value>::type>
+    /*INL*/ void write (const Range& range, write_fn callback = nullptr);
     virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
 
@@ -289,10 +291,16 @@ struct WriteRequest : StreamRequest, AllocatedObject<WriteRequest> {
         bufs.push_back(data);
     }
 
-    template <class ItBegin, class ItEnd>
-    WriteRequest (ItBegin begin, ItEnd end) {
+    template <class It>
+    WriteRequest (const It& begin, const It& end) {
         bufs.reserve(std::distance(begin, end));
-        for (; begin != end; ++begin) bufs.push_back(*begin);
+        for (auto it = begin; it != end; ++it) bufs.push_back(*it);
+    }
+
+    template <class Range, typename = decltype(*std::declval<Range>().begin())>
+    WriteRequest (const Range& range) {
+        bufs.reserve(range.size());
+        for (auto iter = range.begin(); iter != range.end(); ++iter) bufs.push_back(*iter);
     }
 
 private:
@@ -336,9 +344,16 @@ inline void Stream::write (const string& data, write_fn callback) {
     write(req);
 }
 
-template <class ItBegin, class ItEnd, typename = decltype(std::distance(std::declval<ItBegin>(), std::declval<ItEnd>()))>
-inline void Stream::write (ItBegin begin, ItEnd end, write_fn callback) {
+template <class It>
+inline void Stream::write (const It& begin, const It& end, write_fn callback) {
     auto req = new WriteRequest(begin, end);
+    if (callback) req->event.add(callback);
+    write(req);
+}
+
+template <class Range, typename = typename std::enable_if<std::is_convertible<decltype(*std::declval<Range>().begin()), string>::value>::type>
+inline void Stream::write (const Range& range, write_fn callback) {
+    auto req = new WriteRequest(range);
     if (callback) req->event.add(callback);
     write(req);
 }

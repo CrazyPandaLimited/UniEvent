@@ -508,3 +508,31 @@ TEST_CASE("connect with resolv request", "[tcp][v-ssl][v-buf]") {
     con_req->to(res_req)->run();
     test.await(server->connection_event, "connection");
 }
+
+TEST_CASE("Stream::write range", "[tcp]") {
+    AsyncTest test(2000, {"connect"});
+    TcpSP server = make_server(test.loop);
+    net::SockAddr sa = server->sockaddr();
+
+    TcpSP client = make_client(test.loop);
+    client->connect()->to(sa)->run();
+
+    string arr[] = {"123", "456"};
+    string* b = arr;
+    void* e = b + 2; // emulating different tipe of end iterator
+
+    struct Range {
+        string* b;
+        void* e;
+
+        string* begin() const { return b; }
+        void* end() const { return e; }
+        size_t size() const {
+            return (string*)e - b;
+        }
+    };
+
+    client->write(Range{b, e});
+
+    test.await(server->connection_event, "connect");
+}
