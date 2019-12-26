@@ -99,4 +99,11 @@ private:
     unsigned long _openssl_code;
 };
 
+inline std::error_code make_error_code (errc code) { return std::error_code((int)code, CodeError::category); }
+
 }}
+
+namespace std {
+    template <>
+    struct is_error_code_enum<panda::unievent::errc> : true_type {};
+}

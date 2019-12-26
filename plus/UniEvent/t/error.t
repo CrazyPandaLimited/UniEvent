@@ -110,7 +110,7 @@ subtest "error constants" => sub {
     ) {
         my ($long, $short) = @$row;
         my $long_sub = UniEvent::Error->can($long);
-        my $val = $long_sub->();
+        my $val = $long_sub->()->value;
         cmp_ok($val, '>', 0, "UniEvent::Error::$long(): $val");
         my $short_sub = UniEvent::Error->can($short);
         is($short_sub->(), $val, "UniEvent::Error::$short()");
@@ -128,7 +128,7 @@ subtest "Error" => sub {
 };
 
 subtest "CodeError" => sub {
-    for my $row ([EACCES, UniEvent::CodeError::generic_category()], [ESSL, UniEvent::CodeError::unievent_category()]) {
+    for my $row ([EACCES->value, UniEvent::CodeError::generic_category()], [ESSL->value, UniEvent::CodeError::unievent_category()]) {
         my $e = new_ok "UniEvent::CodeError" => $row;
         is $e->code, $row->[0], "code ok";
         is $e->category, $row->[1], "category ok";
