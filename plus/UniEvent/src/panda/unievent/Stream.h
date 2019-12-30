@@ -351,7 +351,7 @@ inline void Stream::write (const It& begin, const It& end, write_fn callback) {
     write(req);
 }
 
-template <class Range, typename = typename std::enable_if<std::is_convertible<decltype(*std::declval<Range>().begin()), string>::value>::type>
+template <class Range, typename>
 inline void Stream::write (const Range& range, write_fn callback) {
     auto req = new WriteRequest(range);
     if (callback) req->event.add(callback);
