@@ -27,9 +27,9 @@ protected:
     using Callbacks = std::vector<Callback>;
 
     LoopImpl* loop;
-    Callbacks    callbacks;
-    Callbacks    reserve;
-    uint64_t     lastid;
+    Callbacks callbacks;
+    Callbacks reserve;
+    size_t    lastid;
 
     void call () {
         assert(!reserve.size());
