@@ -47,12 +47,12 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(fileno().value(), level, optname, optval, optlen); }
 
+    static AddrInfoHints defhints;
 protected:
     StreamSP create_connection () override;
 
 private:
     friend TcpConnectRequest;
-    static AddrInfoHints defhints;
 
     int domain;
 
@@ -82,6 +82,7 @@ struct TcpConnectRequest : ConnectRequest, AllocatedObject<TcpConnectRequest> {
     TcpConnectRequestSP timeout    (uint64_t val)                  { this->ConnectRequest::timeout = val; return this; }
     TcpConnectRequestSP on_connect (const Stream::connect_fn& val) { event.add(val); return this; }
     TcpConnectRequestSP use_cache  (bool val)                      { cached = val; return this; }
+    TcpConnectRequestSP set_hints  (const AddrInfoHints& val)      { hints = val; return this; }
     TcpConnectRequestSP run        ()                              { handle->connect(this); return this; }
 
 private:
