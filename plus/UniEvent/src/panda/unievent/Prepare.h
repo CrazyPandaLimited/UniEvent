@@ -10,7 +10,6 @@ struct IPrepareListener {
 
 struct IPrepareSelfListener : IPrepareListener {
     virtual void on_prepare () = 0;
-private:
     void on_prepare (const PrepareSP&) override { on_prepare(); }
 };
 

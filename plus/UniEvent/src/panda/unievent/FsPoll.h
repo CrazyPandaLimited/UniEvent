@@ -10,7 +10,6 @@ struct IFsPollListener {
 
 struct IFsPollSelfListener : IFsPollListener {
     virtual void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&) = 0;
-private:
     void on_fs_poll (const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
 };
 

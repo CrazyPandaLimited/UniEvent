@@ -10,7 +10,6 @@ struct IFsEventListener {
 
 struct IFsEventSelfListener : IFsEventListener {
     virtual void on_fs_event (const string_view& file, int events, const CodeError&) = 0;
-private:
     void on_fs_event (const FsEventSP&, const string_view& file, int events, const CodeError& err) override { on_fs_event(file, events, err); }
 };
 

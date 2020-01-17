@@ -15,7 +15,7 @@ struct IUdpListener {
 struct IUdpSelfListener : IUdpListener {
     virtual void on_receive (string&, const net::SockAddr&, unsigned/*flags*/, const CodeError&) {}
     virtual void on_send    (const CodeError&, const SendRequestSP&)                             {}
-private:
+
     void on_receive (const UdpSP&, string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) override { on_receive(buf, addr, flags, err); }
     void on_send    (const UdpSP&, const CodeError& err, const SendRequestSP& req)                               override { on_send(err, req); }
 };

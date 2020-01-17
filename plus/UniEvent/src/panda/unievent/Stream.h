@@ -31,7 +31,7 @@ struct IStreamSelfListener : IStreamListener {
     virtual void     on_write          (const CodeError&, const WriteRequestSP&)    {}
     virtual void     on_shutdown       (const CodeError&, const ShutdownRequestSP&) {}
     virtual void     on_eof            ()                                           {}
-private:
+
     StreamSP create_connection (const StreamSP&)                                                     override { return create_connection(); }
     void     on_connection     (const StreamSP&, const StreamSP& cli, const CodeError& err)          override { on_connection(cli, err); }
     void     on_connect        (const StreamSP&, const CodeError& err, const ConnectRequestSP& req)  override { on_connect(err, req); }

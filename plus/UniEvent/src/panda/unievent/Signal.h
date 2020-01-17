@@ -11,7 +11,6 @@ struct ISignalListener {
 
 struct ISignalSelfListener : ISignalListener {
     virtual void on_signal (int signum) = 0;
-private:
     void on_signal (const SignalSP&, int signum) override { on_signal(signum); }
 };
 

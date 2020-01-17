@@ -10,7 +10,6 @@ struct IAsyncListener {
 
 struct IAsyncSelfListener : IAsyncListener {
     virtual void on_async () = 0;
-private:
     void on_async (const AsyncSP&) override { on_async(); }
 };
 

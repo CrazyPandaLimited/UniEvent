@@ -10,7 +10,6 @@ struct ITimerListener {
 
 struct ITimerSelfListener : ITimerListener {
     virtual void on_timer () = 0;
-private:
     void on_timer (const TimerSP&) override { on_timer(); }
 };
 

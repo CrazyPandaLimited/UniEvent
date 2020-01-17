@@ -10,7 +10,6 @@ struct IIdleListener {
 
 struct IIdleSelfListener : IIdleListener {
     virtual void on_idle () = 0;
-private:
     void on_idle (const IdleSP&) override { on_idle(); }
 };
 

@@ -10,7 +10,6 @@ struct ICheckListener {
 
 struct ICheckSelfListener : ICheckListener {
     virtual void on_check () = 0;
-private:
     void on_check (const CheckSP&) override { on_check(); }
 };
 

@@ -10,7 +10,6 @@ struct IPollListener {
 
 struct IPollSelfListener : IPollListener {
     virtual void on_poll (int events, const CodeError&) = 0;
-private:
     void on_poll (const PollSP&, int events, const CodeError& err) override { on_poll(events, err); }
 };
 

@@ -13,7 +13,7 @@ struct IWorkListener {
 struct IWorkSelfListener : IWorkListener {
     virtual void on_work       ()                 = 0;
     virtual void on_after_work (const CodeError&) = 0;
-private:
+
     void on_work       (Work*)                               override { on_work(); }
     void on_after_work (const WorkSP&, const CodeError& err) override { on_after_work(err); }
 };
