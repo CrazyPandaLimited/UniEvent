@@ -22,7 +22,6 @@ void start_server (uint16_t port, int len) {
             client->write(buf);
             ++read_cnt;
             packets += (double)buf.length() / len;
-            int cnt = (double)buf.length() / len;
             
             bytes += buf.length();
         });
@@ -55,9 +54,8 @@ void start_client (uint16_t port, string data) {
         if (err) throw err;
     });
     
-    client->read_event.add([data](auto& client, auto&, auto& err) {
+    client->read_event.add([data](auto&, auto&, auto& err) {
         if (err) throw err;
-        //client->write(data);
     });
     
     client->write(data);
