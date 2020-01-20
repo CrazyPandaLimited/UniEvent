@@ -445,7 +445,8 @@ TEST_CASE("disconnect during ssl handshake", "[tcp][v-ssl]") {
     test.await(killed, "done");
 }
 
-TEST_CASE("no on_read after read_stop", "[tcp][v-ssl][v-buf]") {
+TEST_CASE("no on_read after read_stop", "[.][tcp][v-ssl]") {
+    bool old_ssl = variation.ssl;
     variation.ssl = true;
     AsyncTest test(2000, {"conn", "read", "read"});
     TcpSP server = make_server(test.loop);
@@ -480,6 +481,7 @@ TEST_CASE("no on_read after read_stop", "[tcp][v-ssl][v-buf]") {
     test.run();
 
     test.wait(10); //just in case of dangling messages
+    variation.ssl = old_ssl;
 }
 
 TEST_CASE("connect with resolv request", "[tcp][v-ssl][v-buf]") {
