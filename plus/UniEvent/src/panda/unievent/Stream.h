@@ -99,11 +99,14 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
 
     void read_start () {
         set_wantread(true);
+        flags &= ~IGNORE_READ;
         auto err = _read_start();
         if (err) throw err;
     }
 
     void read_stop ();
+
+    void read_ignore () { flags |= IGNORE_READ; }
 
     virtual void disconnect ();
 
@@ -192,10 +195,11 @@ private:
     static const uint32_t ESTABLISHED   = 4;  // physically connected
     static const uint32_t IN_CONNECTED  = 8;  // logically connected for reading (connected and eof not received)
     static const uint32_t OUT_CONNECTED = 16; // logically connected for writing (connected and shutdown not done)
-    static const uint32_t DONTREAD      = 32;
+    static const uint32_t DONTREAD      = 32; // turn off incoming events completely (eof as well)
     static const uint32_t READING       = 64;
     static const uint32_t SHUTTING      = 128;
     static const uint32_t SHUT          = 256;
+    static const uint32_t IGNORE_READ   = 512; // turn off only reading (eof is enabled)
 
     uint32_t         flags;
     Filters          _filters;
