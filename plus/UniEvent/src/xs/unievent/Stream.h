@@ -12,6 +12,11 @@ template <> struct Typemap<SSL_CTX*> : TypemapBase<SSL_CTX*> {
         if (!SvOK(arg)) return nullptr;
         return reinterpret_cast<SSL_CTX*>(SvIV(arg));
     }
+
+    static Sv out (SSL_CTX* ctx, const Sv& = Sv()) {
+        if (!ctx) return Simple::undef;
+        return Simple(reinterpret_cast<ptrdiff_t>(ctx));
+    }
 };
 
 template <class TYPE> struct Typemap<panda::unievent::Stream*, TYPE> : Typemap<panda::unievent::BackendHandle*, TYPE> {};
