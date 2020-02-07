@@ -18,6 +18,8 @@ static TcpSP make_refuse_tcp () {
 SockAddr AsyncTest::get_refused_addr () {
     #ifdef _WIN32
         return SockAddr::Inet4("0.1.1.1", 12345);
+    #elif defined(__APPLE__)
+        return SockAddr::Inet4("0.0.0.0", 12345);
     #else
         static TcpSP rs = make_refuse_tcp();
         return rs->sockaddr();

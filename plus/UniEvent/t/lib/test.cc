@@ -74,32 +74,3 @@ TcpP2P make_p2p (const LoopSP& loop, const SockAddr& sa) {
     return ret;
 }
 
-//TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout) {
-//    TimerSP timer = new Timer(stream->loop());
-//    _EDEBUG("read timer %p", static_cast<Handle*>(timer.get()));
-//    timer->timer_event.add([stream, callback](Timer*) {
-//        string empty;
-//        callback(stream, empty, CodeError(ERRNO_ETIMEDOUT));
-//    });
-//    timer->once(timeout);
-//
-//    stream->read_start([stream, timer, callback](Stream*, string& buf, const CodeError& err) mutable {
-//        timer->reset();
-//        timer->timer_event.remove_all();
-//        callback(stream, buf, err);
-//    });
-//    stream->eof_event.add_back([](Stream* stream){
-//        _EDEBUG("eof for %p %d readlistn=%d", static_cast<Handle*>(stream), stream->refcnt(), stream->read_event.has_listeners());
-//        stream->read_event.remove_all();
-//        _EDEBUG("eof for %p %d", static_cast<Handle*>(stream), stream->refcnt());
-//
-//    });
-//    stream->shutdown_event.add([](Stream* stream, const CodeError&, ShutdownRequest*){
-//        _EDEBUG("shutdown for %p %d readlistn=%d", static_cast<Handle*>(stream), stream->refcnt(), stream->read_event.has_listeners());
-//        stream->read_event.remove_all();
-//        _EDEBUG("shutdown for %p %d", static_cast<Handle*>(stream), stream->refcnt());
-//
-//    });
-//
-//    return timer;
-//}

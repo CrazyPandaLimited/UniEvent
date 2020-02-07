@@ -65,6 +65,3 @@ TcpSP  make_client       (const LoopSP& loop);
 TcpP2P make_tcp_pair     (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 TcpP2P make_p2p          (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 
-//SSL_CTX* get_ssl_ctx ();
-
-//TimerSP read (StreamSP stream, Stream::read_fn callback, uint64_t timeout = 1000);
