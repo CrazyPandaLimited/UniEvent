@@ -60,6 +60,7 @@ for my $num (0 .. $#primes) {
     $udp_by_num{$prime} = $udp;
     $udp->recv_start(sub {
         my ($udp, $msg, $sa, $flags, $err) = @_;
+        return if ($msg !~ m/^\d+$/); # ignore all messages that can go from other process (e.g. dns resolves)
         die $err if $err;
         delete $creds{$msg};
         fail("Got foreign message: $msg") unless $valid{$msg};
