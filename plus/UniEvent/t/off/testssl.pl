@@ -10,8 +10,8 @@ use Socket;
 use Net::SSLeay ();
 
 my $ctx = Net::SSLeay::CTX_new;
-Net::SSLeay::CTX_use_certificate_file($ctx, 'cert.pem', Net::SSLeay::FILETYPE_PEM());
-Net::SSLeay::CTX_use_RSAPrivateKey_file($ctx, 'key.pem', Net::SSLeay::FILETYPE_PEM());
+Net::SSLeay::CTX_use_certificate_file($ctx, 'ca.pem', Net::SSLeay::FILETYPE_PEM());
+Net::SSLeay::CTX_use_RSAPrivateKey_file($ctx, 'ca.key', Net::SSLeay::FILETYPE_PEM());
 
 my $loop = Panda::Event::Loop->default_loop;
 my $sock = new Panda::Event::TCP();

@@ -14,8 +14,8 @@ SSL_CTX* get_ssl_ctx() {
         return ctx;
     }
     ctx = SSL_CTX_new(SSLv23_server_method());
-    SSL_CTX_use_certificate_file(ctx, "t/cert/cert.pem", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/key.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_certificate_file(ctx, "t/cert/ca.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/ca.key", SSL_FILETYPE_PEM);
     SSL_CTX_check_private_key(ctx);
     return ctx;
 }
