@@ -10,6 +10,12 @@ namespace panda { namespace unievent {
 
 log::Module resolver_log_module("EachResolve", log::Level::Warning);
 
+static bool _init () {
+    ares_library_init(ARES_LIB_INIT_ALL);
+    return true;
+}
+static const bool __init = _init();
+
 static void log_socket(const sock_t& sock) {
     net::SockAddr sock_peer, sock_from;
     struct sockaddr_storage sa;
@@ -41,7 +47,8 @@ Resolver::Worker::Worker (Resolver* r) : resolver(r), ares_async() {
     options.timeout = r->cfg.query_timeout;
     optmask |= ARES_OPT_TIMEOUTMS;
 
-    if (ares_init_options(&channel, &options, optmask) != ARES_SUCCESS) throw Error("resolver couldn't init c-ares");
+    auto ares_result = ares_init_options(&channel, &options, optmask);
+    if (ares_result != ARES_SUCCESS) throw Error(string("resolver couldn't init c-ares: ") + to_string(ares_result));
 }
 
 Resolver::Worker::~Worker () {
