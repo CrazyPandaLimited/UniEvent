@@ -41,11 +41,19 @@ static SslHolder get_server_context(string ca_name) {
     string path("t/cert");
     string cert = path + "/" + ca_name + ".pem";
     string key = path + "/" + ca_name + ".key";
+    int err;
 
-    SSL_CTX_use_certificate_file(ctx, cert.c_str(), SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, key.c_str(), SSL_FILETYPE_PEM);
-    assert(SSL_CTX_check_private_key(ctx) == 1);
-    assert(SSL_CTX_load_verify_locations(ctx, cert.c_str(), nullptr));
+    err = SSL_CTX_use_certificate_file(ctx, cert.c_str(), SSL_FILETYPE_PEM);
+    assert(err);
+
+    err = SSL_CTX_use_PrivateKey_file(ctx, key.c_str(), SSL_FILETYPE_PEM);
+    assert(err);
+
+    err = SSL_CTX_check_private_key(ctx);
+    assert(err);
+
+    err = SSL_CTX_load_verify_locations(ctx, cert.c_str(), nullptr);
+    assert(err);
 
     SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr);
     SSL_CTX_set_verify_depth(ctx, 4);
