@@ -4,9 +4,9 @@
 
 namespace xs {
 
-template <> struct Typemap<panda::unievent::Fs::Stat> : TypemapBase<panda::unievent::Fs::Stat> {
-    static Sv out (const panda::unievent::Fs::Stat&, const Sv& = Sv());
-    static panda::unievent::Fs::Stat in (const Array&);
+template <> struct Typemap<panda::unievent::Fs::FStat> : TypemapBase<panda::unievent::Fs::FStat> {
+    static Sv out (const panda::unievent::Fs::FStat&, const Sv& = Sv());
+    static panda::unievent::Fs::FStat in (const Array&);
 };
 
 template <> struct Typemap<panda::unievent::Fs::DirEntry> : TypemapBase<panda::unievent::Fs::DirEntry> {

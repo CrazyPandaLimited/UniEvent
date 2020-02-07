@@ -55,7 +55,7 @@ struct Fs {
 
     enum class FileType {UNKNOWN, BLOCK, CHAR, DIR, FIFO, LINK, FILE, SOCKET};
 
-    struct Stat {
+    struct FStat {
         uint64_t dev;
         uint64_t mode;
         uint64_t nlink;
@@ -83,8 +83,8 @@ struct Fs {
           #endif
         }
 
-        bool operator== (const Stat&)     const;
-        bool operator!= (const Stat& oth) const { return !operator==(oth); }
+        bool operator== (const FStat&)     const;
+        bool operator!= (const FStat& oth) const { return !operator==(oth); }
     };
 
     struct DirEntry {
@@ -108,7 +108,7 @@ struct Fs {
     using bool_fn     = function<void(bool, const CodeError&, const RequestSP&)>;
     using open_fn     = function<void(fd_t, const CodeError&, const RequestSP&)>;
     using scandir_fn  = function<void(const DirEntries&, const CodeError&, const RequestSP&)>;
-    using stat_fn     = function<void(const Stat&, const CodeError&, const RequestSP&)>;
+    using stat_fn     = function<void(const FStat&, const CodeError&, const RequestSP&)>;
     using string_fn   = function<void(string&, const CodeError&, const RequestSP&)>;
     using sendfile_fn = function<void(size_t, const CodeError&, const RequestSP&)>;
 
@@ -124,9 +124,9 @@ struct Fs {
 
     static ex<fd_t>       open     (string_view, int flags, int mode = DEFAULT_FILE_MODE);
     static ex<void>       close    (fd_t);
-    static ex<Stat>       stat     (string_view);
-    static ex<Stat>       stat     (fd_t);
-    static ex<Stat>       lstat    (string_view);
+    static ex<FStat>      stat     (string_view);
+    static ex<FStat>      stat     (fd_t);
+    static ex<FStat>      lstat    (string_view);
     static bool           exists   (string_view);
     static bool           isfile   (string_view);
     static bool           isdir    (string_view);
@@ -286,7 +286,7 @@ struct Fs {
         fd_t       _fd;
         CodeError  _err;
         DirEntries _dir_entries;
-        Stat       _stat;
+        FStat      _stat;
         size_t     _size;
         string     _string;
 

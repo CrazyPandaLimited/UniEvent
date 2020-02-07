@@ -51,7 +51,7 @@ static inline void uvx_ts2ue (const uv_timespec_t& from, TimeSpec& to) {
     to.nsec = from.tv_nsec;
 }
 
-static inline void uvx_stat2ue (const uv_stat_t* from, Fs::Stat& to) {
+static inline void uvx_stat2ue (const uv_stat_t* from, Fs::FStat& to) {
     to.dev     = from->st_dev;
     to.mode    = from->st_mode;
     to.nlink   = from->st_nlink;
@@ -106,8 +106,8 @@ static inline Fs::FileType uvx_ftype (uv_dirent_type_t uvt) {
     abort(); // not reachable
 }
 
-bool Fs::Stat::operator== (const Fs::Stat& oth) const {
-    return memcmp(this, &oth, sizeof(Fs::Stat)) == 0;
+bool Fs::FStat::operator== (const Fs::FStat& oth) const {
+    return memcmp(this, &oth, sizeof(Fs::FStat)) == 0;
 }
 
 /* ===============================================================================================
@@ -232,8 +232,8 @@ ex<void> Fs::close (fd_t fd) {
     return {};
 }
 
-ex<Fs::Stat> Fs::stat (string_view path) {
-    Stat ret;
+ex<Fs::FStat> Fs::stat (string_view path) {
+    FStat ret;
     UE_NULL_TERMINATE(path, path_str);
     UEFS_SYNC({
         uv_fs_stat(nullptr, &uvr, path_str, nullptr);
@@ -243,8 +243,8 @@ ex<Fs::Stat> Fs::stat (string_view path) {
     return ret;
 }
 
-ex<Fs::Stat> Fs::stat (fd_t fd) {
-    Stat ret;
+ex<Fs::FStat> Fs::stat (fd_t fd) {
+    FStat ret;
     UEFS_SYNC({
         uv_fs_fstat(nullptr, &uvr, fd, nullptr);
     }, {
@@ -253,8 +253,8 @@ ex<Fs::Stat> Fs::stat (fd_t fd) {
     return ret;
 }
 
-ex<Fs::Stat> Fs::lstat (string_view path) {
-    Stat ret;
+ex<Fs::FStat> Fs::lstat (string_view path) {
+    FStat ret;
     UE_NULL_TERMINATE(path, path_str);
     UEFS_SYNC({
         uv_fs_lstat(nullptr, &uvr, path_str, nullptr);
@@ -269,13 +269,13 @@ bool Fs::exists (string_view file) {
 }
 
 bool Fs::isfile (string_view file) {
-    return stat(file).map([](const Stat& s) {
+    return stat(file).map([](const FStat& s) {
         return s.type() == FileType::FILE;
     }).value_or(false);
 }
 
 bool Fs::isdir (string_view file) {
-    return stat(file).map([](const Stat& s) {
+    return stat(file).map([](const FStat& s) {
         return s.type() == FileType::DIR;
     }).value_or(false);
 }

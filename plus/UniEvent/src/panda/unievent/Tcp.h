@@ -44,8 +44,14 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
     int  send_buffer_size () const    { return impl()->send_buffer_size(); }
     void send_buffer_size (int value) { impl()->send_buffer_size(value); }
+    
+    optional<sock_t> socket () const {
+        auto fh = fileno();
+        if (!fh) return {};
+        return (sock_t)fh.value();
+    }
 
-    void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(fileno().value(), level, optname, optval, optlen); }
+    void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(socket().value(), level, optname, optval, optlen); }
 
     static AddrInfoHints defhints;
 protected:

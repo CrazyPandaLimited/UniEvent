@@ -11,7 +11,7 @@ namespace panda { namespace unievent {
 AddrInfo      sync_resolve   (backend::Backend* be, string_view host, uint16_t port = 0, const AddrInfoHints& hints = {}, bool use_cache = true);
 net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& = {});
 
-void setsockopt (fh_t sock, int level, int optname, const void* optval, int optlen);
+void setsockopt (sock_t sock, int level, int optname, const void* optval, int optlen);
 
 fd_t   file_dup (fd_t fd);
 sock_t sock_dup (sock_t);

@@ -2,7 +2,7 @@
 
 namespace panda { namespace unievent {
 
-void setsockopt (fh_t sock, int level, int optname, const void* optval, int optlen) {
+void setsockopt (sock_t sock, int level, int optname, const void* optval, int optlen) {
     if (::setsockopt(sock, level, optname, optval, (socklen_t)optlen)) throw last_sys_code_error();
 }
 

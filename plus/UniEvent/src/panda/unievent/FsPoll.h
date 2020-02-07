@@ -5,16 +5,16 @@
 namespace panda { namespace unievent {
 
 struct IFsPollListener {
-    virtual void on_fs_poll (const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&) = 0;
+    virtual void on_fs_poll (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
 };
 
 struct IFsPollSelfListener : IFsPollListener {
-    virtual void on_fs_poll (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&) = 0;
-    void on_fs_poll (const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
+    virtual void on_fs_poll (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
+    void on_fs_poll (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
 };
 
 struct FsPoll : virtual Handle {
-    using fs_poll_fptr = void(const FsPollSP&, const Fs::Stat& prev, const Fs::Stat& cur, const CodeError&);
+    using fs_poll_fptr = void(const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&);
     using fs_poll_fn   = function<fs_poll_fptr>;
 
     static const HandleType TYPE;
@@ -46,13 +46,13 @@ private:
     Fs::RequestSP     fsr;
     string            _path;
     weak_iptr<FsPoll> wself;
-    Fs::Stat          prev;
+    Fs::FStat         prev;
     CodeError         prev_err;
     bool              fetched;
     IFsPollListener*  _listener;
 
     void do_stat ();
-    void notify  (const Fs::Stat&, const Fs::Stat&, const CodeError&);
+    void notify  (const Fs::FStat&, const Fs::FStat&, const CodeError&);
 };
 
 }}

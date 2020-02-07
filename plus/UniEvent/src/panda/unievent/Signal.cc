@@ -4,46 +4,91 @@ using namespace panda::unievent;
 static panda::string signames[NSIG];
 
 static bool init () {
-    signames[SIGHUP]    = "SIGHUP";
     signames[SIGINT]    = "SIGINT";
-    signames[SIGQUIT]   = "SIGQUIT";
     signames[SIGILL]    = "SIGILL";
-    signames[SIGTRAP]   = "SIGTRAP";
     signames[SIGABRT]   = "SIGABRT";
-    signames[SIGBUS]    = "SIGBUS";
     signames[SIGFPE]    = "SIGFPE";
-    signames[SIGKILL]   = "SIGKILL";
-    signames[SIGUSR1]   = "SIGUSR1";
     signames[SIGSEGV]   = "SIGSEGV";
-    signames[SIGUSR2]   = "SIGUSR2";
-    signames[SIGPIPE]   = "SIGPIPE";
-    signames[SIGALRM]   = "SIGALRM";
     signames[SIGTERM]   = "SIGTERM";
-#if defined(SIGSTKFLT)
+    
+    #ifdef SIGHUP
+    signames[SIGHUP]    = "SIGHUP";
+    #endif
+    #ifdef SIGQUIT
+    signames[SIGQUIT]   = "SIGQUIT";
+    #endif
+    #ifdef SIGTRAP
+    signames[SIGTRAP]   = "SIGTRAP";
+    #endif
+    #ifdef SIGBUS
+    signames[SIGBUS]    = "SIGBUS";
+    #endif
+    #ifdef SIGKILL
+    signames[SIGKILL]   = "SIGKILL";
+    #endif
+    #ifdef SIGUSR1
+    signames[SIGUSR1]   = "SIGUSR1";
+    #endif
+    #ifdef SIGUSR2
+    signames[SIGUSR2]   = "SIGUSR2";
+    #endif
+    #ifdef SIGPIPE
+    signames[SIGPIPE]   = "SIGPIPE";
+    #endif
+    #ifdef SIGALRM
+    signames[SIGALRM]   = "SIGALRM";
+    #endif
+    #ifdef SIGSTKFLT
     signames[SIGSTKFLT] = "SIGSTKFLT";
-#endif
+    #endif
+    #ifdef SIGCHLD
     signames[SIGCHLD]   = "SIGCHLD";
+    #endif
+    #ifdef SIGCONT
     signames[SIGCONT]   = "SIGCONT";
+    #endif
+    #ifdef SIGSTOP
     signames[SIGSTOP]   = "SIGSTOP";
+    #endif
+    #ifdef SIGTSTP
     signames[SIGTSTP]   = "SIGTSTP";
+    #endif
+    #ifdef SIGTTIN
     signames[SIGTTIN]   = "SIGTTIN";
+    #endif
+    #ifdef SIGTTOU
     signames[SIGTTOU]   = "SIGTTOU";
+    #endif
+    #ifdef SIGURG
     signames[SIGURG]    = "SIGURG";
+    #endif
+    #ifdef SIGXCPU
     signames[SIGXCPU]   = "SIGXCPU";
+    #endif
+    #ifdef SIGXFSZ
     signames[SIGXFSZ]   = "SIGXFSZ";
+    #endif
+    #ifdef SIGVTALRM
     signames[SIGVTALRM] = "SIGVTALRM";
+    #endif
+    #ifdef SIGPROF
     signames[SIGPROF]   = "SIGPROF";
+    #endif
+    #ifdef SIGWINCH
     signames[SIGWINCH]  = "SIGWINCH";
-#if defined(SIGIO)
+    #endif
+    #ifdef SIGIO
     signames[SIGIO]     = "SIGIO";
-#endif
-#if defined(SIGPOLL)
+    #endif
+    #ifdef SIGPOLL
     signames[SIGPOLL]   = "SIGPOLL";
-#endif
-#if defined(SIGPWR)
+    #endif
+    #ifdef SIGPWR
     signames[SIGPWR]    = "SIGPWR";
-#endif
+    #endif
+    #ifdef SIGSYS
     signames[SIGSYS]    = "SIGSYS";
+    #endif
     return true;
 }
 static bool _init = init();

@@ -96,7 +96,7 @@ AddrInfoHints Typemap<AddrInfoHints>::in (SV* arg) {
     return ret;
 }
 
-Sv Typemap<Fs::Stat>::out (const Fs::Stat& s, const Sv&) {
+Sv Typemap<Fs::FStat>::out (const Fs::FStat& s, const Sv&) {
     return Ref::create(Array::create({
         Simple(s.dev),
         Simple(s.ino),
@@ -119,8 +119,8 @@ Sv Typemap<Fs::Stat>::out (const Fs::Stat& s, const Sv&) {
     }));
 }
 
-Fs::Stat Typemap<Fs::Stat>::in (const Array& a) {
-    Fs::Stat ret;
+Fs::FStat Typemap<Fs::FStat>::in (const Array& a) {
+    Fs::FStat ret;
     ret.dev       = Simple(a[0]);
     ret.ino       = Simple(a[1]);
     ret.mode      = Simple(a[2]);

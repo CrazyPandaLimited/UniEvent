@@ -239,7 +239,9 @@ CodeError uvx_code_error (int uverr) {
         case UV_ESPIPE         : return CodeError(std::errc::invalid_seek);
         case UV_ESRCH          : return CodeError(std::errc::no_such_process);
         case UV_ETIMEDOUT      : return CodeError(std::errc::timed_out);
+        #if !defined(_WIN32) || defined(_GLIBCXX_HAVE_ETXTBSY)
         case UV_ETXTBSY        : return CodeError(std::errc::text_file_busy);
+        #endif
         case UV_EXDEV          : return CodeError(std::errc::cross_device_link);
         case UV_UNKNOWN        : return CodeError(errc::unknown_error);
         case UV_ENXIO          : return CodeError(std::errc::no_such_device_or_address);

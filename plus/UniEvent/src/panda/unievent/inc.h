@@ -17,6 +17,8 @@ namespace panda { namespace unievent {
     using fd_t   = int;
     using sock_t = SOCKET;
     using fh_t   = HANDLE;
+    using uid_t  = long;
+    using gid_t  = long;
 #else
     using fd_t   = int;
     using sock_t = int;

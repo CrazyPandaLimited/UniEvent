@@ -29,7 +29,7 @@ void FsPoll::start (string_view path, unsigned int interval, const fs_poll_fn& c
 void FsPoll::stop () {
     if (!timer->active()) return;
     timer->stop();
-    prev = Fs::Stat();
+    prev = Fs::FStat();
     // if cancellation possible it will call callback (which we will ignore)
     // otherwise nothing will happen and fsr will remain busy (and if it is not complete by the next start(), we will change fsr
     fsr->cancel();
@@ -70,7 +70,7 @@ void FsPoll::clear () {
     event.remove_all();
 }
 
-void FsPoll::notify (const Fs::Stat& prev, const Fs::Stat& cur, const CodeError& err) {
+void FsPoll::notify (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) {
     FsPollSP self = this;
     event(self, prev, cur, err);
     if (_listener) _listener->on_fs_poll(self, prev, cur, err);
