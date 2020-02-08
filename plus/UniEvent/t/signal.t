@@ -6,13 +6,15 @@ use UniEvent::Signal;
 *signame = \&UniEvent::Signal::signame;
 
 subtest 'constants' => sub {
-    my @constants = qw/
-        SIGHUP SIGINT SIGQUIT SIGILL SIGTRAP SIGABRT SIGBUS SIGFPE SIGKILL SIGUSR1 SIGSEGV SIGUSR2 SIGPIPE SIGALRM SIGTERM
-        SIGCHLD SIGCONT SIGSTOP SIGTSTP SIGTTIN SIGTTOU SIGURG SIGXCPU SIGXFSZ SIGVTALRM SIGPROF SIGWINCH SIGSYS
-    /;
+    my @constants = qw/SIGINT SIGILL SIGABRT SIGFPE SIGSEGV SIGTERM/;
+	push @constants, qw/SIGHUP SIGALRM SIGBUS SIGCHLD SIGCONT SIGKILL SIGPIPE SIGPROF SIGQUIT
+						SIGSTOP SIGSYS SIGTRAP SIGTSTP SIGTTIN SIGTTOU SIGURG SIGUSR1 SIGUSR2
+						SIGVTALRM SIGWINCH SIGXCPU SIGXFSZ/
+		unless $^O eq 'MSWin32';
     
     for my $cname (sort @constants) {
         my $f = UniEvent::Signal->can($cname);
+		say $cname;
         my $val = $f->();
         ok $val, "$cname -> $val";
         is signame($val), $cname, "$val -> $cname";
@@ -97,14 +99,14 @@ subtest 'call_now' => sub {
     my $i = 0;
     my $sig;
     $h->event->add(sub { $i++, $sig = $_[1] });
-    $h->call_now(SIGHUP) for 1..5;
+    $h->call_now(SIGINT) for 1..5;
     is $i, 5;
-    is $sig, SIGHUP;
+    is $sig, SIGINT;
 };
 
 subtest 'watch' => sub {
     my $l = UE::Loop->new;
-    my $signum = SIGHUP;
+    my $signum = SIGINT;
     my $rcv;
     my $h = UniEvent::Signal->watch($signum, sub {
         $rcv = $_[1];
@@ -123,14 +125,17 @@ subtest 'event listener' => sub {
     $h->event_listener(bless {}, 'MyLst');
     $h->callback(sub { $cnt++ });
     
-    $h->call_now(SIGHUP);
+    $h->call_now(SIGINT);
     is $cnt, 11, "listener&event called";
-    is $rcv, SIGHUP, "signal passed";
+    is $rcv, SIGINT, "signal passed";
 };
 
 sub many {
     my $sub = shift;
-    foreach my $signum (SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD) {
+	my @signals = (SIGINT);
+	push @signals, SIGUSR1(), SIGUSR2(), SIGPIPE(), SIGALRM(), SIGTERM(), SIGCHLD()
+		unless $^O eq 'MSWin32';
+    foreach my $signum (SIGINT) {
         subtest signame($signum) => $sub, $signum;
     }
     %SIG = ();
