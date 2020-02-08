@@ -10,7 +10,7 @@ subtest 'constants' => sub {
 	push @constants, qw/SIGHUP SIGALRM SIGBUS SIGCHLD SIGCONT SIGKILL SIGPIPE SIGPROF SIGQUIT
 						SIGSTOP SIGSYS SIGTRAP SIGTSTP SIGTTIN SIGTTOU SIGURG SIGUSR1 SIGUSR2
 						SIGVTALRM SIGWINCH SIGXCPU SIGXFSZ/
-		unless $^O eq 'MSWin32';
+		unless win32();
     
     for my $cname (sort @constants) {
         my $f = UniEvent::Signal->can($cname);
@@ -133,8 +133,7 @@ subtest 'event listener' => sub {
 sub many {
     my $sub = shift;
 	my @signals = (SIGINT);
-	push @signals, SIGUSR1(), SIGUSR2(), SIGPIPE(), SIGALRM(), SIGTERM(), SIGCHLD()
-		unless $^O eq 'MSWin32';
+	push @signals, SIGUSR1(), SIGUSR2(), SIGPIPE(), SIGALRM(), SIGTERM(), SIGCHLD() unless win32();
     foreach my $signum (SIGINT) {
         subtest signame($signum) => $sub, $signum;
     }

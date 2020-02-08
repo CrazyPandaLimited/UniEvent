@@ -13,8 +13,10 @@ my $tty_in  = UniEvent::Tty->new(\*STDIN);
 is $tty_out->type, UniEvent::Tty::TYPE, "type ok";
 is $tty_in->type, UniEvent::Tty::TYPE;
 
-$tty_out->set_mode(UniEvent::Tty::MODE_STD);
-$tty_out->set_mode(UniEvent::Tty::MODE_IO);
+unless (win32()) {
+	$tty_out->set_mode(UniEvent::Tty::MODE_STD);
+	$tty_out->set_mode(UniEvent::Tty::MODE_IO);
+}
 $tty_in->set_mode(UniEvent::Tty::MODE_RAW);
 UniEvent::Tty::reset_mode();
 

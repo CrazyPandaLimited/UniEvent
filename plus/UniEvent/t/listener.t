@@ -75,9 +75,9 @@ subtest 'self listener' => sub {
         local *UniEvent::Signal::on_signal = sub { shift; @args = @_ };
         my $h = new UE::Signal;
         $h->event_listener($h);
-        $h->call_now(SIGHUP);
-        cmp_deeply \@args, [SIGHUP], "args without object";
-    };
+        $h->call_now(SIGHUP());
+        cmp_deeply \@args, [SIGHUP()], "args without object";
+    } unless win32();
 };
 
 subtest 'weak' => sub {
