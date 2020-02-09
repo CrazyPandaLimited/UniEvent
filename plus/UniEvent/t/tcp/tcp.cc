@@ -281,14 +281,14 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
 }
 
 TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
-    AsyncTest test(1000, {});
+    AsyncTest test(3000, {});
     SockAddr addr = test.get_refused_addr();
 
     TcpSP client = new Tcp(test.loop);
 
     size_t counter = 0;
     client->connect_event.add([&](Stream*, const CodeError&, ConnectRequest*) {
-        if (++counter < 10) {
+        if (++counter < 5) {
             client->connect()->to(addr.ip(), addr.port())->run();
             client->write("123");
         } else {
@@ -300,7 +300,7 @@ TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
     client->write("123");
 
     test.loop->run();
-    REQUIRE(counter == 10);
+    REQUIRE(counter == 5);
 }
 
 TEST_CASE("correct callback order", "[tcp]") {
