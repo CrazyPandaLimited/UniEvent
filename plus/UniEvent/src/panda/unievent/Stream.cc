@@ -105,7 +105,7 @@ void ConnectRequest::notify (const CodeError& err) { handle->notify_on_connect(e
 void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
     auto err2 = set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
-    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
+    _EDEBUGTHIS("err: %d (%s), request: %p", err.code().value(), err.code().message().c_str(), req.get());
 
     req->timer = nullptr;
 
