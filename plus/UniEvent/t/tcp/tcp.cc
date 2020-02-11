@@ -86,6 +86,7 @@ TEST_CASE("immediate disconnect", "[tcp][v-ssl][v-buf]") {
         sa2 = server2->sockaddr();
     }
 
+
     TcpSP client = make_client(test.loop);
     string body;
     for (size_t i = 0; i < 100; ++i) body += "0123456789";
@@ -537,4 +538,17 @@ TEST_CASE("Stream::write range", "[tcp]") {
     client->write(Range{b, e});
 
     test.await(server->connection_event, "connect");
+}
+
+TEST_CASE("write stack overflow", "[tcp][v-ssl][v-buf]") {
+    AsyncTest test(2000, {"connection"});
+    TcpSP server = make_server(test.loop);
+    net::SockAddr sa = server->sockaddr();
+
+    TcpSP client = make_client(test.loop);
+    client->connect(sa);
+    for (size_t i = 0; i < 10000; ++i) {
+        client->write("q");
+    }
+    test.await(server->connection_event, "connection");
 }

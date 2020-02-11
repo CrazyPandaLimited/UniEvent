@@ -27,7 +27,7 @@ private:
 
 
 struct Queue {
-    Queue () : locked(), cancel_gen() {}
+    Queue () : locked(), cancel_gen(), resume_recursion() {}
 
     void push (const RequestSP& req) {
         req->async = false;
@@ -45,13 +45,22 @@ struct Queue {
         requests.pop_front();
 
         if (req->async) { // we can call user callback right now
-            ++locked; // lock, so if f() add anything it won't get executed
-            scope_guard([&] {
-                f();
-            }, [&] {
-                --locked;
-                resume(); // execute what has been added
-            });
+            auto call = [&]() {
+                ++locked; // lock, so if f() add anything it won't get executed
+                scope_guard([&] {
+                    f();
+                }, [&] {
+                    --locked;
+                    ++resume_recursion;
+                    resume(); // execute what has been added
+                    --resume_recursion;
+                });
+            };
+            if (resume_recursion > 1000) {
+                req->delay(call);
+            } else {
+                call();
+            }
         } else { // we must delay user callback
             finalized_requests.push_back(req);
             req->delay([=]{
@@ -121,6 +130,7 @@ private:
     uint32_t  locked;
     uint32_t  cancel_gen;
     RequestSP cancel_till;
+    uint32_t  resume_recursion;
 };
 
 }}
