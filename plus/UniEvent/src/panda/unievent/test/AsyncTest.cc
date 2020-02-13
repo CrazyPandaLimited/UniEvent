@@ -9,6 +9,8 @@ namespace panda { namespace unievent { namespace test {
 
 using panda::net::SockAddr;
 
+static int refused_port = 10000;
+
 static TcpSP make_refuse_tcp () {
     TcpSP ret = new Tcp();
     ret->bind("127.0.0.1", 0);
@@ -16,10 +18,12 @@ static TcpSP make_refuse_tcp () {
 }
 
 SockAddr AsyncTest::get_refused_addr () {
+    ++refused_port;
+    if (refused_port > 40000) refused_port = 10000;
     #ifdef _WIN32
-        return SockAddr::Inet4("0.1.1.1", 12345);
+        return SockAddr::Inet4("0.1.1.1", refused_port);
     #elif defined(__APPLE__) || defined(__NetBSD__)
-        return SockAddr::Inet4("0.0.0.0", 12345);
+        return SockAddr::Inet4("0.0.0.0", refused_port);
     #else
         static TcpSP rs = make_refuse_tcp();
         return rs->sockaddr();

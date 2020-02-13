@@ -282,7 +282,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
 }
 
 TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
-    AsyncTest test(3000, {});
+    AsyncTest test(10000, {});
     SockAddr addr = test.get_refused_addr();
 
     TcpSP client = new Tcp(test.loop);
