@@ -110,7 +110,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
 
     TcpSP client = make_client(test.loop);
 
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
+    server->connection_event.add([&](auto, auto, auto& err) {
         REQUIRE(err);
         REQUIRE(err.code() == errc::ssl_error);
         test.loop->stop();
@@ -138,7 +138,7 @@ TEST_CASE("server with different CA", "[ssl]") {
     auto client_cert = get_client_context("01-alice");
     client->use_ssl(client_cert.get());
 
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
+    server->connection_event.add([&](auto, auto&, auto& err) {
         REQUIRE(err);
         test.loop->stop();
     });
