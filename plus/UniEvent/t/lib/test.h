@@ -24,6 +24,7 @@ struct Variation {
 
 extern Variation variation;
 
+#if !defined(__NetBSD__)
 struct TimeGuard {
     std::thread t;
     std::timed_mutex m;
@@ -40,6 +41,11 @@ struct TimeGuard {
         t.join();
     }
 };
+#else
+struct TimeGuard {
+    TimeGuard (const std::chrono::milliseconds&) {}
+};
+#endif
 
 template <class T>
 void time_guard (const std::chrono::milliseconds& tmt, T fn) {
