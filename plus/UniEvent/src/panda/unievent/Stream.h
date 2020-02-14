@@ -120,15 +120,22 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     SSL* get_ssl   () const;
     bool is_secure () const;
 
-    void add_filter    (const StreamFilterSP&);
-    void remove_filter (const StreamFilterSP&);
+    void add_filter    (const StreamFilterSP&, bool force = false);
+    void remove_filter (const StreamFilterSP&, bool force = false);
 
     template <typename F>
     iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
     StreamFilterSP get_filter (const void* type) const;
 
-    void push_ahead_filter  (const StreamFilterSP& filter) { _filters.insert(_filters.begin(), filter); }
-    void push_behind_filter (const StreamFilterSP& filter) { _filters.insert(_filters.end(), filter); }
+    void push_ahead_filter  (const StreamFilterSP& filter, bool force = false) {
+        if (!force) _check_change_filters();
+        _filters.insert(_filters.begin(), filter);
+    }
+
+    void push_behind_filter (const StreamFilterSP& filter, bool force = false) {
+        if (!force) _check_change_filters();
+        _filters.insert(_filters.end(), filter);
+    }
 
     Filters& filters () { return _filters; }
 
@@ -234,6 +241,10 @@ private:
     void _clear ();
 
     CodeError _read_start ();
+
+    void _check_change_filters () {
+        if (connecting() || established()) throw Error("can't change stream filters when active");
+    }
 };
 
 struct StreamRequest : Request {

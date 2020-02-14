@@ -306,8 +306,9 @@ void Stream::_clear () {
 }
 
 // ===================== FILTERS ADD/REMOVE ===============================
-void Stream::add_filter (const StreamFilterSP& filter) {
+void Stream::add_filter (const StreamFilterSP& filter, bool force) {
     assert(filter);
+    if (!force) _check_change_filters();
     auto it = _filters.begin();
     auto pos = it;
     bool found = false;
@@ -326,8 +327,8 @@ void Stream::add_filter (const StreamFilterSP& filter) {
     else _filters.push_back(filter);
 }
 
-void Stream::remove_filter (const StreamFilterSP& filter) {
-    if (connecting() || connected()) throw Error("can't remove filter when connecting or connected");
+void Stream::remove_filter (const StreamFilterSP& filter, bool force) {
+    if (!force) _check_change_filters();
     _filters.erase(filter);
 }
 

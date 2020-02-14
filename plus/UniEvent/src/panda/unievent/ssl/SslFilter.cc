@@ -119,7 +119,7 @@ void SslFilter::handle_connection (const StreamSP& client, const CodeError& err,
     if (err) return NextFilter::handle_connection(client, err, req);
 
     SslFilter* filter = new SslFilter(client, SSL_get_SSL_CTX(ssl), this);
-    client->add_filter(filter);
+    client->add_filter(filter, true);
 
     auto read_err = filter->read_start();
     if (read_err) return NextFilter::handle_connection(client, read_err, req);
