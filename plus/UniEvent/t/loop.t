@@ -1,4 +1,4 @@
-use 5.012;
+use 5.016;
 use warnings;
 use lib 't/lib'; use MyTest;
 catch_run('[loop]');
@@ -108,6 +108,32 @@ subtest 'delay' => sub {
 
 subtest 'CLONE_SKIP' => sub {
     is UniEvent::Loop::CLONE_SKIP(), 1;
+};
+
+subtest 'kill mortals after loop iteration' => sub {
+    {
+        package MyMortal;
+        our $dcnt = 0;
+        sub DESTROY { ++$dcnt }
+    }
+    
+    my $test = sub {
+        my $loop = shift;
+        my $cnt = $MyMortal::dcnt = 0;
+        my $cb = sub {
+            if (++$cnt >= 10) {
+                cmp_ok $MyMortal::dcnt, '>=', $cnt-1;
+                return;
+            }
+            MyTest::set_loop_callback_with_mortal($loop, __SUB__);
+        };
+        
+        MyTest::set_loop_callback_with_mortal($loop, $cb);
+        $loop->run;
+    };
+    
+    subtest "default loop" => $test, UE::Loop->default_loop;
+    subtest "global loop"  => $test, UE::Loop->global_loop;
 };
 
 done_testing();

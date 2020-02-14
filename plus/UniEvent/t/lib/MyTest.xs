@@ -16,6 +16,20 @@ bool variate_buf (bool val = false) {
     RETVAL = variation.buf;
 }
 
+void set_loop_callback_with_mortal (LoopSP loop, xs::Sub cb) {
+    loop->delay([cb]{
+        auto param = newSV(0);
+        newSVrv(param, "MyMortal");
+        //ENTER;
+        //SAVETMPS;
+        sv_2mortal(param);
+        cb.call(param);
+        //FREETMPS;
+        //LEAVE;
+        //SvREFCNT_dec_NN(param);
+    });
+}
+
 void _benchmark_simple_resolver () { 
     LoopSP loop(new Loop);
     ResolverSP resolver(new Resolver(loop));
