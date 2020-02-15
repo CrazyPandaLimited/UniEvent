@@ -97,6 +97,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
 
+    template <class T> void run_in_order (T&& code);
+
     void read_start () {
         set_wantread(true);
         flags &= ~IGNORE_READ;
@@ -195,7 +197,8 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend AcceptRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest;
+    friend struct DisconnectRequest; friend AcceptRequest; friend RunInOrderRequest;
 
     static const uint32_t LISTENING     = 1;
     static const uint32_t CONNECTING    = 2;
@@ -353,6 +356,18 @@ private:
     void notify       (const CodeError&) override;
 };
 
+struct RunInOrderRequest : StreamRequest {
+    function<void(const StreamSP&)> code;
+
+    RunInOrderRequest (function<void(const StreamSP&)>&& _code) {
+        code = std::move(_code);
+    }
+
+    void exec         () override;
+    void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
+};
+
 inline void Stream::write (const string& data, write_fn callback) {
     auto req = new WriteRequest(data);
     if (callback) req->event.add(callback);
@@ -374,5 +389,17 @@ inline void Stream::write (const Range& range, write_fn callback) {
 }
 
 inline void Stream::shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
+
+template <class T>
+inline void Stream::run_in_order (T&& code) {
+    if (!queue.size()) {
+        auto param = StreamSP(this);
+        code(param);
+        return;
+    }
+    RunInOrderRequestSP req = new RunInOrderRequest(code);
+    req->set(this);
+    queue.push(req);
+}
 
 }}
