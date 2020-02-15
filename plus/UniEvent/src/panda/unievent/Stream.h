@@ -56,6 +56,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     using shutdown_fn     = function<shutdown_fptr>;
     using eof_fptr        = void(const StreamSP& handle);
     using eof_fn          = function<eof_fptr>;
+    using run_fptr        = void(const StreamSP& handle);
+    using run_fn          = function<run_fptr>;
 
     static const int DEFAULT_BACKLOG = 128;
 
@@ -357,10 +359,11 @@ private:
 };
 
 struct RunInOrderRequest : StreamRequest {
-    function<void(const StreamSP&)> code;
+    Stream::run_fn code;
 
-    RunInOrderRequest (function<void(const StreamSP&)>&& _code) {
-        code = std::move(_code);
+    template <class T>
+    RunInOrderRequest (T&& _code) {
+        code = std::forward<T>(_code);
     }
 
     void exec         () override;
@@ -397,7 +400,7 @@ inline void Stream::run_in_order (T&& code) {
         code(param);
         return;
     }
-    RunInOrderRequestSP req = new RunInOrderRequest(code);
+    RunInOrderRequestSP req = new RunInOrderRequest(std::forward<T>(code));
     req->set(this);
     queue.push(req);
 }
