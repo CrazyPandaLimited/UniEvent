@@ -149,10 +149,11 @@ TEST_CASE("server with different CA", "[ssl]") {
 }
 
 TEST_CASE("can't add filter when active", "[ssl]") {
+    variation.ssl = true;
     AsyncTest test(1000);
     TcpSP client = make_client(test.loop);
     TcpSP server = make_server(test.loop);
 
     client->connect(server->sockaddr());
-    CHECK_THROWS( client->use_ssl() );
+    CHECK_THROWS( client->no_ssl() );
 }
