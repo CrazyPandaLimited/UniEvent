@@ -308,7 +308,6 @@ void Stream::_clear () {
 // ===================== FILTERS ADD/REMOVE ===============================
 void Stream::add_filter (const StreamFilterSP& filter, bool force) {
     assert(filter);
-    if (!force) _check_change_filters();
     auto it = _filters.begin();
     auto pos = it;
     bool found = false;
@@ -323,6 +322,7 @@ void Stream::add_filter (const StreamFilterSP& filter, bool force) {
         }
         it++;
     }
+    if (!force) _check_change_filters();
     if (found) _filters.insert(pos, filter);
     else _filters.push_back(filter);
 }
