@@ -50,7 +50,7 @@ void Tcp::connect (const TcpConnectRequestSP& req) {
 }
 
 void TcpConnectRequest::exec () {
-    _EDEBUGTHIS();
+    panda_mlog_debug(uelog, "TcpConnectRequest::exec " << this);
     ConnectRequest::exec();
     if (handle->filters().size()) {
         last_filter = handle->filters().front();
@@ -60,7 +60,7 @@ void TcpConnectRequest::exec () {
 }
 
 void TcpConnectRequest::finalize_connect () {
-    _EDEBUGTHIS();
+    panda_mlog_debug(uelog, "TcpConnectRequest::finalize_connect " << this);
 
     if (addr) {
         auto err = handle->impl()->connect(addr, impl());

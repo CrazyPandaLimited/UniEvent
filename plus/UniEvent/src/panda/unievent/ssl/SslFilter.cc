@@ -11,9 +11,16 @@
 
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
-#define _ESSL(fmt, ...) do { if(EVENT_LIB_DEBUG >= 1) fprintf(stderr, "%s:%d:%s(): [%s] {%p} " fmt "\n", __FILE__, __LINE__, __func__, profile == Profile::CLIENT ? "client" : (profile == Profile::SERVER ? "server" : "no profile"), this->handle, ##__VA_ARGS__); } while (0)
-
 namespace panda { namespace unievent { namespace ssl {
+
+log::Module ssllog("UniEvent::SSL", log::Warning);
+static log::Module* panda_log_module = &ssllog;
+
+#define _ESSL(fmt, ...) do { \
+    char _log_buf_[1000]; \
+    int _log_size_ = snprintf(_log_buf_, 1000, "%s(): [%s] {%p} " fmt "\n", __func__, profile == Profile::CLIENT ? "client" : (profile == Profile::SERVER ? "server" : "no profile"), this->handle, ##__VA_ARGS__); \
+    panda_mlog_debug(ssllog, string_view(_log_buf_, _log_size_)); \
+} while(0)
 
 const void* SslFilter::TYPE = &typeid(SslFilter);
 
@@ -230,7 +237,7 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
 
     assert(handle->connecting() || handle->connected());
 
-    _EDEBUG("ssl_init_finished %d, renegotiate %d", SSL_is_init_finished(ssl), SSL_renegotiate_pending(ssl));
+    panda_log_debug("ssl_init_finished" << SSL_is_init_finished(ssl) << ", renegotiate " << SSL_renegotiate_pending(ssl));
     bool connecting = !SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl);
     if (err) {
         if (!handle->connecting()) {
@@ -246,7 +253,7 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
     }
     SslBio::set_buf(read_bio, encbuf);
 
-    _EDEBUG("connecting %d, err %s", connecting, err.what());
+    panda_log_debug("connecting " << connecting << ", err " << err.what());
 
     auto was_in_read = BIO_ctrl(read_bio, BIO_CTRL_PENDING, 0, nullptr);
     int pending = was_in_read + encbuf.length();

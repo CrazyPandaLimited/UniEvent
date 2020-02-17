@@ -5,6 +5,8 @@ namespace panda { namespace unievent {
 
 using ssl::SslFilter;
 
+static log::Module* panda_log_module = &uelog;
+
 #define HOLD_ON(what) StreamSP __hold = what; (void)__hold;
 
 #define INVOKE(h, f, fm, hm, ...) do { \
@@ -37,7 +39,7 @@ void Stream::listen (connection_fn callback, int backlog) {
 }
 
 void Stream::handle_connection (const CodeError& err) {
-    _EDEBUG("[%p] err: %d", this, err.code().value());
+    panda_log_info("handle_connection err: " << err.code().value() << " this: " << this);
     HOLD_ON(this);
     if (err) INVOKE(this, _filters.back(), handle_connection, finalize_handle_connection, nullptr, err, nullptr);
     else     accept();
@@ -55,7 +57,7 @@ void Stream::accept () {
 }
 
 void Stream::accept (const StreamSP& client) {
-    _EDEBUGTHIS("client=%p", client.get());
+    panda_log_debug("accept client " << client << ", this: " << this);
     auto err = impl()->accept(client->impl());
     if (!err) {
         client->set_connecting();
@@ -74,7 +76,8 @@ void Stream::accept (const StreamSP& client) {
 void Stream::finalize_handle_connection (const StreamSP& client, const CodeError& err1, const AcceptRequestSP& req) {
     auto err2 = client->set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
-    _EDEBUGTHIS("err: %d, client: %p", err.code().value(), client.get());
+    panda_log_debug("finalize_handle_connection err: " << err.code().value() << "client: " << client << ", this: " << this);
+
     if (req) client->queue.done(req, []{});
     StreamSP self = this;
     connection_event(self, client, err);
@@ -83,7 +86,7 @@ void Stream::finalize_handle_connection (const StreamSP& client, const CodeError
 
 // ===================== CONNECT ===============================
 void ConnectRequest::exec () {
-    _EDEBUGTHIS();
+    panda_log_debug("ConnectRequest::exec " << this);
     handle->set_connecting();
 
     if (timeout) {
@@ -94,7 +97,7 @@ void ConnectRequest::exec () {
 }
 
 void ConnectRequest::handle_event (const CodeError& err) {
-    _EDEBUGTHIS();
+    panda_log_debug("ConnectRequest::handle_event " << this);
     if (!err) handle->set_established();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
@@ -105,7 +108,7 @@ void ConnectRequest::notify (const CodeError& err) { handle->notify_on_connect(e
 void Stream::finalize_handle_connect (const CodeError& err1, const ConnectRequestSP& req) {
     auto err2 = set_connect_result(!err1);
     auto& err = err1 ? err1 : err2;
-    _EDEBUGTHIS("err: %d (%s), request: %p", err.code().value(), err.code().message().c_str(), req.get());
+    panda_log_debug("finalize_handle_connect err: " << err.code() << "req: " << req << ", this: " << this);
 
     req->timer = nullptr;
 
@@ -159,14 +162,14 @@ void Stream::finalize_handle_read (string& buf, const CodeError& err) {
 
 // ===================== WRITE ===============================
 void Stream::write (const WriteRequestSP& req) {
-    _EDEBUGTHIS("req: %p", req.get());
+    panda_log_debug("ConnectRequest::exec req: " << req << ", this: " << this);
     for (const auto& buf : req->bufs) _wq_size += buf.length();
     req->set(this);
     queue.push(req);
 }
 
 void WriteRequest::exec () {
-    _EDEBUGTHIS();
+    panda_log_debug("WriteRequest::exec " << this);
     REQUEST_REQUIRE_WRITE_STATE;
     last_filter = handle->_filters.front();
     for (const auto& buf : bufs) handle->_wq_size -= buf.length();
@@ -174,13 +177,13 @@ void WriteRequest::exec () {
 }
 
 void Stream::finalize_write (const WriteRequestSP& req) {
-    _EDEBUGTHIS();
+    panda_log_debug("WriteRequest::finalize_write " << this);
     auto err = impl()->write(req->bufs, req->impl());
     if (err) req->delay([=]{ req->cancel(err); });
 }
 
 void WriteRequest::handle_event (const CodeError& err) {
-    _EDEBUGTHIS();
+    panda_log_debug("WriteRequest::handle_event " << this);
     if (err && err.code() == std::errc::broken_pipe) handle->clear_out_connected();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
@@ -189,7 +192,7 @@ void WriteRequest::handle_event (const CodeError& err) {
 void WriteRequest::notify (const CodeError& err) { handle->notify_on_write(err, this); }
 
 void Stream::finalize_handle_write (const CodeError& err, const WriteRequestSP& req) {
-    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
+    panda_log_debug("finalize_handle_write err: " << err.code() << ", request" << req << ", this" << this);
     queue.done(req, [=]{ notify_on_write(err, req); });
 }
 
@@ -216,26 +219,26 @@ void Stream::finalize_handle_eof () {
 
 // ===================== SHUTDOWN ===============================
 void Stream::shutdown (const ShutdownRequestSP& req) {
-    _EDEBUGTHIS("req: %p", req.get());
+    panda_log_debug("shutdown req: " << req << ", this:" << this);
     req->set(this);
     queue.push(req);
 }
 
 void ShutdownRequest::exec () {
-    _EDEBUGTHIS();
+    panda_log_debug("ShutdownRequest::exec " << this);
     REQUEST_REQUIRE_WRITE_STATE;
     last_filter = handle->_filters.front();
     INVOKE(handle, last_filter, shutdown, finalize_shutdown, this);
 }
 
 void Stream::finalize_shutdown (const ShutdownRequestSP& req) {
-    _EDEBUGTHIS();
+    panda_log_debug("finalize_shutdown " << this);
     set_shutting();
     impl()->shutdown(req->impl());
 }
 
 void ShutdownRequest::handle_event (const CodeError& err) {
-    _EDEBUGTHIS();
+    panda_log_debug("ShutdownRequest::handle_event " << this);
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
@@ -243,7 +246,7 @@ void ShutdownRequest::handle_event (const CodeError& err) {
 void ShutdownRequest::notify (const CodeError& err) { handle->notify_on_shutdown(err, this); }
 
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
-    _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
+    panda_log_debug("finalize_handle_shutdown req: " << err.code() << "req: " << req << ", this: " << this);
     set_shutdown(!err);
     queue.done(req, [=]{ notify_on_shutdown(err, req); });
 }

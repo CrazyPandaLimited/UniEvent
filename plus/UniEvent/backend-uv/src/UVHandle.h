@@ -28,7 +28,7 @@ protected:
     }
 
     void destroy () noexcept override {
-        _EDEBUGTHIS("%s", _type_name(uvhp()));
+        panda_mlog_verbose_debug(uelog, _type_name(uvhp()) << "::destroy " << this);
         this->listener = nullptr;
         uv_close(uvhp(), uvx_on_close);
     }
@@ -39,7 +39,7 @@ protected:
 private:
     static void uvx_on_close (uv_handle_t* p) {
         auto h = get_handle(p);
-        _EDEBUG("[%p] %s", h, _type_name(p));
+        panda_mlog_verbose_debug(uelog, "uvx_on_close " << h << " " << _type_name(p));
         delete h;
     }
 

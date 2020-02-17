@@ -8,6 +8,8 @@
 
 namespace panda { namespace unievent { namespace ssl {
 
+extern log::Module ssllog; // definition is in SslFilter.cc
+
 #ifdef LIBRESSL_VERSION_NUMBER
 #  define _PATCH_BIO 1
 #else
@@ -64,13 +66,13 @@ struct SslBio {
 
     static void set_buf (BIO* bio, const string& buf) {
         membuf_t* b = (membuf_t*) BIO_get_data(bio);
-        _EDEBUG("(%p) len=%lu, was=%lu", bio, buf.length(), b->buf.length());
+        panda_mlog_debug(ssllog, bio << " len=" << buf.length() << ", was=" << b->buf.length());
         b->buf += buf;
     }
 
     static string steal_buf (BIO* bio) {
         membuf_t* b = (membuf_t*) BIO_get_data(bio);
-        _EDEBUG("(%p) len=%lu", bio, b->buf.length());
+        panda_mlog_debug(ssllog, bio << " len=" << b->buf.length());
         string ret;
         ret.swap(b->buf);
         return ret;
