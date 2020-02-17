@@ -2,6 +2,8 @@
 #include "HandleImpl.h"
 #include <panda/net/sockaddr.h>
 
+#undef fileno
+
 namespace panda { namespace unievent { namespace backend {
 
 struct IUdpImplListener {

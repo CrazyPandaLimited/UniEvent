@@ -1,6 +1,8 @@
 #pragma once
 #include "HandleImpl.h"
 
+#undef fileno
+
 namespace panda { namespace unievent { namespace backend {
 
 struct IPollImplListener {
