@@ -282,7 +282,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
 }
 
 TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
-    AsyncTest test(3000, {});
+    AsyncTest test(10000, {});
     SockAddr addr = test.get_refused_addr();
 
     TcpSP client = new Tcp(test.loop);
@@ -551,4 +551,39 @@ TEST_CASE("write stack overflow", "[tcp][v-ssl][v-buf]") {
         client->write("q");
     }
     test.await(server->connection_event, "connection");
+}
+
+TEST_CASE("run in order", "[tcp]") {
+    AsyncTest test(2000);
+    TcpSP h = new Tcp(test.loop);
+    string s;
+    h->run_in_order([&](auto&){ s +=  "1"; });
+    CHECK(s == "1");
+
+    TcpSP server = make_server(test.loop);
+    auto sa = server->sockaddr();
+
+    h->connect(sa);
+    h->connect_event.add([&](auto...){
+        CHECK(s == "1");
+    });
+
+    h->run_in_order([&](auto&){ s +=  "2"; });
+
+    h->write("123");
+    h->write_event.add([&](auto...){
+        CHECK(s == "12");
+    });
+
+    h->run_in_order([&](auto&){ s +=  "3"; });
+
+    h->shutdown();
+    h->shutdown_event.add([&](auto...){
+        CHECK(s == "123");
+        test.loop->stop();
+    });
+
+    CHECK(s == "1");
+    test.run();
+    CHECK(s == "123");
 }

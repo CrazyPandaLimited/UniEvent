@@ -81,6 +81,7 @@ subtest 'interface info' => sub {
 subtest 'get_rusage' => sub {
     my $rusage = UniEvent::get_rusage();
     foreach my $col (qw/utime stime maxrss ixrss idrss isrss minflt majflt nswap inblock oublock msgsnd msgrcv nsignals nvcsw nivcsw/) {
+        next if $col eq 'maxrss' and netbsd();
         my $val = $rusage->{$col};
         my $name = "$col: $val";
         if ($name =~ /utime|stime|maxrss/) {

@@ -63,7 +63,7 @@ TEST_CASE("interface info", "[misc]") {
     CHECK(found_local);
 }
 
-TEST_CASE("get_rusage", "[misc]") {
+TEST_CASE("get_rusage", "[!][misc]") {
     auto rusage = get_rusage();
     CHECK(rusage.maxrss > 0);
 }

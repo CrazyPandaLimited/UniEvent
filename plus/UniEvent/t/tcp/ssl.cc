@@ -110,7 +110,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
 
     TcpSP client = make_client(test.loop);
 
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
+    server->connection_event.add([&](auto, auto, auto& err) {
         REQUIRE(err);
         REQUIRE(err.code() == errc::ssl_error);
         test.loop->stop();
@@ -138,7 +138,7 @@ TEST_CASE("server with different CA", "[ssl]") {
     auto client_cert = get_client_context("01-alice");
     client->use_ssl(client_cert.get());
 
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
+    server->connection_event.add([&](auto, auto&, auto& err) {
         REQUIRE(err);
         test.loop->stop();
     });
@@ -148,3 +148,13 @@ TEST_CASE("server with different CA", "[ssl]") {
     test.loop->run();
 }
 
+TEST_CASE("can't add filter when active", "[ssl]") {
+    variation.ssl = false;
+    AsyncTest test(1000);
+    TcpSP client = make_client(test.loop);
+    TcpSP server = make_server(test.loop);
+
+    client->connect(server->sockaddr());
+    CHECK_THROWS( client->use_ssl() );
+    variation.ssl = true;
+}

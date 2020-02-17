@@ -58,7 +58,6 @@ subtest "error constants" => sub {
         ["operation_not_permitted", "EPERM"],
         ["operation_not_supported", "EOPNOTSUPP"],
         ["operation_would_block", "EWOULDBLOCK"],
-        ["owner_dead", "EOWNERDEAD"],
         ["permission_denied", "EACCES"],
         ["protocol_error", "EPROTO"],
         ["protocol_not_supported", "EPROTONOSUPPORT"],

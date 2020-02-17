@@ -61,6 +61,9 @@ using WriteRequestSP = iptr<WriteRequest>;
 struct ShutdownRequest;
 using ShutdownRequestSP = iptr<ShutdownRequest>;
 
+struct RunInOrderRequest;
+using RunInOrderRequestSP = iptr<RunInOrderRequest>;
+
 struct Pipe;
 using PipeSP = iptr<Pipe>;
 

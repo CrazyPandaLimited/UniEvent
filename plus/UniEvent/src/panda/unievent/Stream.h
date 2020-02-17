@@ -56,6 +56,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     using shutdown_fn     = function<shutdown_fptr>;
     using eof_fptr        = void(const StreamSP& handle);
     using eof_fn          = function<eof_fptr>;
+    using run_fptr        = void(const StreamSP& handle);
+    using run_fn          = function<run_fptr>;
 
     static const int DEFAULT_BACKLOG = 128;
 
@@ -97,6 +99,8 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
 
+    template <class T> void run_in_order (T&& code);
+
     void read_start () {
         set_wantread(true);
         flags &= ~IGNORE_READ;
@@ -120,15 +124,22 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     SSL* get_ssl   () const;
     bool is_secure () const;
 
-    void add_filter    (const StreamFilterSP&);
-    void remove_filter (const StreamFilterSP&);
+    void add_filter    (const StreamFilterSP&, bool force = false);
+    void remove_filter (const StreamFilterSP&, bool force = false);
 
     template <typename F>
     iptr<F>        get_filter ()                 const { return static_pointer_cast<F>(get_filter(F::TYPE)); }
     StreamFilterSP get_filter (const void* type) const;
 
-    void push_ahead_filter  (const StreamFilterSP& filter) { _filters.insert(_filters.begin(), filter); }
-    void push_behind_filter (const StreamFilterSP& filter) { _filters.insert(_filters.end(), filter); }
+    void push_ahead_filter  (const StreamFilterSP& filter, bool force = false) {
+        if (!force) _check_change_filters();
+        _filters.insert(_filters.begin(), filter);
+    }
+
+    void push_behind_filter (const StreamFilterSP& filter, bool force = false) {
+        if (!force) _check_change_filters();
+        _filters.insert(_filters.end(), filter);
+    }
 
     Filters& filters () { return _filters; }
 
@@ -188,7 +199,8 @@ protected:
     ~Stream ();
 
 private:
-    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest; friend struct DisconnectRequest; friend AcceptRequest;
+    friend StreamFilter; friend ConnectRequest; friend WriteRequest; friend ShutdownRequest;
+    friend struct DisconnectRequest; friend AcceptRequest; friend RunInOrderRequest;
 
     static const uint32_t LISTENING     = 1;
     static const uint32_t CONNECTING    = 2;
@@ -234,6 +246,10 @@ private:
     void _clear ();
 
     CodeError _read_start ();
+
+    void _check_change_filters () {
+        if (connecting() || established()) throw Error("can't change stream filters when active");
+    }
 };
 
 struct StreamRequest : Request {
@@ -342,6 +358,19 @@ private:
     void notify       (const CodeError&) override;
 };
 
+struct RunInOrderRequest : StreamRequest {
+    Stream::run_fn code;
+
+    template <class T>
+    RunInOrderRequest (T&& _code) {
+        code = std::forward<T>(_code);
+    }
+
+    void exec         () override;
+    void handle_event (const CodeError&) override;
+    void notify       (const CodeError&) override;
+};
+
 inline void Stream::write (const string& data, write_fn callback) {
     auto req = new WriteRequest(data);
     if (callback) req->event.add(callback);
@@ -363,5 +392,17 @@ inline void Stream::write (const Range& range, write_fn callback) {
 }
 
 inline void Stream::shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
+
+template <class T>
+inline void Stream::run_in_order (T&& code) {
+    if (!queue.size()) {
+        auto param = StreamSP(this);
+        code(param);
+        return;
+    }
+    RunInOrderRequestSP req = new RunInOrderRequest(std::forward<T>(code));
+    req->set(this);
+    queue.push(req);
+}
 
 }}
