@@ -98,6 +98,7 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     /*INL*/ void write (const Range& range, write_fn callback = nullptr);
     virtual void shutdown (const ShutdownRequestSP&);
     /*INL*/ void shutdown (shutdown_fn callback = {});
+    /*INL*/ void shutdown (uint64_t timeout, shutdown_fn callback = {});
 
     template <class T> void run_in_order (T&& code);
 
@@ -340,13 +341,17 @@ private:
 struct ShutdownRequest : StreamRequest {
     CallbackDispatcher<Stream::shutdown_fptr> event;
 
-    ShutdownRequest (Stream::shutdown_fn callback = {}) {
+    ShutdownRequest (Stream::shutdown_fn callback = {}, uint64_t timeout = 0) : timeout(timeout) {
         _ECTOR();
         if (callback) event.add(callback);
     }
 
 private:
     friend Stream;
+
+    uint64_t timeout;
+    TimerSP  timer;
+    bool     timed_out = false;
 
     backend::ShutdownRequestImpl* impl () {
         if (!_impl) _impl = handle->impl()->new_shutdown_request(this);
@@ -356,6 +361,7 @@ private:
     void exec         () override;
     void handle_event (const CodeError&) override;
     void notify       (const CodeError&) override;
+    void cancel       (const CodeError& err = std::errc::operation_canceled) override;
 };
 
 struct RunInOrderRequest : StreamRequest {
@@ -391,7 +397,8 @@ inline void Stream::write (const Range& range, write_fn callback) {
     write(req);
 }
 
-inline void Stream::shutdown (shutdown_fn callback) { shutdown(new ShutdownRequest(callback)); }
+inline void Stream::shutdown (shutdown_fn callback)                   { shutdown(new ShutdownRequest(callback)); }
+inline void Stream::shutdown (uint64_t timeout, shutdown_fn callback) { shutdown(new ShutdownRequest(callback, timeout)); }
 
 template <class T>
 inline void Stream::run_in_order (T&& code) {

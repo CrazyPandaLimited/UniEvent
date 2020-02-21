@@ -218,6 +218,28 @@ void Stream::finalize_handle_eof () {
 void Stream::shutdown (const ShutdownRequestSP& req) {
     _EDEBUGTHIS("req: %p", req.get());
     req->set(this);
+    req->timed_out = false;
+
+    if (req->timeout) {
+        req->timer = new Timer(loop());
+        auto reqp = req.get();
+        req->timer->event.add([this, reqp](const TimerSP&){
+            // if we have any requests not completed before shutdown - cancel it with status "cancelled" and then cancel shutdown request with status "timed out"
+            // otherwise, just cancel shutdown request with status "timed out"
+            // notice that we don't cancel all the queue, but only everything before shutdown request. next request after shutdown request will start running right now
+            auto prev_req = intrusive_chain_prev(RequestSP(reqp));
+            if (prev_req) {
+                reqp->timed_out = true; // needed for calling with correct err if somebody calls reset() in previous requests handlers
+                queue.cancel([]{}, [reqp] {
+                    reqp->cancel(std::errc::timed_out);
+                }, prev_req);
+            } else {
+                reqp->cancel(std::errc::timed_out);
+            }
+        });
+        req->timer->once(req->timeout);
+    }
+
     queue.push(req);
 }
 
@@ -242,9 +264,18 @@ void ShutdownRequest::handle_event (const CodeError& err) {
 
 void ShutdownRequest::notify (const CodeError& err) { handle->notify_on_shutdown(err, this); }
 
+void ShutdownRequest::cancel (const CodeError& err) {
+    if (timed_out && err == std::errc::operation_canceled) {
+        timed_out = false;
+        StreamRequest::cancel(std::errc::timed_out);
+    }
+    else StreamRequest::cancel(err);
+}
+
 void Stream::finalize_handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
     _EDEBUGTHIS("err: %d, request: %p", err.code().value(), req.get());
     set_shutdown(!err);
+    req->timer = nullptr;
     queue.done(req, [=]{ notify_on_shutdown(err, req); });
 }
 

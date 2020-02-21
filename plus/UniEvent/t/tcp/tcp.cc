@@ -587,3 +587,51 @@ TEST_CASE("run in order", "[tcp]") {
     test.run();
     CHECK(s == "123");
 }
+
+TEST_CASE("shutdown timeout", "[tcp]") {
+    AsyncTest test(1000, {"shutdown", "postreq"});
+    auto p = make_tcp_pair(test.loop);
+    StreamSP client;
+    p.server->connection_event.add([&](auto, auto cli, auto) {
+        client = cli;
+    });
+    string str;
+    str.resize(10000000, 'x');
+    for (int i = 0; i < 1000; ++i) p.client->write(str);
+    p.client->shutdown(1, [&](auto, auto& err, auto) {
+        test.happens("shutdown");
+        CHECK(err == std::errc::timed_out);
+    });
+
+    p.client->run_in_order([&](auto) {
+        test.happens("postreq");
+        test.loop->stop();
+    });
+
+    test.run();
+}
+
+TEST_CASE("reset in write request while timeouted shutdown", "[tcp]") {
+    AsyncTest test(1000, {"reset", "shutdown"});
+    auto p = make_tcp_pair(test.loop);
+    StreamSP client;
+    p.server->connection_event.add([&](auto, auto cli, auto) {
+        client = cli;
+    });
+    string str;
+    str.resize(10000000, 'x');
+    for (int i = 0; i < 1000; ++i) p.client->write(str);
+    p.client->write(str, [&](auto& client, auto& err, auto) {
+        if (err) {
+            test.happens("reset");
+            client->reset();
+        }
+    });
+    p.client->shutdown(1, [&](auto, auto& err, auto) {
+        test.happens("shutdown");
+        CHECK(err == std::errc::timed_out);
+        test.loop->stop();
+    });
+
+    test.run();
+}

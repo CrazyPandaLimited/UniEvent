@@ -76,9 +76,9 @@ struct Queue {
     void cancel (Post&& f) { cancel([]{}, f); }
 
     template <class Pre, class Post>
-    void cancel (Pre&& fpre, Post&& fpost) {
+    void cancel (Pre&& fpre, Post&& fpost, const RequestSP& till = {}) {
         ++locked; // this blocks executing of requests
-        cancel_till = requests.back(); // we must not cancel anything that is added during callbacks execution
+        cancel_till = till ? till : requests.back(); // we must not cancel anything that is added during callbacks execution
         auto gen = cancel_gen;
 
         ExceptionKeeper exk;
