@@ -4,7 +4,11 @@
 #include "Prepare.h"
 #include "Resolver.h"
 #include <panda/unievent/backend/uv.h>
+#include <set>
 #include <thread>
+#ifndef _WIN32
+    #include <pthread.h>
+#endif
 
 namespace panda { namespace unievent {
 
@@ -16,6 +20,35 @@ LoopSP              Loop::_global_loop;
 thread_local LoopSP Loop::_default_loop;
 
 thread_local std::vector<SyncLoop::Item> SyncLoop::loops;
+
+static thread_local std::set<Loop*>* loops;
+
+static bool _init () {
+    #ifndef _WIN32
+    pthread_atfork(nullptr, nullptr, []{
+        if (loops) for (LoopSP loop : *loops) {
+            loop->impl()->handle_fork();
+            loop->fork_event(loop);
+        }
+    });
+    #endif
+    return true;
+}
+static const bool __init = _init();
+
+static void register_loop (Loop* loop) {
+    auto list = loops;
+    if (!list) loops = list = new std::set<Loop*>();
+    list->insert(loop);
+}
+
+static void unregister_loop (Loop* loop) {
+    auto list = loops;
+    list->erase(loop);
+    if (list->size()) return;
+    delete list;
+    loops = nullptr;
+}
 
 backend::Backend* default_backend () {
     return _default_backend ? _default_backend : backend::UV;
@@ -41,10 +74,12 @@ Loop::Loop (Backend* backend, LoopImpl::Type type) {
     if (!backend) backend = default_backend();
     _backend = backend;
     _impl = backend->new_loop(type);
+    register_loop(this);
 }
 
 Loop::~Loop () {
     _EDTOR();
+    unregister_loop(this);
     _resolver = nullptr;
     assert(!_handles.size());
     delete _impl;
@@ -57,10 +92,6 @@ bool Loop::run (RunMode mode) {
 
 void Loop::stop () {
     _impl->stop();
-}
-
-void Loop::handle_fork () {
-    _impl->handle_fork();
 }
 
 void Loop::dump () const {

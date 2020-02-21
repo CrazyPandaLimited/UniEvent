@@ -12,10 +12,12 @@ backend::Backend* default_backend     ();
 void              set_default_backend (backend::Backend* backend);
 
 struct Loop : Refcnt {
-    using Backend  = backend::Backend;
-    using LoopImpl = backend::LoopImpl;
-    using Handles  = IntrusiveChain<Handle*>;
-    using RunMode  = LoopImpl::RunMode;
+    using Backend   = backend::Backend;
+    using LoopImpl  = backend::LoopImpl;
+    using Handles   = IntrusiveChain<Handle*>;
+    using RunMode   = LoopImpl::RunMode;
+    using fork_fptr = void(const LoopSP&);
+    using fork_fn   = function<fork_fptr>;
 
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
@@ -26,6 +28,8 @@ struct Loop : Refcnt {
         if (!_default_loop) _init_default_loop();
         return _default_loop;
     }
+
+    CallbackDispatcher<fork_fptr> fork_event;
 
     Loop (Backend* backend = nullptr) : Loop(backend, LoopImpl::Type::LOCAL) {}
 
@@ -38,9 +42,8 @@ struct Loop : Refcnt {
     void     update_time ()       { _impl->update_time(); }
     bool     alive       () const { return _impl->alive(); }
 
-    virtual bool run         (RunMode = RunMode::DEFAULT);
-    virtual void stop        ();
-    virtual void handle_fork ();
+    virtual bool run  (RunMode = RunMode::DEFAULT);
+    virtual void stop ();
 
     bool run_once   () { return run(RunMode::ONCE); }
     bool run_nowait () { return run(RunMode::NOWAIT); }

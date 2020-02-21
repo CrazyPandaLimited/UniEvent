@@ -184,3 +184,26 @@ TEST_CASE("loop", "[loop]") {
 
     if (ccnt != dcnt) CHECK(ccnt == dcnt);
 }
+
+#ifndef _WIN32
+    #include <sys/types.h>
+    #include <unistd.h>
+    #include <stdlib.h>
+    #include <sys/wait.h>
+
+    TEST_CASE("automatic handle fork", "[loop]") {
+        int forked = 0;
+        LoopSP loop = new Loop();
+        loop->fork_event.add([&forked](auto){ ++forked; });
+
+        auto pid = fork();
+        if (pid == -1) throw std::logic_error("could not fork");
+
+        if (!pid) exit(forked != 1);
+
+        int wst;
+        auto ret = waitpid(pid, &wst, 0);
+        CHECK(ret == pid);
+        CHECK(WEXITSTATUS(wst) == 0);
+    }
+#endif

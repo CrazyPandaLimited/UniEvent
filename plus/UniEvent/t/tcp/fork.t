@@ -34,8 +34,6 @@ my $timer = UE::Timer->new($loop);
 $timer->event->add(sub {
     $pid = fork();
     unless ($pid) {
-        $loop->handle_fork();
-        
         $server->reset();
         
         my $client = UE::Tcp->new();
