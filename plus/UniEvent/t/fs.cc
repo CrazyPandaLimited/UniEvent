@@ -377,7 +377,7 @@ TEST_CASE("fs-sync", "[fs]") {
 
 TEST_CASE("fs-async", "[fs]") {
     VarDir vdir;
-    AsyncTest test(100, 1);
+    AsyncTest test(3000, 1);
     auto l       = test.loop;
     auto p       = [&](string_view s) { return vdir.path(s); };
     auto file    = p("file");

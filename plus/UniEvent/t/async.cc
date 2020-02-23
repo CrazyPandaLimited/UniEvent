@@ -2,7 +2,7 @@
 
 TEST_CASE("async", "[async]") {
     SECTION("send") {
-        AsyncTest test(100, {"async"});
+        AsyncTest test(2000, {"async"});
 
         AsyncSP async = new Async([&](auto) {
             test.happens("async");
@@ -24,16 +24,16 @@ TEST_CASE("async", "[async]") {
         SECTION("from another thread") {
             std::thread t;
             SECTION("after run") {
-                t = std::thread([](auto h) {
+                t = std::thread([](Async* h) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     h->send();
-                }, async);
+                }, async.get());
                 test.run();
             }
             SECTION("before run") {
-                t = std::thread([](auto h) {
+                t = std::thread([](Async* h) {
                     h->send();
-                }, async);
+                }, async.get());
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 test.run();
             }

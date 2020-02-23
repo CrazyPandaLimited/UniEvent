@@ -21,23 +21,12 @@ TEST_CASE("work", "[work]") {
     }
 
     SECTION("cancel") {
-        SECTION("not active") {
-            w->work_cb       = [&](Work*) { FAIL(); };
-            w->after_work_cb = [&](const WorkSP&, const CodeError&) { FAIL(); };
-            w->cancel();
-            test.run(); // noop
-        }
-        SECTION("active") {
-            test.set_expected(1);
-            w->work_cb       = [&](Work*) {};
-            w->after_work_cb = [&](const WorkSP&, const CodeError& err) {
-                CHECK(err.code() == std::errc::operation_canceled);
-                test.happens();
-            };
-            w->queue();
-            w->cancel();
-            test.run(); // noop
-        }
+        w->work_cb       = [&](Work*) { FAIL(); };
+        w->after_work_cb = [&](const WorkSP&, const CodeError&) { FAIL(); };
+        w->cancel();
+        test.run(); // noop
+        // can't test active work because it starts executing immediately if there are free workers and thus
+        // there is probability that it can't be canceled 
     }
 
     SECTION("factory") {
