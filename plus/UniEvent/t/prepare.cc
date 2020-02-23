@@ -2,7 +2,7 @@
 
 TEST_CASE("prepare", "[prepare]") {
     auto l = Loop::default_loop();
-    AsyncTest test(100, {}, l);
+    AsyncTest test(1000, {}, l);
     int cnt = 0;
 
     SECTION("start/stop/reset") {
