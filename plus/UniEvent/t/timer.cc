@@ -12,10 +12,10 @@ static int64_t get_time() {
     return duration_cast< milliseconds >(steady_clock::now().time_since_epoch()).count();
 }
 
-#define REQUIRE_ELAPSED(T0, EXPECTED) do{auto diff = get_time() - T0; REQUIRE(diff >= EXPECTED); REQUIRE((diff / EXPECTED) < 1.6);} while(0)
+#define REQUIRE_ELAPSED(T0, EXPECTED) do{auto diff = get_time() - T0; REQUIRE(diff >= EXPECTED); REQUIRE((diff / EXPECTED) < 3);} while(0)
 
 TEST_CASE("timer", "[timer]") {
-    AsyncTest test(200, 0);
+    AsyncTest test(1000, 0);
 
     SECTION("static once") {
         test.set_expected(1);
