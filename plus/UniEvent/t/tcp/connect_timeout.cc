@@ -130,8 +130,8 @@ TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
     test.await(client->connect_event, "connected called");
 }
 
-TEST_CASE("connect timeout clean queue", "[tcp-connect-timeout][v-ssl]") {
-    AsyncTest test(250, {"connected called"});
+TEST_CASE("connect timeout clean queue", "[!][tcp-connect-timeout][v-ssl]") {
+    AsyncTest test(2000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
     SECTION("cached resolve")   { }
