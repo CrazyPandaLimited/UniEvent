@@ -199,6 +199,29 @@ TEST_CASE("loop", "[loop]") {
         auto pid = fork();
         if (pid == -1) throw std::logic_error("could not fork");
 
+        // some strange activity to check that Loop works
+        size_t counter = 0;
+        size_t size = 10;
+        std::vector<TcpP2P> common_pairs(size);
+        for (size_t i = 0; i < size; ++i) {
+            common_pairs.emplace_back(make_p2p(loop));
+            TcpP2P p = common_pairs.back();
+
+            p.sconn->write("1");
+            p.sconn->read_event.add([&](auto, auto buf, auto...) {
+                counter++;
+                if (counter == size) {
+                    loop->stop();
+                }
+            });
+
+            p.client->read_event.add([](auto s, auto buf, auto...) {
+                s->write(buf);
+            });
+        }
+
+        loop->run();
+
         if (!pid) exit(forked != 1);
 
         int wst;
