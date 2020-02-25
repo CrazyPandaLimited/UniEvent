@@ -31,12 +31,15 @@ SockAddr AsyncTest::get_refused_addr () {
 }
 
 SockAddr AsyncTest::get_blackhole_addr () {
-    addrinfo* res;
-    int syserr = getaddrinfo("google.com", "81", NULL, &res);
-    if (syserr) throw std::system_error(std::make_error_code(((std::errc)syserr)));
-    SockAddr result = res->ai_addr;
-    freeaddrinfo(res);
-    return result;
+    static SockAddr ret;
+    if (!ret) {
+        addrinfo* res;
+        int syserr = getaddrinfo("google.com", "81", NULL, &res);
+        if (syserr) throw std::system_error(std::make_error_code(((std::errc)syserr)));
+        ret = res->ai_addr;
+        freeaddrinfo(res);
+    }
+    return ret;
 }
 
 AsyncTest::AsyncTest (uint64_t timeout, const std::vector<string>& expected, const LoopSP& loop)
