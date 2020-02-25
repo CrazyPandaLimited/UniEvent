@@ -5,21 +5,27 @@
 namespace panda { namespace unievent {
 
 struct IFsPollListener {
-    virtual void on_fs_poll (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
+    virtual void on_fs_poll  (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
+    virtual void on_fs_start (const FsPollSP&, const Fs::FStat& stat, const CodeError&) = 0;
 };
 
 struct IFsPollSelfListener : IFsPollListener {
-    virtual void on_fs_poll (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
-    void on_fs_poll (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
+    virtual void on_fs_poll  (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&) = 0;
+    virtual void on_fs_start (const Fs::FStat& stat, const CodeError&) = 0;
+    void on_fs_poll  (const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) override { on_fs_poll(prev, cur, err); }
+    void on_fs_start (const FsPollSP&, const Fs::FStat& stat, const CodeError& err)                       override { on_fs_start(stat, err); }
 };
 
 struct FsPoll : virtual Handle {
-    using fs_poll_fptr = void(const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&);
-    using fs_poll_fn   = function<fs_poll_fptr>;
+    using fs_poll_fptr  = void(const FsPollSP&, const Fs::FStat& prev, const Fs::FStat& cur, const CodeError&);
+    using fs_poll_fn    = function<fs_poll_fptr>;
+    using fs_start_fptr = void(const FsPollSP&, const Fs::FStat& stat, const CodeError&);
+    using fs_start_fn   = function<fs_start_fptr>;
 
     static const HandleType TYPE;
 
-    CallbackDispatcher<fs_poll_fptr> event;
+    CallbackDispatcher<fs_poll_fptr>  poll_event;
+    CallbackDispatcher<fs_start_fptr> start_event;
 
     FsPoll (const LoopSP& loop = Loop::default_loop());
 
@@ -51,8 +57,9 @@ private:
     bool              fetched;
     IFsPollListener*  _listener;
 
-    void do_stat ();
-    void notify  (const Fs::FStat&, const Fs::FStat&, const CodeError&);
+    void do_stat        ();
+    void notify         (const Fs::FStat&, const Fs::FStat&, const CodeError&);
+    void initial_notify (const Fs::FStat&, const CodeError&);
 };
 
 }}

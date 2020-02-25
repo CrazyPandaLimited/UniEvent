@@ -19,7 +19,7 @@ const HandleType& FsPoll::type () const {
 
 void FsPoll::start (string_view path, unsigned int interval, const fs_poll_fn& callback) {
     if (timer->active()) throw Error("cannot start FsPoll: it is already active");
-    if (callback) event.add(callback);
+    if (callback) poll_event.add(callback);
     _path = string(path);
     timer->start(interval);
     if (fsr->busy()) fsr = new Fs::Request(loop()); // previous fspoll task has not yet been completed -> forget FSR and create new one
@@ -47,11 +47,14 @@ void FsPoll::do_stat () {
         if (err) {
             if (err != prev_err) {
                 prev_err = err;
-                this->notify(prev, stat, err); // accessing <stat> is UB
+                // accessing <stat> is UB
+                if (!fetched) this->initial_notify(stat, err);
+                this->notify(prev, stat, err);
             }
         }
         else if (!fetched || prev != stat) {
             if (fetched) this->notify(prev, stat, err);
+            else	 this->initial_notify(stat, err);
             prev = stat;
         }
 
@@ -67,11 +70,19 @@ void FsPoll::clear () {
     stop();
     weak(false);
     _listener = nullptr;
-    event.remove_all();
+    poll_event.remove_all();
+    start_event.remove_all();
 }
 
 void FsPoll::notify (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) {
     FsPollSP self = this;
-    event(self, prev, cur, err);
+    poll_event(self, prev, cur, err);
     if (_listener) _listener->on_fs_poll(self, prev, cur, err);
 }
+
+void FsPoll::initial_notify (const Fs::FStat& cur, const CodeError& err) {
+    FsPollSP self = this;
+    start_event(self, cur, err);
+    if (_listener) _listener->on_fs_start(self, cur, err);
+}
+

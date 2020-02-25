@@ -2,7 +2,7 @@
 
 TEST_CASE("check", "[check]") {
     auto l = Loop::default_loop();
-    AsyncTest test(100, {}, l);
+    AsyncTest test(5000, {}, l);
     int cnt = 0;
 
     SECTION("start/stop/reset") {

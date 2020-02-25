@@ -26,8 +26,7 @@ sub init {
     
     # if something goes wrong, loop hangs. Make tests fail with SIGALRM instead of hanging forever.
     # each test must not last longer than 10 seconds. If needed, set alarm(more_than_10s) in your test
-    alarm(10) unless defined $DB::header;
-
+    alarm(15) unless defined $DB::header;
 }
 
 sub import {

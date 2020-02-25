@@ -160,7 +160,7 @@ TEST_CASE("loop", "[loop]") {
             CHECK(n == 3);
         }
         SECTION("events dont supress delay") {
-            TimeGuard guard(100_ms);
+            TimeGuard guard(1000_ms);
             PrepareSP h = new Prepare;
             h->start([&](const PrepareSP&){ n += 10; });
             loop->delay([&]{

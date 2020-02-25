@@ -2,7 +2,7 @@
 
 TEST_CASE("idle", "[idle]") {
     auto l = Loop::default_loop();
-    AsyncTest test(1000, {}, l);
+    AsyncTest test(3000, {}, l);
     int cnt = 0;
 
     SECTION("start/stop/reset") {

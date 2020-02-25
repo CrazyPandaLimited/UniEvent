@@ -84,7 +84,7 @@ subtest 'get_rusage' => sub {
         next if $col eq 'maxrss' and netbsd();
         my $val = $rusage->{$col};
         my $name = "$col: $val";
-        if ($name =~ /utime|stime|maxrss/) {
+        if ($name =~ /maxrss/) {
             cmp_ok $val, '>', 0, $name;
         } else {
             ok defined $val, $name;

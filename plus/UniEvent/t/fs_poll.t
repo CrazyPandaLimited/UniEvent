@@ -12,7 +12,7 @@ my $l = UniEvent::Loop->default_loop;
 subtest 'non-existant file' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->callback(check_err(ENOENT, "watch non-existant file"));
+    $h->poll_callback(check_err(ENOENT, "watch non-existant file"));
     is($h->path, var 'file', "path getter works");
     $l->run;
     $l->run_nowait; # must be called only once
@@ -22,10 +22,10 @@ subtest 'non-existant file' => sub {
 subtest 'file appears' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->callback(check_err(ENOENT, "watch non-existant file"));
+    $h->poll_callback(check_err(ENOENT, "watch non-existant file"));
     $l->run;
     check_call_cnt(1);
-    $h->callback(check_appears("file appears"));
+    $h->poll_callback(check_appears("file appears"));
     Fs::touch(var 'file');
     $l->run;
     check_call_cnt(1);
@@ -36,8 +36,8 @@ subtest 'mtime' => sub {
     Fs::touch(var 'file');
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->callback(check_changes(STAT_MTIME, "file mtime"));
-    my $t = UE::Timer->once(0.01, sub { Fs::touch(var 'file') });
+    $h->poll_callback(check_changes(STAT_MTIME, "file mtime"));
+    $h->start_callback(sub { Fs::touch(var 'file') });
     $l->run;
     check_call_cnt(1);
     Fs::unlink(var 'file');
@@ -47,8 +47,8 @@ subtest 'file contents' => sub {
     my $fd = Fs::open(var 'file', OPEN_RDWR | OPEN_CREAT);
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->callback(check_changes([STAT_MTIME, STAT_SIZE], "file content"));
-    my $t = UE::Timer->once(0.01, sub { Fs::write($fd, "epta") });
+    $h->poll_callback(check_changes([STAT_MTIME, STAT_SIZE], "file content"));
+    $h->start_callback(sub { Fs::write($fd, "epta") });
     $l->run;
     check_call_cnt(1);
     Fs::close($fd);
@@ -59,13 +59,13 @@ subtest 'stop' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
     $h->stop;
-    $h->callback(sub { $call_cnt++ });
+    $h->poll_callback(sub { $call_cnt++ });
     $l->run for 1..10;
     check_call_cnt(0);
     
     Fs::touch(var 'file');
     $h->start(var 'file', 0.1);
-    my $t = UE::Timer->once(0.01, sub { $h->stop });
+    my $t = UE::Timer->once(0.001, sub { $h->stop });
     $l->run for 1..10;
     check_call_cnt(0);
     
@@ -76,8 +76,8 @@ subtest 'reset' => sub {
     Fs::touch(var 'file');
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->callback(check_changes(STAT_MTIME, "mtime"));
-    my $t = UE::Timer->once(0.01, sub { Fs::touch(var 'file') });
+    $h->poll_callback(check_changes(STAT_MTIME, "mtime"));
+    $h->start_callback(sub { Fs::touch(var 'file') });
     $l->run;
     check_call_cnt(1);
     
@@ -93,11 +93,14 @@ subtest 'file remove' => sub {
     Fs::touch(var 'file');
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.005);
-    $l->run_nowait;
-    select undef, undef, undef, 0.01;
-    $l->run_nowait;
-    $h->callback(check_err(ENOENT, "file remove"));
-    my $t = UE::Timer->once(0.01, sub { Fs::unlink(var 'file') });
+    $h->start_callback(sub {
+        my ($h, $stat, $err) = @_;
+        die $err if $err;
+        $l->stop;
+    });
+    $l->run;
+    $h->poll_callback(check_err(ENOENT, "file remove"));
+    Fs::unlink(var 'file');
     $l->run;
     check_call_cnt(1);
 };
@@ -106,12 +109,14 @@ subtest 'event listener' => sub {
     no warnings 'once';
     my $cnt;
     *MyLst::on_fs_poll = sub { $cnt += 10 };
+    *MyLst::on_fs_start = sub { $cnt += 1000 };
     my $h = new UE::FsPoll;
     $h->event_listener(bless {}, 'MyLst');
-    $h->callback(sub { $cnt++; $l->stop });
+    $h->poll_callback(sub { $cnt++; $l->stop });
+    $h->start_callback(sub { $cnt += 100 });
     $h->start(var 'file', 0.01);
     $l->run;
-    is $cnt, 11, "listener&event called";
+    is $cnt, 1111, "listener&event called";
 };
 
 done_testing();

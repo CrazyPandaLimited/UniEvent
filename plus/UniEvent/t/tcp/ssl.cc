@@ -62,7 +62,7 @@ static SslHolder get_server_context(string ca_name) {
 
 
 TEST_CASE("client custom certificate", "[ssl]") {
-    AsyncTest test(2000, {"c", "r"});
+    AsyncTest test(10000, {"c", "r"});
     variation.ssl = true;
 
     TcpSP server = new Tcp(test.loop);

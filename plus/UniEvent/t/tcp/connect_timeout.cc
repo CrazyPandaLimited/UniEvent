@@ -114,7 +114,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
 }
 
 TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
-    AsyncTest test(500, {"connected called"});
+    AsyncTest test(5000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
     SECTION("cached resolve")   { }

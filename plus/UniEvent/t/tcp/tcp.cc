@@ -338,7 +338,7 @@ TEST_CASE("bind *", "[tcp]") {
 }
 
 TEST_CASE("write burst", "[tcp]") {
-    AsyncTest test(500, 5);
+    AsyncTest test(2000, 5);
     auto p = make_p2p(test.loop);
 
     panda::string rcv;
@@ -486,7 +486,7 @@ TEST_CASE("no on_read after read_stop", "[.][tcp][v-ssl]") {
 }
 
 TEST_CASE("connect with resolv request", "[tcp][v-ssl][v-buf]") {
-    AsyncTest test(2000, {"resolve", "connection"});
+    AsyncTest test(3000, {"resolve", "connection"});
     TcpSP server = make_server(test.loop);
     net::SockAddr sa = server->sockaddr();
 
