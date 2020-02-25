@@ -42,17 +42,18 @@ sub test_resolve {
     
     my $i = 0;
     
+    # resolve external address reseveral times because sometimes it may fail
     $resolver->resolve({
         node       => $host,
         use_cache  => $cached,
         on_resolve => sub {
             my ($addr, $err, $req) = @_;
-            ok !$err;
+            return if $err or $i & 1;
             ok $addr, "@$addr";
             ok $req;
             $i++;
         },
-    });
+    }) for 1..3;
     
     $resolver->resolve({
         node       => 'localhost',
@@ -70,7 +71,7 @@ sub test_resolve {
     
     $l->run;
     
-    is $i, 3;
+    is $i, 3, "both resolved";
 
     $resolver->resolve({
         node       => 'localhost',
