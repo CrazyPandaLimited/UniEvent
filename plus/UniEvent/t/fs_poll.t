@@ -9,6 +9,8 @@ BEGIN { *Fs:: = *UniEvent::Fs:: }
 my $call_cnt;
 my $l = UniEvent::Loop->default_loop;
 
+sub slp ($) { select undef, undef, undef, $_[0]; }
+
 subtest 'non-existant file' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
@@ -37,7 +39,7 @@ subtest 'mtime' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
     $h->poll_callback(check_changes(STAT_MTIME, "file mtime"));
-    $h->start_callback(sub { Fs::touch(var 'file') });
+    $h->start_callback(sub { slp 0.01; Fs::touch(var 'file') });
     $l->run;
     check_call_cnt(1);
     Fs::unlink(var 'file');
@@ -48,7 +50,7 @@ subtest 'file contents' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
     $h->poll_callback(check_changes([STAT_MTIME, STAT_SIZE], "file content"));
-    $h->start_callback(sub { Fs::write($fd, "epta") });
+    $h->start_callback(sub { slp 0.01; Fs::write($fd, "epta") });
     $l->run;
     check_call_cnt(1);
     Fs::close($fd);
@@ -77,7 +79,7 @@ subtest 'reset' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
     $h->poll_callback(check_changes(STAT_MTIME, "mtime"));
-    $h->start_callback(sub { Fs::touch(var 'file') });
+    $h->start_callback(sub { slp 0.01; Fs::touch(var 'file') });
     $l->run;
     check_call_cnt(1);
     

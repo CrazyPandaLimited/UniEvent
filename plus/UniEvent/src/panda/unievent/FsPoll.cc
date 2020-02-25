@@ -54,7 +54,7 @@ void FsPoll::do_stat () {
         }
         else if (!fetched || prev != stat) {
             if (fetched) this->notify(prev, stat, err);
-            else	 this->initial_notify(stat, err);
+            else         this->initial_notify(stat, err);
             prev = stat;
         }
 
