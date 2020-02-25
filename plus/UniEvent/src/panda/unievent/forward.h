@@ -1,5 +1,6 @@
 #pragma once
 #include <panda/refcnt.h>
+#include <panda/log.h>
 
 namespace panda { namespace unievent {
 

@@ -12,6 +12,12 @@
 
 namespace panda { namespace unievent {
 
+log::Module& uelog = uelog_init(); // declaration is in Debug.h
+log::Module& uelog_init() {
+    static log::Module inst("UniEvent", log::Info);
+    return inst;
+}
+
 static std::thread::id main_thread_id = std::this_thread::get_id();
 
 static backend::Backend* _default_backend = nullptr;

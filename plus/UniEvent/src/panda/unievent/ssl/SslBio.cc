@@ -1,10 +1,12 @@
 #include "SslBio.h"
 #include "../Stream.h"
+#include <iomanip>
 
 using panda::string;
-using namespace panda::unievent::ssl;
+namespace panda { namespace unievent { namespace ssl {
 
 using membuf_t = SslBio::membuf_t;
+static log::Module* panda_log_module = &ssllog;
 
 static int bio_new (BIO* bio) {
     membuf_t* b = new membuf_t();
@@ -21,7 +23,7 @@ static int bio_free (BIO* bio) {
     if (!bio) return 0;
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
 
-    _EDEBUG("(%p) CURLEN=%lu", bio, b->buf.length());
+    panda_log_debug("bio_free " << bio << ", CURLEN=" << b->buf.length());
     
     if (!BIO_get_shutdown(bio) || !BIO_get_init(bio) || !b) return 1;
     delete b;
@@ -33,7 +35,7 @@ static int bio_write (BIO* bio, const char* in, int _inl) {
     size_t inl = _inl;
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
 
-    _EDEBUG("(%p) INLEN=%lu CURLEN=%lu", bio, inl, b->buf.length());
+    panda_log_debug("bio_write " << bio << "INLEN=" << inl << ", CURLEN=" << b->buf.length());
     
     BIO_clear_retry_flags(bio);
 
@@ -57,14 +59,21 @@ static int bio_read (BIO* bio, char* out, int _outl) {
     int outl = _outl;
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
 
-    _EDEBUG("(%p) len=%d have=%lu", bio, outl, b->buf.length());
-    if(outl == 5) _EDUMP(b->buf, 5, 5);
+    panda_log_debug("bio_read " << bio << " len=" << outl << ", have=" << b->buf.length());
+    if(outl == 5) panda_elog_m(uelog, log::VerboseDebug, {
+        log << "buf: ";
+        std::ios_base::fmtflags saveflags = log.flags();
+        for(int i = 0; i < 5; ++i) {
+            log << std::hex << std::setfill('0') << std::setw(2) << (int)b->buf[i];
+        }
+        log.flags(saveflags);
+    });
 
     BIO_clear_retry_flags(bio);
     string& buf = b->buf;
     if (int(buf.length()) < outl) outl = buf.length();
     if (outl > 0) {
-        _EDEBUG("outl > 0: %d", outl);
+        panda_log_verbose_debug("outl > 0 : " << outl);
         memcpy(out, buf.data(), outl);
         buf.offset(outl);
     } else if (!buf) {
@@ -76,18 +85,18 @@ static int bio_read (BIO* bio, char* out, int _outl) {
         if (outl != 0) BIO_set_retry_read(bio);
     }
         
-    _EDEBUG("return: %d", outl);
+    panda_log_verbose_debug("return: " << outl);
     return outl;
 }
 
 static int bio_puts (BIO* bio, const char* str) {
-    _EDEBUG("(%p)", bio);
+    panda_log_debug("bio_puts " << bio);
     
     return bio_write(bio, str, strlen(str));
 }
 
 static int bio_gets (BIO* bio, char* buf, int size) {
-    _EDEBUG("(%p)", bio);
+    panda_log_debug("bio_gets " << bio);
     
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
     BIO_clear_retry_flags(bio);
@@ -110,21 +119,21 @@ static int bio_gets (BIO* bio, char* buf, int size) {
 }
 
 static long bio_ctrl (BIO* bio, int cmd, long num, void* ptr) {
-    _EDEBUG("(%p) cmd=%d num=%li ptr=%p", bio, cmd, num, ptr);
+    panda_log_debug("bio_ctrl " << bio << " cmd=" << cmd << ", num=" << num << ",ptr=" << ptr);
 
     long ret = 1;
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
     switch (cmd) {
         case BIO_CTRL_RESET:
-            _EDEBUG("BIO_CTRL_RESET");
+            panda_log_verbose_debug("BIO_CTRL_RESET");
             b->buf.clear();
             break;
         case BIO_CTRL_EOF:
-            _EDEBUG("BIO_CTRL_EOF");
+            panda_log_verbose_debug("BIO_CTRL_EOF");
             ret = (long)(b->buf.length() == 0);
             break;
         case BIO_C_SET_BUF_MEM_EOF_RETURN:
-            _EDEBUG("BIO_C_SET_BUF_MEM_EOF_RETURN");
+            panda_log_verbose_debug("BIO_C_SET_BUF_MEM_EOF_RETURN");
             #if OPENSSL_VERSION_NUMBER < 0x10100000L
             bio->num = (int)num;             
             #else
@@ -134,45 +143,45 @@ static long bio_ctrl (BIO* bio, int cmd, long num, void* ptr) {
             #endif
             break;
         case BIO_CTRL_INFO:
-            _EDEBUG("BIO_CTRL_INFO");
+            panda_log_verbose_debug("BIO_CTRL_INFO");
             ret = (long)b->buf.length();
             if (ptr != nullptr) *((char**)ptr) = b->buf.buf();
             break;
         case BIO_C_SET_BUF_MEM:
-            _EDEBUG("BIO_C_SET_BUF_MEM");
+            panda_log_verbose_debug("BIO_C_SET_BUF_MEM");
             bio_free(bio);
             BIO_set_shutdown(bio, (int)num);
             BIO_set_data(bio, ptr);
             break;
         case BIO_C_GET_BUF_MEM_PTR:
-            _EDEBUG("BIO_C_GET_BUF_MEM_PTR");
+            panda_log_verbose_debug("BIO_C_GET_BUF_MEM_PTR");
             if (ptr != nullptr) *((void**)ptr) = b;
             break;
         case BIO_CTRL_GET_CLOSE:
-            _EDEBUG("BIO_CTRL_GET_CLOSE");
+            panda_log_verbose_debug("BIO_CTRL_GET_CLOSE");
             ret = BIO_get_shutdown(bio);
             break;
         case BIO_CTRL_SET_CLOSE:
-            _EDEBUG("BIO_CTRL_SET_CLOSE");
+            panda_log_verbose_debug("BIO_CTRL_SET_CLOSE");
             BIO_set_shutdown(bio, (int)num);
             break;
         case BIO_CTRL_WPENDING:
-            _EDEBUG("BIO_CTRL_WPENDING");
+            panda_log_verbose_debug("BIO_CTRL_WPENDING");
             ret = 0;
             break;
         case BIO_CTRL_PENDING:
-            _EDEBUG("BIO_CTRL_PENDING");
+            panda_log_verbose_debug("BIO_CTRL_PENDING");
             ret = (long)b->buf.length();
             break;
         case BIO_CTRL_DUP:
         case BIO_CTRL_FLUSH:
             ret = 1;
-            _EDEBUG("BIO_CTRL_FLUSH");
+            panda_log_verbose_debug("BIO_CTRL_FLUSH");
             break;
         case BIO_CTRL_PUSH:
         case BIO_CTRL_POP:
         default:
-            _EDEBUG("BIO_CTRL_DEFAULT");
+            panda_log_verbose_debug("BIO_CTRL_DEFAULT");
             ret = 0;
             break;
     }
@@ -189,7 +198,7 @@ BIO_METHOD SslBio::_method = {
 #else
 
 BIO_METHOD* SslBio::_method() {
-    _EDEBUG();
+    panda_log_debug("SslBio::_method");
     
     thread_local BIO_METHOD *bio = nullptr;
     if (bio) {
@@ -209,3 +218,5 @@ BIO_METHOD* SslBio::_method() {
 }
 
 #endif
+
+}}}

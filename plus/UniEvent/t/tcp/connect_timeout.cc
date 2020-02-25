@@ -20,14 +20,12 @@ TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
         CHECK(err);
         switch (counter) {
         case 0:
-            _EDEBUG("0");
             test.happens("connected");
             counter++;
             client->connect(sa);
             client->write("123");
             break;
         case 1:
-            _EDEBUG("1");
             test.happens("reset");
             counter++;
             client->reset();
