@@ -293,19 +293,23 @@ void Stream::notify_on_shutdown (const CodeError& err, const ShutdownRequestSP& 
 struct DisconnectRequest : StreamRequest {
     DisconnectRequest (Stream* h) { set(h); }
 
-    void exec         ()                                                 override { handle->queue.done(this, [&]{ handle->_reset(); }); }
+    void exec         ()                                                 override { handle->queue.done(this, [&]{ HOLD_ON(handle); handle->_reset(); }); }
     void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
     void handle_event (const CodeError&)                                 override {}
     void notify       (const CodeError&)                                 override {}
 };
 
 void Stream::disconnect () {
-    if (!queue.size()) _reset();
+    if (!queue.size()) {
+        HOLD_ON(this);
+        _reset();
+    }
     else if (queue.size() == 1 && connecting()) reset();
     else queue.push(new DisconnectRequest(this));
 }
 
 void Stream::reset () {
+    HOLD_ON(this);
     queue.cancel([&]{ _reset(); });
 }
 
@@ -318,6 +322,7 @@ void Stream::_reset () {
 }
 
 void Stream::clear () {
+    HOLD_ON(this);
     queue.cancel([&]{ _clear(); });
 }
 
