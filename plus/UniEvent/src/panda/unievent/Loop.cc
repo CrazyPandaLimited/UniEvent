@@ -27,12 +27,14 @@ thread_local LoopSP Loop::_default_loop;
 
 thread_local std::vector<SyncLoop::Item> SyncLoop::loops;
 
-static thread_local std::set<Loop*>* loops;
+static thread_local struct {
+    std::set<Loop*>* loops = nullptr;
+} tls;
 
 static bool _init () {
     #ifndef _WIN32
     pthread_atfork(nullptr, nullptr, []{
-        if (loops) for (LoopSP loop : *loops) {
+        if (tls.loops) for (LoopSP loop : *tls.loops) {
             loop->impl()->handle_fork();
             loop->fork_event(loop);
         }
@@ -43,17 +45,17 @@ static bool _init () {
 static const bool __init = _init();
 
 static void register_loop (Loop* loop) {
-    auto list = loops;
-    if (!list) loops = list = new std::set<Loop*>();
+    auto list = tls.loops;
+    if (!list) tls.loops = list = new std::set<Loop*>();
     list->insert(loop);
 }
 
 static void unregister_loop (Loop* loop) {
-    auto list = loops;
+    auto list = tls.loops;
     list->erase(loop);
     if (list->size()) return;
     delete list;
-    loops = nullptr;
+    tls.loops = nullptr;
 }
 
 backend::Backend* default_backend () {

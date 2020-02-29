@@ -208,7 +208,7 @@ TEST_CASE("loop", "[loop]") {
             TcpP2P p = common_pairs.back();
 
             p.sconn->write("1");
-            p.sconn->read_event.add([&](auto, auto buf, auto...) {
+            p.sconn->read_event.add([&](auto...) {
                 counter++;
                 if (counter == size) {
                     loop->stop();
