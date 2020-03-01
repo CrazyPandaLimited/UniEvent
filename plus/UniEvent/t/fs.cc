@@ -214,6 +214,7 @@ TEST_CASE("fs-sync", "[fs]") {
             auto ret = Fs::stat(fd);
             REQUIRE(ret);
             CHECK(ret.value().type() == Fs::FileType::FILE);
+            Fs::close(fd);
         }
     }
 
@@ -490,6 +491,8 @@ TEST_CASE("fs-async", "[fs]") {
         SECTION("fd") {
             auto fd = Fs::open(file, Fs::OpenFlags::RDONLY).value();
             Fs::stat(fd, cb, l);
+            l->run();
+            Fs::close(fd);
         }
     }
 
