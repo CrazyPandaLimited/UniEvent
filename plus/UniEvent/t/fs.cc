@@ -3,7 +3,11 @@
 
 string root_vdir = "t/var";
 
-static bool win32 = bool{__WIN32};
+#ifdef __WIN32
+    static bool win32 = true;
+#else
+    static bool win32 = false;
+#endif
 
 struct VarDir {
     string dir;
