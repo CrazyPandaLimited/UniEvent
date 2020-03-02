@@ -216,6 +216,7 @@ subtest 'xs-sync' => sub {
             my $fd = Fs::open($file, OPEN_RDONLY);
             my $s = Fs::stat($fd);
             is $s->[STAT_TYPE], FTYPE_FILE;
+            Fs::close($fd);
         };
     };
 
@@ -239,8 +240,10 @@ subtest 'xs-sync' => sub {
         Fs::touch($file);
         ok Fs::access($file);
         ok Fs::access($file, 6);
-        ok !Fs::access($file, 1);
-        ok !Fs::access($file, 7);
+        unless (win32()) {
+            ok !Fs::access($file, 1);
+            ok !Fs::access($file, 7);
+        }
     };
 
     subtest "unlink" => sub {
@@ -298,7 +301,7 @@ subtest 'xs-sync' => sub {
             is Fs::stat($fd)->[STAT_PERMS], 0600;
             Fs::close($fd);
         };
-    };
+    } unless win32();
 
     subtest "touch" => sub {
         subtest "non-existant" => sub {
@@ -333,7 +336,7 @@ subtest 'xs-sync' => sub {
             Fs::close($fd);
             is Fs::stat($file)->[STAT_ATIME], 2000;
             is Fs::stat($file)->[STAT_MTIME], 2000;
-        };
+        } unless win32();
     };
 
     #no tests for chown
@@ -446,6 +449,8 @@ subtest 'xs-async' => sub {
             Fs::touch($file);
             my $fd = Fs::open($file, OPEN_RDONLY);
             Fs::stat($fd, $cb);
+            $l->run;
+            Fs::close($fd);
         };
     };
 
@@ -485,7 +490,7 @@ subtest 'xs-async' => sub {
     };
 
     subtest "access" => sub {
-        $expected = 6;
+        $expected = win32() ? 4 : 6;
         Fs::access($file, 0, $fail);
         $l->run();
         Fs::access($file, 4, $fail);
@@ -495,10 +500,12 @@ subtest 'xs-async' => sub {
         $l->run();
         Fs::access($file, 6, $success);
         $l->run();
-        Fs::access($file, 1, $fail);
-        $l->run();
-        Fs::access($file, 7, $fail);
-        $l->run();
+        unless (win32()) {
+            Fs::access($file, 1, $fail);
+            $l->run();
+            Fs::access($file, 7, $fail);
+            $l->run();
+        }
     };
 
     subtest "unlink" => sub {
@@ -583,7 +590,7 @@ subtest 'xs-async' => sub {
             is Fs::stat($file)->[STAT_PERMS], 0600;
             Fs::close($fd);
         };
-    };
+    } unless win32();
 
     subtest "touch" => sub {
         $expected = 2;
@@ -618,7 +625,7 @@ subtest 'xs-async' => sub {
             Fs::close($fd);
             is Fs::stat($file)->[STAT_ATIME], 2000;
             is Fs::stat($file)->[STAT_MTIME], 2100;
-        };
+        } unless win32();
     };
 
     # no tests for chown

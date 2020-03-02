@@ -3,6 +3,8 @@
 
 string root_vdir = "t/var";
 
+static bool win32 = bool{__WIN32};
+
 struct VarDir {
     string dir;
 
@@ -62,8 +64,8 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("file exists") {
             Fs::touch(file);
             auto ret = Fs::rmdir(file);
-            CHECK(!ret);
-            CHECK(ret.error().code() == std::errc::not_a_directory);
+            REQUIRE(!ret);
+            CHECK(ret.error()); // code may vary accross platforms
         }
         SECTION("non-empty dir") {
             Fs::mkdir(dir);
@@ -73,7 +75,7 @@ TEST_CASE("fs-sync", "[fs]") {
             CHECK(ret.error().code() == std::errc::directory_not_empty);
         }
     }
-
+	
     SECTION("mkpath") {
         SECTION("non-existant") {
             CHECK(Fs::mkpath(dir));
@@ -238,8 +240,10 @@ TEST_CASE("fs-sync", "[fs]") {
         Fs::touch(file);
         CHECK(Fs::access(file));
         CHECK(Fs::access(file, 6));
-        CHECK(!Fs::access(file, 1));
-        CHECK(!Fs::access(file, 7));
+        if (!win32) {
+            CHECK(!Fs::access(file, 1));
+            CHECK(!Fs::access(file, 7));
+        }
     }
 
     SECTION("unlink") {
@@ -299,6 +303,7 @@ TEST_CASE("fs-sync", "[fs]") {
         CHECK(Fs::stat(file).value().size == 0);
     }
 
+    if (!win32) // it seems win32 ignores chmod
     SECTION("chmod") {
         Fs::touch(file, 0644);
         SECTION("path") {
@@ -344,7 +349,8 @@ TEST_CASE("fs-sync", "[fs]") {
             CHECK(Fs::stat(file).value().atime.get() == 1000);
             CHECK(Fs::stat(file).value().mtime.get() == 1000);
         }
-        SECTION("fd") {
+        if (!win32) // win32 can't set utime via descriptor
+            SECTION("fd") {
             Fs::touch(file);
             auto fd = Fs::open(file, Fs::OpenFlags::RDONLY).value();
             CHECK(Fs::utime(fd, 2000, 2000));
@@ -530,7 +536,7 @@ TEST_CASE("fs-async", "[fs]") {
     }
 
     SECTION("access") {
-        test.set_expected(6);
+        test.set_expected(win32 ? 4 : 6);
         Fs::access(file, 0, fail, l);
         l->run();
         Fs::access(file, 4, fail, l);
@@ -540,10 +546,12 @@ TEST_CASE("fs-async", "[fs]") {
         l->run();
         Fs::access(file, 6, success, l);
         l->run();
-        Fs::access(file, 1, fail, l);
-        l->run();
-        Fs::access(file, 7, fail, l);
-        l->run();
+        if (!win32) {
+            Fs::access(file, 1, fail, l);
+            l->run();
+            Fs::access(file, 7, fail, l);
+            l->run();
+        }
     }
 
     SECTION("unlink") {
@@ -611,6 +619,7 @@ TEST_CASE("fs-async", "[fs]") {
         CHECK(Fs::stat(file).value().size == 0);
     }
 
+    if (!win32)
     SECTION("chmod") {
         Fs::touch(file, 0644);
         SECTION("path") {
@@ -652,6 +661,7 @@ TEST_CASE("fs-async", "[fs]") {
             CHECK(Fs::stat(file).value().atime.get() == 1000);
             CHECK(Fs::stat(file).value().mtime.get() == 1000);
         }
+        if (!win32)
         SECTION("fd") {
             auto fd = Fs::open(file, Fs::OpenFlags::RDONLY).value();
             Fs::utime(fd, 2000, 2000, success, l);
