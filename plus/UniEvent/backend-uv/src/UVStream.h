@@ -29,12 +29,12 @@ struct UVStream : UVHandle<Base, UvReq> {
         uvx_strict(uv_listen(uvsp(), backlog, on_connection));
     }
 
-    CodeError accept (StreamImpl* _client) override {
+    std::error_code accept (StreamImpl* _client) override {
         auto client = static_cast<UVStream*>(_client);
         return uvx_ce(uv_accept(uvsp(), client->uvsp()));
     }
 
-    CodeError read_start () override {
+    std::error_code read_start () override {
         return uvx_ce(uv_read_start(uvsp(), _buf_alloc, on_read));
     }
 
@@ -42,7 +42,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         uv_read_stop(uvsp());
     }
 
-    CodeError write (const std::vector<string>& bufs, WriteRequestImpl* _req) override {
+    std::error_code write (const std::vector<string>& bufs, WriteRequestImpl* _req) override {
         auto req = static_cast<UVWriteRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_write(&req->uvr, uvsp(), uvbufs, bufs.size(), on_write);

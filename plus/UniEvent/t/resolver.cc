@@ -23,14 +23,14 @@ TEST_CASE("resolver", "[resolver]") {
     AsyncTest test(2000, {});
     ResolverSP resolver = new Resolver(test.loop);
     std::vector<AddrInfo> res;
-    auto success_cb = [&](const AddrInfo& ai, const CodeError& err, const Resolver::RequestSP&) {
+    auto success_cb = [&](auto& ai, auto& err, auto&) {
         test.happens("r");
         CHECK(!err);
         CHECK(ai);
         res.push_back(ai);
     };
-    auto noop_cb = [&](const AddrInfo&, const CodeError&, const Resolver::RequestSP&) {};
-    auto happens_cb = [&](const AddrInfo&, const CodeError&, const Resolver::RequestSP&) { test.happens("r"); };
+    auto noop_cb = [&](auto...) {};
+    auto happens_cb = [&](auto...) { test.happens("r"); };
     auto req = resolver->resolve()->node("localhost")->on_resolve(success_cb);
     int expected_cnt = 2;
     auto full = getenv("TEST_FULL");
@@ -155,9 +155,9 @@ TEST_CASE("resolver", "[resolver]") {
         resolver = new Resolver(test.loop, cfg);
 
         // will not make it
-        resolver->resolve("ya.ru", [&](const AddrInfo& ai, const CodeError& err, Resolver::RequestSP) {
+        resolver->resolve("ya.ru", [&](auto& ai, auto& err, auto) {
             test.happens("r");
-            CHECK(err.code() == std::errc::timed_out);
+            CHECK(err == std::errc::timed_out);
             CHECK(!ai);
         }, 1);
 
@@ -182,9 +182,9 @@ TEST_CASE("resolver", "[resolver]") {
         test.run();
     }
 
-    auto canceled_cb = [&](const AddrInfo& ai, const CodeError& err, const Resolver::RequestSP&) {
+    auto canceled_cb = [&](auto& ai, auto& err, auto) {
         test.happens("r");
-        CHECK(err.code() == std::errc::operation_canceled);
+        CHECK(err == std::errc::operation_canceled);
         CHECK(!ai);
     };
 
@@ -286,7 +286,7 @@ TEST_CASE("resolver", "[resolver]") {
     SECTION("hold resolver while active request") {
         expected_cnt = 1;
         resolver = new MyResolver(test.loop);
-        resolver->resolve("localhost", [&test](const AddrInfo&, const CodeError& err, const Resolver::RequestSP& req) {
+        resolver->resolve("localhost", [&test](auto&, auto& err, auto& req) {
             test.happens("r");
             CHECK(!err);
             CHECK(req->resolver()->loop());
@@ -301,7 +301,7 @@ TEST_CASE("resolver", "[resolver]") {
         expected_cnt = 1;
         LoopSP loop = new MyLoop();
         Loop* l = loop.get();
-        loop->resolver()->resolve("localhost", [&test](const AddrInfo&, const CodeError& err, const Resolver::RequestSP& req) {
+        loop->resolver()->resolve("localhost", [&test](auto&, auto& err, auto& req) {
             test.happens("r");
             CHECK(!err);
             CHECK(req->resolver()->loop()->resolver());
@@ -333,7 +333,7 @@ TEST_CASE("resolver", "[resolver]") {
     SECTION("exception safety") {
         expected_cnt = 2;
         for (int i = 0; i < 2; ++i) {
-            test.loop->resolver()->resolve("localhost", [&](auto, auto, auto) {
+            test.loop->resolver()->resolve("localhost", [&](auto...) {
                 test.happens("r");
                 throw "epta";
             });

@@ -2,7 +2,6 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 use UniEvent::Fs;
-use UniEvent::Error;
 use UniEvent::FsEvent;
 
 BEGIN { *Fs:: = *UniEvent::Fs:: }
@@ -35,7 +34,7 @@ subtest 'file tracking' => sub {
         $h->callback(sub { die });
         dies_ok { $h->start($file) } "exception when tries to handle non-existant file";
         my $err = $@;
-        is($err->code, ENOENT, "error code is correct");
+        is($err->code, UE::SystemError::ENOENT, "error code is correct");
         $l->run();
     };
     subtest 'mtime' => sub {
@@ -111,7 +110,7 @@ subtest 'dir tracking' => sub {
         my $h = cr;
         dies_ok { $h->start($dir) } "exception when tries to handle non-existant dir";
         my $err = $@;
-        is($err->code, ENOENT, "error code is correct");
+        is($err->code, UE::SystemError::ENOENT, "error code is correct");
         $l->run();
     };
     subtest 'mtime' => sub {

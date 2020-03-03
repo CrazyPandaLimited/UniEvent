@@ -4,12 +4,15 @@
 
 namespace panda { namespace unievent {
 
+const ErrorCategory        error_category;
+const SslErrorCategory     ssl_error_category;
+const OpenSslErrorCategory openssl_error_category;
+
 const char* ErrorCategory::name () const throw() { return "unievent"; }
 
 std::string ErrorCategory::message (int condition) const throw() {
     switch ((errc)condition) {
         case errc::ssl_error                                : return "ssl error";
-        case errc::socks_error                              : return "socks error";
         case errc::resolve_error                            : return "resolve error";
         case errc::ai_address_family_not_supported          : return "address family not supported";
         case errc::ai_temporary_failure                     : return "temporary failure";
@@ -35,79 +38,43 @@ std::string ErrorCategory::message (int condition) const throw() {
     return {};
 }
 
-Error::Error (const string& what) : _what(what) {}
 
-string        Error::_mkwhat () const         { return string(); }
-const char*   Error::what    () const throw() { return whats().c_str(); }
-const string& Error::whats   () const         { if (!_what) _what = _mkwhat(); return _what; }
-Error*        Error::clone   () const         { return new Error(_what); }
+const char* SslErrorCategory::name () const throw() { return "unievent-ssl"; }
 
-
-ErrorCategory CodeError::category;
-
-CodeError::CodeError (errc      value) : _code(std::error_code((int)value, category)) {}
-CodeError::CodeError (std::errc value) : _code(make_error_code(value))                {}
-
-CodeError::CodeError (const std::error_code& code) : _code(code) {}
-
-const std::error_code& CodeError::code () const { return _code; }
-
-string CodeError::descr () const {
-    auto stds = _code.message();
-    return string(stds.data(), stds.length());
+std::string SslErrorCategory::message (int) const throw() {
+    return "generic ssl error";
 }
 
-string CodeError::_mkwhat () const {
-    if (!_code) return {};
-    return string(_code.category().name()) + ':' + string::from_number(_code.value()) + " " + descr();
+
+const char* OpenSslErrorCategory::name () const throw() { return "unievent-openssl"; }
+
+std::string OpenSslErrorCategory::message (int condition) const throw() {
+    char buf[120];
+    ERR_error_string_n((unsigned long)condition, buf, sizeof(buf));
+    return std::string(buf, strlen(buf));
 }
 
-CodeError* CodeError::clone () const { return new CodeError(_code); }
 
-
-SSLError::SSLError (int ssl_code) : SSLError(ssl_code, 0) {
-    if (_ssl_code == SSL_ERROR_SSL) {
-        unsigned long tmp;
-        while ((tmp = ERR_get_error())) _openssl_code = tmp;
-    }
+std::error_code make_ssl_error_code (int ssl_code) {
+    if (ssl_code != SSL_ERROR_SSL) return std::error_code(ssl_code, ssl_error_category);
+    unsigned long tmp, openssl_code = 0;
+    while ((tmp = ERR_get_error())) openssl_code = tmp;
+    return std::error_code((int)openssl_code, openssl_error_category);
 }
 
-SSLError::SSLError (int ssl_code, unsigned long openssl_code) : CodeError(errc::ssl_error), _ssl_code(ssl_code), _openssl_code(openssl_code) {}
 
-int SSLError::ssl_code     () const { return _ssl_code; }
-int SSLError::openssl_code () const { return _openssl_code; }
+Error::Error (const ErrorCode& ec) : ec(ec) {}
 
-int SSLError::library  () const { return _ssl_code == SSL_ERROR_SSL ? ERR_GET_LIB(_openssl_code) : 0; }
-int SSLError::function () const { return _ssl_code == SSL_ERROR_SSL ? ERR_GET_FUNC(_openssl_code) : 0; }
-int SSLError::reason   () const { return _ssl_code == SSL_ERROR_SSL ? ERR_GET_REASON(_openssl_code) : 0; }
+const ErrorCode& Error::code () const { return ec; }
 
-string SSLError::library_str () const {
-    if (_ssl_code != SSL_ERROR_SSL) return {};
-    const char* str = ERR_lib_error_string(_openssl_code);
-    return str ? string(str) : string();
+string Error::whats () const noexcept {
+    if (ec) return ec.what();
+    return exception::whats();
 }
 
-string SSLError::function_str () const {
-    if (_ssl_code != SSL_ERROR_SSL) return {};
-    const char* str = ERR_func_error_string(_openssl_code);
-    return str ? string(str) : string();
+Error* Error::clone () const {
+    if (ec) return new Error(ec);
+    return new Error(exception::whats());
 }
-
-string SSLError::reason_str () const {
-    if (_ssl_code != SSL_ERROR_SSL) return {};
-    const char* str = ERR_reason_error_string(_openssl_code);
-    return str ? string(str) : string();
-}
-
-string SSLError::descr () const {
-    if (_ssl_code != SSL_ERROR_SSL) return {};
-    string ret(120);
-    char* buf = ret.buf();
-    ERR_error_string_n(_openssl_code, buf, ret.capacity());
-    ret.length(strlen(buf));
-    return ret;
-}
-
-SSLError* SSLError::clone () const { return new SSLError(_ssl_code, _openssl_code); }
 
 }}

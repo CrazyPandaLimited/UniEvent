@@ -32,7 +32,7 @@ struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
         uvx_strict(uv_pipe_open(&uvh, file));
     }
 
-    CodeError connect (string_view name, ConnectRequestImpl* _req) override {
+    std::error_code connect (string_view name, ConnectRequestImpl* _req) override {
         UE_NULL_TERMINATE(name, name_str);
         auto req = static_cast<UVConnectRequest*>(_req);
         uv_pipe_connect(&req->uvr, &uvh, name_str, on_connect);

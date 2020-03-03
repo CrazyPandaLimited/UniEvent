@@ -87,7 +87,7 @@ struct Queue {
             auto cur = finalized_requests.front();
             finalized_requests.pop_front();
             cur->delay_cancel();
-            exk.etry([&]{ cur->notify(CodeError(std::errc::operation_canceled)); });
+            exk.etry([&]{ cur->notify(make_error_code(std::errc::operation_canceled)); });
         }
 
         exk.etry([&]{ fpre(); });

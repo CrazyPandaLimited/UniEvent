@@ -28,7 +28,7 @@ void FsEvent::clear () {
     event.remove_all();
 }
 
-void FsEvent::handle_fs_event (const string_view& file, int events, const CodeError& err) {
+void FsEvent::handle_fs_event (const string_view& file, int events, const std::error_code& err) {
     FsEventSP self = this;
     event(self, file, events, err);
     if (_listener) _listener->on_fs_event(self, file, events, err);

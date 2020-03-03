@@ -9,16 +9,16 @@ struct StreamFilter : Refcnt, IntrusiveChainNode<StreamFilterSP> {
     const void* type     () const { return _type; }
     double      priority () const { return _priority; }
 
-    virtual void handle_connection (const StreamSP&, const CodeError&, const AcceptRequestSP&);
+    virtual void handle_connection (const StreamSP&, const std::error_code&, const AcceptRequestSP&);
     virtual void tcp_connect       (const TcpConnectRequestSP&);
     virtual void pipe_connect      (const PipeConnectRequestSP&);
-    virtual void handle_connect    (const CodeError&, const ConnectRequestSP&);
-    virtual void handle_read       (string&, const CodeError&);
+    virtual void handle_connect    (const std::error_code&, const ConnectRequestSP&);
+    virtual void handle_read       (string&, const std::error_code&);
     virtual void write             (const WriteRequestSP&);
-    virtual void handle_write      (const CodeError&, const WriteRequestSP&);
+    virtual void handle_write      (const std::error_code&, const WriteRequestSP&);
     virtual void handle_eof        ();
     virtual void shutdown          (const ShutdownRequestSP&);
-    virtual void handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
+    virtual void handle_shutdown   (const std::error_code&, const ShutdownRequestSP&);
 
     virtual void listen () { if (next) next->listen(); }
     virtual void reset  () { if (next) next->reset(); }
@@ -28,8 +28,8 @@ protected:
 
     StreamFilter (Stream* h, const void* type, double priority);
 
-    CodeError read_start ();
-    void      read_stop  ();
+    std::error_code read_start ();
+    void            read_stop  ();
 
     void subreq_tcp_connect  (const StreamRequestSP& parent, const TcpConnectRequestSP&);
     void subreq_pipe_connect (const StreamRequestSP& parent, const PipeConnectRequestSP&);

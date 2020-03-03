@@ -10,7 +10,7 @@ struct PipeImpl : StreamImpl {
     virtual void open (fd_t file) = 0;
     virtual void bind (string_view name) = 0;
 
-    virtual CodeError connect (string_view name, ConnectRequestImpl* req) = 0;
+    virtual std::error_code connect (string_view name, ConnectRequestImpl* req) = 0;
 
     virtual optional<string> sockname () const = 0;
     virtual optional<string> peername () const = 0;

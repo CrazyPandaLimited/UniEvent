@@ -10,7 +10,7 @@ namespace panda { namespace unievent {
 
 struct Fs {
     template <class T>
-    using ex = excepted<T, CodeError>;
+    using ex = excepted<T, std::error_code>;
 
     struct Request;
     using RequestSP = iptr<Request>;
@@ -104,13 +104,13 @@ struct Fs {
         size_t      len;
     };
 
-    using fn          = function<void(const CodeError&, const RequestSP&)>;
-    using bool_fn     = function<void(bool, const CodeError&, const RequestSP&)>;
-    using open_fn     = function<void(fd_t, const CodeError&, const RequestSP&)>;
-    using scandir_fn  = function<void(const DirEntries&, const CodeError&, const RequestSP&)>;
-    using stat_fn     = function<void(const FStat&, const CodeError&, const RequestSP&)>;
-    using string_fn   = function<void(string&, const CodeError&, const RequestSP&)>;
-    using sendfile_fn = function<void(size_t, const CodeError&, const RequestSP&)>;
+    using fn          = function<void(const std::error_code&, const RequestSP&)>;
+    using bool_fn     = function<void(bool, const std::error_code&, const RequestSP&)>;
+    using open_fn     = function<void(fd_t, const std::error_code&, const RequestSP&)>;
+    using scandir_fn  = function<void(const DirEntries&, const std::error_code&, const RequestSP&)>;
+    using stat_fn     = function<void(const FStat&, const std::error_code&, const RequestSP&)>;
+    using string_fn   = function<void(string&, const std::error_code&, const RequestSP&)>;
+    using sendfile_fn = function<void(size_t, const std::error_code&, const RequestSP&)>;
 
     static FileType ftype (uint64_t mode);
 
@@ -281,14 +281,14 @@ struct Fs {
     private:
         friend Fs;
 
-        bool       _busy;
-        bool       _bool;
-        fd_t       _fd;
-        CodeError  _err;
-        DirEntries _dir_entries;
-        FStat      _stat;
-        size_t     _size;
-        string     _string;
+        bool            _busy;
+        bool            _bool;
+        fd_t            _fd;
+        std::error_code _err;
+        DirEntries      _dir_entries;
+        FStat           _stat;
+        size_t          _size;
+        string          _string;
 
         void _write (std::vector<string>&&, int64_t offset, const fn&);
     };

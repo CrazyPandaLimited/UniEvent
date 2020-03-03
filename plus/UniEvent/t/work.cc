@@ -11,7 +11,7 @@ TEST_CASE("work", "[work]") {
             CHECK(std::this_thread::get_id() != main_id);
             test.happens("w");
         };
-        w->after_work_cb = [&](const WorkSP&, const CodeError& err) {
+        w->after_work_cb = [&](auto, auto& err) {
             CHECK(!err);
             CHECK(std::this_thread::get_id() == main_id);
             test.happens("aw");
@@ -22,7 +22,7 @@ TEST_CASE("work", "[work]") {
 
     SECTION("cancel") {
         w->work_cb       = [&](Work*) { FAIL(); };
-        w->after_work_cb = [&](const WorkSP&, const CodeError&) { FAIL(); };
+        w->after_work_cb = [&](auto...) { FAIL(); };
         w->cancel();
         test.run(); // noop
         // can't test active work because it starts executing immediately if there are free workers and thus
@@ -33,7 +33,7 @@ TEST_CASE("work", "[work]") {
         test.set_expected(2);
         auto r = Work::queue(
             [&](Work*) { test.happens(); },
-            [&](const WorkSP&, const CodeError&) { test.happens(); },
+            [&](const WorkSP&, const std::error_code&) { test.happens(); },
             test.loop
         );
         CHECK(r);
@@ -53,16 +53,16 @@ TEST_CASE("work", "[work]") {
         SECTION("std") {
             struct Lst : IWorkListener {
                 int cnt = 0;
-                void on_work       (Work*)                           override { ++cnt; }
-                void on_after_work (const WorkSP&, const CodeError&) override { cnt += 10; }
+                void on_work       (Work*)                                 override { ++cnt; }
+                void on_after_work (const WorkSP&, const std::error_code&) override { cnt += 10; }
             };
             s(Lst());
         }
         SECTION("self") {
             struct Lst : IWorkSelfListener {
                 int cnt = 0;
-                void on_work       ()                 override { ++cnt; }
-                void on_after_work (const CodeError&) override { cnt += 10; }
+                void on_work       ()                       override { ++cnt; }
+                void on_after_work (const std::error_code&) override { cnt += 10; }
             };
             s(Lst());
         }

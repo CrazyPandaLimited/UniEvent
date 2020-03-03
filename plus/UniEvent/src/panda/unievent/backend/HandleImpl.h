@@ -39,7 +39,7 @@ private:
 };
 
 struct IRequestListener {
-    virtual void handle_event (const CodeError&) = 0;
+    virtual void handle_event (const std::error_code&) = 0;
 };
 
 struct RequestImpl {
@@ -48,7 +48,7 @@ struct RequestImpl {
 
     RequestImpl (HandleImpl* h, IRequestListener* l) : handle(h), listener(l) { _ECTOR(); }
 
-    void handle_event (const CodeError& err) noexcept {
+    void handle_event (const std::error_code& err) noexcept {
         handle->loop->ltry([&]{ listener->handle_event(err); });
     }
 

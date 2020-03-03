@@ -5,16 +5,16 @@
 namespace panda { namespace unievent {
 
 struct IPollListener {
-    virtual void on_poll (const PollSP&, int events, const CodeError&) = 0;
+    virtual void on_poll (const PollSP&, int events, const std::error_code&) = 0;
 };
 
 struct IPollSelfListener : IPollListener {
-    virtual void on_poll (int events, const CodeError&) = 0;
-    void on_poll (const PollSP&, int events, const CodeError& err) override { on_poll(events, err); }
+    virtual void on_poll (int events, const std::error_code&) = 0;
+    void on_poll (const PollSP&, int events, const std::error_code& err) override { on_poll(events, err); }
 };
 
 struct Poll : virtual BackendHandle, private backend::IPollImplListener {
-    using poll_fptr = void(const PollSP& handle, int events, const CodeError& err);
+    using poll_fptr = void(const PollSP& handle, int events, const std::error_code& err);
     using poll_fn = panda::function<poll_fptr>;
 
     enum {
@@ -41,7 +41,7 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
     void reset () override;
     void clear () override;
 
-    void call_now (int events, const CodeError& err = {}) { handle_poll(events, err); }
+    void call_now (int events, const std::error_code& err = {}) { handle_poll(events, err); }
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
@@ -50,7 +50,7 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
 private:
     IPollListener* _listener;
 
-    void handle_poll (int events, const CodeError& err) override;
+    void handle_poll (int events, const std::error_code& err) override;
 
     backend::PollImpl* impl () const { return static_cast<backend::PollImpl*>(_impl); }
 };

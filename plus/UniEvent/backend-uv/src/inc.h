@@ -7,8 +7,8 @@
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-static inline void      uvx_strict (int err) { if (err) throw uvx_code_error(err); }
-static inline CodeError uvx_ce     (int err) { return err ? uvx_code_error(err) : CodeError(); }
+static inline void            uvx_strict (int err) { if (err) throw Error(uvx_code_error(err)); }
+static inline std::error_code uvx_ce     (int err) { return err ? uvx_code_error(err) : std::error_code(); }
 
 template <class T = HandleImpl*, class X>
 static inline T get_handle (X* uvhp) {

@@ -19,11 +19,11 @@ struct SslFilter : StreamFilter, AllocatedObject<SslFilter> {
     SSL* get_ssl () const { return ssl; }
 
     void listen () override;
-    void handle_connection (const StreamSP&, const CodeError&, const AcceptRequestSP&) override;
-    void handle_connect    (const CodeError&, const ConnectRequestSP&) override;
+    void handle_connection (const StreamSP&, const std::error_code&, const AcceptRequestSP&) override;
+    void handle_connect    (const std::error_code&, const ConnectRequestSP&) override;
     void write             (const WriteRequestSP&) override;
-    void handle_write      (const CodeError&, const WriteRequestSP&) override;
-    void handle_read       (string&, const CodeError&) override;
+    void handle_write      (const std::error_code&, const WriteRequestSP&) override;
+    void handle_read       (string&, const std::error_code&) override;
     void handle_eof        () override;
 
     void reset () override;
@@ -45,7 +45,7 @@ private:
     void init                 (SSL_CTX*);
     void start_ssl_connection (Profile);
     int  negotiate            ();
-    void negotiation_finished (const CodeError& = CodeError());
+    void negotiation_finished (const std::error_code& = {});
 };
 
 }}}

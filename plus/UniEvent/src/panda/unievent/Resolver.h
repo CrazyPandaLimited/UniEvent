@@ -27,7 +27,7 @@ struct Resolver : Refcnt, private backend::ITimerImplListener {
     struct Request;
     using RequestSP = iptr<Request>;
 
-    using resolve_fptr = void(const AddrInfo&, const CodeError&, const RequestSP&);
+    using resolve_fptr = void(const AddrInfo&, const std::error_code&, const RequestSP&);
     using resolve_fn   = function<resolve_fptr>;
 
     struct Config {
@@ -76,7 +76,7 @@ struct Resolver : Refcnt, private backend::ITimerImplListener {
     void clear_cache ();
 
 protected:
-    virtual void on_resolve (const AddrInfo&, const CodeError&, const RequestSP&);
+    virtual void on_resolve (const AddrInfo&, const std::error_code&, const RequestSP&);
 
     ~Resolver ();
 
@@ -132,10 +132,10 @@ private:
         void resolve    (const RequestSP&);
         void on_resolve (int status, int timeouts, ares_addrinfo* ai);
 
-        void finish_resolve (const AddrInfo&, const CodeError& err);
+        void finish_resolve (const AddrInfo&, const std::error_code& err);
         void cancel ();
 
-        void handle_poll (int, const CodeError&) override;
+        void handle_poll (int, const std::error_code&) override;
 
         using Polls = std::map<sock_t, BPoll*>;
 
@@ -163,7 +163,7 @@ private:
 
     void add_worker ();
 
-    void finish_resolve (const RequestSP&, const AddrInfo&, const CodeError&);
+    void finish_resolve (const RequestSP&, const AddrInfo&, const std::error_code&);
 
     void handle_timer () override;
 
@@ -191,7 +191,7 @@ struct Resolver::Request : Refcnt, IntrusiveChainNode<Resolver::RequestSP>, Allo
         return self;
     }
 
-    void cancel (const CodeError& = std::errc::operation_canceled);
+    void cancel (const std::error_code& = make_error_code(std::errc::operation_canceled));
 
 protected:
     ~Request ();

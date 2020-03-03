@@ -37,7 +37,7 @@ static const bool _init = init_openssl_lib();
 static inline SSL_CTX* ssl_ctx_from_method (const SSL_METHOD* method) {
     if (!method) method = SSLv23_client_method();
     auto context = SSL_CTX_new(method);
-    if (!context) throw SSLError(SSL_ERROR_SSL);
+    if (!context) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
     return context;
 }
 
@@ -67,13 +67,13 @@ SslFilter::~SslFilter () {
 
 void SslFilter::init (SSL_CTX* context) {
     ssl = SSL_new(context);
-    if (!ssl) throw SSLError(SSL_ERROR_SSL);
+    if (!ssl) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
 
     read_bio = BIO_new(SslBio::method());
-    if (!read_bio) throw SSLError(SSL_ERROR_SSL);
+    if (!read_bio) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
 
     write_bio = BIO_new(SslBio::method());
-    if (!write_bio) throw SSLError(SSL_ERROR_SSL);
+    if (!write_bio) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
 
     SslBio::set_handle(read_bio, handle);
     SslBio::set_handle(write_bio, handle);
@@ -104,8 +104,8 @@ void SslFilter::reset () {
     NextFilter::reset();
 }
 
-void SslFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
-    _ESSL("ERR=%s", err.what());
+void SslFilter::handle_connect (const std::error_code& err, const ConnectRequestSP& req) {
+    _ESSL("ERR=%s", err.message().c_str());
     //if (state == State::terminal) {
         // we need this for ssl filters chaining
         //NextFilter::on_connect(err, req);
@@ -123,8 +123,8 @@ void SslFilter::handle_connect (const CodeError& err, const ConnectRequestSP& re
     start_ssl_connection(Profile::CLIENT);
 }
 
-void SslFilter::handle_connection (const StreamSP& client, const CodeError& err, const AcceptRequestSP& req) {
-    _ESSL("client: %p, err: %s", client.get(), err.what());
+void SslFilter::handle_connection (const StreamSP& client, const std::error_code& err, const AcceptRequestSP& req) {
+    _ESSL("client: %p, err: %s", client.get(), err.message().c_str());
     if (err) return NextFilter::handle_connection(client, err, req);
 
     SslFilter* filter = new SslFilter(client, SSL_get_SSL_CTX(ssl), this);
@@ -162,7 +162,7 @@ int SslFilter::negotiate () {
         int code = SSL_get_error(ssl, ssl_state);
         _ESSL("code=%d", code);
         if (code != SSL_ERROR_WANT_READ && code != SSL_ERROR_WANT_WRITE) {
-            negotiation_finished(SSLError(code));
+            negotiation_finished(make_ssl_error_code(code));
             return 0;
         }
     }
@@ -209,8 +209,8 @@ int SslFilter::negotiate () {
 //    negotiate();
 //}
 
-void SslFilter::negotiation_finished (const CodeError& err) {
-    _ESSL("connecting: %d err=%s", (int)handle->connecting(), err.what());
+void SslFilter::negotiation_finished (const std::error_code& err) {
+    _ESSL("connecting: %d err=%s", (int)handle->connecting(), err.message().c_str());
 
     if (state == State::terminal || state == State::error) return;
 
@@ -230,10 +230,10 @@ void SslFilter::negotiation_finished (const CodeError& err) {
         f->NextFilter::handle_connection(handle, err, static_pointer_cast<AcceptRequest>(tmp));
 }
 
-void SslFilter::handle_read (string& encbuf, const CodeError& err) {
+void SslFilter::handle_read (string& encbuf, const std::error_code& err) {
     _ESSL("got %lu bytes, state: %d", encbuf.length(), (int)state);
     if (state == State::error) {
-        NextFilter::handle_read(encbuf, SSLError(SSL_ERROR_SSL));
+        NextFilter::handle_read(encbuf, make_ssl_error_code(SSL_ERROR_SSL));
         return;
     }
 
@@ -255,7 +255,7 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
     }
     SslBio::set_buf(read_bio, encbuf);
 
-    panda_log_debug("connecting " << connecting << ", err " << err.what());
+    panda_log_debug("connecting " << connecting << ", err " << err);
 
     auto was_in_read = BIO_ctrl(read_bio, BIO_CTRL_PENDING, 0, nullptr);
     int pending = was_in_read + encbuf.length();
@@ -296,7 +296,7 @@ void SslFilter::handle_read (string& encbuf, const CodeError& err) {
         subreq_write(source_request, req);
     } else {
         string s;
-        NextFilter::handle_read(s, SSLError(ssl_code));
+        NextFilter::handle_read(s, make_ssl_error_code(ssl_code));
     }
 }
 
@@ -314,7 +314,7 @@ void SslFilter::write (const WriteRequestSP& req) {
         if (res <= 0) {
             // TODO: handle renegotiation status
             _ESSL("ssl failed");
-            SSLError error(SSL_ERROR_SSL);
+            auto error = make_ssl_error_code(SSL_ERROR_SSL);
             req->delay([weak_req=req.get(), error, this]{ NextFilter::handle_write(error, weak_req); });
             return;
         }
@@ -325,13 +325,13 @@ void SslFilter::write (const WriteRequestSP& req) {
     subreq_write(req, sslreq);
 }
 
-void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
+void SslFilter::handle_write (const std::error_code& err, const WriteRequestSP& req) {
     auto reqp = req.get();
     assert(typeid(*reqp) == typeid(SslWriteRequest));
     subreq_done(req);
     auto sslreq = static_cast<SslWriteRequest*>(reqp);
 
-    _ESSL("state=%d request=%p regular=%d ERR=%s", (int)state, sslreq, sslreq->orig ? 1 : 0, err.what());
+    _ESSL("state=%d request=%p regular=%d ERR=%s", (int)state, sslreq, sslreq->orig ? 1 : 0, err.message().c_str());
     if (sslreq->orig) { // regular write
         NextFilter::handle_write(err, sslreq->orig);
     }
@@ -351,7 +351,7 @@ void SslFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
 //void SslFilter::on_reinit () {
 //    _ESSL("on_reinit, state: %d, connecting: %d", (int)state, handle->connecting());
 //    if (state == State::negotiating) {
-//        negotiation_finished(CodeError(ERRNO_ECANCELED));
+//        negotiation_finished(make_error_code(std::errc::operation_canceled));
 //    } else if (state == State::terminal) {
 //        NextFilter::on_reinit();
 //    }
@@ -363,7 +363,7 @@ void SslFilter::handle_eof () {
         NextFilter::handle_eof();
     }
     else if (state == State::negotiating) {
-        negotiation_finished(std::errc::connection_aborted);
+        negotiation_finished(make_error_code(std::errc::connection_aborted));
     }
 }
 

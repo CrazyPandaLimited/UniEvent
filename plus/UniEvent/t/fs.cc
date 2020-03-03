@@ -44,13 +44,13 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::mkdir(dir);
             auto ret = Fs::mkdir(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::file_exists);
+            CHECK(ret.error() == std::errc::file_exists);
         }
         SECTION("file exists") {
             Fs::touch(file);
             auto ret = Fs::mkdir(file);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::file_exists);
+            CHECK(ret.error() == std::errc::file_exists);
         }
     }
 
@@ -58,7 +58,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant") {
             auto ret = Fs::rmdir(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("dir exists") {
             Fs::mkdir(dir);
@@ -76,7 +76,7 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::touch(p("dir/file"));
             auto ret = Fs::rmdir(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::directory_not_empty);
+            CHECK(ret.error() == std::errc::directory_not_empty);
         }
     }
 	
@@ -101,7 +101,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant") {
             auto ret = Fs::scandir(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("empty dir") {
             auto ret = Fs::scandir(p(""));
@@ -112,7 +112,7 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::touch(file);
             auto ret = Fs::scandir(file);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::not_a_directory);
+            CHECK(ret.error() == std::errc::not_a_directory);
         }
         SECTION("dir") {
             Fs::mkdir(p("adir"));
@@ -153,7 +153,7 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::touch(p("dir/file"));
             auto ret = Fs::remove(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::directory_not_empty);
+            CHECK(ret.error() == std::errc::directory_not_empty);
         }
     }
 
@@ -161,7 +161,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant") {
             auto ret = Fs::remove_all(dir);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("file") {
             Fs::touch(file);
@@ -186,7 +186,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant no-create") {
             auto ret = Fs::open(file, Fs::OpenFlags::RDONLY);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("non-existant create") {
             auto ret = Fs::open(file, Fs::OpenFlags::RDWR | Fs::OpenFlags::CREAT);
@@ -254,7 +254,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant") {
             auto ret = Fs::unlink(file);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("file") {
             Fs::touch(file);
@@ -345,7 +345,7 @@ TEST_CASE("fs-sync", "[fs]") {
         SECTION("non-existant") {
             auto ret = Fs::utime(file, 1000, 1000);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("path") {
             Fs::touch(file);
@@ -371,7 +371,7 @@ TEST_CASE("fs-sync", "[fs]") {
             Fs::touch(file2);
             auto ret = Fs::rename(file, file2);
             REQUIRE(!ret);
-            CHECK(ret.error().code() == std::errc::no_such_file_or_directory);
+            CHECK(ret.error() == std::errc::no_such_file_or_directory);
         }
         SECTION("exists file") {
             Fs::touch(file);
@@ -408,7 +408,7 @@ TEST_CASE("fs-async", "[fs]") {
             Fs::mkdir(dir);
             Fs::mkdir(dir, 0755, [&](auto& err, auto) {
                 test.happens();
-                CHECK(err.code() == std::errc::file_exists);
+                CHECK(err == std::errc::file_exists);
             }, l);
         }
     }
@@ -417,7 +417,7 @@ TEST_CASE("fs-async", "[fs]") {
         SECTION("err") {
             Fs::rmdir(dir, [&](auto& err, auto) {
                 test.happens();
-                CHECK(err.code() == std::errc::no_such_file_or_directory);
+                CHECK(err == std::errc::no_such_file_or_directory);
             }, l);
         }
         SECTION("ok") {

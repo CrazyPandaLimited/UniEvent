@@ -74,13 +74,13 @@ void FsPoll::clear () {
     start_event.remove_all();
 }
 
-void FsPoll::notify (const Fs::FStat& prev, const Fs::FStat& cur, const CodeError& err) {
+void FsPoll::notify (const Fs::FStat& prev, const Fs::FStat& cur, const std::error_code& err) {
     FsPollSP self = this;
     poll_event(self, prev, cur, err);
     if (_listener) _listener->on_fs_poll(self, prev, cur, err);
 }
 
-void FsPoll::initial_notify (const Fs::FStat& cur, const CodeError& err) {
+void FsPoll::initial_notify (const Fs::FStat& cur, const std::error_code& err) {
     FsPollSP self = this;
     start_event(self, cur, err);
     if (_listener) _listener->on_fs_start(self, cur, err);

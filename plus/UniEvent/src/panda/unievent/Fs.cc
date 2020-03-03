@@ -114,7 +114,7 @@ bool Fs::FStat::operator== (const Fs::FStat& oth) const {
    =================================== SYNC API ==================================================
    =============================================================================================== */
 
-#define UEFS_SYNC(call_code, result_code) {                            \
+#define UEFS_SYNC(call_code, result_code) {                                 \
     uv_fs_t uvr;                                                            \
     uvr.loop = nullptr;                                                     \
     call_code                                                               \
@@ -161,7 +161,7 @@ ex<void> Fs::mkpath (string_view path, int mode) {
     while (pos < len) {
         find_part();
         auto ret = mkdir(path.substr(0, pos), mode);
-        if (!ret && ret.error().code() != std::errc::file_exists) return ret;
+        if (!ret && ret.error() != std::errc::file_exists) return ret;
         skip_slash();
     }
 
@@ -554,7 +554,7 @@ Fs::RequestSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const 
         if (err) _err = err;                         \
         _busy = false;                               \
         after_work_code;                             \
-        _err = CodeError();                          \
+        _err.clear();                                \
         _dir_entries.clear();                        \
         _string.clear();                             \
     };                                               \

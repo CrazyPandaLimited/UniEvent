@@ -116,14 +116,14 @@ subtest 'xs-sync' => sub {
             Fs::mkdir($dir);
             my ($ok, $err) = Fs::mkdir($dir);
             ok !$ok;
-            is $err->code, EEXIST;
+            is $err, UE::SystemError::file_exists;
         };
     };
     
     subtest "rmdir" => sub {
         subtest "non-existant" => sub {
             my (undef, $err) = Fs::rmdir($dir);
-            is $err->code, UniEvent::Error::no_such_file_or_directory;
+            is $err, UniEvent::SystemError::no_such_file_or_directory;
         };
         subtest "dir exists" => sub {
             Fs::mkdir($dir);
@@ -186,7 +186,7 @@ subtest 'xs-sync' => sub {
         subtest "non-existant no-create" => sub {
             my ($fd, $err) = Fs::open($file, OPEN_RDONLY);
             ok !$fd;
-            is $err->code, UniEvent::Error::no_such_file_or_directory;
+            is $err, UE::SystemError::no_such_file_or_directory;
         };
         subtest "non-existant create" => sub {
             my $fd = Fs::open($file, OPEN_RDWR | OPEN_CREAT);
@@ -363,7 +363,7 @@ subtest 'xs-async' => sub {
             Fs::mkdir($dir);
             Fs::mkdir($dir, 0755, sub {
                 $happened++;
-                is $_[0]->code, UniEvent::Error::file_exists;
+                is $_[0], UniEvent::SystemError::file_exists;
             });
         };
     };

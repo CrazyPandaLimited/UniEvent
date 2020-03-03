@@ -46,13 +46,13 @@ protected:
     /* this is private API, as there is no way of stopping request inside backend in general case. usually called during reset()
        If called separately by user, will only do "visible" cancellation (user callback being called with canceled status),
        but backend will continue to run the request and the next request will only be started afterwards */
-    virtual void cancel (const CodeError& err = std::errc::operation_canceled) {
+    virtual void cancel (const std::error_code& err = make_error_code(std::errc::operation_canceled)) {
         if (subreq) return subreq->cancel(err);
         handle_event(err);
     }
 
     // just calls user callbacks with some status
-    virtual void notify (const CodeError&) = 0;
+    virtual void notify (const std::error_code&) = 0;
 
     // detach from backend. Backend won't call the callback when request is completed (if it wasn't completed already)
     void finish_exec () {

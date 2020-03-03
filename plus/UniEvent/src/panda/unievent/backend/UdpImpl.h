@@ -8,7 +8,7 @@ namespace panda { namespace unievent { namespace backend {
 
 struct IUdpImplListener {
     virtual string buf_alloc      (size_t cap) = 0;
-    virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) = 0;
+    virtual void   handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const std::error_code& err) = 0;
 };
 
 struct SendRequestImpl : RequestImpl { using RequestImpl::RequestImpl; };
@@ -33,12 +33,12 @@ struct UdpImpl : HandleImpl {
 
     string buf_alloc (size_t size) noexcept { return HandleImpl::buf_alloc(size, listener); }
 
-    virtual void      open       (sock_t sock) = 0;
-    virtual void      bind       (const net::SockAddr&, unsigned flags) = 0;
-    virtual void      connect    (const net::SockAddr&) = 0;
-    virtual void      recv_start () = 0;
-    virtual void      recv_stop  () = 0;
-    virtual CodeError send       (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl*) = 0;
+    virtual void            open       (sock_t sock) = 0;
+    virtual void            bind       (const net::SockAddr&, unsigned flags) = 0;
+    virtual void            connect    (const net::SockAddr&) = 0;
+    virtual void            recv_start () = 0;
+    virtual void            recv_stop  () = 0;
+    virtual std::error_code send       (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl*) = 0;
 
     virtual net::SockAddr sockaddr () = 0;
     virtual net::SockAddr peeraddr () = 0;
@@ -57,7 +57,7 @@ struct UdpImpl : HandleImpl {
     virtual void set_broadcast           (bool on) = 0;
     virtual void set_ttl                 (int ttl) = 0;
 
-    void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const CodeError& err) {
+    void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const std::error_code& err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });
     }
 };
