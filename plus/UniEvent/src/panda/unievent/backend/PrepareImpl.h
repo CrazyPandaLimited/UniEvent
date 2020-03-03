@@ -16,6 +16,7 @@ struct PrepareImpl : HandleImpl {
     virtual void stop  () = 0;
 
     void handle_prepare () noexcept {
+        panda_mlog_debug(uebacklog, "on prepare " << loop);
         ltry([&]{ listener->handle_prepare(); });
     }
 };

@@ -4,6 +4,7 @@
 #include <vector>
 #include <exception>
 #include <panda/function.h>
+#include <panda/log.h>
 
 namespace panda { namespace unievent { namespace backend {
 
@@ -60,5 +61,7 @@ struct LoopImpl {
 
     virtual ~LoopImpl () {}
 };
+
+extern log::Module uebacklog;
 
 }}}

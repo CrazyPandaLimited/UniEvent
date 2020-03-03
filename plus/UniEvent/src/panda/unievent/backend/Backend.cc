@@ -1,7 +1,9 @@
 #include "LoopImpl.h"
 #include "HandleImpl.h"
 
-using namespace panda::unievent::backend;
+namespace panda { namespace unievent { namespace backend {
+
+log::Module uebacklog("UniEvent::Backend");
 
 uint64_t HandleImpl::last_id;
 
@@ -16,3 +18,5 @@ void LoopImpl::throw_exception () {
     _exception = nullptr;
     std::rethrow_exception(exc);
 }
+
+}}}

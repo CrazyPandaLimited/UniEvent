@@ -18,6 +18,8 @@ log::Module& uelog_init() {
     return inst;
 }
 
+static log::Module* panda_log_module = &uelog;
+
 static std::thread::id main_thread_id = std::this_thread::get_id();
 
 static backend::Backend* _default_backend = nullptr;
@@ -94,6 +96,7 @@ Loop::~Loop () {
 }
 
 bool Loop::run (RunMode mode) {
+    panda_log_info("Loop::run " << this << ", " << this->impl() << ", " << int(mode));
     LoopSP hold = this; (void)hold;
     return _impl->run(mode);
 }

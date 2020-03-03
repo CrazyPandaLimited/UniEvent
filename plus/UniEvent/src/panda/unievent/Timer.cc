@@ -56,6 +56,7 @@ void Timer::clear () {
 
 void Timer::handle_timer () {
     TimerSP self = this;
+    panda_mlog_debug(uelog, "on timer " << loop()->impl());
     event(self);
     if (_listener) _listener->on_timer(self);
 }
