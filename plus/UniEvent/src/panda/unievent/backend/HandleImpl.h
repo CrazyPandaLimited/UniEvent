@@ -39,7 +39,7 @@ private:
 };
 
 struct IRequestListener {
-    virtual void handle_event (const std::error_code&) = 0;
+    virtual void handle_event (const ErrorCode&) = 0;
 };
 
 struct RequestImpl {

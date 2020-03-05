@@ -8,29 +8,33 @@
 
 namespace panda { namespace unievent {
 
+using panda::ErrorCode;
+
 enum class errc {
-    ssl_error = 1,
+    unknown_error = 1,
+    read_start_error,
+    ssl_error,
     resolve_error,
-    ai_address_family_not_supported, //
-    ai_temporary_failure, //
-    ai_bad_flags, //
-    ai_bad_hints, //
-    ai_request_canceled, //
-    ai_permanent_failure, //
-    ai_family_not_supported, //
-    ai_out_of_memory, //
-    ai_no_address, //
-    ai_unknown_node_or_service, //
-    ai_argument_buffer_overflow, //
-    ai_resolved_protocol_unknown, //
-    ai_service_not_available_for_socket_type, //
-    ai_socket_type_not_supported, //
-    invalid_unicode_character, //
-    not_on_network, //
-    transport_endpoint_shutdown, //
-    unknown_error, //
-    host_down, //
-    remote_io, //
+    // i dunno if we need errors below
+    ai_address_family_not_supported,
+    ai_temporary_failure,
+    ai_bad_flags,
+    ai_bad_hints,
+    ai_request_canceled,
+    ai_permanent_failure,
+    ai_family_not_supported,
+    ai_out_of_memory,
+    ai_no_address,
+    ai_unknown_node_or_service,
+    ai_argument_buffer_overflow,
+    ai_resolved_protocol_unknown,
+    ai_service_not_available_for_socket_type,
+    ai_socket_type_not_supported,
+    invalid_unicode_character,
+    not_on_network,
+    transport_endpoint_shutdown,
+    host_down,
+    remote_io,
 };
 
 struct ErrorCategory : std::error_category {
@@ -53,6 +57,11 @@ extern const OpenSslErrorCategory openssl_error_category;
 inline std::error_code make_error_code (errc code) { return std::error_code((int)code, error_category); }
 
 std::error_code make_ssl_error_code (int ssl_code);
+
+inline ErrorCode nest_error (const std::error_code& err, const ErrorCode& stack) {
+    if (!stack) return stack;
+    return stack == std::errc::operation_canceled ? stack : ErrorCode(err, stack);
+}
 
 
 struct Error : panda::exception {

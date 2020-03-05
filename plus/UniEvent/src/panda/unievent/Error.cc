@@ -12,7 +12,12 @@ const char* ErrorCategory::name () const throw() { return "unievent"; }
 
 std::string ErrorCategory::message (int condition) const throw() {
     switch ((errc)condition) {
+        case errc::unknown_error                            : return "unknown error";
+        case errc::read_start_error                         : return "read start error";
         case errc::ssl_error                                : return "ssl error";
+
+
+
         case errc::resolve_error                            : return "resolve error";
         case errc::ai_address_family_not_supported          : return "address family not supported";
         case errc::ai_temporary_failure                     : return "temporary failure";
@@ -31,7 +36,6 @@ std::string ErrorCategory::message (int condition) const throw() {
         case errc::invalid_unicode_character                : return "invalid Unicode character";
         case errc::not_on_network                           : return "machine is not on the network";
         case errc::transport_endpoint_shutdown              : return "cannot send after transport endpoint shutdown";
-        case errc::unknown_error                            : return "unknown error";
         case errc::host_down                                : return "host is down";
         case errc::remote_io                                : return "remote I/O error";
     }

@@ -8,22 +8,22 @@
 namespace panda { namespace unievent {
 
 struct IUdpListener {
-    virtual void on_receive (const UdpSP&, string&, const net::SockAddr&, unsigned/*flags*/, const std::error_code&) {}
-    virtual void on_send    (const UdpSP&, const std::error_code&, const SendRequestSP&)                             {}
+    virtual void on_receive (const UdpSP&, string&, const net::SockAddr&, unsigned/*flags*/, const ErrorCode&) {}
+    virtual void on_send    (const UdpSP&, const ErrorCode&, const SendRequestSP&)                             {}
 };
 
 struct IUdpSelfListener : IUdpListener {
-    virtual void on_receive (string&, const net::SockAddr&, unsigned/*flags*/, const std::error_code&) {}
-    virtual void on_send    (const std::error_code&, const SendRequestSP&)                             {}
+    virtual void on_receive (string&, const net::SockAddr&, unsigned/*flags*/, const ErrorCode&) {}
+    virtual void on_send    (const ErrorCode&, const SendRequestSP&)                             {}
 
-    void on_receive (const UdpSP&, string& buf, const net::SockAddr& addr, unsigned flags, const std::error_code& err) override { on_receive(buf, addr, flags, err); }
-    void on_send    (const UdpSP&, const std::error_code& err, const SendRequestSP& req)                               override { on_send(err, req); }
+    void on_receive (const UdpSP&, string& buf, const net::SockAddr& addr, unsigned flags, const ErrorCode& err) override { on_receive(buf, addr, flags, err); }
+    void on_send    (const UdpSP&, const ErrorCode& err, const SendRequestSP& req)                               override { on_send(err, req); }
 };
 
 struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpImplListener {
-    using receive_fptr = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const std::error_code& err);
+    using receive_fptr = void(const UdpSP& handle, string& buf, const net::SockAddr& addr, unsigned flags, const ErrorCode& err);
     using receive_fn   = function<receive_fptr>;
-    using send_fptr    = void(const UdpSP& handle, const std::error_code& err, const SendRequestSP& req);
+    using send_fptr    = void(const UdpSP& handle, const ErrorCode& err, const SendRequestSP& req);
     using send_fn      = function<send_fptr>;
     using UdpImpl      = backend::UdpImpl;
     using Flags        = UdpImpl::Flags;
@@ -91,7 +91,7 @@ private:
     HandleImpl* new_impl () override;
 
     void handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const std::error_code& err) override;
-    void notify_on_send (const std::error_code&, const SendRequestSP&);
+    void notify_on_send (const ErrorCode&, const SendRequestSP&);
 };
 
 
@@ -127,8 +127,8 @@ private:
     }
 
     void exec         () override;
-    void handle_event (const std::error_code&) override;
-    void notify       (const std::error_code&) override;
+    void handle_event (const ErrorCode&) override;
+    void notify       (const ErrorCode&) override;
 };
 
 

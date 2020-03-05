@@ -112,7 +112,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
 
     server->connection_event.add([&](auto, auto, auto& err) {
         REQUIRE(err);
-        REQUIRE(err.category() == openssl_error_category);
+        REQUIRE(err == errc::ssl_error);
         test.loop->stop();
     });
 

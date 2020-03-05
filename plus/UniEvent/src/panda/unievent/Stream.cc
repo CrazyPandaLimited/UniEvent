@@ -76,9 +76,15 @@ void Stream::accept (const StreamSP& client) {
     INVOKE(this, _filters.back(), handle_connection, finalize_handle_connection, client, err, areq);
 }
 
-void Stream::finalize_handle_connection (const StreamSP& client, const std::error_code& err1, const AcceptRequestSP& req) {
-    auto err2 = client->set_connect_result(!err1);
-    auto& err = err1 ? err1 : err2;
+void Stream::finalize_handle_connection (const StreamSP& client, const ErrorCode& connection_err, const AcceptRequestSP& req) {
+    ErrorCode err;
+    if (!connection_err) {
+        auto read_start_err = client->set_connect_result(true);
+        if (read_start_err) err = ErrorCode(errc::read_start_error, read_start_err);
+    } else {
+        client->set_connect_result(false);
+        err = connection_err;
+    }
     panda_log_debug("finalize_handle_connection err: " << err << "client: " << client << ", this: " << this);
 
     if (req) client->queue.done(req, []{});
@@ -99,18 +105,24 @@ void ConnectRequest::exec () {
     }
 }
 
-void ConnectRequest::handle_event (const std::error_code& err) {
+void ConnectRequest::handle_event (const ErrorCode& err) {
     panda_log_debug("ConnectRequest::handle_event " << this);
     if (!err) handle->set_established();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_connect, finalize_handle_connect, err, this);
 }
 
-void ConnectRequest::notify (const std::error_code& err) { handle->notify_on_connect(err, this); }
+void ConnectRequest::notify (const ErrorCode& err) { handle->notify_on_connect(err, this); }
 
-void Stream::finalize_handle_connect (const std::error_code& err1, const ConnectRequestSP& req) {
-    auto err2 = set_connect_result(!err1);
-    auto& err = err1 ? err1 : err2;
+void Stream::finalize_handle_connect (const ErrorCode& connect_err, const ConnectRequestSP& req) {
+    ErrorCode err;
+    if (!connect_err) {
+        auto read_start_err = set_connect_result(true);
+        if (read_start_err) err = ErrorCode(errc::read_start_error, read_start_err);
+    } else {
+        set_connect_result(false);
+        err = connect_err;
+    }
     panda_log_debug("finalize_handle_connect err: " << err << "req: " << req << ", this: " << this);
 
     req->timer = nullptr;
@@ -128,7 +140,7 @@ void Stream::finalize_handle_connect (const std::error_code& err1, const Connect
     }
 }
 
-void Stream::notify_on_connect (const std::error_code& err, const ConnectRequestSP& req) {
+void Stream::notify_on_connect (const ErrorCode& err, const ConnectRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     connect_event(self, err, req);
@@ -157,7 +169,7 @@ void Stream::handle_read (string& buf, const std::error_code& err) {
     INVOKE(this, _filters.back(), handle_read, finalize_handle_read, buf, err);
 }
 
-void Stream::finalize_handle_read (string& buf, const std::error_code& err) {
+void Stream::finalize_handle_read (string& buf, const ErrorCode& err) {
     StreamSP self = this;
     read_event(self, buf, err);
     if (_listener) _listener->on_read(self, buf, err);
@@ -185,21 +197,21 @@ void Stream::finalize_write (const WriteRequestSP& req) {
     if (err) req->delay([=]{ req->cancel(err); });
 }
 
-void WriteRequest::handle_event (const std::error_code& err) {
+void WriteRequest::handle_event (const ErrorCode& err) {
     panda_log_debug("WriteRequest::handle_event " << this);
     if (err == std::errc::broken_pipe) handle->clear_out_connected();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
 
-void WriteRequest::notify (const std::error_code& err) { handle->notify_on_write(err, this); }
+void WriteRequest::notify (const ErrorCode& err) { handle->notify_on_write(err, this); }
 
-void Stream::finalize_handle_write (const std::error_code& err, const WriteRequestSP& req) {
+void Stream::finalize_handle_write (const ErrorCode& err, const WriteRequestSP& req) {
     panda_log_debug("finalize_handle_write err: " << err << ", request" << req << ", this" << this);
     queue.done(req, [=]{ notify_on_write(err, req); });
 }
 
-void Stream::notify_on_write (const std::error_code& err, const WriteRequestSP& req) {
+void Stream::notify_on_write (const ErrorCode& err, const WriteRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     write_event(self, err, req);
@@ -262,15 +274,15 @@ void Stream::finalize_shutdown (const ShutdownRequestSP& req) {
     impl()->shutdown(req->impl());
 }
 
-void ShutdownRequest::handle_event (const std::error_code& err) {
+void ShutdownRequest::handle_event (const ErrorCode& err) {
     panda_log_debug("ShutdownRequest::handle_event " << this);
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_shutdown, finalize_handle_shutdown, err, this);
 }
 
-void ShutdownRequest::notify (const std::error_code& err) { handle->notify_on_shutdown(err, this); }
+void ShutdownRequest::notify (const ErrorCode& err) { handle->notify_on_shutdown(err, this); }
 
-void ShutdownRequest::cancel (const std::error_code& err) {
+void ShutdownRequest::cancel (const ErrorCode& err) {
     if (timed_out && err == std::errc::operation_canceled) {
         timed_out = false;
         StreamRequest::cancel(make_error_code(std::errc::timed_out));
@@ -278,14 +290,14 @@ void ShutdownRequest::cancel (const std::error_code& err) {
     else StreamRequest::cancel(err);
 }
 
-void Stream::finalize_handle_shutdown (const std::error_code& err, const ShutdownRequestSP& req) {
+void Stream::finalize_handle_shutdown (const ErrorCode& err, const ShutdownRequestSP& req) {
     panda_log_debug("finalize_handle_shutdown req: " << err << "req: " << req << ", this: " << this);
     set_shutdown(!err);
     req->timer = nullptr;
     queue.done(req, [=]{ notify_on_shutdown(err, req); });
 }
 
-void Stream::notify_on_shutdown (const std::error_code& err, const ShutdownRequestSP& req) {
+void Stream::notify_on_shutdown (const ErrorCode& err, const ShutdownRequestSP& req) {
     StreamSP self = this;
     req->event(self, err, req);
     shutdown_event(self, err, req);
@@ -296,10 +308,10 @@ void Stream::notify_on_shutdown (const std::error_code& err, const ShutdownReque
 struct DisconnectRequest : StreamRequest {
     DisconnectRequest (Stream* h) { set(h); }
 
-    void exec         ()                                                                        override { handle->queue.done(this, [&]{ HOLD_ON(handle); handle->_reset(); }); }
-    void cancel       (const std::error_code& = make_error_code(std::errc::operation_canceled)) override { handle->queue.done(this, []{}); }
-    void handle_event (const std::error_code&)                                                  override {}
-    void notify       (const std::error_code&)                                                  override {}
+    void exec         ()                 override { handle->queue.done(this, [&]{ HOLD_ON(handle); handle->_reset(); }); }
+    void cancel       (const ErrorCode&) override { handle->queue.done(this, []{}); }
+    void handle_event (const ErrorCode&) override {}
+    void notify       (const ErrorCode&) override {}
 };
 
 void Stream::disconnect () {
@@ -396,8 +408,8 @@ void Stream::no_ssl () {
 }
 
 // ===================== RUN IN ORDER REQUEST ===============================
-void RunInOrderRequest::exec         ()                           { handle->queue.done(this, [this]{ code(handle); }); }
-void RunInOrderRequest::handle_event (const std::error_code& err) { assert(err); }
-void RunInOrderRequest::notify       (const std::error_code& err) { assert(err); }
+void RunInOrderRequest::exec         ()                     { handle->queue.done(this, [this]{ code(handle); }); }
+void RunInOrderRequest::handle_event (const ErrorCode& err) { assert(err); }
+void RunInOrderRequest::notify       (const ErrorCode& err) { assert(err); }
 
 }}

@@ -83,14 +83,14 @@ void TcpConnectRequest::finalize_connect () {
        ->use_cache(cached)
        ->on_resolve([this](const AddrInfo& res, const std::error_code& res_err, const Resolver::RequestSP) {
            resolve_request = nullptr;
-           if (res_err) return cancel(res_err);
+           if (res_err) return cancel(nest_error(errc::resolve_error, res_err));
            auto err = handle->impl()->connect(res.addr(), impl());
            if (err) cancel(err);
        });
     resolve_request->run();
 }
 
-void TcpConnectRequest::handle_event (const std::error_code& err) {
+void TcpConnectRequest::handle_event (const ErrorCode& err) {
     if (resolve_request) {
         resolve_request->event.remove_all();
         resolve_request->cancel();

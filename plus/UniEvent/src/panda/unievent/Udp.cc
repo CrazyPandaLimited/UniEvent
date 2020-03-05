@@ -89,13 +89,13 @@ void SendRequest::exec () {
     if (err) delay([=]{ cancel(err); });
 }
 
-void SendRequest::notify (const std::error_code& err) { handle->notify_on_send(err, this); }
+void SendRequest::notify (const ErrorCode& err) { handle->notify_on_send(err, this); }
 
-void SendRequest::handle_event (const std::error_code& err) {
+void SendRequest::handle_event (const ErrorCode& err) {
     handle->queue.done(this, [=]{ handle->notify_on_send(err, this); });
 }
 
-void Udp::notify_on_send (const std::error_code& err, const SendRequestSP& req) {
+void Udp::notify_on_send (const ErrorCode& err, const SendRequestSP& req) {
     UdpSP self = this;
     req->event(self, err, req);
     send_event(self, err, req);

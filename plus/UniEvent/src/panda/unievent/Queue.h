@@ -77,6 +77,8 @@ struct Queue {
 
     template <class Pre, class Post>
     void cancel (Pre&& fpre, Post&& fpost, const RequestSP& till = {}) {
+        static const ErrorCode canceled_err(make_error_code(std::errc::operation_canceled));
+
         ++locked; // this blocks executing of requests
         cancel_till = till ? till : requests.back(); // we must not cancel anything that is added during callbacks execution
         auto gen = cancel_gen;
@@ -87,7 +89,7 @@ struct Queue {
             auto cur = finalized_requests.front();
             finalized_requests.pop_front();
             cur->delay_cancel();
-            exk.etry([&]{ cur->notify(make_error_code(std::errc::operation_canceled)); });
+            exk.etry([&]{ cur->notify(canceled_err); });
         }
 
         exk.etry([&]{ fpre(); });
@@ -96,7 +98,7 @@ struct Queue {
             RequestSP cur;
             do {
                 cur = requests.front();
-                exk.etry([&]{ cur->cancel(); });
+                exk.etry([&]{ cur->cancel(canceled_err); });
                 assert(cur != requests.front()); // if cancel() throws before calling done(), otherwise infite loop. Idea to prettify?
             } while (cancel_till && cur != cancel_till); // respect recursive cancel()
         }
