@@ -5,19 +5,19 @@
 namespace panda { namespace unievent {
 
 struct IFsEventListener {
-    virtual void on_fs_event (const FsEventSP&, const string_view& file, int events, const CodeError&) = 0;
+    virtual void on_fs_event (const FsEventSP&, const string_view& file, int events, const std::error_code&) = 0;
 };
 
 struct IFsEventSelfListener : IFsEventListener {
-    virtual void on_fs_event (const string_view& file, int events, const CodeError&) = 0;
-    void on_fs_event (const FsEventSP&, const string_view& file, int events, const CodeError& err) override { on_fs_event(file, events, err); }
+    virtual void on_fs_event (const string_view& file, int events, const std::error_code&) = 0;
+    void on_fs_event (const FsEventSP&, const string_view& file, int events, const std::error_code& err) override { on_fs_event(file, events, err); }
 };
 
 struct FsEvent : virtual BackendHandle, private backend::IFsEventImplListener {
     using FsEventImpl   = backend::FsEventImpl;
     using Event         = FsEventImpl::Event;
     using Flags         = FsEventImpl::Flags;
-    using fs_event_fptr = void(const FsEventSP&, const string_view& file, int events, const CodeError&);
+    using fs_event_fptr = void(const FsEventSP&, const string_view& file, int events, const std::error_code&);
     using fs_event_fn   = function<fs_event_fptr>;
     
     CallbackDispatcher<fs_event_fptr> event;
@@ -45,7 +45,7 @@ private:
     string            _path;
     IFsEventListener* _listener;
 
-    void handle_fs_event (const string_view& file, int events, const CodeError&) override;
+    void handle_fs_event (const string_view& file, int events, const std::error_code&) override;
 
     FsEventImpl* impl () const { return static_cast<FsEventImpl*>(_impl); }
 };

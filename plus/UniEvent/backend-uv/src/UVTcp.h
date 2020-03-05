@@ -20,7 +20,7 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         uvx_strict(uv_tcp_bind(&uvh, addr.get(), uv_flags));
     }
 
-    virtual CodeError connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {
+    virtual std::error_code connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {
         auto req = static_cast<UVConnectRequest*>(_req);
         auto err = uv_tcp_connect(&req->uvr, &uvh, addr.get(), on_connect);
         if (!err) req->active = true;

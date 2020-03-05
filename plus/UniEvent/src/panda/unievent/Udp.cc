@@ -89,13 +89,13 @@ void SendRequest::exec () {
     if (err) delay([=]{ cancel(err); });
 }
 
-void SendRequest::notify (const CodeError& err) { handle->notify_on_send(err, this); }
+void SendRequest::notify (const ErrorCode& err) { handle->notify_on_send(err, this); }
 
-void SendRequest::handle_event (const CodeError& err) {
+void SendRequest::handle_event (const ErrorCode& err) {
     handle->queue.done(this, [=]{ handle->notify_on_send(err, this); });
 }
 
-void Udp::notify_on_send (const CodeError& err, const SendRequestSP& req) {
+void Udp::notify_on_send (const ErrorCode& err, const SendRequestSP& req) {
     UdpSP self = this;
     req->event(self, err, req);
     send_event(self, err, req);
@@ -117,7 +117,7 @@ void Udp::clear () {
     });
 }
 
-void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const CodeError& err) {
+void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, const std::error_code& err) {
     UdpSP self = this;
     receive_event(self, buf, sa, flags, err);
     if (_listener) _listener->on_receive(self, buf, sa, flags, err);

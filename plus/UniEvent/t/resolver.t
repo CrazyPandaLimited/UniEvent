@@ -2,8 +2,8 @@ use 5.012;
 use lib 't/lib';
 use MyTest;
 use UniEvent::Error;
-use Panda::Lib::Logger;
 
+#use Panda::Lib::Logger;
 #set_log_level(LOG_VERBOSE_DEBUG);
 #set_native_logger(sub {
 #    my ($level, $cp, $msg) = @_;
@@ -24,7 +24,7 @@ subtest 'cancel' => sub {
         node       => 'ya.ru',
         on_resolve => sub {
             my ($addr, $err, $req) = @_;
-            is $err->code, ECANCELED;
+            is $err, UE::SystemError::operation_canceled;
             $i++;
         },
     });

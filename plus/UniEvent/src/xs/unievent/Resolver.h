@@ -1,6 +1,6 @@
 #pragma once
 #include "Loop.h"
-#include "Error.h"
+#include "error.h"
 #include "AddrInfo.h"
 #include <xs/net/sockaddr.h>
 #include <panda/unievent/Resolver.h>

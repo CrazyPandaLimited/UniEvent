@@ -78,8 +78,8 @@ void Resolver::Worker::on_sockstate (sock_t sock, int read, int write) {
     poll->start((read ? Poll::READABLE : 0) | (write ? Poll::WRITABLE : 0));
 }
 
-void Resolver::Worker::handle_poll (int events, const CodeError& err) {
-    panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " events:" << events << " err:" << err.what());
+void Resolver::Worker::handle_poll (int events, const std::error_code& err) {
+    panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " events:" << events << " err:" << err);
     auto sz = polls.size();
     sock_t socks[sz];
     size_t i = 0;
@@ -118,25 +118,25 @@ void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
     panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " req:" << request.get() << " status:" << ares_strerror(status) << " async:" << ares_async << " ai:" << ai);
     if (!request) return; // canceled
 
-    CodeError err;
-    AddrInfo  addr;
+    std::error_code err;
+    AddrInfo addr;
     switch (status) {
         case ARES_SUCCESS:
             addr = AddrInfo(ai);
             break;
         case ARES_ECANCELLED:
         case ARES_EDESTRUCTION:
-            err = CodeError(std::errc::operation_canceled);
+            err = make_error_code(std::errc::operation_canceled);
             break;
         case ARES_ENOTIMP:
-            err = CodeError(std::errc::address_family_not_supported);
+            err = make_error_code(std::errc::address_family_not_supported);
             break;
         case ARES_ENOMEM:
-            err = CodeError(std::errc::not_enough_memory);
+            err = make_error_code(std::errc::not_enough_memory);
             break;
         case ARES_ENOTFOUND:
         default:
-            err = CodeError(errc::resolve_error);
+            err = make_error_code(errc::unknown_error);
     }
 
     if (ares_async) {
@@ -163,8 +163,8 @@ void Resolver::Worker::cancel () {
     ares_cancel(channel);
 }
 
-void Resolver::Worker::finish_resolve (const AddrInfo& addr, const CodeError& err) {
-    panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " req:" << request.get() << " err:" << err.what());
+void Resolver::Worker::finish_resolve (const AddrInfo& addr, const std::error_code& err) {
+    panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " req:" << request.get() << " err:" << err);
     auto req = std::move(request);
     resolver->finish_resolve(req, addr, err);
 }
@@ -230,7 +230,7 @@ void Resolver::resolve (const RequestSP& req) {
         auto reqp = req.get();
         req->timer = Timer::once(req->_timeout, [this, reqp](auto&){
             panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " timed out req:" << reqp);
-            reqp->cancel(std::errc::timed_out);
+            reqp->cancel(make_error_code(std::errc::timed_out));
         }, _loop);
     }
 
@@ -255,10 +255,10 @@ void Resolver::resolve (const RequestSP& req) {
     queue.push_back(req);
 }
 
-void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const CodeError& err) {
+void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const std::error_code& err) {
     if (!req->running) return;
     panda_log_m(resolver_log_module, log::Level::VerboseDebug,
-                this << " req done:" << req.get() << " [" << req->_node << ":" << req->_service << "], err:" << err.what());
+                this << " req done:" << req.get() << " [" << req->_node << ":" << req->_service << "], err:" << err);
 
     if (req->delayed) {
         loop()->cancel_delay(req->delayed);
@@ -324,7 +324,7 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     });
 }
 
-void Resolver::on_resolve (const AddrInfo& addr, const CodeError& err, const RequestSP& req) {
+void Resolver::on_resolve (const AddrInfo& addr, const std::error_code& err, const RequestSP& req) {
     req->event(addr, err, req);
 }
 
@@ -377,7 +377,7 @@ Resolver::Request::Request (const ResolverSP& r)
 
 Resolver::Request::~Request () { panda_log_m(resolver_log_module, log::Level::VerboseDebug, "~Request " << this); }
 
-void Resolver::Request::cancel (const CodeError& err) {
+void Resolver::Request::cancel (const std::error_code& err) {
     panda_log_m(resolver_log_module, log::Level::VerboseDebug, "cancel " << this);
     if (_resolver) _resolver->finish_resolve(this, nullptr, err);
 }

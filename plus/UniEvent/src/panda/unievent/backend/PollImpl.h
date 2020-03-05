@@ -6,7 +6,7 @@
 namespace panda { namespace unievent { namespace backend {
 
 struct IPollImplListener {
-    virtual void handle_poll (int events, const CodeError& err) = 0;
+    virtual void handle_poll (int events, const std::error_code& err) = 0;
 };
 
 struct PollImpl : HandleImpl {
@@ -19,7 +19,7 @@ struct PollImpl : HandleImpl {
     virtual void start (int events) = 0;
     virtual void stop  ()           = 0;
 
-    void handle_poll (int events, const CodeError& err) noexcept {
+    void handle_poll (int events, const std::error_code& err) noexcept {
         ltry([&]{ listener->handle_poll(events, err); });
     }
 };

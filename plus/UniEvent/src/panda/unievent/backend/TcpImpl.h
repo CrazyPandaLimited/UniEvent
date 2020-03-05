@@ -13,7 +13,7 @@ struct TcpImpl : StreamImpl {
     virtual void open (sock_t) = 0;
     virtual void bind (const net::SockAddr&, unsigned flags) = 0;
 
-    virtual CodeError connect (const net::SockAddr&, ConnectRequestImpl*) = 0;
+    virtual std::error_code connect (const net::SockAddr&, ConnectRequestImpl*) = 0;
 
     virtual net::SockAddr sockaddr () const = 0;
     virtual net::SockAddr peeraddr () const = 0;

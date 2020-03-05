@@ -9,8 +9,8 @@ namespace panda { namespace unievent { namespace backend {
 
 struct IStreamImplListener {
     virtual string buf_alloc         (size_t cap) = 0;
-    virtual void   handle_connection (const CodeError&) = 0;
-    virtual void   handle_read       (string&, const CodeError&) = 0;
+    virtual void   handle_connection (const std::error_code&) = 0;
+    virtual void   handle_read       (string&, const std::error_code&) = 0;
     virtual void   handle_eof        () = 0;
 };
 
@@ -29,12 +29,12 @@ struct StreamImpl : HandleImpl {
 
     string buf_alloc (size_t size) noexcept { return HandleImpl::buf_alloc(size, listener); }
 
-    virtual void      listen     (int backlog) = 0;
-    virtual CodeError accept     (StreamImpl* client) = 0;
-    virtual CodeError read_start () = 0;
-    virtual void      read_stop  () = 0;
-    virtual CodeError write      (const std::vector<string>& bufs, WriteRequestImpl*) = 0;
-    virtual void      shutdown   (ShutdownRequestImpl*) = 0;
+    virtual void            listen     (int backlog) = 0;
+    virtual std::error_code accept     (StreamImpl* client) = 0;
+    virtual std::error_code read_start () = 0;
+    virtual void            read_stop  () = 0;
+    virtual std::error_code write      (const std::vector<string>& bufs, WriteRequestImpl*) = 0;
+    virtual void            shutdown   (ShutdownRequestImpl*) = 0;
 
     virtual optional<fh_t> fileno () const = 0;
 
@@ -47,11 +47,11 @@ struct StreamImpl : HandleImpl {
     virtual bool   writable         () const noexcept = 0;
     virtual size_t write_queue_size () const noexcept = 0;
 
-    void handle_connection (const CodeError& err) noexcept {
+    void handle_connection (const std::error_code& err) noexcept {
         ltry([&]{ listener->handle_connection(err); });
     }
 
-    void handle_read (string& buf, const CodeError& err) noexcept {
+    void handle_read (string& buf, const std::error_code& err) noexcept {
         ltry([&]{ listener->handle_read(buf, err); });
     }
 

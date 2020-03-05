@@ -20,20 +20,6 @@ static bool _init () {
 }
 static bool __init = _init();
 
-Stash get_perl_class_for_err (const Error& err) {
-    int status;
-    char* cpp_class_name = abi::__cxa_demangle(typeid(err).name(), nullptr, nullptr, &status);
-    if (status != 0) throw "[UniEvent] !critical! abi::__cxa_demangle error";
-    static const std::string cpp_errns  = "panda::unievent::";
-    if (strstr(cpp_class_name, cpp_errns.c_str()) != cpp_class_name) throw "[UniEvent] strange exception caught";
-    std::string stash_name("UniEvent::");
-    stash_name.append(cpp_class_name + cpp_errns.length());
-    free(cpp_class_name);
-    Stash stash(string_view(stash_name.data(), stash_name.length()));
-    if (!stash) throw Simple::format("[UniEvent] !critical! no error package: %s", stash_name.c_str());
-    return stash;
-}
-
 string sv2buf (const Sv& sv) {
     string buf;
     if (sv.is_array_ref()) { // [$str1, $str2, ...]

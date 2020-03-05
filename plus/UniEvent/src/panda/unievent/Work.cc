@@ -19,7 +19,7 @@ bool Work::cancel () {
     if (!_active) return true;
     if (!_impl->destroy()) return false;
     _impl = nullptr;
-    handle_after_work(CodeError(std::errc::operation_canceled));
+    handle_after_work(make_error_code(std::errc::operation_canceled));
     return true;
 }
 
@@ -29,7 +29,7 @@ void Work::handle_work () {
     else throw std::logic_error("work callback must be set");
 }
 
-void Work::handle_after_work (const CodeError& err) {
+void Work::handle_after_work (const std::error_code& err) {
     WorkSP self = this;
     _loop->unregister_work(self);
     _active = false;

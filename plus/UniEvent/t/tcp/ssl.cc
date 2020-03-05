@@ -78,11 +78,11 @@ TEST_CASE("client custom certificate", "[ssl]") {
     auto client_cert = get_client_context("01-alice");
     client->use_ssl(client_cert.get());
 
-    server->connection_event.add([&](Stream*, Stream* s, const CodeError& err) {
+    server->connection_event.add([&](auto, auto s, auto& err) {
         test.happens("c");
         REQUIRE_FALSE(err);
         session = s;
-        session->read_event.add([&](Stream*, string& str, const CodeError& err){
+        session->read_event.add([&](auto, string& str, auto& err){
             test.happens("r");
             REQUIRE_FALSE(err);
             REQUIRE(str == "123");
@@ -112,7 +112,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
 
     server->connection_event.add([&](auto, auto, auto& err) {
         REQUIRE(err);
-        REQUIRE(err.code() == errc::ssl_error);
+        REQUIRE(err == errc::ssl_error);
         test.loop->stop();
     });
 

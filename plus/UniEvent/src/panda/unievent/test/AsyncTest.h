@@ -53,7 +53,7 @@ struct AsyncTest {
     }
 
     template <class T> static inline T _await_copy (T arg) { return arg; }
-    static inline CodeError _await_copy (const CodeError& err) { return err; }
+    static inline std::error_code _await_copy (const std::error_code& err) { return err; }
 
     template <typename Ret, typename... Args, typename Dispatcher = CallbackDispatcher<Ret(Args...)>>
     std::tuple<decltype(_await_copy(std::declval<Args>()))...>

@@ -14,7 +14,7 @@ sub slp ($) { select undef, undef, undef, $_[0]; }
 subtest 'non-existant file' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->poll_callback(check_err(ENOENT, "watch non-existant file"));
+    $h->poll_callback(check_err(UE::SystemError::ENOENT, "watch non-existant file"));
     is($h->path, var 'file', "path getter works");
     $l->run;
     $l->run_nowait; # must be called only once
@@ -24,7 +24,7 @@ subtest 'non-existant file' => sub {
 subtest 'file appears' => sub {
     my $h = new UniEvent::FsPoll;
     $h->start(var 'file', 0.01);
-    $h->poll_callback(check_err(ENOENT, "watch non-existant file"));
+    $h->poll_callback(check_err(UE::SystemError::ENOENT, "watch non-existant file"));
     $l->run;
     check_call_cnt(1);
     $h->poll_callback(check_appears("file appears"));
@@ -101,7 +101,7 @@ subtest 'file remove' => sub {
         $l->stop;
     });
     $l->run;
-    $h->poll_callback(check_err(ENOENT, "file remove"));
+    $h->poll_callback(check_err(UE::SystemError::ENOENT, "file remove"));
     Fs::unlink(var 'file');
     $l->run;
     check_call_cnt(1);
@@ -128,7 +128,7 @@ sub check_err {
     return sub {
         my ($h, $prev, $curr, $err) = @_;
         return unless $err;
-        is($err && $err->code, $err_code, "fspoll callback error code correct ($name)");
+        is($err, $err_code, "fspoll callback error code correct ($name)");
         $call_cnt++;
         $l->stop;
     };

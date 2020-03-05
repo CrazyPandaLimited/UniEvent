@@ -1,6 +1,6 @@
 #pragma once
 #include "Fs.h"
-#include "Error.h"
+#include "error.h"
 #include "Handle.h"
 #include <panda/unievent/FsPoll.h>
 

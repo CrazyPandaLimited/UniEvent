@@ -37,7 +37,7 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         uvx_strict(uv_udp_recv_stop(&uvh));
     }
 
-    CodeError send (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl* _req) override {
+    std::error_code send (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl* _req) override {
         auto req = static_cast<UVSendRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
         auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.get(), on_send);

@@ -40,7 +40,7 @@ void Poll::clear () {
     event.remove_all();
 }
 
-void Poll::handle_poll (int events, const CodeError& err) {
+void Poll::handle_poll (int events, const std::error_code& err) {
     PollSP self = this;
     event(self, events, err);
     if (_listener) _listener->on_poll(self, events, err);

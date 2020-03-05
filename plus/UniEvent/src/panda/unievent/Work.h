@@ -6,22 +6,22 @@
 namespace panda { namespace unievent {
 
 struct IWorkListener {
-    virtual void on_work       (Work*)                           = 0;
-    virtual void on_after_work (const WorkSP&, const CodeError&) = 0;
+    virtual void on_work       (Work*)                                 = 0;
+    virtual void on_after_work (const WorkSP&, const std::error_code&) = 0;
 };
 
 struct IWorkSelfListener : IWorkListener {
-    virtual void on_work       ()                 = 0;
-    virtual void on_after_work (const CodeError&) = 0;
+    virtual void on_work       ()                       = 0;
+    virtual void on_after_work (const std::error_code&) = 0;
 
-    void on_work       (Work*)                               override { on_work(); }
-    void on_after_work (const WorkSP&, const CodeError& err) override { on_after_work(err); }
+    void on_work       (Work*)                                     override { on_work(); }
+    void on_after_work (const WorkSP&, const std::error_code& err) override { on_after_work(err); }
 };
 
 struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private backend::IWorkImplListener {
     using WorkImpl      = backend::WorkImpl;
     using work_fn       = function<void(Work*)>;
-    using after_work_fn = function<void(const WorkSP&, const CodeError&)>;
+    using after_work_fn = function<void(const WorkSP&, const std::error_code&)>;
 
     work_fn       work_cb;
     after_work_fn after_work_cb;
@@ -49,7 +49,7 @@ private:
     bool           _active;
 
     void handle_work       () override;
-    void handle_after_work (const CodeError& err) override;
+    void handle_after_work (const std::error_code& err) override;
 
     WorkImpl* impl () {
         if (!_impl) _impl = _loop->impl()->new_work(this);

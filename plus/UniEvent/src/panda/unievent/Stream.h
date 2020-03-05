@@ -15,44 +15,44 @@ namespace panda { namespace unievent {
 
 struct IStreamListener {
     virtual StreamSP create_connection (const StreamSP&)                                             { return {}; }
-    virtual void     on_connection     (const StreamSP&, const StreamSP&, const CodeError&)          {}
-    virtual void     on_connect        (const StreamSP&, const CodeError&, const ConnectRequestSP&)  {}
-    virtual void     on_read           (const StreamSP&, string&, const CodeError&)                  {}
-    virtual void     on_write          (const StreamSP&, const CodeError&, const WriteRequestSP&)    {}
-    virtual void     on_shutdown       (const StreamSP&, const CodeError&, const ShutdownRequestSP&) {}
+    virtual void     on_connection     (const StreamSP&, const StreamSP&, const ErrorCode&)          {}
+    virtual void     on_connect        (const StreamSP&, const ErrorCode&, const ConnectRequestSP&)  {}
+    virtual void     on_read           (const StreamSP&, string&, const ErrorCode&)                  {}
+    virtual void     on_write          (const StreamSP&, const ErrorCode&, const WriteRequestSP&)    {}
+    virtual void     on_shutdown       (const StreamSP&, const ErrorCode&, const ShutdownRequestSP&) {}
     virtual void     on_eof            (const StreamSP&)                                             {}
 };
 
 struct IStreamSelfListener : IStreamListener {
     virtual StreamSP create_connection ()                                           { return {}; }
-    virtual void     on_connection     (const StreamSP&, const CodeError&)          {}
-    virtual void     on_connect        (const CodeError&, const ConnectRequestSP&)  {}
-    virtual void     on_read           (string&, const CodeError&)                  {}
-    virtual void     on_write          (const CodeError&, const WriteRequestSP&)    {}
-    virtual void     on_shutdown       (const CodeError&, const ShutdownRequestSP&) {}
+    virtual void     on_connection     (const StreamSP&, const ErrorCode&)          {}
+    virtual void     on_connect        (const ErrorCode&, const ConnectRequestSP&)  {}
+    virtual void     on_read           (string&, const ErrorCode&)                  {}
+    virtual void     on_write          (const ErrorCode&, const WriteRequestSP&)    {}
+    virtual void     on_shutdown       (const ErrorCode&, const ShutdownRequestSP&) {}
     virtual void     on_eof            ()                                           {}
 
     StreamSP create_connection (const StreamSP&)                                                     override { return create_connection(); }
-    void     on_connection     (const StreamSP&, const StreamSP& cli, const CodeError& err)          override { on_connection(cli, err); }
-    void     on_connect        (const StreamSP&, const CodeError& err, const ConnectRequestSP& req)  override { on_connect(err, req); }
-    void     on_read           (const StreamSP&, string& buf, const CodeError& err)                  override { on_read(buf, err); }
-    void     on_write          (const StreamSP&, const CodeError& err, const WriteRequestSP& req)    override { on_write(err, req); }
-    void     on_shutdown       (const StreamSP&, const CodeError& err, const ShutdownRequestSP& req) override { on_shutdown(err, req); }
+    void     on_connection     (const StreamSP&, const StreamSP& cli, const ErrorCode& err)          override { on_connection(cli, err); }
+    void     on_connect        (const StreamSP&, const ErrorCode& err, const ConnectRequestSP& req)  override { on_connect(err, req); }
+    void     on_read           (const StreamSP&, string& buf, const ErrorCode& err)                  override { on_read(buf, err); }
+    void     on_write          (const StreamSP&, const ErrorCode& err, const WriteRequestSP& req)    override { on_write(err, req); }
+    void     on_shutdown       (const StreamSP&, const ErrorCode& err, const ShutdownRequestSP& req) override { on_shutdown(err, req); }
     void     on_eof            (const StreamSP&)                                                     override { on_eof(); }
 };
 
 struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     using Filters         = IntrusiveChain<StreamFilterSP>;
     using conn_factory_fn = function<StreamSP(const StreamSP&)>;
-    using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const CodeError& err);
+    using connection_fptr = void(const StreamSP& handle, const StreamSP& client, const ErrorCode& err);
     using connection_fn   = function<connection_fptr>;
-    using connect_fptr    = void(const StreamSP& handle, const CodeError& err, const ConnectRequestSP& req);
+    using connect_fptr    = void(const StreamSP& handle, const ErrorCode& err, const ConnectRequestSP& req);
     using connect_fn      = function<connect_fptr>;
-    using read_fptr       = void(const StreamSP& handle, string& buf, const CodeError& err);
+    using read_fptr       = void(const StreamSP& handle, string& buf, const ErrorCode& err);
     using read_fn         = function<read_fptr>;
-    using write_fptr      = void(const StreamSP& handle, const CodeError& err, const WriteRequestSP& req);
+    using write_fptr      = void(const StreamSP& handle, const ErrorCode& err, const WriteRequestSP& req);
     using write_fn        = function<write_fptr>;
-    using shutdown_fptr   = void(const StreamSP& handle, const CodeError& err, const ShutdownRequestSP& req);
+    using shutdown_fptr   = void(const StreamSP& handle, const ErrorCode& err, const ShutdownRequestSP& req);
     using shutdown_fn     = function<shutdown_fptr>;
     using eof_fptr        = void(const StreamSP& handle);
     using eof_fn          = function<eof_fptr>;
@@ -167,13 +167,13 @@ protected:
     void set_connecting  () { flags |= CONNECTING; }
     void set_established () { flags |= ESTABLISHED; }
 
-    CodeError set_connect_result (bool ok) {
+    std::error_code set_connect_result (bool ok) {
         flags &= ~CONNECTING;
         if (ok) {
             flags |= IN_CONNECTED|OUT_CONNECTED|ESTABLISHED;
             if (wantread()) return _read_start();
         }
-        return CodeError();
+        return {};
     }
 
     void set_wantread (bool on) { on ? (flags &= ~DONTREAD) : (flags |= DONTREAD); }
@@ -228,25 +228,25 @@ private:
         if (_filters.size()) (_filters.front()->*filter_method)(std::forward<Args>(args)...);
     }
 
-    void handle_connection          (const CodeError&) override;
-    void finalize_handle_connection (const StreamSP& client, const CodeError&, const AcceptRequestSP&);
-    void finalize_handle_connect    (const CodeError&, const ConnectRequestSP&);
-    void notify_on_connect          (const CodeError&, const ConnectRequestSP&);
-    void handle_read                (string&, const CodeError&) override;
-    void finalize_handle_read       (string& buf, const CodeError&);
+    void handle_connection          (const std::error_code&) override;
+    void finalize_handle_connection (const StreamSP& client, const ErrorCode&, const AcceptRequestSP&);
+    void finalize_handle_connect    (const ErrorCode&, const ConnectRequestSP&);
+    void notify_on_connect          (const ErrorCode&, const ConnectRequestSP&);
+    void handle_read                (string&, const std::error_code&) override;
+    void finalize_handle_read       (string& buf, const ErrorCode&);
     void finalize_write             (const WriteRequestSP&);
-    void finalize_handle_write      (const CodeError&, const WriteRequestSP&);
-    void notify_on_write            (const CodeError&, const WriteRequestSP&);
+    void finalize_handle_write      (const ErrorCode&, const WriteRequestSP&);
+    void notify_on_write            (const ErrorCode&, const WriteRequestSP&);
     void handle_eof                 () override;
     void finalize_handle_eof        ();
     void finalize_shutdown          (const ShutdownRequestSP&);
-    void finalize_handle_shutdown   (const CodeError&, const ShutdownRequestSP&);
-    void notify_on_shutdown         (const CodeError&, const ShutdownRequestSP&);
+    void finalize_handle_shutdown   (const ErrorCode&, const ShutdownRequestSP&);
+    void notify_on_shutdown         (const ErrorCode&, const ShutdownRequestSP&);
 
     void _reset ();
     void _clear ();
 
-    CodeError _read_start ();
+    std::error_code _read_start ();
 
     void _check_change_filters () {
         if (connecting() || established()) throw Error("can't change stream filters when active");
@@ -271,10 +271,10 @@ using StreamRequestSP = iptr<StreamRequest>;
 struct AcceptRequest : StreamRequest, AllocatedObject<AcceptRequest> {
     AcceptRequest (Stream* h) { set(h); }
 
-    void exec         ()                                                 override {}
-    void cancel       (const CodeError& = std::errc::operation_canceled) override { handle->queue.done(this, []{}); }
-    void notify       (const CodeError&)                                 override {}
-    void handle_event (const CodeError&)                                 override {}
+    void exec         ()                 override {}
+    void cancel       (const ErrorCode&) override { handle->queue.done(this, []{}); }
+    void notify       (const ErrorCode&) override {}
+    void handle_event (const ErrorCode&) override {}
 };
 
 
@@ -297,8 +297,8 @@ protected:
     }
 
     void exec         () override = 0;
-    void handle_event (const CodeError&) override;
-    void notify       (const CodeError&) override;
+    void handle_event (const ErrorCode&) override;
+    void notify       (const ErrorCode&) override;
 };
 
 
@@ -333,8 +333,8 @@ private:
     }
 
     void exec         () override;
-    void handle_event (const CodeError&) override;
-    void notify       (const CodeError&) override;
+    void handle_event (const ErrorCode&) override;
+    void notify       (const ErrorCode&) override;
 };
 
 
@@ -359,9 +359,9 @@ private:
     }
 
     void exec         () override;
-    void handle_event (const CodeError&) override;
-    void notify       (const CodeError&) override;
-    void cancel       (const CodeError& err = std::errc::operation_canceled) override;
+    void handle_event (const ErrorCode&) override;
+    void notify       (const ErrorCode&) override;
+    void cancel       (const ErrorCode& err = make_error_code(std::errc::operation_canceled)) override;
 };
 
 struct RunInOrderRequest : StreamRequest {
@@ -373,8 +373,8 @@ struct RunInOrderRequest : StreamRequest {
     }
 
     void exec         () override;
-    void handle_event (const CodeError&) override;
-    void notify       (const CodeError&) override;
+    void handle_event (const ErrorCode&) override;
+    void notify       (const ErrorCode&) override;
 };
 
 inline void Stream::write (const string& data, write_fn callback) {

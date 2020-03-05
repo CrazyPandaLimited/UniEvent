@@ -1,5 +1,4 @@
 #pragma once
-#include "../Error.h"
 #include "../Debug.h"
 #include "LoopImpl.h"
 
@@ -7,7 +6,7 @@ namespace panda { namespace unievent { namespace backend {
 
 struct IWorkImplListener {
     virtual void handle_work       () = 0;
-    virtual void handle_after_work (const CodeError&) = 0;
+    virtual void handle_after_work (const std::error_code&) = 0;
 };
 
 struct WorkImpl {
@@ -22,7 +21,7 @@ struct WorkImpl {
         loop->ltry([&]{ listener->handle_work(); });
     }
 
-    void handle_after_work (const CodeError& err) noexcept {
+    void handle_after_work (const std::error_code& err) noexcept {
         loop->ltry([&]{ listener->handle_after_work(err); });
     }
 

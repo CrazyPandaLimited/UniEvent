@@ -11,7 +11,7 @@ using namespace panda::unievent;
 
 StreamFilter::StreamFilter (Stream* h, const void* type, double priority) : handle(h), _type(type), _priority(priority) {}
 
-CodeError StreamFilter::read_start () {
+std::error_code StreamFilter::read_start () {
     return handle->_read_start();
 }
 
@@ -51,7 +51,7 @@ void StreamFilter::subreq_done (const StreamRequestSP& req) {
     req->last_filter    = nullptr;
 }
 
-void StreamFilter::handle_connection (const StreamSP& client, const CodeError& err, const AcceptRequestSP& req) {
+void StreamFilter::handle_connection (const StreamSP& client, const ErrorCode& err, const AcceptRequestSP& req) {
     INVOKE(prev, handle_connection, finalize_handle_connection, client, err, req);
 }
 
@@ -71,11 +71,11 @@ void StreamFilter::pipe_connect (const PipeConnectRequestSP& req) {
     else req->finalize_connect();
 }
 
-void StreamFilter::handle_connect (const CodeError& err, const ConnectRequestSP& req) {
+void StreamFilter::handle_connect (const ErrorCode& err, const ConnectRequestSP& req) {
     INVOKE(prev, handle_connect, finalize_handle_connect, err, req);
 }
 
-void StreamFilter::handle_read (string& buf, const CodeError& err) {
+void StreamFilter::handle_read (string& buf, const ErrorCode& err) {
     INVOKE(prev, handle_read, finalize_handle_read, buf, err);
 }
 
@@ -84,7 +84,7 @@ void StreamFilter::write (const WriteRequestSP& req) {
     INVOKE(next, write, finalize_write, req);
 }
 
-void StreamFilter::handle_write (const CodeError& err, const WriteRequestSP& req) {
+void StreamFilter::handle_write (const ErrorCode& err, const WriteRequestSP& req) {
     INVOKE(prev, handle_write, finalize_handle_write, err, req);
 }
 
@@ -97,6 +97,6 @@ void StreamFilter::shutdown (const ShutdownRequestSP& req) {
     INVOKE(next, shutdown, finalize_shutdown, req);
 }
 
-void StreamFilter::handle_shutdown (const CodeError& err, const ShutdownRequestSP& req) {
+void StreamFilter::handle_shutdown (const ErrorCode& err, const ShutdownRequestSP& req) {
     INVOKE(prev, handle_shutdown, finalize_handle_shutdown, err, req);
 }

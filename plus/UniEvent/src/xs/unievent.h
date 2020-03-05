@@ -7,7 +7,7 @@
 #include "unievent/Loop.h"
 #include "unievent/Idle.h"
 #include "unievent/Pipe.h"
-#include "unievent/Error.h"
+#include "unievent/error.h"
 #include "unievent/Check.h"
 #include "unievent/Timer.h"
 #include "unievent/Handle.h"

@@ -103,7 +103,7 @@ private:
 
     void exec             () override;
     void finalize_connect ();
-    void handle_event     (const CodeError&) override;
+    void handle_event     (const ErrorCode&) override;
 };
 
 inline TcpConnectRequestSP Tcp::connect () {
