@@ -2,7 +2,7 @@
 #include <uv.h>
 #include <panda/unievent/util.h>
 #include <panda/unievent/Debug.h>
-#include <panda/unievent/Error.h>
+#include <panda/unievent/error.h>
 #include <panda/unievent/backend/HandleImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {

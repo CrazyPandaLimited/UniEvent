@@ -1,7 +1,7 @@
 #pragma once
 #include "Loop.h"
 #include "Debug.h"
-#include "Error.h"
+#include "error.h"
 #include <cstdint>
 #include <panda/string.h>
 #include <panda/memory.h>

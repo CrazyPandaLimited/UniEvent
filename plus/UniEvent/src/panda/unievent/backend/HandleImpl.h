@@ -1,6 +1,6 @@
 #pragma once
 #include "../Debug.h"
-#include "../Error.h"
+#include "../error.h"
 #include "LoopImpl.h"
 #include <panda/string.h>
 #include <panda/optional.h>

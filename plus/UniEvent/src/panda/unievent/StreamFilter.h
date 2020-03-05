@@ -1,6 +1,6 @@
 #pragma once
 #include "forward.h"
-#include "Error.h"
+#include "error.h"
 #include <panda/intrusive_chain.h>
 
 namespace panda { namespace unievent {

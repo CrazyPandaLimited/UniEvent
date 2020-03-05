@@ -1,6 +1,6 @@
 #pragma once
 #include <xs.h>
-#include <panda/unievent/Error.h>
+#include <panda/unievent/error.h>
 
 namespace xs {
 
