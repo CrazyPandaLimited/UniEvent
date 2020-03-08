@@ -1,14 +1,14 @@
 #include "lib/test.h"
 
 TEST_CASE("async", "[async]") {
+    AsyncTest test(2000, {"async"});
+
+    AsyncSP async = new Async([&](auto) {
+        test.happens("async");
+        test.loop->stop();
+    }, test.loop);
+
     SECTION("send") {
-        AsyncTest test(2000, {"async"});
-
-        AsyncSP async = new Async([&](auto) {
-            test.happens("async");
-            test.loop->stop();
-        }, test.loop);
-
         SECTION("from this thread") {
             SECTION("after run") {
                 test.loop->delay([&]{
@@ -39,34 +39,34 @@ TEST_CASE("async", "[async]") {
             }
             t.join();
         }
+    }
 
-        SECTION("call_now") {
-            async->call_now();
-        }
+    SECTION("call_now") {
+        async->call_now();
+    }
 
-        SECTION("event listener") {
-            auto s = [&](auto lst) {
-                async->event_listener(&lst);
-                async->event.add([&](auto){ lst.cnt += 10; });
-                async->send();
-                test.run_nowait();
-                CHECK(lst.cnt == 11);
+    SECTION("event listener") {
+        auto s = [&](auto lst) {
+            async->event_listener(&lst);
+            async->event.add([&](auto){ lst.cnt += 10; });
+            async->send();
+            test.run();
+            CHECK(lst.cnt == 11);
+        };
+
+        SECTION("std") {
+            struct Lst : IAsyncListener {
+                int cnt = 0;
+                void on_async (const AsyncSP&) override { ++cnt; }
             };
-
-            SECTION("std") {
-                struct Lst : IAsyncListener {
-                    int cnt = 0;
-                    void on_async (const AsyncSP&) override { ++cnt; }
-                };
-                s(Lst());
-            }
-            SECTION("self") {
-                struct Lst : IAsyncSelfListener {
-                    int cnt = 0;
-                    void on_async () override { ++cnt; }
-                };
-                s(Lst());
-            }
+            s(Lst());
+        }
+        SECTION("self") {
+            struct Lst : IAsyncSelfListener {
+                int cnt = 0;
+                void on_async () override { ++cnt; }
+            };
+            s(Lst());
         }
     }
 }
