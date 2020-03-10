@@ -17,16 +17,11 @@ bool variate_buf (bool val = false) {
 }
 
 void set_loop_callback_with_mortal (LoopSP loop, xs::Sub cb) {
-    loop->delay([&, cb]{
+    loop->delay([=]{
         auto param = newSV(0);
         newSVrv(param, "MyMortal");
-        //ENTER;
-        //SAVETMPS;
         sv_2mortal(param);
         cb.call(param);
-        //FREETMPS;
-        //LEAVE;
-        //SvREFCNT_dec_NN(param);
     });
 }
 
