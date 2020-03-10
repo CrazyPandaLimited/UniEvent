@@ -24,8 +24,8 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     const HandleType& type () const override;
 
     virtual void open (sock_t socket, Ownership = Ownership::TRANSFER);
-    virtual void bind (const net::SockAddr&, unsigned flags = 0);
-    virtual void bind (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
+    virtual excepted<void, ErrorCode> bind (const net::SockAddr&, unsigned flags = 0);
+    virtual excepted<void, ErrorCode> bind (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
 
     TcpConnectRequestSP connect ();
     TcpConnectRequestSP connect (const net::SockAddr& sa, uint64_t timeout = 0);

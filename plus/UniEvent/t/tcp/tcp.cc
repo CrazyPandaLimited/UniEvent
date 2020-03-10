@@ -635,3 +635,28 @@ TEST_CASE("reset in write request while timeouted shutdown", "[tcp]") {
 
     test.run();
 }
+
+TEST_CASE("bind excepted error", "[tcp]") {
+    AsyncTest test(1000, {});
+
+    TcpSP server = new Tcp(test.loop);
+    SockAddr sa = SockAddr::Inet4("4.4.4.4", 80);
+    auto ret = server->bind(sa);
+    server->listen(1);
+
+    REQUIRE_FALSE(ret.has_value());
+    REQUIRE(ret.error() == errc::bind_error);
+}
+
+TEST_CASE("listen excepted error", "[tcp]") {
+    AsyncTest test(1000, {});
+
+    TcpSP first_listener = make_server(test.loop);
+
+    TcpSP second_listener = new Tcp(test.loop);;
+    second_listener->bind(first_listener->sockaddr());
+    auto ret = second_listener->listen(1);
+
+    REQUIRE_FALSE(ret.has_value());
+    REQUIRE(ret.error() == errc::listen_error);
+}

@@ -34,11 +34,17 @@ string Stream::buf_alloc (size_t cap) noexcept {
 }
 
 // ===================== CONNECTION ===============================
-void Stream::listen (connection_fn callback, int backlog) {
+excepted<void, ErrorCode> Stream::listen (connection_fn callback, int backlog) {
     invoke_sync(&StreamFilter::listen);
     if (callback) connection_event.add(callback);
-    impl()->listen(backlog);
-    set_listening();
+    auto code = impl()->listen(backlog);
+    panda_debug_v(code);
+    if (code) {
+        return make_unexpected(ErrorCode(errc::listen_error, code));
+    } else {
+        set_listening();
+        return {};
+    }
 }
 
 void Stream::handle_connection (const std::error_code& err) {

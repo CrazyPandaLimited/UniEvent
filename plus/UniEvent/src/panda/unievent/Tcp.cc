@@ -30,14 +30,20 @@ void Tcp::open (sock_t sock, Ownership ownership) {
     }
 }
 
-void Tcp::bind (const net::SockAddr& addr, unsigned flags) {
-    impl()->bind(addr, flags);
+excepted<void, ErrorCode> Tcp::bind (const net::SockAddr& addr, unsigned flags) {
+    auto code = impl()->bind(addr, flags);
+    panda_mlog_debug(uelog, code);
+    if (code) {
+        return make_unexpected(ErrorCode(errc::bind_error, code));
+    } else {
+        return {};
+    }
 }
 
-void Tcp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
+excepted<void, ErrorCode> Tcp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
     if (host == "*") return bind(broadcast_addr(port, hints), flags);
     auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    bind(ai.addr(), flags);
+    return bind(ai.addr(), flags);
 }
 
 StreamSP Tcp::create_connection () {

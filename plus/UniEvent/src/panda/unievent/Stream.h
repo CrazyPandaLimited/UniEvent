@@ -1,4 +1,7 @@
 #pragma once
+
+#include <panda/excepted.h>
+
 #include "Queue.h"
 #include "Timer.h"
 #include "forward.h"
@@ -88,8 +91,9 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     bool   is_shut_down     () const { return flags & SHUT; }
     size_t write_queue_size () const { return _wq_size + impl()->write_queue_size(); }
 
-    void         listen   (int backlog) { listen(nullptr, backlog); }
-    virtual void listen   (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
+    excepted<void, ErrorCode>         listen (int backlog) { return listen(nullptr, backlog); }
+    virtual excepted<void, ErrorCode> listen (connection_fn callback = nullptr, int backlog = DEFAULT_BACKLOG);
+
     virtual void write    (const WriteRequestSP&);
     /*INL*/ void write    (const string& buf, write_fn callback = nullptr);
     template <class It>

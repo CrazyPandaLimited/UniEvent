@@ -14,10 +14,10 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         uvx_strict(uv_tcp_open(&uvh, sock));
     }
 
-    void bind (const net::SockAddr& addr, unsigned flags) override {
+    std::error_code bind (const net::SockAddr& addr, unsigned flags) override {
         unsigned uv_flags = 0;
         if (flags & Flags::IPV6ONLY) uv_flags |= UV_TCP_IPV6ONLY;
-        uvx_strict(uv_tcp_bind(&uvh, addr.get(), uv_flags));
+        return uvx_ce(uv_tcp_bind(&uvh, addr.get(), uv_flags));
     }
 
     virtual std::error_code connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {

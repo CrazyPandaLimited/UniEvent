@@ -15,6 +15,8 @@ std::string ErrorCategory::message (int condition) const throw() {
         case errc::unknown_error                            : return "unknown error";
         case errc::read_start_error                         : return "read start error";
         case errc::ssl_error                                : return "ssl error";
+        case errc::bind_error                               : return "bind error";
+        case errc::listen_error                             : return "listen error";
 
 
 

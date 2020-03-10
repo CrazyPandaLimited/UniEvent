@@ -29,7 +29,7 @@ struct StreamImpl : HandleImpl {
 
     string buf_alloc (size_t size) noexcept { return HandleImpl::buf_alloc(size, listener); }
 
-    virtual void            listen     (int backlog) = 0;
+    virtual std::error_code listen     (int backlog) = 0;
     virtual std::error_code accept     (StreamImpl* client) = 0;
     virtual std::error_code read_start () = 0;
     virtual void            read_stop  () = 0;

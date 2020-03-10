@@ -11,8 +11,8 @@ struct TcpImpl : StreamImpl {
     TcpImpl (LoopImpl* loop, IStreamImplListener* lst) : StreamImpl(loop, lst) {}
 
     virtual void open (sock_t) = 0;
-    virtual void bind (const net::SockAddr&, unsigned flags) = 0;
 
+    virtual std::error_code bind (const net::SockAddr&, unsigned flags) = 0;
     virtual std::error_code connect (const net::SockAddr&, ConnectRequestImpl*) = 0;
 
     virtual net::SockAddr sockaddr () const = 0;

@@ -13,6 +13,8 @@ using panda::ErrorCode;
 enum class errc {
     unknown_error = 1,
     read_start_error,
+    bind_error,
+    listen_error,
     ssl_error,
     resolve_error,
     // i dunno if we need errors below

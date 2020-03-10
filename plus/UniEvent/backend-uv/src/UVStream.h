@@ -25,8 +25,8 @@ struct UVStream : UVHandle<Base, UvReq> {
     WriteRequestImpl*    new_write_request    (IRequestListener* l) override { return new UVWriteRequest(this, l); }
     ShutdownRequestImpl* new_shutdown_request (IRequestListener* l) override { return new UVShutdownRequest(this, l); }
 
-    void listen (int backlog) override {
-        uvx_strict(uv_listen(uvsp(), backlog, on_connection));
+    std::error_code listen (int backlog) override {
+        return uvx_ce(uv_listen(uvsp(), backlog, on_connection));
     }
 
     std::error_code accept (StreamImpl* _client) override {
