@@ -32,8 +32,8 @@ void Tcp::open (sock_t sock, Ownership ownership) {
 
 excepted<void, ErrorCode> Tcp::bind (const net::SockAddr& addr, unsigned flags) {
     auto code = impl()->bind(addr, flags);
-    panda_mlog_debug(uelog, code);
     if (code) {
+        panda_mlog_info(uelog, "Tcp::bind error:" << code);
         return make_unexpected(ErrorCode(errc::bind_error, code));
     } else {
         return {};

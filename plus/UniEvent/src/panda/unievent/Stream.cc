@@ -35,11 +35,12 @@ string Stream::buf_alloc (size_t cap) noexcept {
 
 // ===================== CONNECTION ===============================
 excepted<void, ErrorCode> Stream::listen (connection_fn callback, int backlog) {
+    panda_log_info("Stream::listen, backlog " << backlog);
     invoke_sync(&StreamFilter::listen);
     if (callback) connection_event.add(callback);
     auto code = impl()->listen(backlog);
-    panda_debug_v(code);
     if (code) {
+        panda_log_info("Stream::listen error:" << code);
         return make_unexpected(ErrorCode(errc::listen_error, code));
     } else {
         set_listening();
