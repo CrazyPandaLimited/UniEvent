@@ -55,6 +55,7 @@ SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& serve
 {
     _ECTOR();
     if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
+    SSL_CTX_set_options(context, SSL_OP_NO_RENEGOTIATION);
     init(context);
 }
 
