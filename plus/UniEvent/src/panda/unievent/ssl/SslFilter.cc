@@ -55,7 +55,9 @@ SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& serve
 {
     _ECTOR();
     if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
-    SSL_CTX_set_options(context, SSL_OP_NO_RENEGOTIATION);
+    #if OPENSSL_VERSION_NUMBER > 0x1010008fL // 1.1.0h
+        SSL_CTX_set_options(context, SSL_OP_NO_RENEGOTIATION);
+    #endif
     init(context);
 }
 
@@ -196,23 +198,6 @@ int SslFilter::negotiate () {
     return 0;
 }
 
-//// renegotiate DOES NOT WORK - SSL_is_init_finshed returns true, SSL_renegotiate_pending becomes false after first SSL_do_handshake
-//void SslFilter::renegotiate () {
-//    printf("SslFilter::renegotiate\n");
-//    if (!SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl) || !handle->connected()) throw StreamError(ERRNO_EINVAL);
-//    SSL_set_verify(ssl, SSL_VERIFY_PEER, nullptr);
-//    printf("SSL_get_secure_renegotiation_support=%li\n", SSL_get_secure_renegotiation_support(ssl));
-//    int ssl_state = SSL_renegotiate(ssl);
-//    printf("SslFilter::renegotiate: renego pending %d\n", SSL_renegotiate_pending(ssl));
-//    if (ssl_state <= 0) {
-//        int code = SSL_get_error(ssl, ssl_state);
-//        throw SSLError(code);
-//    }
-//    handle->connected(false);
-//    handle->connecting(true);
-//    negotiate();
-//}
-
 void SslFilter::negotiation_finished (const ErrorCode& err) {
     _ESSL("connecting: %d err=%s", (int)handle->connecting(), err.what().c_str());
 
@@ -243,7 +228,7 @@ void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
 
     assert(handle->connecting() || handle->connected());
 
-    bool connecting = !SSL_is_init_finished(ssl) || SSL_renegotiate_pending(ssl);
+    bool connecting = !SSL_is_init_finished(ssl);
     panda_log_debug("connecting " << connecting << ", err " << err << ", ssl_init_finished" << SSL_is_init_finished(ssl) << ", renegotiate " << SSL_renegotiate_pending(ssl));
 
     if (err) {
@@ -291,8 +276,9 @@ void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
 
     if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) return;
 
-    if (ssl_code == SSL_ERROR_WANT_WRITE) { // renegotiation
+    if (ssl_code == SSL_ERROR_WANT_WRITE) { // not sure it is posssible with forbidden renegotiation, docs say that "As at any time it's possible that non-application data needs to be sent, a read function can also cause write operations"
         string wbuf = SslBio::steal_buf(write_bio);
+        panda_log_warn("SSL_ERROR_WANT_WRITE on_read when renegotiation is blocked. This warning means that SSL_ERROR_WANT_WRITE is normal case, just remove this warning from code");
         _ESSL("write %lu", wbuf.length());
         WriteRequestSP req = new SslWriteRequest();
         req->bufs.push_back(wbuf);
@@ -315,7 +301,6 @@ void SslFilter::write (const WriteRequestSP& req) {
         if (req->bufs[i].length() == 0) continue;
         int res = SSL_write(ssl, req->bufs[i].data(), req->bufs[i].length());
         if (res <= 0) {
-            // TODO: handle renegotiation status
             _ESSL("ssl failed");
             auto error = make_ssl_error_code(SSL_ERROR_SSL);
             req->delay([weak_req=req.get(), error, this]{ NextFilter::handle_write(nest_ssl_error(error), weak_req); });
