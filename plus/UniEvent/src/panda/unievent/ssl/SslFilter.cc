@@ -9,6 +9,10 @@
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 
+#ifdef SSL_OP_NO_RENEGOTIATION
+    #define RENEGOTIATION_DISABLED 1
+#endif
+
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
 namespace panda { namespace unievent { namespace ssl {
@@ -55,7 +59,7 @@ SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& serve
 {
     _ECTOR();
     if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
-    #if OPENSSL_VERSION_NUMBER > 0x1010008fL // 1.1.0h
+    #ifdef RENEGOTIATION_DISABLED
         SSL_CTX_set_options(context, SSL_OP_NO_RENEGOTIATION);
     #endif
     init(context);
@@ -278,7 +282,9 @@ void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
 
     if (ssl_code == SSL_ERROR_WANT_WRITE) { // not sure it is posssible with forbidden renegotiation, docs say that "As at any time it's possible that non-application data needs to be sent, a read function can also cause write operations"
         string wbuf = SslBio::steal_buf(write_bio);
-        panda_log_warn("SSL_ERROR_WANT_WRITE on_read when renegotiation is blocked. This warning means that SSL_ERROR_WANT_WRITE is normal case, just remove this warning from code");
+        #ifdef RENEGOTIATION_DISABLED
+            panda_log_warn("SSL_ERROR_WANT_WRITE on_read when renegotiation is blocked. This warning means that SSL_ERROR_WANT_WRITE is normal case, just remove this warning from code");
+        #endif
         _ESSL("write %lu", wbuf.length());
         WriteRequestSP req = new SslWriteRequest();
         req->bufs.push_back(wbuf);
