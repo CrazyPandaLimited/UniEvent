@@ -44,31 +44,32 @@ struct Queue {
         req->finish_exec();
         requests.pop_front();
 
-        if (req->async) { // we can call user callback right now
-            auto call = [&]() {
-                ++locked; // lock, so if f() add anything it won't get executed
-                scope_guard([&] {
-                    f();
-                }, [&] {
-                    --locked;
-                    ++resume_recursion;
-                    resume(); // execute what has been added
-                    --resume_recursion;
-                });
-            };
-            if (resume_recursion > 1000) {
-                req->delay(call);
-            } else {
-                call();
-            }
+        auto delay_fn = [=]{
+            auto req = finalized_requests.front();
+            assert(req == check);
+            finalized_requests.pop_front();
+            f();
+        };
+
+        if (resume_recursion > 1000) {
+            finalized_requests.push_back(req);
+            req->delay([=] {
+                delay_fn();
+                resume();
+            });
+        } else if (req->async) { // we can call user callback right now
+            ++locked; // lock, so if f() add anything it won't get executed
+            scope_guard([&] {
+                f();
+            }, [&] {
+                --locked;
+                ++resume_recursion;
+                resume(); // execute what has been added
+                --resume_recursion;
+            });
         } else { // we must delay user callback
             finalized_requests.push_back(req);
-            req->delay([=]{
-                auto req = finalized_requests.front();
-                assert(req == check);
-                finalized_requests.pop_front();
-                f();
-            });
+            req->delay(delay_fn);
         }
     }
 

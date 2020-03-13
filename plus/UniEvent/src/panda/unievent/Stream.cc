@@ -205,7 +205,7 @@ void Stream::finalize_write (const WriteRequestSP& req) {
 }
 
 void WriteRequest::handle_event (const ErrorCode& err) {
-    panda_log_debug("WriteRequest::handle_event " << this);
+    panda_log_debug("WriteRequest::handle_event " << this << ", err" << err);
     if (err == std::errc::broken_pipe) handle->clear_out_connected();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);

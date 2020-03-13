@@ -58,9 +58,11 @@ static int bio_write (BIO* bio, const char* in, int _inl) {
 static int bio_read (BIO* bio, char* out, int _outl) {
     int outl = _outl;
     membuf_t* b = (membuf_t*)BIO_get_data(bio);
+    BIO_clear_retry_flags(bio);
+    string& buf = b->buf;
 
     panda_log_debug("bio_read " << bio << " len=" << outl << ", have=" << b->buf.length());
-    if(outl == 5) panda_elog_m(uelog, log::VerboseDebug, {
+    if(outl == 5 && buf.length() >= 5) panda_elog_m(ssllog, log::VerboseDebug, {
         log << "buf: ";
         std::ios_base::fmtflags saveflags = log.flags();
         for(int i = 0; i < 5; ++i) {
@@ -69,8 +71,6 @@ static int bio_read (BIO* bio, char* out, int _outl) {
         log.flags(saveflags);
     });
 
-    BIO_clear_retry_flags(bio);
-    string& buf = b->buf;
     if (int(buf.length()) < outl) outl = buf.length();
     if (outl > 0) {
         panda_log_verbose_debug("outl > 0 : " << outl);
