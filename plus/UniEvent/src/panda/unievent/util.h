@@ -77,6 +77,16 @@ std::error_code sys_code_error      (int syserr);
 std::error_code last_sys_code_error ();
 std::error_code uvx_code_error      (int uverr);
 
+struct Wsl {
+    enum Version {
+        NOT = 0,
+        _1,
+        _2
+    };
+};
+
+Wsl::Version is_wsl();
+
 //inline bool inet_looks_like_ipv6 (const char* src) {
 //    while (*src) if (*src++ == ':') return true;
 //    return false;

@@ -649,6 +649,11 @@ TEST_CASE("bind excepted error", "[tcp]") {
 }
 
 TEST_CASE("listen excepted error", "[tcp]") {
+    if (is_wsl() == Wsl::_1) {
+        //on WSL 1 double of one port does not lead to error
+        SUCCEED("skipped for WSL 1");
+        return;
+    }
     AsyncTest test(1000, {});
 
     TcpSP first_listener = make_server(test.loop);

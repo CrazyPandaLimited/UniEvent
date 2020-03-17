@@ -15,6 +15,10 @@
     #include "util_unix.icc"
 #endif
 
+#ifdef __unix__
+    #include <sys/utsname.h>
+#endif
+
 using panda::net::SockAddr;
 
 namespace panda { namespace unievent {
@@ -255,5 +259,20 @@ std::error_code uvx_code_error (int uverr) {
 
 std::ostream& operator<< (std::ostream& os, const TimeVal&  v) { return os << v.get(); }
 std::ostream& operator<< (std::ostream& os, const TimeSpec& v) { return os << v.get(); }
+
+Wsl::Version is_wsl() {
+#ifdef __unix__
+    utsname buf;
+    memset(&buf, 0, sizeof buf);
+    int ret = uname(&buf);
+    if (ret == 0) {
+        if (strstr(buf.release, "Microsoft"))
+            return Wsl::_1;
+        else if (strstr(buf.release, "microsoft"))
+            return Wsl::_2;
+    }
+#endif
+    return Wsl::NOT;
+}
 
 }}
