@@ -18,12 +18,12 @@
 namespace panda { namespace unievent { namespace ssl {
 
 log::Module ssllog("UniEvent::SSL", log::Warning);
-static log::Module* panda_log_module = &ssllog;
+static auto& panda_log_module = ssllog;
 
 #define _ESSL(fmt, ...) do { \
     char _log_buf_[1000]; \
     int _log_size_ = snprintf(_log_buf_, 1000, "%s(): [%s] {%p} " fmt "\n", __func__, profile == Profile::CLIENT ? "client" : (profile == Profile::SERVER ? "server" : "no profile"), this->handle, ##__VA_ARGS__); \
-    panda_mlog_debug(ssllog, string_view(_log_buf_, _log_size_)); \
+    panda_log_debug(string_view(_log_buf_, _log_size_)); \
 } while(0)
 
 const void* SslFilter::TYPE = &typeid(SslFilter);
