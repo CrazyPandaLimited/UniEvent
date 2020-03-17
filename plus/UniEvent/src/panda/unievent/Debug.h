@@ -6,5 +6,5 @@ namespace panda { namespace unievent {
     panda::log::Module& uelog_init();
 }}
 
-#define _ECTOR() do { panda_mlog_verbose_debug(uelog, __func__ << " [ctor]" ) } while(0)
-#define _EDTOR() do { panda_mlog_verbose_debug(uelog, __func__ << " [dtor]" ) } while(0)
+#define _ECTOR() do { panda_mlog_verbose_debug(uelog, __func__ << " [ctor]" ); } while(0)
+#define _EDTOR() do { panda_mlog_verbose_debug(uelog, __func__ << " [dtor]" ); } while(0)

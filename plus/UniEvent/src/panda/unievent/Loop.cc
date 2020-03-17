@@ -14,7 +14,7 @@ namespace panda { namespace unievent {
 
 log::Module& uelog = uelog_init(); // declaration is in Debug.h
 log::Module& uelog_init() {
-    static log::Module inst("UniEvent", log::Info);
+    static log::Module inst("UniEvent", log::Warning);
     return inst;
 }
 
