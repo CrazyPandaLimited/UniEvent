@@ -13,8 +13,10 @@ net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& = {});
 
 void setsockopt (sock_t sock, int level, int optname, const void* optval, int optlen);
 
-fd_t   file_dup (fd_t fd);
-sock_t sock_dup (sock_t);
+fd_t   file_dup  (fd_t);
+sock_t sock_dup  (sock_t);
+sock_t fd2sock   (fd_t);
+bool   is_socket (fd_t);
 
 int           getpid           ();
 int           getppid          ();

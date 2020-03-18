@@ -20,6 +20,17 @@ my %used_mtimes;
 init();
 
 sub init {
+    if ($ENV{LOGGER}) {
+        require Panda::Lib::Logger;
+        Panda::Lib::Logger::set_native_logger(sub {
+            my ($level, $code, $msg) = @_;
+            say "$level $code $msg";
+        });
+        Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_VERBOSE_DEBUG(), "UniEvent");
+        Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_DEBUG(), "UniEvent::Backend");
+        Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_INFO(), "UniEvent::SSL");
+    }    
+    
     # for file tests
     UniEvent::Fs::remove_all($rdir) if -d $rdir;
     UniEvent::Fs::mkpath($rdir);

@@ -39,6 +39,10 @@ net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& hints) {
     else                          return SockAddr::Inet4(SockAddr::Inet4::addr_any, port);
 }
 
+bool is_socket (fd_t fd) {
+    return Fs::stat(fd).value().type() == Fs::FileType::SOCKET;
+}
+
 int getpid  () { return uv_os_getpid(); }
 int getppid () { return uv_os_getppid(); }
 

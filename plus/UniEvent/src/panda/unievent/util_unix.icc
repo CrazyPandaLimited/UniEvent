@@ -6,6 +6,10 @@ void setsockopt (sock_t sock, int level, int optname, const void* optval, int op
     if (::setsockopt(sock, level, optname, optval, (socklen_t)optlen)) throw last_sys_code_error();
 }
 
+sock_t fd2sock (fd_t fd) {
+    return fd;
+}
+
 std::error_code sys_code_error (int syserr) {
     // that appears to be a bug in gcc (well, in libstdc++); per 1.9.5.1p4 it should map POSIX error codes to generic_category
     return std::error_code(syserr, std::generic_category());

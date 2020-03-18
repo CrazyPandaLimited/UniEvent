@@ -9,18 +9,14 @@ void setsockopt (sock_t sock, int level, int optname, const void* optval, int op
     if (::setsockopt(sock, level, optname, (const char*)optval, optlen)) throw last_sys_code_error();
 }
 
-std::error_code sys_code_error (int syserr) {
-    return std::error_code(syserr, std::system_category());
-}
-
-std::error_code last_sys_code_error () {
-    return sys_code_error(WSAGetLastError());
+static inline HANDLE fd2handle (fd_t fd) {
+    HANDLE h = (HANDLE)_get_osfhandle(fd);
+    if (h == INVALID_HANDLE_VALUE) throw last_sys_code_error();
+    return h;
 }
 
 fd_t file_dup (fd_t src) {
-    HANDLE h = (HANDLE)_get_osfhandle(src);
-    if (h == INVALID_HANDLE_VALUE) throw last_sys_code_error();
-    
+    HANDLE h = fd2handle(src);
     HANDLE proc = GetCurrentProcess();
     HANDLE dup_h;
     
@@ -54,5 +50,19 @@ sock_t sock_dup (sock_t sock) {
     
     return new_sock;
 }
+
+sock_t fd2sock (fd_t fd) {
+    return (sock_t)fd2handle(fd);
+}
+
+std::error_code sys_code_error (int syserr) {
+    return std::error_code(syserr, std::system_category());
+}
+
+std::error_code last_sys_code_error () {
+    return sys_code_error(WSAGetLastError());
+}
+
+
 
 }}
