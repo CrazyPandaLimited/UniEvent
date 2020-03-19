@@ -163,7 +163,8 @@ private:
 
     void add_worker ();
 
-    void finish_resolve (const RequestSP&, const AddrInfo&, const std::error_code&);
+    void resolve_localhost (const RequestSP&);
+    void finish_resolve    (const RequestSP&, const AddrInfo&, const std::error_code&);
 
     void handle_timer () override;
 

@@ -26,7 +26,7 @@ sub init {
             my ($level, $code, $msg) = @_;
             say "$level $code $msg";
         });
-        Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_VERBOSE_DEBUG(), "UniEvent");
+        Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_VERBOSE_DEBUG());
         Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_DEBUG(), "UniEvent::Backend");
         Panda::Lib::Logger::set_log_level(Panda::Lib::Logger::LOG_INFO(), "UniEvent::SSL");
     }    
