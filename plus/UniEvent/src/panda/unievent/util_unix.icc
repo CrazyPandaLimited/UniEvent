@@ -19,6 +19,10 @@ std::error_code last_sys_error () {
     return sys_error(errno);
 }
 
+std::error_code last_sys_sock_error () {
+    return last_sys_error();
+}
+
 fd_t file_dup (fd_t src) {
     auto ret = ::dup(src);
     if (ret == -1) throw last_sys_error();
@@ -51,10 +55,10 @@ excepted<void, std::error_code> setsockopt (sock_t sock, int level, int optname,
 }
 
 excepted<void, std::error_code> setblocking (sock_t sock, bool val) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return make_unexpected(last_sys_code_error());
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (flags == -1) return make_unexpected(last_sys_error());
     flags = val ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
-    flags = fcntl(fd, F_SETFL, flags);
+    flags = fcntl(sock, F_SETFL, flags);
     if (flags != 0) return make_unexpected(last_sys_error());
     return {};
 }
