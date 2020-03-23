@@ -3,6 +3,7 @@
 #include "error.h"
 #include "Handle.h"
 #include "AddrInfo.h"
+#include <array>
 #include <vector>
 #include <panda/excepted.h>
 #include <panda/net/sockaddr.h>
