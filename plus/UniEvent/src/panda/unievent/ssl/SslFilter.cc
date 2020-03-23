@@ -224,7 +224,7 @@ void SslFilter::negotiation_finished (const ErrorCode& err) {
 }
 
 void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
-    _ESSL("got %lu bytes, state: %d", encbuf.length(), (int)state);
+    _ESSL("got %zu bytes, state: %d", encbuf.length(), (int)state);
     if (state == State::error) {
         NextFilter::handle_read(encbuf, err);
         return;
@@ -285,7 +285,7 @@ void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
         #ifdef RENEGOTIATION_DISABLED
             panda_log_warn("SSL_ERROR_WANT_WRITE on_read when renegotiation is blocked. This warning means that SSL_ERROR_WANT_WRITE is normal case, just remove this warning from code");
         #endif
-        _ESSL("write %lu", wbuf.length());
+        _ESSL("write %zu", wbuf.length());
         WriteRequestSP req = new SslWriteRequest();
         req->bufs.push_back(wbuf);
         subreq_write(source_request, req);
