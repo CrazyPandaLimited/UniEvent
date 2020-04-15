@@ -319,11 +319,11 @@ void Resolver::finish_resolve (const RequestSP& req, const AddrInfo& addr, const
     }
 
     if (!err && req->_use_cache && cfg.cache_limit) {
-        if (cache.size() >= cfg.cache_limit) {
-            panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " cleaning cache " << cache.size());
-            cache.clear();
+        if (_cache.size() >= cfg.cache_limit) {
+            panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " cleaning cache " << _cache.size());
+            _cache.clear();
         }
-        cache.emplace(CacheKey(req->_node, req->_service, req->_hints), CachedAddress{addr});
+        _cache.emplace(CacheKey(req->_node, req->_service, req->_hints), CachedAddress{addr});
     }
 
     req->queued  = false;
@@ -391,21 +391,26 @@ void Resolver::reset () {
 }
 
 AddrInfo Resolver::find (const string& node, const string& service, const AddrInfoHints& hints) {
-    auto it = cache.find({node, service, hints});
-    if (it != cache.end()) {
+    auto it = _cache.find({node, service, hints});
+    if (it != _cache.end()) {
         panda_log_m(resolver_log_module, log::Level::VerboseDebug, this << " found in cache " << node);
 
         time_t now = time(0);
         if (!it->second.expired(now, cfg.cache_expiration_time)) return it->second.address;
 
         panda_log_m(resolver_log_module, log::Level::VerboseDebug,this << " expired " << node);
-        cache.erase(it);
+        _cache.erase(it);
     }
     return {};
 }
 
-void Resolver::clear_cache () {
-    cache.clear();
+void Resolver::Cache::mark_bad_address (const CacheKey& key, const net::SockAddr& sa) {
+    auto it = find(key);
+    if (it == end()) return;
+    auto& ai = it->second.address;
+    if (ai.addr() != sa) return;
+    if (ai.next()) ai = ai.next();
+    else           ai = ai.first();
 }
 
 Resolver::Request::Request (const ResolverSP& r)
