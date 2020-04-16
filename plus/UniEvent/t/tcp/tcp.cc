@@ -3,30 +3,6 @@
 using std::cout;
 using std::endl;
 
-TEST_CASE("sync connect error", "[tcp][v-ssl][v-buf]") {
-    AsyncTest test(2000, {"error"});
-    net::SockAddr::Inet4 sa("255.255.255.255", 0); // makes underlying backend connect end with error synchronously
-
-    TcpSP client = make_client(test.loop);
-    client->connect_event.add([&](auto&, auto& err, auto&) {
-        REQUIRE(err);
-
-        SECTION("disconnect") {
-            client->disconnect();
-        }
-        SECTION("just go") {}
-    });
-
-    client->connect(sa);
-
-    client->write("123");
-    client->disconnect();
-
-    auto res = test.await(client->write_event, "error");
-    auto err = std::get<1>(res);
-    REQUIRE(err == std::errc::operation_canceled);
-}
-
 TEST_CASE("write without connection", "[tcp][v-ssl]") {
     AsyncTest test(2000, 1);
     TcpSP client = make_client(test.loop);
@@ -482,33 +458,6 @@ TEST_CASE("no on_read after read_stop", "[.][tcp][v-ssl]") {
 
     test.wait(10); //just in case of dangling messages
     variation.ssl = old_ssl;
-}
-
-TEST_CASE("connect with resolv request", "[tcp][v-ssl][v-buf]") {
-    AsyncTest test(3000, {"resolve", "connection"});
-    TcpSP server = make_server(test.loop);
-    net::SockAddr sa = server->sockaddr();
-
-    TcpSP client = make_client(test.loop);
-    Resolver::RequestSP res_req = new Resolver::Request(test.loop->resolver());
-    res_req->on_resolve([&](auto...){
-        test.happens("resolve");
-    });
-    TcpConnectRequestSP con_req = client->connect();
-    SECTION("host in") {
-        res_req->node(sa.ip())->port(sa.port());
-    }
-    SECTION("host overwirite") {
-        con_req->to(sa.ip(), sa.port());
-    }
-    SECTION("host conflict") {
-        auto blackhole = test.get_blackhole_addr();
-        res_req->node(blackhole.ip())->port(blackhole.port());
-        con_req->to(sa.ip(), sa.port());
-    }
-
-    con_req->to(res_req)->run();
-    test.await(server->connection_event, "connection");
 }
 
 TEST_CASE("Stream::write range", "[tcp]") {

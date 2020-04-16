@@ -1,5 +1,6 @@
 #include "Resolver.h"
 #include "Timer.h"
+#include <ostream>
 #include <algorithm>
 #include <functional>
 #include <panda/log.h>
@@ -405,10 +406,20 @@ AddrInfo Resolver::find (const string& node, const string& service, const AddrIn
 }
 
 void Resolver::Cache::mark_bad_address (const CacheKey& key, const net::SockAddr& sa) {
+    panda_log_m(resolver_log_module, log::Level::Info, "request for marking bad address " << sa << " for key " << key);
+
     auto it = find(key);
-    if (it == end()) return;
+    if (it == end()) {
+        panda_log_m(resolver_log_module, log::Level::Info, "key not found " << key);
+        return;
+    }
+
     auto& ai = it->second.address;
-    if (ai.addr() != sa) return;
+    if (ai.addr() != sa) {
+        panda_log_m(resolver_log_module, log::Level::Info, "addr doesn't match " << ai.addr() << " != " << sa);
+        return;
+    }
+
     if (ai.next()) ai = ai.next();
     else           ai = ai.first();
 }
@@ -456,6 +467,11 @@ static std::error_code ares2stderr (int ares_err) {
         case ARES_EADDRGETNETWORKPARAMS : return resolve_errc::no_get_network_params;
         default                         : return errc::unknown_error;
     }
+}
+
+std::ostream& operator<< (std::ostream& os, const Resolver::CacheKey& key) {
+    os << key.node << ":" << (key.service ? key.service : string("0")) << " {" << key.hints << "}";
+    return os;
 }
 
 }}

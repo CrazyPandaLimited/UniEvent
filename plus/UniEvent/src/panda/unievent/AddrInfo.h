@@ -62,6 +62,7 @@ private:
     AddrInfo (const iptr<DataSource>& src, ares_addrinfo* cur) : src(src), cur(cur) {}
 };
 
-std::ostream& operator<< (std::ostream& os, const AddrInfo& ai);
+std::ostream& operator<< (std::ostream&, const AddrInfo&);
+std::ostream& operator<< (std::ostream&, const AddrInfoHints&);
 
 }}

@@ -1,7 +1,60 @@
 #include "../lib/test.h"
 #include <thread>
 
-TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
+#define TEST(name, var) TEST_CASE("tcp-connect: " name, "[tcp-connect]" var)
+
+TEST("sync connect error", "[v-ssl][v-buf]") {
+    AsyncTest test(2000, {"error"});
+    net::SockAddr::Inet4 sa("255.255.255.255", 0); // makes underlying backend connect end with error synchronously
+
+    TcpSP client = make_client(test.loop);
+    client->connect_event.add([&](auto&, auto& err, auto&) {
+        REQUIRE(err);
+
+        SECTION("disconnect") {
+            client->disconnect();
+        }
+        SECTION("just go") {}
+    });
+
+    client->connect(sa);
+
+    client->write("123");
+    client->disconnect();
+
+    auto res = test.await(client->write_event, "error");
+    auto err = std::get<1>(res);
+    REQUIRE(err == std::errc::operation_canceled);
+}
+
+TEST("connect with resolv request", "[v-ssl][v-buf]") {
+    AsyncTest test(3000, {"resolve", "connection"});
+    TcpSP server = make_server(test.loop);
+    net::SockAddr sa = server->sockaddr();
+
+    TcpSP client = make_client(test.loop);
+    Resolver::RequestSP res_req = new Resolver::Request(test.loop->resolver());
+    res_req->on_resolve([&](auto...){
+        test.happens("resolve");
+    });
+    TcpConnectRequestSP con_req = client->connect();
+    SECTION("host in") {
+        res_req->node(sa.ip())->port(sa.port());
+    }
+    SECTION("host overwirite") {
+        con_req->to(sa.ip(), sa.port());
+    }
+    SECTION("host conflict") {
+        auto blackhole = test.get_blackhole_addr();
+        res_req->node(blackhole.ip())->port(blackhole.port());
+        con_req->to(sa.ip(), sa.port());
+    }
+
+    con_req->to(res_req)->run();
+    test.await(server->connection_event, "connection");
+}
+
+TEST("connect to nowhere", "[v-ssl]") {
     AsyncTest test(2000, {"connected", "reset"});
 
     auto sa = test.get_refused_addr();
@@ -39,7 +92,7 @@ TEST_CASE("connect to nowhere", "[tcp-connect-timeout][v-ssl]") {
     test.run();
 }
 
-TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]") {
+TEST("connect timeout with real connection", "[v-ssl]") {
     AsyncTest test(1000, {"connected1", "connected2"});
 
     TcpSP server = make_server(test.loop);
@@ -67,7 +120,7 @@ TEST_CASE("connect timeout with real connection", "[tcp-connect-timeout][v-ssl]"
     REQUIRE(test.await_not(client->connect_event, 20));
 }
 
-TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout][v-ssl]") {
+TEST("connect timeout with real canceled connection", "[v-ssl]") {
     int connected = 0;
     int errors = 0;
     int successes = 0;
@@ -113,7 +166,7 @@ TEST_CASE("connect timeout with real canceled connection", "[tcp-connect-timeout
     // NB some connections could be made nevertheless canceled
 }
 
-TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
+TEST("connect timeout with black hole", "[v-ssl]") {
     AsyncTest test(5000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
@@ -128,7 +181,7 @@ TEST_CASE("connect timeout with black hole", "[tcp-connect-timeout][v-ssl]") {
     test.await(client->connect_event, "connected called");
 }
 
-TEST_CASE("connect timeout clean queue", "[!][tcp-connect-timeout][v-ssl]") {
+TEST("connect timeout clean queue", "[!][v-ssl]") {
     AsyncTest test(2000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
@@ -150,7 +203,7 @@ TEST_CASE("connect timeout clean queue", "[!][tcp-connect-timeout][v-ssl]") {
     REQUIRE(test.await_not(client->write_event, 10));
 }
 
-TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ssl]") {
+TEST("connect timeout with black hole in roll", "[v-ssl]") {
     AsyncTest test(1000, {});
 
     TcpSP client = make_client(test.loop);
@@ -174,7 +227,7 @@ TEST_CASE("connect timeout with black hole in roll", "[tcp-connect-timeout][v-ss
     CHECK(counter == 0);
 }
 
-TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-connect-timeout][v-ssl]") {
+TEST("regression on not cancelled timer in second (sync) connect", "[v-ssl]") {
     AsyncTest test(250, {"not_connected1", "not_connected2"});
     auto sa = test.get_refused_addr();
 
@@ -196,4 +249,36 @@ TEST_CASE("regression on not cancelled timer in second (sync) connect", "[tcp-co
     client->connect(sa, 100);
 
     test.await(client->connect_event, "not_connected2");
+}
+
+TEST("multi-dns round robin on connect error", "[v-ssl]") {
+    AsyncTest test(5000, 0);
+    string host = "google.com";
+    auto resolver = test.loop->resolver();
+
+    AddrInfo list;
+    resolver->resolve()->node(host)->service("81")->hints(Tcp::defhints)->on_resolve([&](auto& ai, auto& err, auto) {
+        REQUIRE_FALSE(err);
+        list = ai;
+    })->run();
+
+    test.run();
+
+    REQUIRE(list);
+    REQUIRE(list.next());
+    REQUIRE(resolver->find(host, "81", Tcp::defhints) == list);
+
+    TcpSP client = make_client(test.loop);
+    net::SockAddr addr;
+    client->connect_event.add([&](auto h, auto& err, auto& req) {
+        auto treq = static_cast<TcpConnectRequest*>(req.get());
+        REQUIRE(err == std::errc::timed_out);
+        REQUIRE(treq->addr == list.addr());
+        h->reset();
+    });
+    client->connect(host, 81, 1);
+
+    test.run();
+
+    REQUIRE(resolver->find(host, "81", Tcp::defhints) == list.next());
 }

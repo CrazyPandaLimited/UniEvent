@@ -16,6 +16,7 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     using Flags   = TcpImpl::Flags;
 
     static const HandleType TYPE;
+    static const AddrInfoHints defhints;
 
     Tcp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC);
 
@@ -53,7 +54,6 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(socket().value(), level, optname, optval, optlen); }
 
-    static AddrInfoHints defhints;
 protected:
     StreamSP create_connection () override;
 

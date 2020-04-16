@@ -9,6 +9,7 @@
 #include <map>
 #include <ctime>
 #include <vector>
+#include <iosfwd>
 #include <ares.h>
 #include <cstdlib>
 #include <unordered_map>
@@ -224,5 +225,7 @@ inline Resolver::RequestSP Resolver::resolve () { return new Request(this); }
 inline Resolver::RequestSP Resolver::resolve (string node, resolve_fn callback, uint64_t timeout) {
     return resolve()->node(node)->on_resolve(callback)->timeout(timeout)->run();
 }
+
+std::ostream& operator<< (std::ostream&, const Resolver::CacheKey&);
 
 }}

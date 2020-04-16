@@ -6,7 +6,7 @@ namespace panda { namespace unievent {
 
 const HandleType Tcp::TYPE("tcp");
 
-AddrInfoHints Tcp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_STREAM, 0, AddrInfoHints::PASSIVE);
+const AddrInfoHints Tcp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_STREAM, 0, AddrInfoHints::PASSIVE);
 
 Tcp::Tcp (const LoopSP& loop, int domain) : domain(domain) {
     _ECTOR();
@@ -90,13 +90,16 @@ void TcpConnectRequest::finalize_connect () {
        ->on_resolve([this](const AddrInfo& res, const std::error_code& res_err, const Resolver::RequestSP) {
            resolve_request = nullptr;
            if (res_err) return cancel(nest_error(errc::resolve_error, res_err));
-           auto err = handle->impl()->connect(res.addr(), impl());
+           addr = res.addr();
+           auto err = handle->impl()->connect(addr, impl());
            if (err) cancel(err);
        });
     resolve_request->run();
 }
 
 void TcpConnectRequest::handle_event (const ErrorCode& err) {
+    if (err && cached) handle->loop()->resolver()->cache().mark_bad_address(Resolver::CacheKey(host, panda::to_string(port), hints), addr);
+
     if (resolve_request) {
         resolve_request->event.remove_all();
         resolve_request->cancel();
