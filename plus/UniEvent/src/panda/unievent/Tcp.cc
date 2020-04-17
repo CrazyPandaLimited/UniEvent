@@ -98,7 +98,9 @@ void TcpConnectRequest::finalize_connect () {
 }
 
 void TcpConnectRequest::handle_event (const ErrorCode& err) {
-    if (err && cached) handle->loop()->resolver()->cache().mark_bad_address(Resolver::CacheKey(host, panda::to_string(port), hints), addr);
+    if (err && err != std::errc::operation_canceled && cached) {
+        handle->loop()->resolver()->cache().mark_bad_address(Resolver::CacheKey(host, panda::to_string(port), hints), addr);
+    }
 
     if (resolve_request) {
         resolve_request->event.remove_all();

@@ -269,7 +269,7 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
     REQUIRE(resolver->find(host, "81", Tcp::defhints) == list);
 
     TcpSP client = make_client(test.loop);
-    net::SockAddr addr;
+
     client->connect_event.add([&](auto h, auto& err, auto& req) {
         auto treq = static_cast<TcpConnectRequest*>(req.get());
         REQUIRE(err == std::errc::timed_out);
