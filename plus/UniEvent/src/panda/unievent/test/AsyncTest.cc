@@ -51,7 +51,11 @@ AsyncTest::AsyncTest (uint64_t timeout, unsigned count, const LoopSP& loop) : As
 }
 
 AsyncTest::~AsyncTest() noexcept(false) {
-    if (!happened_as_expected() && !std::uncaught_exception()) {
+    if (std::uncaught_exception()) {
+        return;
+    }
+    loop->run_nowait();
+    if (!happened_as_expected()) {
         throw Error("Test exits in bad state", *this);
     }
 }
