@@ -20,7 +20,7 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     Tcp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC);
 
-    ~Tcp () { _EDTOR(); }
+    ~Tcp () { panda_log_dtor(); }
 
     const HandleType& type () const override;
 

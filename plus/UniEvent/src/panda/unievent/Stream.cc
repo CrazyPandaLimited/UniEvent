@@ -5,8 +5,6 @@ namespace panda { namespace unievent {
 
 using ssl::SslFilter;
 
-static const auto& panda_log_module = uelog;
-
 #define HOLD_ON(what) StreamSP __hold = what; (void)__hold;
 
 #define INVOKE(h, f, fm, hm, ...) do { \
@@ -22,7 +20,7 @@ static const auto& panda_log_module = uelog;
 } while(0)
 
 Stream::~Stream () {
-    _EDTOR();
+    panda_log_dtor();
 }
 
 string Stream::buf_alloc (size_t cap) noexcept {

@@ -1,7 +1,6 @@
 #pragma once
 #include <uv.h>
 #include <panda/unievent/util.h>
-#include <panda/unievent/Debug.h>
 #include <panda/unievent/error.h>
 #include <panda/unievent/backend/HandleImpl.h>
 

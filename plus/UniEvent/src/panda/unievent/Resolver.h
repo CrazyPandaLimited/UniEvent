@@ -2,7 +2,6 @@
 #include "Loop.h"
 #include "Poll.h"
 #include "Timer.h"
-#include "Debug.h"
 #include "Request.h"
 #include "AddrInfo.h"
 

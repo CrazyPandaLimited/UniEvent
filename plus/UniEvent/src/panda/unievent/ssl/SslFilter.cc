@@ -1,8 +1,6 @@
 #include "SslFilter.h"
 #include "SslBio.h"
-#include "../Debug.h"
 #include "../Stream.h"
-//#include <vector>
 #include <openssl/err.h>
 #include <openssl/dh.h>
 #include <openssl/conf.h>
@@ -16,9 +14,6 @@
 #define PROFILE_STR profile == Profile::CLIENT ? "client" : "server"
 
 namespace panda { namespace unievent { namespace ssl {
-
-log::Module ssllog("UniEvent::SSL", log::Warning);
-static auto& panda_log_module = ssllog;
 
 #define _ESSL(fmt, ...) do { \
     char _log_buf_[1000]; \
@@ -57,7 +52,7 @@ using SslWriteRequestSP = iptr<SslWriteRequest>;
 SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& server_filter)
         : StreamFilter(stream, TYPE, PRIORITY), state(State::initial), profile(Profile::UNKNOWN), server_filter(server_filter)
 {
-    _ECTOR();
+    panda_log_ctor();
     if (stream->listening() && !SSL_CTX_check_private_key(context)) throw Error("SSL certificate&key needed to listen()");
     #ifdef RENEGOTIATION_DISABLED
         SSL_CTX_set_options(context, SSL_OP_NO_RENEGOTIATION);
@@ -70,7 +65,7 @@ SslFilter::SslFilter (Stream* stream, const SSL_METHOD* method) : SslFilter(stre
 }
 
 SslFilter::~SslFilter () {
-    _EDTOR();
+    panda_log_dtor();
     SSL_free(ssl);
 }
 

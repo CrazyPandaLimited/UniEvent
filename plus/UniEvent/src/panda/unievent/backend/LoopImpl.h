@@ -62,6 +62,4 @@ struct LoopImpl {
     virtual ~LoopImpl () {}
 };
 
-extern log::Module uebacklog;
-
 }}}

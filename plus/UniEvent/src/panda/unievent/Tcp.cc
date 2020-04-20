@@ -9,7 +9,7 @@ const HandleType Tcp::TYPE("tcp");
 const AddrInfoHints Tcp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_STREAM, 0, AddrInfoHints::PASSIVE);
 
 Tcp::Tcp (const LoopSP& loop, int domain) : domain(domain) {
-    _ECTOR();
+    panda_log_ctor();
     _init(loop, loop->impl()->new_tcp(this, domain));
 }
 
@@ -33,7 +33,7 @@ void Tcp::open (sock_t sock, Ownership ownership) {
 excepted<void, ErrorCode> Tcp::bind (const net::SockAddr& addr, unsigned flags) {
     auto code = impl()->bind(addr, flags);
     if (code) {
-        panda_mlog_info(uelog, "Tcp::bind error:" << code);
+        panda_log_info("Tcp::bind error:" << code);
         return make_unexpected(ErrorCode(errc::bind_error, code));
     } else {
         return {};
@@ -56,7 +56,7 @@ void Tcp::connect (const TcpConnectRequestSP& req) {
 }
 
 void TcpConnectRequest::exec () {
-    panda_mlog_debug(uelog, "TcpConnectRequest::exec " << this);
+    panda_log_debug("TcpConnectRequest::exec " << this);
     ConnectRequest::exec();
     if (handle->filters().size()) {
         last_filter = handle->filters().front();
@@ -66,7 +66,7 @@ void TcpConnectRequest::exec () {
 }
 
 void TcpConnectRequest::finalize_connect () {
-    panda_mlog_debug(uelog, "TcpConnectRequest::finalize_connect " << this);
+    panda_log_debug("TcpConnectRequest::finalize_connect " << this);
 
     if (addr) {
         auto err = handle->impl()->connect(addr, impl());

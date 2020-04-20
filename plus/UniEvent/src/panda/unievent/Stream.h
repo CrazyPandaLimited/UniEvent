@@ -1,7 +1,4 @@
 #pragma once
-
-#include <panda/excepted.h>
-
 #include "Queue.h"
 #include "Timer.h"
 #include "forward.h"
@@ -9,6 +6,7 @@
 #include "StreamFilter.h"
 #include "BackendHandle.h"
 #include "backend/StreamImpl.h"
+#include <panda/excepted.h>
 
 struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
@@ -159,7 +157,7 @@ protected:
     Queue queue;
 
     Stream () : flags(), _wq_size(), _listener() {
-        _ECTOR();
+        panda_log_ctor();
     }
 
     virtual void accept ();
@@ -291,7 +289,7 @@ protected:
     TimerSP  timer;
 
     ConnectRequest (Stream::connect_fn callback = {}, uint64_t timeout = 0) : timeout(timeout) {
-        _ECTOR();
+        panda_log_ctor();
         if (callback) event.add(callback);
     }
 
@@ -346,7 +344,7 @@ struct ShutdownRequest : StreamRequest {
     CallbackDispatcher<Stream::shutdown_fptr> event;
 
     ShutdownRequest (Stream::shutdown_fn callback = {}, uint64_t timeout = 0) : timeout(timeout) {
-        _ECTOR();
+        panda_log_ctor();
         if (callback) event.add(callback);
     }
 
