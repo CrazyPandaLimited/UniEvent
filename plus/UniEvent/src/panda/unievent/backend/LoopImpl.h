@@ -50,6 +50,8 @@ struct LoopImpl {
     virtual uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) = 0;
     virtual void     cancel_delay (uint64_t id) noexcept = 0;
 
+    virtual void* get() = 0;
+
     template <class Func>
     void ltry (Func&& f) {
         try { f(); }
