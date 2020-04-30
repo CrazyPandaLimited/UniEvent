@@ -170,7 +170,7 @@ Resolver::Resolver (const LoopSP& loop, const Config& cfg) : Resolver(cfg, loop.
 }
 
 Resolver::Resolver (const Config& cfg, Loop* loop) : _loop(loop), cfg(cfg) {
-    panda_mlog_ctor(logmod);
+    panda_log_ctor(logmod);
     add_worker();
     dns_roll_timer = _loop->impl()->new_timer(this);
     dns_roll_timer->set_weak();
@@ -425,10 +425,10 @@ void Resolver::Cache::mark_bad_address (const CacheKey& key, const net::SockAddr
 Resolver::Request::Request (const ResolverSP& r)
     : _resolver(r), _port(0), _use_cache(true), _timeout(DEFAULT_RESOLVE_TIMEOUT), worker(), delayed(), running(), queued()
 {
-    panda_mlog_ctor(logmod);
+    panda_log_ctor(logmod);
 }
 
-Resolver::Request::~Request () { panda_mlog_dtor(logmod); }
+Resolver::Request::~Request () { panda_log_dtor(logmod); }
 
 void Resolver::Request::cancel (const std::error_code& err) {
     panda_log_verbose_debug(logmod, "cancel " << this);
