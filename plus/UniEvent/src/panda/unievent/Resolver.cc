@@ -25,7 +25,7 @@ static bool _init () {
 static const bool __init = _init();
 
 static inline void log_socket (const sock_t& sock) {
-    panda_elog(log::Level::VerboseDebug, logmod, {
+    panda_log_verbose_debug(logmod, [&]{
         net::SockAddr sock_peer;
         net::SockAddr sock_from;
         struct sockaddr_storage sa;

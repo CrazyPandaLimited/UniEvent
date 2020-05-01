@@ -63,7 +63,7 @@ static int bio_read (BIO* bio, char* out, int _outl) {
     string& buf = b->buf;
 
     panda_log_debug("bio_read " << bio << " len=" << outl << ", have=" << b->buf.length());
-    if(outl == 5 && buf.length() >= 5) panda_elog_verbose_debug({
+    if(outl == 5 && buf.length() >= 5) panda_log_verbose_debug([&]{
         log << "buf: ";
         std::ios_base::fmtflags saveflags = log.flags();
         for(int i = 0; i < 5; ++i) {
