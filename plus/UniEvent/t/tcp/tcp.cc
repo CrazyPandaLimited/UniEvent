@@ -613,3 +613,42 @@ TEST_CASE("listen excepted error", "[tcp]") {
     REQUIRE_FALSE(ret.has_value());
     REQUIRE(ret.error() == errc::listen_error);
 }
+
+TEST_CASE("on_connection noclient", "[tcp]") {
+    AsyncTest test(2000, {"conn"});
+    TcpSP server = make_server(test.loop);
+    auto sa = server->sockaddr();
+
+    TcpSP client = make_client(test.loop);
+    client->connect(sa);
+
+    TcpSP server2 = make_server(test.loop);
+    auto sa2 = server2->sockaddr();
+
+    TcpSP client2 = make_client(test.loop);
+    client2->connect(sa2);
+
+    bool done = false;
+    auto on_connection = [&](const TcpSP& self, const TcpSP& oth, const StreamSP& client, const ErrorCode& err) {
+        if (done) {
+            self->reset();
+            test.loop->stop();
+            test.happens("conn");
+            REQUIRE(err);
+            REQUIRE(client == nullptr);
+            return;
+        }
+        auto sock = oth->socket().value();
+        accept(sock, nullptr, nullptr);
+        close(sock);
+        done = true;
+    };
+
+    server->connection_event.add([&](const StreamSP&, const StreamSP& client, const ErrorCode& err) {
+        on_connection(server, server2, client, err);
+    });
+    server2->connection_event.add([&](const StreamSP&, const StreamSP& client, const ErrorCode& err) {
+        on_connection(server2, server, client, err);
+    });
+    test.run();
+}

@@ -87,12 +87,12 @@ void Stream::finalize_handle_connection (const StreamSP& client, const ErrorCode
         auto read_start_err = client->set_connect_result(true);
         if (read_start_err) err = ErrorCode(errc::read_start_error, read_start_err);
     } else {
-        client->set_connect_result(false);
+        if (client) client->set_connect_result(false);
         err = connection_err;
     }
     panda_log_debug("finalize_handle_connection err: " << err << "client: " << client << ", this: " << this);
 
-    if (req) client->queue.done(req, []{});
+    if (req && client) client->queue.done(req, []{});
     StreamSP self = this;
     connection_event(self, client, err);
     if (_listener) _listener->on_connection(self, client, err);
