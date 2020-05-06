@@ -30,8 +30,8 @@ static inline void log_socket (const sock_t& sock) {
         net::SockAddr sock_from;
         struct sockaddr_storage sa;
         socklen_t sa_len = sizeof(sa);
-        if (getpeername(sock, (sockaddr*)&sa, &sa_len) != -1) sock_peer = (sockaddr*)&sa;
-        if (getsockname(sock, (sockaddr*)&sa, &sa_len) != -1) sock_from = (sockaddr*)&sa;
+        if (getpeername(sock, (sockaddr*)&sa, &sa_len) != -1) sock_peer = net::SockAddr((sockaddr*)&sa, sa_len);
+        if (getsockname(sock, (sockaddr*)&sa, &sa_len) != -1) sock_from = net::SockAddr((sockaddr*)&sa, sa_len);
         log << "sock from: " << sock_from << ", to: " << sock_peer;
     });
 }

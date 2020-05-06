@@ -35,7 +35,7 @@ struct AddrInfo {
     int           family    () const { return cur->ai_family; }
     int           socktype  () const { return cur->ai_socktype; }
     int           protocol  () const { return cur->ai_protocol; }
-    net::SockAddr addr      () const { return cur->ai_addr; }
+    net::SockAddr addr      () const { return net::SockAddr(cur->ai_addr, cur->ai_addrlen); }
     string_view   canonname () const { return cur->ai_canonname; }
     AddrInfo      next      () const { return AddrInfo(src, cur->ai_next); }
     AddrInfo      first     () const { return AddrInfo(src, src->ai); }
