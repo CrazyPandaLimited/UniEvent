@@ -273,7 +273,8 @@ void SslFilter::handle_read (string& encbuf, const ErrorCode& err) {
     int ssl_code = SSL_get_error(ssl, ret);
     _ESSL("errno=%d, err=%d", ssl_code, ERR_GET_LIB(ERR_peek_last_error()));
 
-    if (ssl_code == SSL_ERROR_ZERO_RETURN || ssl_code == SSL_ERROR_WANT_READ) return;
+    if (ssl_code == SSL_ERROR_WANT_READ) return;
+    if (ssl_code == SSL_ERROR_ZERO_RETURN) return NextFilter::handle_eof();
 
     if (ssl_code == SSL_ERROR_WANT_WRITE) { // not sure it is posssible with forbidden renegotiation, docs say that "As at any time it's possible that non-application data needs to be sent, a read function can also cause write operations"
         string wbuf = SslBio::steal_buf(write_bio);
