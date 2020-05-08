@@ -632,8 +632,6 @@ TEST_CASE("on_connection noclient", "[tcp]") {
     auto on_connection = [&](const TcpSP& self, const TcpSP& oth, const StreamSP& client, const ErrorCode& err) {
         if (done) {
             self->reset();
-            test.loop->stop();
-            test.happens("conn");
             REQUIRE(err);
             REQUIRE(client == nullptr);
             return;
@@ -642,6 +640,8 @@ TEST_CASE("on_connection noclient", "[tcp]") {
         accept(sock, nullptr, nullptr);
         close(sock);
         done = true;
+        test.loop->stop();
+        test.happens("conn");
     };
 
     server->connection_event.add([&](const StreamSP&, const StreamSP& client, const ErrorCode& err) {
