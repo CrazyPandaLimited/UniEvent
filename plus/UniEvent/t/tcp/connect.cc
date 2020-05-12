@@ -24,7 +24,7 @@ TEST("sync connect error", "[v-ssl][v-buf]") {
 
     auto res = test.await(client->write_event, "error");
     auto err = std::get<1>(res);
-    REQUIRE(err == std::errc::operation_canceled);
+    REQUIRE(err & std::errc::operation_canceled);
 }
 
 TEST("connect with resolv request", "[v-ssl][v-buf]") {
@@ -272,7 +272,7 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
 
     client->connect_event.add([&](auto h, auto& err, auto& req) {
         auto treq = static_cast<TcpConnectRequest*>(req.get());
-        REQUIRE(err == std::errc::timed_out);
+        REQUIRE(err & std::errc::timed_out);
         REQUIRE(treq->addr == list.addr());
         h->reset();
     });

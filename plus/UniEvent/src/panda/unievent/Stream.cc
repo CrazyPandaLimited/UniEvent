@@ -204,7 +204,7 @@ void Stream::finalize_write (const WriteRequestSP& req) {
 
 void WriteRequest::handle_event (const ErrorCode& err) {
     panda_log_debug("WriteRequest::handle_event " << this << ", err" << err);
-    if (err == std::errc::broken_pipe) handle->clear_out_connected();
+    if (err & std::errc::broken_pipe) handle->clear_out_connected();
     HOLD_ON(handle);
     INVOKE(handle, last_filter, handle_write, finalize_handle_write, err, this);
 }
@@ -288,7 +288,7 @@ void ShutdownRequest::handle_event (const ErrorCode& err) {
 void ShutdownRequest::notify (const ErrorCode& err) { handle->notify_on_shutdown(err, this); }
 
 void ShutdownRequest::cancel (const ErrorCode& err) {
-    if (timed_out && err == std::errc::operation_canceled) {
+    if (timed_out && err & std::errc::operation_canceled) {
         timed_out = false;
         StreamRequest::cancel(make_error_code(std::errc::timed_out));
     }

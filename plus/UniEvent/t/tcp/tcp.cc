@@ -8,7 +8,7 @@ TEST_CASE("write without connection", "[tcp][v-ssl]") {
     TcpSP client = make_client(test.loop);
     client->write("1");
     client->write_event.add([&](auto, auto& err, auto) {
-        REQUIRE(err == std::errc::not_connected);
+        REQUIRE(err & std::errc::not_connected);
         test.happens();
     });
     test.run();
@@ -29,7 +29,7 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
         client->write("2");
         client->write_event.add([&](auto, auto& err, auto) {
             WARN(err);
-            REQUIRE(err == std::errc::not_connected);
+            REQUIRE(err & std::errc::not_connected);
             test.happens("error");
             test.loop->stop();
         });
@@ -37,7 +37,7 @@ TEST_CASE("write to closed socket", "[tcp][v-ssl][v-buf]") {
     SECTION ("shutdown") {
         client->shutdown();
         client->shutdown_event.add([&](auto, auto& err, auto) {
-            REQUIRE(err == std::errc::not_connected);
+            REQUIRE(err & std::errc::not_connected);
             test.happens("error");
             test.loop->stop();
         });
@@ -112,7 +112,7 @@ TEST_CASE("immediate client reset", "[tcp][v-ssl]") {
     client->connect(sa);
 
     client->connect_event.add([&](auto, auto& err, auto) {
-        CHECK(err == std::errc::operation_canceled);
+        CHECK(err & std::errc::operation_canceled);
         test.happens("error");
     });
 
@@ -136,7 +136,7 @@ TEST_CASE("immediate client write reset", "[tcp][v-ssl][v-buf]") {
     client->write("123");
     client->write_event.add([&](auto, auto& err, auto) {
         test.happens("w");
-        CHECK(err == std::errc::operation_canceled);
+        CHECK(err & std::errc::operation_canceled);
     });
 
     test.loop->run();
@@ -548,7 +548,7 @@ TEST_CASE("shutdown timeout", "[tcp]") {
     for (int i = 0; i < 1000; ++i) p.client->write(str);
     p.client->shutdown(1, [&](auto, auto& err, auto) {
         test.happens("shutdown");
-        CHECK(err == std::errc::timed_out);
+        CHECK(err & std::errc::timed_out);
     });
 
     p.client->run_in_order([&](auto) {
@@ -577,7 +577,7 @@ TEST_CASE("reset in write request while timeouted shutdown", "[tcp]") {
     });
     p.client->shutdown(1, [&](auto, auto& err, auto) {
         test.happens("shutdown");
-        CHECK(err == std::errc::timed_out);
+        CHECK(err & std::errc::timed_out);
         test.loop->stop();
     });
 
@@ -593,7 +593,7 @@ TEST_CASE("bind excepted error", "[tcp]") {
     server->listen(1);
 
     REQUIRE_FALSE(ret.has_value());
-    REQUIRE(ret.error() == errc::bind_error);
+    REQUIRE(ret.error() & errc::bind_error);
 }
 
 TEST_CASE("listen excepted error", "[tcp]") {
@@ -611,7 +611,7 @@ TEST_CASE("listen excepted error", "[tcp]") {
     auto ret = second_listener->listen(1);
 
     REQUIRE_FALSE(ret.has_value());
-    REQUIRE(ret.error() == errc::listen_error);
+    REQUIRE(ret.error() & errc::listen_error);
 }
 
 TEST_CASE("on_connection noclient", "[tcp]") {
