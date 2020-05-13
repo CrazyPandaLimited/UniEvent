@@ -276,7 +276,7 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
         REQUIRE(treq->addr == list.addr());
         h->reset();
     });
-    client->connect(host, 81, 1);
+    client->connect(host, 81, 10);
 
     test.run();
 
