@@ -19,7 +19,7 @@ namespace {
         Resolver::resolve_fn  canceled_cb;
         Resolver::resolve_fn  noop_cb = [](auto...) {};
 
-        Vars (int expected_cnt) : test(2000, expected_cnt) {
+        Vars (unsigned expected_cnt) : test(2000, expected_cnt) {
             ccnt = dcnt = 0;
 
             resolver = new Resolver(test.loop);
@@ -333,7 +333,7 @@ TEST("hold loop while active request (for loop resolver)") {
 }
 
 TEST("many requests") {
-    auto cnt = 50;
+    unsigned cnt = 50;
     Vars v(cnt);
     string node;
     SECTION("local") {
@@ -346,7 +346,7 @@ TEST("many requests") {
         SECTION("cached")     {}
         SECTION("not cached") { v.resolver->cache_limit(0); }
     }
-    for (int i = 0; i < cnt; ++i) v.resolver->resolve(node, v.success_cb);
+    for (size_t i = 0; i < cnt; ++i) v.resolver->resolve(node, v.success_cb);
     v.test.run();
     CHECK(v.res.size() == cnt);
 }
