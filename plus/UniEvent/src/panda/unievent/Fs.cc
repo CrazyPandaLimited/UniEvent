@@ -160,8 +160,12 @@ ex<void> Fs::mkpath (string_view path, int mode) {
     // root folder ('/') or drives ('C:\') always exist
     while (pos < len) {
         find_part();
-        auto ret = mkdir(path.substr(0, pos), mode);
-        if (!ret && ret.error() != std::errc::file_exists) return ret;
+        auto curpath = path.substr(0, pos);
+        auto ret = mkdir(curpath, mode);
+        if (!ret) {
+            if (ret.error() != std::errc::file_exists) return ret;
+            else if (!isdir(curpath)) return make_unexpected(make_error_code(std::errc::not_a_directory));
+        }
         skip_slash();
     }
 
