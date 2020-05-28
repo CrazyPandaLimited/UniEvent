@@ -5,12 +5,12 @@
 #include "Request.h"
 #include "StreamFilter.h"
 #include "BackendHandle.h"
+#include "SslContext.h"
 #include "backend/StreamImpl.h"
 #include <panda/excepted.h>
 
-struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
-struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
 struct ssl_st;        typedef ssl_st SSL;
+struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 
 namespace panda { namespace unievent {
 
@@ -120,7 +120,7 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
     void reset () override;
     void clear () override;
 
-    void use_ssl (SSL_CTX* context);
+    void use_ssl (const SslContext& context);
     void use_ssl (const SSL_METHOD* method = nullptr);
     void no_ssl  ();
 

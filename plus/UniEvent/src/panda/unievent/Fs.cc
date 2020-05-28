@@ -185,7 +185,7 @@ ex<Fs::DirEntries> Fs::scandir (string_view path) {
             while (uv_fs_scandir_next(&uvr, &uvent) == 0) ret.emplace(ret.cend(), string(uvent.name), uvx_ftype(uvent.type));
         }
     });
-    return std::move(ret);
+    return ret;
 }
 
 static inline ex<void> _rmtree (string_view path) {

@@ -33,11 +33,11 @@ static bool init_openssl_lib () {
 }
 static const bool _init = init_openssl_lib();
 
-static inline SSL_CTX* ssl_ctx_from_method (const SSL_METHOD* method) {
+static inline SslContext ssl_ctx_from_method (const SSL_METHOD* method) {
     if (!method) method = SSLv23_client_method();
     auto context = SSL_CTX_new(method);
     if (!context) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
-    return context;
+    return SslContext::attach(context);
 }
 
 static inline ErrorCode nest_ssl_error (const ErrorCode& err) { return err ? nest_error(errc::ssl_error, err) : err; }
@@ -49,7 +49,7 @@ struct SslWriteRequest : WriteRequest {
 };
 using SslWriteRequestSP = iptr<SslWriteRequest>;
 
-SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& server_filter)
+SslFilter::SslFilter (Stream* stream, const SslContext &context, const SslFilterSP& server_filter)
         : StreamFilter(stream, TYPE, PRIORITY), state(State::initial), profile(Profile::UNKNOWN), server_filter(server_filter)
 {
     panda_log_ctor();
@@ -61,7 +61,6 @@ SslFilter::SslFilter (Stream* stream, SSL_CTX* context, const SslFilterSP& serve
 }
 
 SslFilter::SslFilter (Stream* stream, const SSL_METHOD* method) : SslFilter(stream, ssl_ctx_from_method(method)) {
-    SSL_CTX_free(SSL_get_SSL_CTX(ssl)); // it is refcounted, release ctx created from ssl_ctx_from_method
 }
 
 SslFilter::~SslFilter () {
@@ -69,9 +68,9 @@ SslFilter::~SslFilter () {
     SSL_free(ssl);
 }
 
-void SslFilter::init (SSL_CTX* context) {
-    ssl = SSL_new(context);
-    if (!ssl) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
+void SslFilter::init (const SslContext& context) {
+    auto raw_ssl = SSL_new(context);
+    if (!raw_ssl) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
 
     read_bio = BIO_new(SslBio::method());
     if (!read_bio) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
@@ -81,7 +80,8 @@ void SslFilter::init (SSL_CTX* context) {
 
     SslBio::set_handle(read_bio, handle);
     SslBio::set_handle(write_bio, handle);
-    SSL_set_bio(ssl, read_bio, write_bio);
+    SSL_set_bio(raw_ssl, read_bio, write_bio);
+    ssl = raw_ssl;
 }
 
 void SslFilter::listen () {
@@ -100,7 +100,7 @@ void SslFilter::reset () {
     state = State::initial;
 
     // hard reset
-    SSL* oldssl = ssl;
+    auto oldssl = ssl;
     init(SSL_get_SSL_CTX(oldssl));
     SSL_free(oldssl);
     //// soft reset - openssl docs say it should work, but IT DOES NOT WORK!

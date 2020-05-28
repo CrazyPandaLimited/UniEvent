@@ -396,12 +396,12 @@ StreamFilterSP Stream::get_filter (const void* type) const {
     return {};
 }
 
-void Stream::use_ssl (SSL_CTX* context)         { add_filter(new SslFilter(this, context)); }
-void Stream::use_ssl (const SSL_METHOD* method) { add_filter(new SslFilter(this, method)); }
+void Stream::use_ssl (const SslContext &context)  { add_filter(new SslFilter(this, context)); }
+void Stream::use_ssl (const SSL_METHOD* method)   { add_filter(new SslFilter(this, method)); }
 
 bool Stream::is_secure () const { return get_filter(SslFilter::TYPE); }
 
-SSL* Stream::get_ssl () const {
+SSL* Stream::get_ssl() const {
     auto filter = get_filter<SslFilter>();
     return filter ? filter->get_ssl() : nullptr;
 }
