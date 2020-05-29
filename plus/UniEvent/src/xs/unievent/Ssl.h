@@ -10,25 +10,28 @@ extern "C" {
 namespace xs {
 
 template<>
-struct Typemap<SSL_CTX*> : TypemapObject<SSL_CTX*, SSL_CTX*, ObjectTypePtr, ObjectStorageIV> {};
+struct Typemap<SSL_CTX*>: TypemapBase<SSL_CTX*> {
+    static SSL_CTX* in(SV* arg) {
+        if (!SvOK(arg)) return nullptr;
+        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
+    }
+    static Sv out (const SSL_CTX* ctx, const Sv&) {
+        if (!ctx) return Simple::undef;
+        return Simple(reinterpret_cast<ptrdiff_t>(ctx));
+    }
+};
 
-template <class TYPE>
-struct Typemap<panda::unievent::SslContext, TYPE> : Typemap<SSL_CTX*> {
+template <>
+struct Typemap<panda::unievent::SslContext> : TypemapBase<panda::unievent::SslContext> {
     using SslContext = panda::unievent::SslContext;
+    using RawTypeMap = Typemap<SSL_CTX*>;
 
     static SslContext in(SV* arg) {
-        if (!SvOK(arg)) return nullptr;
-        if (SvROK(arg)) return Typemap<SSL_CTX*>::in(arg);
-        return reinterpret_cast<SSL_CTX*>(SvIV(arg));
+        return RawTypeMap::in(arg);
     }
 
     static Sv out (SslContext& context, const Sv& sv = Sv()) {
-        SSL_CTX_up_ref(context);
-        return Typemap<SSL_CTX*>::out(context, sv);
-    }
-
-    static void destroy (const SSL_CTX* ctx, SV*) {
-        SSL_CTX_free((SSL_CTX*)ctx);
+        return RawTypeMap::out(context, sv);
     }
 };
 
