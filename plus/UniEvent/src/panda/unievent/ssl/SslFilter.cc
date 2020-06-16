@@ -330,7 +330,7 @@ void SslFilter::handle_write (const ErrorCode& err, const WriteRequestSP& req) {
         if (sslreq->final) {
             negotiation_finished(); // delayed negotiation_finished() for server with the results of last write request
             auto has_message = BIO_ctrl(read_bio, BIO_CTRL_PENDING, 0, nullptr);
-            if (has_message) {
+            if (has_message && server_filter.lock()) { // in case of dead server no need to call callbacks
                 string fake;
                 handle_read(fake, {});
             }
