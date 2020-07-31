@@ -29,16 +29,17 @@ struct AddrInfoHints {
 
 struct AddrInfo {
     AddrInfo ()                  : cur(nullptr) {}
-    AddrInfo (ares_addrinfo* ai) : src(new DataSource(ai)), cur(ai) {}
+    AddrInfo (ares_addrinfo* ai) : src(new DataSource(ai)), cur(ai ? ai->nodes : nullptr) {}
 
     int           flags     () const { return cur->ai_flags; }
     int           family    () const { return cur->ai_family; }
     int           socktype  () const { return cur->ai_socktype; }
     int           protocol  () const { return cur->ai_protocol; }
     net::SockAddr addr      () const { return net::SockAddr(cur->ai_addr, cur->ai_addrlen); }
-    string_view   canonname () const { return cur->ai_canonname; }
-    AddrInfo      next      () const { return AddrInfo(src, cur->ai_next); }
-    AddrInfo      first     () const { return AddrInfo(src, src->ai); }
+    string_view   canonname () const { return (src->ai && src->ai->cnames) ? src->ai->cnames->name : ""; }
+    int           ttl       () const { return cur->ai_ttl; }
+    AddrInfo      next      () const { return cur ? AddrInfo(src, cur->ai_next) : AddrInfo{}; }
+    AddrInfo      first     () const { return AddrInfo(src, src->ai->nodes); }
 
     explicit operator bool () const { return cur; }
 
@@ -53,13 +54,13 @@ private:
     struct DataSource : Refcnt {
         ares_addrinfo* ai;
         DataSource (ares_addrinfo* ai) : ai(ai) {}
-        ~DataSource () { ares_freeaddrinfo(ai); }
+        ~DataSource () { if (ai) ares_freeaddrinfo(ai); }
     };
 
     iptr<DataSource> src;
-    ares_addrinfo*   cur;
+    ares_addrinfo_node*  cur;
 
-    AddrInfo (const iptr<DataSource>& src, ares_addrinfo* cur) : src(src), cur(cur) {}
+    AddrInfo (const iptr<DataSource>& src, ares_addrinfo_node*  nodes) : src(src), cur(nodes) {}
 };
 
 std::ostream& operator<< (std::ostream&, const AddrInfo&);

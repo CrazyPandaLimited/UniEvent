@@ -10,7 +10,7 @@ namespace panda { namespace unievent {
 
 static log::Module logmod("UniEvent::Resolver", log::WARNING);
 
-static ares_addrinfo empty_ares_addrinfo;
+static ares_addrinfo_node empty_ares_addrinfo;
 
 static void* my_ares_malloc  (size_t sz)            { return malloc(sz); }
 static void  my_ares_free    (void* ptr)            { free(ptr); }
@@ -106,7 +106,7 @@ void Resolver::Worker::resolve (const RequestSP& req) {
     UE_NULL_TERMINATE(req->_node, node_cstr);
     UE_NULL_TERMINATE(req->_service, service_cstr);
 
-    ares_addrinfo h = { req->_hints.flags, req->_hints.family, req->_hints.socktype, req->_hints.protocol, 0, nullptr, nullptr, nullptr };
+    ares_addrinfo_hints h {req->_hints.flags, req->_hints.family, req->_hints.socktype, req->_hints.protocol};
     ares_async = false;
     ares_getaddrinfo(
         channel,
@@ -255,10 +255,16 @@ void Resolver::resolve_localhost (const RequestSP& req) {
     cache_delayed.push_back(req);
     req->delayed = loop()->delay([=]{
         req->delayed = 0;
-        auto ares_ai = (ares_addrinfo*)my_ares_malloc(sizeof(struct ares_addrinfo));
+        auto ares_ai = (ares_addrinfo_node*)my_ares_malloc(sizeof(struct ares_addrinfo_node));
         if (!ares_ai) return finish_resolve(req, {}, make_error_code(std::errc::not_enough_memory));
         *ares_ai = empty_ares_addrinfo;
-        AddrInfo ai(ares_ai);
+
+        auto ares_ai_struct = (ares_addrinfo*)my_ares_malloc(sizeof(struct ares_addrinfo));
+        if (!ares_ai_struct) return finish_resolve(req, {}, make_error_code(std::errc::not_enough_memory));
+        ares_ai_struct->nodes = ares_ai;
+        ares_ai_struct->cnames = nullptr;
+
+        AddrInfo ai(ares_ai_struct);
 
         auto port = req->_port;
         if (req->_service) {
@@ -282,12 +288,6 @@ void Resolver::resolve_localhost (const RequestSP& req) {
             if (!ares_ai->ai_addr) return finish_resolve(req, ai, make_error_code(std::errc::not_enough_memory));
             memcpy(ares_ai->ai_addr, sa.get(), ares_ai->ai_addrlen);
         }
-
-        auto len = req->_node.length();
-        ares_ai->ai_canonname = (char*)my_ares_malloc(len+1);
-        if (!ares_ai->ai_canonname) return finish_resolve(req, ai, make_error_code(std::errc::not_enough_memory));
-        memcpy(ares_ai->ai_canonname, req->_node.data(), len);
-        ares_ai->ai_canonname[len] = 0;
 
         ares_ai->ai_socktype = req->_hints.socktype;
         ares_ai->ai_protocol = req->_hints.protocol;
