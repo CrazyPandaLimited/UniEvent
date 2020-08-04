@@ -123,12 +123,12 @@ void Resolver::Worker::resolve (const RequestSP& req) {
 
 void Resolver::Worker::on_resolve (int status, int, ares_addrinfo* ai) {
     panda_log_info(logmod, this << " Resolver::Worker done req:" << request.get() << " status:" << ares_strerror(status) << " async:" << ares_async << " ai:" << ai);
+    AddrInfo addr;
+    if (ai) addr = AddrInfo(ai);
     if (!request) return; // canceled
 
     std::error_code err;
-    AddrInfo addr;
-    if (status == ARES_SUCCESS) addr = AddrInfo(ai);
-    else                        err  = ares2stderr(status);
+    if (status != ARES_SUCCESS) err  = ares2stderr(status);
 
     if (ares_async) {
         try {
