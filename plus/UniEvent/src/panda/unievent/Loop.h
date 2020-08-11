@@ -19,6 +19,11 @@ struct Loop : Refcnt {
     using fork_fptr = void(const LoopSP&);
     using fork_fn   = function<fork_fptr>;
 
+    using new_handle_fptr     = void(const LoopSP&, Handle* handle);
+    using new_handle_fn       = function<new_handle_fptr>;
+    using remove_handle_fptr  = void(const LoopSP&, Handle* handle);
+    using remove_handle_fn    = function<remove_handle_fptr>;
+
     static LoopSP global_loop () {
         if (!_global_loop) _init_global_loop();
         return _global_loop;
@@ -30,6 +35,8 @@ struct Loop : Refcnt {
     }
 
     CallbackDispatcher<fork_fptr> fork_event;
+    CallbackDispatcher<new_handle_fptr> new_handle_event;
+    CallbackDispatcher<remove_handle_fptr> remove_handle_event;
 
     Loop (Backend* backend = nullptr) : Loop(backend, LoopImpl::Type::LOCAL) {}
 
@@ -79,8 +86,8 @@ private:
 
     Loop (Backend*, LoopImpl::Type);
 
-    void register_handle   (Handle* h)          { _handles.push_back(h); }
-    void unregister_handle (Handle* h) noexcept { _handles.erase(h); }
+    void register_handle   (Handle* h)          { _handles.push_back(h); new_handle_event(this, h); }
+    void unregister_handle (Handle* h) noexcept { _handles.erase(h); remove_handle_event(this, h); }
 
     void register_work   (const WorkSP& w)          { _works.push_back(w); }
     void unregister_work (const WorkSP& w) noexcept { _works.erase(w); }

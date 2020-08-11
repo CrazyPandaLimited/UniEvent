@@ -36,6 +36,8 @@ struct Handle : Refcnt, IntrusiveChainNode<Handle*> {
 
     static const HandleType UNKNOWN_TYPE;
 
+    iptr<Refcnt> user_data;
+
 protected:
     friend Loop;
     using buf_alloc_fn = function<string(size_t cap)>;
