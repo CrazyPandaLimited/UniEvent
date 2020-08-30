@@ -32,16 +32,11 @@ target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr PkgCo
 file(GLOB_RECURSE testSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "tests/*.cc")
 list(FILTER testSource EXCLUDE REGEX "tests/main.cc")
 
-add_library(unievent-tests  STATIC ${testSource})
+add_library(unievent-tests STATIC EXCLUDE_FROM_ALL ${testSource})
 target_link_libraries(unievent-tests PUBLIC unievent)
 
-find_package(Catch2 QUIET)
-if (Catch2_FOUND)
-    target_link_libraries(unievent-tests PUBLIC Catch2::Catch2)
-
-    get_target_property(Catch2_INCLUDE_DIR Catch2::Catch2 INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(unievent-tests PUBLIC ${Catch2_INCLUDE_DIR}/catch2) #tmp fix because we use Catch2 wrong, it should be include <catch/catch.hpp>, not <catch.hpp>
-endif()
+find_package(Catch2)
+target_link_libraries(unievent-tests PUBLIC Catch2::Catch2)
 
 #ctest
 add_executable(ue-test-runner ${testSource} "tests/main.cc")

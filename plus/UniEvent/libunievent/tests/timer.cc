@@ -1,4 +1,4 @@
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 #include <chrono>
 #include <panda/unievent/test/AsyncTest.h>
 #include <panda/unievent/Timer.h>
