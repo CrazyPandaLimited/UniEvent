@@ -44,7 +44,9 @@ AsyncTest::AsyncTest (uint64_t timeout, const std::vector<string>& expected, con
     : loop(loop ? loop : LoopSP(new Loop()))
     , expected(expected)
     , timer(create_timeout(timeout))
-{}
+{
+    signal(SIGPIPE, SIG_IGN);
+}
 
 AsyncTest::AsyncTest (uint64_t timeout, unsigned count, const LoopSP& loop) : AsyncTest(timeout, std::vector<string>(), loop) {
     set_expected(count);

@@ -181,7 +181,7 @@ TEST("connect timeout with black hole", "[v-ssl]") {
     test.await(client->connect_event, "connected called");
 }
 
-TEST("connect timeout clean queue", "[!][v-ssl]") {
+TEST("connect timeout clean queue", "[.][v-ssl]") {
     AsyncTest test(2000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
