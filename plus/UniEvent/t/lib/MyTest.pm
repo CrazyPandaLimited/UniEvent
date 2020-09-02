@@ -42,7 +42,7 @@ sub import {
     my $caller = caller();
     foreach my $sym_name (qw/
         linux freebsd win32 darwin winWSL netbsd openbsd dragonfly
-        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan variate variate_catch
+        is cmp_deeply ok done_testing skip isnt time_mark check_mark pass fail cmp_ok like isa_ok unlike diag plan
         var pipe create_file create_dir move change_file_mtime change_file unlink_file remove_dir subtest new_ok dies_ok catch_run any
     /) {
         no strict 'refs';
@@ -71,41 +71,6 @@ sub check_mark {
     cmp_ok($delta, '>=', $approx*0.8, $msg);
 }
 
-sub variate {
-    my $sub = pop;
-    my @names = reverse @_ or return;
-    
-    state $valvars = {
-        ssl => [0,1],
-        buf => [0,1],
-    };
-    
-    my ($code, $end) = ('') x 2;
-    $code .= "foreach my \$${_}_val (\@{\$valvars->{$_}}) {\n" for @names;
-    $code .= "variate_$_(\$${_}_val);\n" for @names;
-    my $stname = 'variation '.join(', ', map {"$_=\$${_}_val"} @names);
-    $code .= qq#subtest "$stname" => \$sub;\n#;
-    $code .= "}" x @names;
-    
-    eval $code;
-    die $@ if $@;
-}
-
-sub variate_catch {
-    my ($catch_name, @names) = @_;
-    variate(@names, sub {
-        my $add = '';
-        foreach my $name (@names) {
-            $add .= "[v-$name]" if MyTest->can("variate_$name")->();
-        }
-        SKIP: {
-            skip "variation ssl+buf may break many tests, set VARIATE_SSL_BUF=1 if you really want"
-                if variate_ssl() && variate_buf() && !$ENV{VARIATE_SSL_BUF};
-            catch_run($catch_name.$add);
-        }
-    });
-}
-
 sub var ($) { return "$rdir/$_[0]" }
 
 sub pipe ($) {
@@ -119,7 +84,5 @@ sub pipe ($) {
 END { # clean up after file tests
     UniEvent::Fs::remove_all($rdir) if -d $rdir;
 }
-
-chdir 'libunievent';
 
 1;
