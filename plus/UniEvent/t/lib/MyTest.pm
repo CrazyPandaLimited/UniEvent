@@ -120,4 +120,6 @@ END { # clean up after file tests
     UniEvent::Fs::remove_all($rdir) if -d $rdir;
 }
 
+chdir 'libunievent';
+
 1;

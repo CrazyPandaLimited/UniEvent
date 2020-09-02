@@ -10,7 +10,7 @@ catch_run('[ssl]');
 my $SERV_CERT = "t/cert/ca.pem";
 my $serv_ctx = Net::SSLeay::CTX_new();
 Net::SSLeay::CTX_use_certificate_file($serv_ctx, $SERV_CERT, &Net::SSLeay::FILETYPE_PEM) or sslerr();
-Net::SSLeay::CTX_use_PrivateKey_file($serv_ctx, "t/cert/ca.key", &Net::SSLeay::FILETYPE_PEM) or sslerr();
+Net::SSLeay::CTX_use_PrivateKey_file($serv_ctx, "tests/cert/ca.key", &Net::SSLeay::FILETYPE_PEM) or sslerr();
 Net::SSLeay::CTX_check_private_key($serv_ctx) or sslerr();
 
 my $client_ctx = Net::SSLeay::CTX_new();

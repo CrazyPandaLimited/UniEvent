@@ -17,8 +17,8 @@ SslContext get_ssl_ctx() {
     if (!raw) throw Error(make_ssl_error_code(SSL_ERROR_SSL));
     ctx = SslContext::attach(raw);
 
-    SSL_CTX_use_certificate_file(ctx, "t/cert/ca.pem", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, "t/cert/ca.key", SSL_FILETYPE_PEM);
+    SSL_CTX_use_certificate_file(ctx, "tests/cert/ca.pem", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, "tests/cert/ca.key", SSL_FILETYPE_PEM);
     if (!SSL_CTX_check_private_key(ctx)) throw panda::exception("bad ctx");
     return ctx;
 }

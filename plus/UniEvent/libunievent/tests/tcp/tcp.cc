@@ -638,7 +638,7 @@ TEST_CASE("on_connection noclient", "[tcp]") {
         }
         auto sock = oth->socket().value();
         accept(sock, nullptr, nullptr);
-        close(sock);
+        unievent::close(sock);
         done = true;
         test.loop->stop();
         test.happens("conn");

@@ -30,7 +30,6 @@ target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr PkgCo
 
 #tests
 file(GLOB_RECURSE testSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "tests/*.cc")
-list(FILTER testSource EXCLUDE REGEX "tests/main.cc")
 
 add_library(unievent-tests STATIC EXCLUDE_FROM_ALL ${testSource})
 target_link_libraries(unievent-tests PUBLIC unievent)
@@ -39,9 +38,16 @@ find_package(Catch2)
 target_link_libraries(unievent-tests PUBLIC Catch2::Catch2)
 
 #ctest
-add_executable(ue-test-runner ${testSource} "tests/main.cc")
-target_link_libraries(ue-test-runner unievent-tests)
-add_test(test-all ue-test-runner WORKING_DIRRECTORY t)
+add_library(test-lib STATIC tests/lib/test.cc)
+target_compile_definitions(test-lib PRIVATE CATCH_CONFIG_MAIN)
+target_link_libraries(test-lib Catch2::Catch2 unievent)
+list(FILTER testSource EXCLUDE REGEX "lib")
+foreach(tobj ${testSource})
+    get_filename_component(tname ${tobj} NAME_WE)
+    add_executable(t_${tname} ${tobj})
+    target_link_libraries(t_${tname} test-lib)
+    add_test(NAME ${tobj} COMMAND t_${tname} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
 
 #install
 install(DIRECTORY src DESTINATION include FILES_MATCHING PATTERN "*.h")
