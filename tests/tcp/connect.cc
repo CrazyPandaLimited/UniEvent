@@ -1,9 +1,12 @@
 #include "../lib/test.h"
 #include <thread>
 
-#define TEST(name, var) TEST_CASE("tcp-connect: " name, "[tcp-connect]" var)
+#define TEST(name, ...) TEST_CASE("tcp-connect: " name, "[tcp-connect]" __VA_ARGS__)
 
-TEST("sync connect error", "[v-ssl][v-buf]") {
+TEST("sync connect error") {
+    variation.ssl = GENERATE(true, false);
+    variation.buf = GENERATE(true, false);
+
     AsyncTest test(2000, {"error"});
     net::SockAddr::Inet4 sa("255.255.255.255", 0); // makes underlying backend connect end with error synchronously
 
@@ -27,7 +30,10 @@ TEST("sync connect error", "[v-ssl][v-buf]") {
     REQUIRE(err & std::errc::operation_canceled);
 }
 
-TEST("connect with resolv request", "[v-ssl][v-buf]") {
+TEST("connect with resolv request") {
+    variation.ssl = GENERATE(true, false);
+    variation.buf = GENERATE(true, false);
+
     AsyncTest test(3000, {"resolve", "connection"});
     TcpSP server = make_server(test.loop);
     net::SockAddr sa = server->sockaddr();
@@ -54,7 +60,10 @@ TEST("connect with resolv request", "[v-ssl][v-buf]") {
     test.await(server->connection_event, "connection");
 }
 
-TEST("connect to nowhere", "[v-ssl]") {
+TEST("connect to nowhere") {
+    variation.ssl = GENERATE(true, false);
+    variation.buf = GENERATE(true, false);
+
     AsyncTest test(2000, {"connected", "reset"});
 
     auto sa = test.get_refused_addr();
@@ -92,7 +101,9 @@ TEST("connect to nowhere", "[v-ssl]") {
     test.run();
 }
 
-TEST("connect timeout with real connection", "[v-ssl]") {
+TEST("connect timeout with real connection") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(1000, {"connected1", "connected2"});
 
     TcpSP server = make_server(test.loop);
@@ -120,7 +131,9 @@ TEST("connect timeout with real connection", "[v-ssl]") {
     REQUIRE(test.await_not(client->connect_event, 20));
 }
 
-TEST("connect timeout with real canceled connection", "[v-ssl]") {
+TEST("connect timeout with real canceled connection") {
+    variation.ssl = GENERATE(true, false);
+
     int connected = 0;
     int errors = 0;
     int successes = 0;
@@ -166,7 +179,9 @@ TEST("connect timeout with real canceled connection", "[v-ssl]") {
     // NB some connections could be made nevertheless canceled
 }
 
-TEST("connect timeout with black hole", "[v-ssl]") {
+TEST("connect timeout with black hole") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(5000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
@@ -181,7 +196,9 @@ TEST("connect timeout with black hole", "[v-ssl]") {
     test.await(client->connect_event, "connected called");
 }
 
-TEST("connect timeout clean queue", "[.][v-ssl]") {
+TEST("connect timeout clean queue", "[.]") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(2000, {"connected called"});
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
@@ -203,7 +220,9 @@ TEST("connect timeout clean queue", "[.][v-ssl]") {
     REQUIRE(test.await_not(client->write_event, 10));
 }
 
-TEST("connect timeout with black hole in roll", "[v-ssl]") {
+TEST("connect timeout with black hole in roll") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(1000, {});
 
     TcpSP client = make_client(test.loop);
@@ -227,7 +246,9 @@ TEST("connect timeout with black hole in roll", "[v-ssl]") {
     CHECK(counter == 0);
 }
 
-TEST("regression on not cancelled timer in second (sync) connect", "[v-ssl]") {
+TEST("regression on not cancelled timer in second (sync) connect") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(250, {"not_connected1", "not_connected2"});
     auto sa = test.get_refused_addr();
 
@@ -251,7 +272,9 @@ TEST("regression on not cancelled timer in second (sync) connect", "[v-ssl]") {
     test.await(client->connect_event, "not_connected2");
 }
 
-TEST("multi-dns round robin on connect error", "[v-ssl]") {
+TEST("multi-dns round robin on connect error") {
+    variation.ssl = GENERATE(true, false);
+
     AsyncTest test(5000, 0);
     string host = "google.com";
     auto resolver = test.loop->resolver();
