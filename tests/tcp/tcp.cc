@@ -4,7 +4,7 @@ using std::cout;
 using std::endl;
 
 TEST_CASE("write without connection", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, 1);
     TcpSP client = make_client(test.loop);
@@ -17,8 +17,7 @@ TEST_CASE("write without connection", "[tcp]") {
 }
 
 TEST_CASE("write to closed socket", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(2000, {"error"});
     TcpSP server = make_server(test.loop);
@@ -50,8 +49,7 @@ TEST_CASE("write to closed socket", "[tcp]") {
 }
 
 TEST_CASE("immediate disconnect", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(5000, {});
     SockAddr sa1, sa2;
@@ -102,7 +100,7 @@ TEST_CASE("immediate disconnect", "[tcp]") {
 }
 
 TEST_CASE("immediate client reset", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, {"error"});
     SockAddr sa = test.get_refused_addr();
@@ -130,8 +128,7 @@ TEST_CASE("immediate client reset", "[tcp]") {
 }
 
 TEST_CASE("immediate client write reset", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(2000, {"c", "w"});
     TcpSP server = make_server(test.loop);
@@ -155,7 +152,7 @@ TEST_CASE("immediate client write reset", "[tcp]") {
 }
 
 TEST_CASE("reset accepted connection", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, {"a"});
     TcpSP server = make_server(test.loop);
@@ -188,7 +185,7 @@ TEST_CASE("try use server without certificate", "[tcp]") {
 }
 
 TEST_CASE("server read", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, {"c", "r"});
     TcpSP client = make_client(test.loop);
@@ -216,7 +213,7 @@ TEST_CASE("server read", "[tcp]") {
 //TODO: this test should have been failing before fix, but it did not
 //TODO: find a way to reproduce SRV-1273 from UniEvent
 TEST_CASE("UniEvent SRV-1273", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(1000, {});
     SockAddr addr = test.get_refused_addr();
@@ -359,7 +356,7 @@ TEST_CASE("write burst", "[tcp]") {
 }
 
 TEST_CASE("write queue size", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(500, {});
     SECTION("queued") {
@@ -410,7 +407,7 @@ TEST_CASE("disconnection should be caught as EOF", "[tcp]") {
 }
 
 TEST_CASE("disconnect during ssl handshake", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, {"done"});
     CallbackDispatcher<void()> killed;
@@ -508,8 +505,7 @@ TEST_CASE("Stream::write range", "[tcp]") {
 }
 
 TEST_CASE("write stack overflow", "[tcp]") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(2000, {"connection"});
     TcpSP server = make_server(test.loop);

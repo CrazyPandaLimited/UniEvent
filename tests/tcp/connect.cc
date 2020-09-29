@@ -4,8 +4,7 @@
 #define TEST(name, ...) TEST_CASE("tcp-connect: " name, "[tcp-connect]" __VA_ARGS__)
 
 TEST("sync connect error") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(2000, {"error"});
     net::SockAddr::Inet4 sa("255.255.255.255", 0); // makes underlying backend connect end with error synchronously
@@ -60,8 +59,7 @@ TEST("connect with resolv request") {
 }
 
 TEST("connect to nowhere") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(2000, {"connected", "reset"});
 
@@ -101,7 +99,7 @@ TEST("connect to nowhere") {
 }
 
 TEST("connect timeout with real connection") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(1000, {"connected1", "connected2"});
 
@@ -131,7 +129,7 @@ TEST("connect timeout with real connection") {
 }
 
 TEST("connect timeout with real canceled connection") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     int connected = 0;
     int errors = 0;
@@ -179,7 +177,7 @@ TEST("connect timeout with real canceled connection") {
 }
 
 TEST("connect timeout with black hole") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(5000, {"connected called"});
 
@@ -196,7 +194,7 @@ TEST("connect timeout with black hole") {
 }
 
 TEST("connect timeout clean queue", "[.]") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(2000, {"connected called"});
 
@@ -220,7 +218,7 @@ TEST("connect timeout clean queue", "[.]") {
 }
 
 TEST("connect timeout with black hole in roll") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(1000, {});
 
@@ -246,7 +244,7 @@ TEST("connect timeout with black hole in roll") {
 }
 
 TEST("regression on not cancelled timer in second (sync) connect") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(250, {"not_connected1", "not_connected2"});
     auto sa = test.get_refused_addr();
@@ -272,7 +270,7 @@ TEST("regression on not cancelled timer in second (sync) connect") {
 }
 
 TEST("multi-dns round robin on connect error") {
-    variation.ssl = GENERATE(true, false);
+    variation = GENERATE(values(ssl_vars));
 
     AsyncTest test(5000, 0);
     string host = "google.com";

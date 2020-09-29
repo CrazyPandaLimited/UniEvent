@@ -22,6 +22,7 @@ struct Variation {
 };
 
 static constexpr std::initializer_list<Variation> ssl_buf_vars = {{false, false}, {true, false}, {false, true}}; //skip variation ssl+buf may break many tests
+static constexpr std::initializer_list<Variation> ssl_vars = {{false, false}, {true, false}};
 
 extern Variation variation;
 
