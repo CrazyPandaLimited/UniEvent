@@ -16,10 +16,21 @@ namespace {
             FileInput::stop_reading();
         }
     };
+
+    static string read_file (string_view path) {
+        size_t chunk_size = 1000000;
+        string ret, buf;
+        auto fd = Fs::open(path, Fs::OpenFlags::RDONLY).value();
+        do {
+            buf = Fs::read(fd, chunk_size).value();
+            ret += buf;
+        } while (buf.length() == chunk_size);
+        return ret;
+    }
 }
 
-TEST("normal") {
-    AsyncTest test(30000, 1);
+TEST("normal input") {
+    AsyncTest test(3000, 1);
     auto i = new TestFileInput("t/streamer/file.txt", 10000);
     auto o = new TestOutput(20000);
     StreamerSP s = new Streamer(i, o, 100000, test.loop);
@@ -34,7 +45,7 @@ TEST("normal") {
 }
 
 TEST("pause input") {
-    AsyncTest test(30000, 1);
+    AsyncTest test(3000, 1);
     auto i = new TestFileInput("t/streamer/file.txt", 30000);
     auto o = new TestOutput(10000);
     StreamerSP s = new Streamer(i, o, 50000, test.loop);
@@ -46,4 +57,23 @@ TEST("pause input") {
     });
     test.run();
     CHECK(i->stop_reading_cnt > 0);
+}
+
+TEST("normal output") {
+    Fs::mkpath("t/var/streamer").nevermind();
+    AsyncTest test(3000, 1);
+    auto i = new TestFileInput("t/streamer/file.txt", 10000);
+    auto o = new FileOutput("t/var/streamer/fout.txt");
+    StreamerSP s = new Streamer(i, o, 100000, test.loop);
+    s->start();
+    s->finish_event.add([&](const ErrorCode& err) {
+        if (err) WARN(err);
+        CHECK(!err);
+        test.happens();
+    });
+    test.run();
+
+    auto s1 = read_file("t/streamer/file.txt");
+    auto s2 = read_file("t/var/streamer/fout.txt");
+    CHECK((s1 == s2));
 }
