@@ -257,7 +257,9 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
     auto resolver = test.loop->resolver();
 
     AddrInfo list;
-    resolver->resolve()->node(host)->service("81")->hints(Tcp::defhints)->on_resolve([&](auto& ai, auto& err, auto) {
+    auto hints = Tcp::defhints;
+    hints.family = AF_INET;
+    resolver->resolve()->node(host)->service("81")->hints(hints)->on_resolve([&](auto& ai, auto& err, auto) {
         REQUIRE_FALSE(err);
         list = ai;
     })->run();
@@ -266,7 +268,7 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
 
     REQUIRE(list);
     REQUIRE(list.next());
-    REQUIRE(resolver->find(host, "81", Tcp::defhints) == list);
+    REQUIRE(resolver->find(host, "81", hints) == list);
 
     TcpSP client = make_client(test.loop);
 
@@ -276,9 +278,9 @@ TEST("multi-dns round robin on connect error", "[v-ssl]") {
         REQUIRE(treq->addr == list.addr());
         h->reset();
     });
-    client->connect(host, 81, 10);
+    client->connect()->to(host, 81)->set_hints(hints)->timeout(10)->run();
 
     test.run();
 
-    REQUIRE(resolver->find(host, "81", Tcp::defhints) == list.next());
+    REQUIRE(resolver->find(host, "81", hints) == list.next());
 }

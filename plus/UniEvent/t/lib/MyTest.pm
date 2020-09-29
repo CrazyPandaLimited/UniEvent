@@ -17,14 +17,31 @@ my $have_time_hires = eval "require Time::HiRes; 1;";
 my $last_time_mark;
 my %used_mtimes;
 
+{
+    package Panda::W::Logger;
+    use parent 'XLog::Logger';
+
+    sub log_format {
+        my ($self, $msg, $level, $module, $file, $line, $func, $formatter) = @_;
+        $file = substr($file, rindex($file, '/'));
+        $module = substr($module, rindex($module, '::')+2);
+        my $code = "$module$file:$line";
+        my $res = sprintf '%-32s %s', $code, $msg;
+        say $res;
+    }
+}
+
+
+
 init();
 
 sub init {
     if ($ENV{LOGGER}) {
-        require XLog;
-        XLog::set_logger(sub { say $_[1] });
-        XLog::set_level(XLog::VERBOSE_DEBUG());
-        XLog::set_level(XLog::INFO(), "UniEvent::SSL");
+	XLog::set_logger(Panda::W::Logger->new);
+	XLog::set_level(XLog::WARNING);
+
+        XLog::set_level(XLog::DEBUG, "UniEvent");
+        XLog::set_level(XLog::DEBUG, "UniEvent::Resolver");
     }    
     
     # for file tests
