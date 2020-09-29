@@ -20,7 +20,7 @@ namespace {
 
 TEST("normal") {
     AsyncTest test(30000, 1);
-    auto i = new TestFileInput("t/streamer/file.txt", 10000);
+    auto i = new TestFileInput("tests/streamer/file.txt", 10000);
     auto o = new TestOutput(20000);
     StreamerSP s = new Streamer(i, o, 100000, test.loop);
     s->start();
@@ -35,7 +35,7 @@ TEST("normal") {
 
 TEST("pause input") {
     AsyncTest test(30000, 1);
-    auto i = new TestFileInput("t/streamer/file.txt", 30000);
+    auto i = new TestFileInput("tests/streamer/file.txt", 30000);
     auto o = new TestOutput(10000);
     StreamerSP s = new Streamer(i, o, 50000, test.loop);
     s->start();
