@@ -31,8 +31,7 @@ TEST("sync connect error") {
 }
 
 TEST("connect with resolv request") {
-    variation.ssl = GENERATE(true, false);
-    variation.buf = GENERATE(true, false);
+    variation = GENERATE(values(ssl_buf_vars));
 
     AsyncTest test(3000, {"resolve", "connection"});
     TcpSP server = make_server(test.loop);

@@ -21,6 +21,8 @@ struct Variation {
     bool buf;
 };
 
+static constexpr std::initializer_list<Variation> ssl_buf_vars = {{false, false}, {true, false}, {false, true}}; //skip variation ssl+buf may break many tests
+
 extern Variation variation;
 
 #if !defined(__NetBSD__)
