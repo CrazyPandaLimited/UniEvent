@@ -61,6 +61,11 @@ enum class resolve_errc {
     no_get_network_params,
 };
 
+enum class streamer_errc {
+    read_error = 1,
+    write_error,
+};
+
 struct ErrorCategory : std::error_category {
     const char* name () const throw() override;
     std::string message (int condition) const throw() override;
@@ -77,14 +82,20 @@ struct OpenSslErrorCategory : std::error_category {
     const char* name () const throw() override;
     std::string message (int condition) const throw() override;
 };
+struct StreamerCategory : std::error_category {
+    const char* name () const throw() override;
+    std::string message (int condition) const throw() override;
+};
 
 extern const ErrorCategory        error_category;
 extern const ResolveErrorCategory resolve_error_category;
 extern const SslErrorCategory     ssl_error_category;
 extern const OpenSslErrorCategory openssl_error_category;
+extern const StreamerCategory     streamer_error_category;
 
-inline std::error_code make_error_code (errc         code) { return std::error_code((int)code, error_category); }
-inline std::error_code make_error_code (resolve_errc code) { return std::error_code((int)code, resolve_error_category); }
+inline std::error_code make_error_code (errc          code) { return std::error_code((int)code, error_category); }
+inline std::error_code make_error_code (resolve_errc  code) { return std::error_code((int)code, resolve_error_category); }
+inline std::error_code make_error_code (streamer_errc code) { return std::error_code((int)code, streamer_error_category); }
 
 std::error_code make_ssl_error_code (int ssl_code);
 
@@ -110,6 +121,7 @@ protected:
 }}
 
 namespace std {
-    template <> struct is_error_code_enum<panda::unievent::errc>         : true_type {};
-    template <> struct is_error_code_enum<panda::unievent::resolve_errc> : true_type {};
+    template <> struct is_error_code_enum<panda::unievent::errc>          : true_type {};
+    template <> struct is_error_code_enum<panda::unievent::resolve_errc>  : true_type {};
+    template <> struct is_error_code_enum<panda::unievent::streamer_errc> : true_type {};
 }
