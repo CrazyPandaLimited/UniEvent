@@ -60,10 +60,10 @@ TEST("pause input") {
 }
 
 TEST("normal output") {
-    Fs::mkpath("t/var/streamer").nevermind();
+    Fs::mkpath("tests/var/streamer").nevermind();
     AsyncTest test(3000, 1);
-    auto i = new TestFileInput("t/streamer/file.txt", 10000);
-    auto o = new FileOutput("t/var/streamer/fout.txt");
+    auto i = new TestFileInput("tests/streamer/file.txt", 10000);
+    auto o = new FileOutput("tests/var/streamer/fout.txt");
     StreamerSP s = new Streamer(i, o, 100000, test.loop);
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
@@ -73,7 +73,7 @@ TEST("normal output") {
     });
     test.run();
 
-    auto s1 = read_file("t/streamer/file.txt");
-    auto s2 = read_file("t/var/streamer/fout.txt");
+    auto s1 = read_file("tests/streamer/file.txt");
+    auto s2 = read_file("tests/var/streamer/fout.txt");
     CHECK((s1 == s2));
 }
