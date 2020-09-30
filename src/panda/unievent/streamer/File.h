@@ -1,6 +1,7 @@
 #pragma once
 #include "../Fs.h"
 #include "../Streamer.h"
+#include <deque>
 
 namespace panda { namespace unievent { namespace streamer {
 
@@ -23,7 +24,27 @@ private:
     bool          pause = false;
 
     void do_read ();
-    void on_read (const string&, const std::error_code&, const Fs::RequestSP&);
+};
+
+struct FileOutput : Streamer::IOutput {
+    FileOutput (string_view path) : path(string(path)) {}
+
+    ErrorCode start (const LoopSP&)      override;
+    void      stop  ()                   override;
+    ErrorCode write (const string& data) override;
+
+    size_t write_queue_size () const override { return bufsz; }
+
+private:
+    string             path;
+    LoopSP             loop;
+    fd_t               fd;
+    Fs::RequestSP      fsreq;
+    bool               opened = false;
+    std::deque<string> bufs;
+    size_t             bufsz = 0;
+
+    void do_write ();
 };
 
 }}}
