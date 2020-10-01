@@ -356,8 +356,6 @@ TEST_CASE("write burst", "[tcp]") {
 }
 
 TEST_CASE("write queue size", "[tcp]") {
-    variation = GENERATE(values(ssl_vars));
-
     AsyncTest test(500, {});
     SECTION("queued") {
         auto p = make_tcp_pair(test.loop);
