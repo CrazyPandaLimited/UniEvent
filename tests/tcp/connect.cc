@@ -287,7 +287,10 @@ TEST("multi-dns round robin on connect error") {
     test.run();
 
     REQUIRE(list);
-    REQUIRE(list.next());
+    if (!list.next()) {
+        SUCCEED("skipped, google shoul be resolved to at least 2 IPv4 addresses");
+        return;
+    }
     REQUIRE(resolver->find(host, "81", hints) == list);
 
     TcpSP client = make_client(test.loop);
