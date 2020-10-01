@@ -2,6 +2,7 @@
 #include <mutex>
 #include <chrono>
 #include <thread>
+#define CATCH_CONFIG_EXTERNAL_INTERFACES
 #include <catch2/catch.hpp>
 #include <panda/unievent.h>
 #include <panda/unievent/test/AsyncTest.h>
@@ -72,4 +73,13 @@ TcpSP  make_server       (const LoopSP& loop, const SockAddr& sa = SockAddr::Ine
 TcpSP  make_client       (const LoopSP& loop);
 TcpP2P make_tcp_pair     (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
 TcpP2P make_p2p          (const LoopSP& loop, const SockAddr& sa = SockAddr::Inet4("127.0.0.1", 0));
+
+struct VariationReseter : Catch::TestEventListenerBase {
+    using TestEventListenerBase::TestEventListenerBase; // inherit constructor
+
+    void testCaseStarting( Catch::TestCaseInfo const& testInfo ) override {
+        variation = {};
+    }
+};
+CATCH_REGISTER_LISTENER(VariationReseter)
 
