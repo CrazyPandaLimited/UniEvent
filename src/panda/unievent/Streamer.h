@@ -37,6 +37,7 @@ struct Streamer : Refcnt {
     using IOutputSP = iptr<IOutput>;
 
     using finish_fptr = void(const ErrorCode& err);
+    using finish_fn   = function<finish_fptr>;
 
     CallbackDispatcher<finish_fptr> finish_event;
 
@@ -44,6 +45,8 @@ struct Streamer : Refcnt {
 
     void start ();
     void stop  ();
+
+    virtual ~Streamer () {}
 
 private:
     friend IInput; friend IOutput;
