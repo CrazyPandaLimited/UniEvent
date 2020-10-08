@@ -104,11 +104,12 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
 
     template <class T> void run_in_order (T&& code);
 
-    void read_start () {
+    excepted<void, ErrorCode> read_start () {
         set_wantread(true);
         flags &= ~IGNORE_READ;
         auto err = _read_start();
-        if (err) throw err;
+        if (err) return make_unexpected(ErrorCode(err));
+        return {};
     }
 
     void read_stop ();
