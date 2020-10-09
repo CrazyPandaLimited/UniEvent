@@ -20,8 +20,8 @@ subtest 'normal input' => sub {
 
 subtest 'normal output' => sub {
     my $test = UE::Test::Async->new(2);
-    my $p1 = make_pair($test->loop, 10000, 20);
     my $p2 = MyTest::make_p2p($test->loop);
+    my $p1 = make_pair($test->loop, 10000, 20);
     my $i = UE::Streamer::StreamInput->new($p1->{sconn});
     my $o = UE::Streamer::StreamOutput->new($p2->{sconn});
     my $s = UE::Streamer->new($i, $o, 50000, $test->loop);

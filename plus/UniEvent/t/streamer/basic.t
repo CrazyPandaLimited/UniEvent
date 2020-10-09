@@ -21,9 +21,9 @@ subtest 'normal' => sub {
 
 subtest 'pause input' => sub {
     my $test = UE::Test::Async->new(1);
-    my $i = TestInput->new(300, 4);
-    my $o = TestOutput->new(2);
-    my $s = UE::Streamer->new($i, $o, 100, $test->loop);
+    my $i = TestInput->new(100, 20);
+    my $o = TestOutput->new(1);
+    my $s = UE::Streamer->new($i, $o, 30, $test->loop);
     $s->start();
     $s->finish_callback(sub {
         my $err = shift;
@@ -31,23 +31,7 @@ subtest 'pause input' => sub {
         $test->happens;
     });
     $test->run();
-    is $i->{stop_reading_cnt}, 2;
-    is @{$o->{bufs}}, 0;
-};
-
-subtest 'no limit' => sub {
-    my $test = UE::Test::Async->new(1);
-    my $i = TestInput->new(300, 4);
-    my $o = TestOutput->new(2);
-    my $s = UE::Streamer->new($i, $o, 0, $test->loop);
-    $s->start();
-    $s->finish_callback(sub {
-        my $err = shift;
-        is $err, undef;
-        $test->happens;
-    });
-    $test->run();
-    is $i->{stop_reading_cnt}, 0;
+    cmp_ok $i->{stop_reading_cnt}, '>', 0;
     is @{$o->{bufs}}, 0;
 };
 

@@ -19,8 +19,8 @@ TEST("normal") {
 
 TEST("pause input") {
     AsyncTest test(3000, 1);
-    auto i = new TestInput(100, 10);
-    auto o = new TestOutput(2);
+    auto i = new TestInput(100, 20);
+    auto o = new TestOutput(1);
     StreamerSP s = new Streamer(i, o, 30, test.loop);
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
