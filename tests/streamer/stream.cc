@@ -52,10 +52,10 @@ TEST("normal input") {
 
 TEST("pause input") {
     AsyncTest test(3000, 1);
-    auto p = make_pair(test.loop, 10000, 20);
+    auto p = make_pair(test.loop, 1000, 20);
     auto i = new TestStreamInput(p.sconn);
-    auto o = new TestOutput(9000);
-    StreamerSP s = new Streamer(i, o, 50000, test.loop);
+    auto o = new TestOutput(400);
+    StreamerSP s = new Streamer(i, o, 3000, test.loop);
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
         if (err) WARN(err);
