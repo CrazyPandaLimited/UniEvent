@@ -31,8 +31,9 @@ struct StreamOutput : Streamer::IOutput, private IStreamSelfListener {
 
     size_t write_queue_size () const override { return stream->write_queue_size(); }
 
-private:
+protected:
     StreamSP         stream;
+private:
     IStreamListener* prev_lst = nullptr;
 
     void on_write (const ErrorCode&, const WriteRequestSP&) override;
