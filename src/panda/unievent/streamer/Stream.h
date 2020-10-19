@@ -35,6 +35,8 @@ protected:
     StreamSP         stream;
 private:
     IStreamListener* prev_lst = nullptr;
+    WriteRequestSP   first_wreq;
+    bool             handle_write_started = false;
 
     void on_write (const ErrorCode&, const WriteRequestSP&) override;
 };
