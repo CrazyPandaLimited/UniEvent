@@ -112,10 +112,14 @@ TEST("file in stream out with busy buffer") {
         count += data.length();
     });
 
+    p.client->eof_event.add([&](auto&) {
+        test.loop->stop();
+    });
+
     s->finish_event.add([&](auto& err) {
         CHECK(!err);
         test.happens();
-        test.loop->stop();
+        p.sconn->disconnect();
     });
 
     string ku = "ku-ku";
