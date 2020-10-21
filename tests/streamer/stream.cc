@@ -102,7 +102,7 @@ TEST("file in stream out with busy buffer") {
     string file = "tests/streamer/file.txt";
     auto i = new FileInput(file, 10000);
     auto o = new StreamOutput(p.sconn);
-    auto s = new Streamer(i, o, 100000, test.loop);
+    StreamerSP s = new Streamer(i, o, 100000, test.loop);
 
     s->start();
 
