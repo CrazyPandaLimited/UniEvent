@@ -96,7 +96,7 @@ TEST("normal output") {
     CHECK((res == string(200000, 'x')));
 }
 
-TEST("file in, stream out with busy buffer") {
+TEST("file in stream out with busy buffer") {
     AsyncTest test(3000, 1);
     auto p = make_p2p(test.loop);
     string file = "tests/streamer/file.txt";
