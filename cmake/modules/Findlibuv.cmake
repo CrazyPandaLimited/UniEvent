@@ -1,37 +1,24 @@
-find_package(PkgConfig)
-set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH TRUE)
-pkg_check_modules(libuv REQUIRED IMPORTED_TARGET GLOBAL libuv)
-
-if (TARGET PkgConfig::libuv)
-    message(STATUS "found libuv with pkg-conf")
-    add_library(libuv ALIAS PkgConfig::libuv)
+if (TARGET LibUV::uv)
+    #do nothing, it is already exists, ussually it is subdirrectory included
+    message(STATUS "found libuv with defined target LibUV::uv")
 else()
-    message(STATUS "looking for libuv ... ")
-    # Standard FIND_PACKAGE module for libuv, sets the following variables:
-    #   - LIBUV_FOUND
-    #   - LIBUV_INCLUDE_DIRS (only if LIBUV_FOUND)
-    #   - LIBUV_LIBRARIES (only if LIBUV_FOUND)
+    #try config mode
+    find_package(libuv QUIET CONFIG)
+    if (libuv_FOUND)
+        #do nothing, find_package makes all job
+        message(STATUS "found libuv with CONFIG mode")
+    else()
+        #try pkg-config
+        find_package(PkgConfig)
+        set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH TRUE)
+        pkg_check_modules(libuv QUIET IMPORTED_TARGET GLOBAL libuv)
 
-    # Try to find the header
-    FIND_PATH(LIBUV_INCLUDE_DIR NAMES uv.h)
-
-    # Try to find the library
-    FIND_LIBRARY(LIBUV_LIBRARY NAMES uv libuv)
-
-    # Handle the QUIETLY/REQUIRED arguments, set LIBUV_FOUND if all variables are
-    # found
-    INCLUDE(FindPackageHandleStandardArgs)
-    FIND_PACKAGE_HANDLE_STANDARD_ARGS(LIBUV
-                                      REQUIRED_VARS
-                                      LIBUV_LIBRARY
-                                      LIBUV_INCLUDE_DIR)
-
-    # Hide internal variables
-    MARK_AS_ADVANCED(LIBUV_INCLUDE_DIR LIBUV_LIBRARY)
-
-    # Set standard variables
-    IF(LIBUV_FOUND)
-        SET(LIBUV_INCLUDE_DIRS "${LIBUV_INCLUDE_DIR}")
-        SET(LIBUV_LIBRARIES "${LIBUV_LIBRARY}")
-    ENDIF()
+        if (TARGET PkgConfig::libuv)
+            message(STATUS "found libuv with pkg-conf")
+            add_library(LibUV::uv ALIAS PkgConfig::libuv)
+        else()
+            message(ERROR "Cannot find libuv")
+        endif()
+    endif()
 endif()
+
