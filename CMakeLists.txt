@@ -23,7 +23,7 @@ find_package(OpenSSL REQUIRED)
 find_package(c-ares REQUIRED)
 find_package(libuv REQUIRED)
 
-target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr libuv OpenSSL::SSL c-ares::cares)
+target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr LibUV::uv OpenSSL::SSL c-ares::cares)
 
 #tests
 file(GLOB_RECURSE testSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "tests/*.cc")

@@ -1,4 +1,4 @@
-if (TARGET LibUV::uv)
+if (TARGET LibUV::uv OR TARGET uv)
     #do nothing, it is already exists, ussually it is subdirrectory included
     message(STATUS "found libuv with defined target LibUV::uv")
 else()
