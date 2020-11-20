@@ -6,6 +6,7 @@ use Test::More;
 use Test::Deep;
 use Test2::IPC;
 use Test::Catch;
+use Net::SSLeay;
 use Test::Exception;
 
 XS::Loader::load('MyTest');
@@ -96,6 +97,80 @@ sub pipe ($) {
     } else {
         return var "pipe_$_[0]";
     }
+}
+
+sub get_ssl_ctx {
+    my $SERV_CERT = "t/cert/ca.pem";
+    my $serv_ctx = Net::SSLeay::CTX_new();
+    Net::SSLeay::CTX_use_certificate_file($serv_ctx, $SERV_CERT, &Net::SSLeay::FILETYPE_PEM) or sslerr();
+    Net::SSLeay::CTX_use_PrivateKey_file($serv_ctx, "t/cert/ca.key", &Net::SSLeay::FILETYPE_PEM) or sslerr();
+    Net::SSLeay::CTX_check_private_key($serv_ctx) or die Net::SSLeay::ERR_error_string(Net::SSLeay::ERR_get_error);
+    return $serv_ctx unless wantarray();
+    
+    my $client_ctx = Net::SSLeay::CTX_new();
+    Net::SSLeay::CTX_load_verify_locations($client_ctx, $SERV_CERT, '') or die "something went wrong";
+    
+    return ($serv_ctx, $client_ctx);
+}
+
+sub make_basic_server {
+    my ($loop, $sa) = @_;
+    $sa = Net::SockAddr::Inet4->new("127.0.0.1", 0) unless $sa;
+    my $server = UE::Tcp->new($loop);
+    $server->bind_addr($sa);
+    $server->listen(1);
+    return $server;
+}
+
+sub make_ssl_server {
+    my ($loop, $sa) = @_;
+    my $server = make_basic_server($loop, $sa);
+    $server->use_ssl(get_ssl_ctx());
+    return $server;
+}
+
+sub make_server {
+    my ($loop, $sa) = @_;
+    $sa = Net::SockAddr::Inet4->new("127.0.0.1", 0) unless $sa;
+    my $server = UE::Tcp->new($loop);
+    $server->bind_addr($sa);
+    #if (variation.ssl) server->use_ssl(get_ssl_ctx());
+    $server->listen(10000);
+    return $server;
+}
+
+sub make_client {
+    my $loop = shift;
+    my $client = UE::Tcp->new($loop, AF_INET);
+    #if (variation.ssl) client->use_ssl();
+    #if (variation.buf) {
+    #    client->recv_buffer_size(1);
+    #    client->send_buffer_size(1);
+    #}
+    return $client;
+}
+
+sub make_tcp_pair {
+    my ($loop, $sa) = @_;
+    my $ret = {};
+    $ret->{server} = make_server($loop, $sa);
+    $ret->{client} = make_client($loop);
+    $ret->{client}->connect_addr($ret->{server}->sockaddr);
+    return $ret;
+}
+
+sub make_p2p {
+    my ($loop, $sa) = @_;
+    my $ret = make_tcp_pair($loop, $sa);
+    $ret->{server}->connection_callback(sub {
+        my (undef, $sconn, $err) = @_;
+        die $err if $err;
+        $ret->{sconn} = $sconn;
+        $loop->stop();
+    });
+    $loop->run();
+    die unless $ret->{sconn};
+    return $ret;
 }
 
 END { # clean up after file tests

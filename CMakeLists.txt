@@ -1,7 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 PROJECT(UniEvent VERSION 1.0.2 LANGUAGES CXX)
 enable_testing()
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(LIB_TYPE CACHE STRING STATIC)
 
@@ -12,7 +11,11 @@ target_include_directories(unievent PUBLIC
     "$<BUILD_INTERFACE:${pub_includes}>"
     $<INSTALL_INTERFACE:include>
 )
-target_compile_features(unievent PUBLIC cxx_std_14)
+set_target_properties(unievent PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/modules")
 message(STATUS modules ${CMAKE_MODULE_PATH})
