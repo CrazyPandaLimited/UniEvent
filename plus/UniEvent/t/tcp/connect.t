@@ -15,7 +15,7 @@ subtest 'connect-diconnect' => sub {
         $client->{my_data} = 'sample data';
         return $client;
     });
-    $s->bind_addr(SA_LOOPBACK_ANY);
+    $s->bind_addr(SOCKADDR_LOOPBACK);
     $s->listen;
     $s->connection_callback(sub {
         my ($server, $client) = @_;
