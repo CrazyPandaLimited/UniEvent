@@ -40,6 +40,7 @@ subtest 'connect-diconnect' => sub {
 
     $loop->update_time;
     $loop->run;
+    $loop->run_nowait(); # sometimes connection_callback on server is called after connect_callback on client
 
     done_testing(4);
 };
