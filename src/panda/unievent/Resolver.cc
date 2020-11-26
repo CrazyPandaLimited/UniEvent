@@ -8,7 +8,7 @@
 
 namespace panda { namespace unievent {
 
-static log::Module logmod("UniEvent::Resolver", log::WARNING);
+static log::Module logmod("UniEvent::Resolver", log::Level::Warning);
 
 static ares_addrinfo_node empty_ares_addrinfo;
 
