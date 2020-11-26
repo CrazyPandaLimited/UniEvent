@@ -15,7 +15,7 @@ subtest 'connect-diconnect' => sub {
         $client->{my_data} = 'sample data';
         return $client;
     });
-    $s->bind_addr(SOCKADDR_LOOPBACK);
+    $s->bind_addr(SA_LOOPBACK_ANY);
     $s->listen;
     $s->connection_callback(sub {
         my ($server, $client) = @_;
@@ -40,7 +40,6 @@ subtest 'connect-diconnect' => sub {
 
     $loop->update_time;
     $loop->run;
-    $loop->run_nowait(); # sometimes connection_callback on server is called after connect_callback on client
 
     done_testing(4);
 };

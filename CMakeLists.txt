@@ -17,16 +17,19 @@ set_target_properties(unievent PROPERTIES
     CXX_EXTENSIONS NO
 )
 
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/modules")
-message(STATUS modules ${CMAKE_MODULE_PATH})
-
 find_package(panda-lib REQUIRED)
 find_package(net-sockaddr REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(c-ares REQUIRED)
-find_package(libuv REQUIRED)
+find_package(libuv QUIET)
 
-target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr LibUV::uv OpenSSL::SSL c-ares::cares)
+if (NOT libuv_FOUND)
+    include(FindPkgConfig)
+    set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH TRUE)
+    pkg_check_modules(libuv QUIET IMPORTED_TARGET libuv )
+endif()
+
+target_link_libraries(unievent PUBLIC panda::panda-lib panda::net-sockaddr PkgConfig::libuv OpenSSL::SSL c-ares::cares)
 
 #tests
 file(GLOB_RECURSE testSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "tests/*.cc")
