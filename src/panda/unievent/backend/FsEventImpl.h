@@ -21,8 +21,8 @@ struct FsEventImpl : HandleImpl {
 
     FsEventImpl (LoopImpl* loop, IFsEventImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
-    virtual void start (string_view path, unsigned flags) = 0;
-    virtual void stop  () = 0;
+    virtual std::error_code start (string_view path, unsigned flags) = 0;
+    virtual std::error_code stop  () = 0;
 
     void handle_fs_event (const string_view& file, int events, const std::error_code& err) noexcept {
         ltry([&]{ listener->handle_fs_event(file, events, err); });

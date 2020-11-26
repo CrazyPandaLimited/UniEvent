@@ -1,5 +1,6 @@
 #include "Signal.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 static panda::string signames[NSIG];
 
@@ -99,14 +100,14 @@ const HandleType& Signal::type () const {
     return TYPE;
 }
 
-void Signal::start (int signum, signal_fn callback) {
+excepted<void, ErrorCode> Signal::start (int signum, signal_fn callback) {
     if (callback) event.add(callback);
-    impl()->start(signum);
+    return make_excepted(impl()->start(signum));
 }
 
-void Signal::once (int signum, signal_fn callback) {
+excepted<void, ErrorCode> Signal::once (int signum, signal_fn callback) {
     if (callback) event.add(callback);
-    impl()->once(signum);
+    return make_excepted(impl()->once(signum));
 }
 
 SignalSP Signal::watch (int signum, signal_fn callback, const LoopSP& loop) {
@@ -115,8 +116,8 @@ SignalSP Signal::watch (int signum, signal_fn callback, const LoopSP& loop) {
     return h;
 }
 
-void Signal::stop () {
-    impl()->stop();
+excepted<void, ErrorCode> Signal::stop () {
+    return make_excepted(impl()->stop());
 }
 
 void Signal::reset () {
@@ -140,3 +141,5 @@ const panda::string& Signal::signame (int signum) {
     if (signum < 0 || signum >= NSIG) throw std::invalid_argument("signum must be >= 0 and < NSIG");
     return signames[signum];
 }
+
+}}

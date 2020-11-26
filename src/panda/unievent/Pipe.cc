@@ -1,6 +1,7 @@
 #include "Pipe.h"
 #include "util.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType Pipe::TYPE("pipe");
 
@@ -12,17 +13,20 @@ backend::HandleImpl* Pipe::new_impl () {
     return loop()->impl()->new_pipe(this, _ipc);
 }
 
-void Pipe::open (fd_t file, Ownership ownership, bool connected) {
+excepted<void, ErrorCode> Pipe::open (fd_t file, Ownership ownership, bool connected) {
     if (ownership == Ownership::SHARE) file = file_dup(file);
-    impl()->open(file);
+
+    auto error = impl()->open(file);
+    if (error) return make_unexpected(ErrorCode(error));
+
     if (connected || peername()) {
-        auto err = set_connect_result(true);
-        if (err) throw err;
+        error = set_connect_result(true);
     }
+    return make_excepted(error);
 }
 
-void Pipe::bind (string_view name) {
-    impl()->bind(name);
+excepted<void, ErrorCode> Pipe::bind (string_view name) {
+    return make_excepted(impl()->bind(name));
 }
 
 StreamSP Pipe::create_connection () {
@@ -53,3 +57,6 @@ void PipeConnectRequest::finalize_connect () {
 void Pipe::pending_instances (int count) {
     impl()->pending_instances(count);
 }
+
+
+}}

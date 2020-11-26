@@ -33,8 +33,8 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventImplListener {
 
     const string& path () const { return _path; }
 
-    virtual void start (const string_view& path, int flags = 0, fs_event_fn callback = nullptr);
-    virtual void stop  ();
+    virtual excepted<void, ErrorCode> start (const string_view& path, int flags = 0, fs_event_fn callback = nullptr);
+    virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;
     void clear () override;

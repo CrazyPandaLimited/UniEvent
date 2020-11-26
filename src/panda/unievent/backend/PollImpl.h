@@ -16,8 +16,8 @@ struct PollImpl : HandleImpl {
 
     virtual optional<fh_t> fileno () const = 0;
 
-    virtual void start (int events) = 0;
-    virtual void stop  ()           = 0;
+    virtual std::error_code start (int events) = 0;
+    virtual std::error_code stop  ()           = 0;
 
     void handle_poll (int events, const std::error_code& err) noexcept {
         ltry([&]{ listener->handle_poll(events, err); });

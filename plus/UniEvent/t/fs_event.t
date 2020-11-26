@@ -29,11 +29,17 @@ subtest 'constants' => sub {
 };
 
 subtest 'file tracking' => sub {
+    subtest 'doesnt track non-existant files dies' => sub {
+        my $h = cr;
+        $h->callback(sub { die });
+        dies_ok { $h->start($file) }  "exception when tries to handle non-existant file";
+        $l->run();
+    };
     subtest 'doesnt track non-existant files' => sub {
         my $h = cr;
         $h->callback(sub { die });
-        dies_ok { $h->start($file) } "exception when tries to handle non-existant file";
-        my $err = $@;
+        my ($flag, $err) = $h->start($file);
+        ok(!$flag, "return value is correct");
         is($err->code, UE::SystemError::ENOENT, "error code is correct");
         $l->run();
     };
@@ -108,8 +114,8 @@ subtest 'file tracking' => sub {
 subtest 'dir tracking' => sub {
     subtest 'doesnt track non-existant dirs' => sub {
         my $h = cr;
-        dies_ok { $h->start($dir) } "exception when tries to handle non-existant dir";
-        my $err = $@;
+        my ($flag, $err) = $h->start($dir);
+        ok(!$flag, "return value is correct");
         is($err->code, UE::SystemError::ENOENT, "error code is correct");
         $l->run();
     };

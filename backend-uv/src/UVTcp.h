@@ -10,9 +10,9 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         else                     uvx_strict(uv_tcp_init_ex(loop->uvloop, &uvh, domain));
     }
 
-    void open (sock_t sock) override {
+    std::error_code open (sock_t sock) override {
         auto ret = uv_tcp_open(&uvh, sock);
-        uvx_strict(ret);
+        return uvx_ce(ret);
     }
 
     std::error_code bind (const net::SockAddr& addr, unsigned flags) override {
@@ -21,7 +21,7 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         return uvx_ce(uv_tcp_bind(&uvh, addr.get(), uv_flags));
     }
 
-    virtual std::error_code connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {
+    std::error_code connect (const net::SockAddr& addr, ConnectRequestImpl* _req) override {
         auto req = static_cast<UVConnectRequest*>(_req);
         auto err = uv_tcp_connect(&req->uvr, &uvh, addr.get(), on_connect);
         if (!err) req->active = true;
@@ -36,16 +36,16 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         return uvx_sockaddr(&uvh, &uv_tcp_getpeername);
     }
 
-    void set_nodelay (bool enable) override {
-        uvx_strict(uv_tcp_nodelay(&uvh, enable));
+    std::error_code set_nodelay (bool enable) override {
+        return uvx_ce(uv_tcp_nodelay(&uvh, enable));
     }
 
-    void set_keepalive (bool enable, unsigned delay) override {
-        uvx_strict(uv_tcp_keepalive(&uvh, enable, delay));
+    std::error_code set_keepalive (bool enable, unsigned delay) override {
+        return uvx_ce(uv_tcp_keepalive(&uvh, enable, delay));
     }
 
-    void set_simultaneous_accepts (bool enable) override {
-        uvx_strict(uv_tcp_simultaneous_accepts(&uvh, enable));
+    std::error_code set_simultaneous_accepts (bool enable) override {
+        return uvx_ce(uv_tcp_simultaneous_accepts(&uvh, enable));
     }
 };
 

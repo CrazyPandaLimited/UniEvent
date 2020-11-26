@@ -1,6 +1,7 @@
 #include "Poll.h"
 #include "util.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType Poll::TYPE("poll");
 
@@ -18,13 +19,13 @@ const HandleType& Poll::type () const {
     return TYPE;
 }
 
-void Poll::start (int events, poll_fn callback) {
+excepted<void, ErrorCode> Poll::start (int events, poll_fn callback) {
     if (callback) event.add(callback);
-    impl()->start(events);
+    return make_excepted(impl()->start(events));
 }
 
-void Poll::stop () {
-    impl()->stop();
+excepted<void, panda::ErrorCode> Poll::stop() {
+    return make_excepted(impl()->stop());
 }
 
 void Poll::reset () {
@@ -43,3 +44,5 @@ void Poll::handle_poll (int events, const std::error_code& err) {
     event(self, events, err);
     if (_listener) _listener->on_poll(self, events, err);
 }
+
+}}

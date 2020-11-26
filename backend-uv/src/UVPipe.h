@@ -24,13 +24,13 @@ struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
         uvx_strict(uv_pipe_init(loop->uvloop, &uvh, ipc));
     }
 
-    void bind (string_view name) override {
+    std::error_code bind (string_view name) override {
         UE_NULL_TERMINATE(name, name_str);
-        uvx_strict(uv_pipe_bind(&uvh, name_str));
+        return uvx_ce(uv_pipe_bind(&uvh, name_str));
     }
 
-    void open (fd_t file) override {
-        uvx_strict(uv_pipe_open(&uvh, file));
+    std::error_code open (fd_t file) override {
+        return uvx_ce(uv_pipe_open(&uvh, file));
     }
 
     std::error_code connect (string_view name, ConnectRequestImpl* _req) override {

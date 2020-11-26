@@ -14,9 +14,9 @@ struct SignalImpl : HandleImpl {
 
     virtual int signum () const = 0;
 
-    virtual void start (int signum) = 0;
-    virtual void once  (int signum) = 0;
-    virtual void stop  ()           = 0;
+    virtual std::error_code start (int signum) = 0;
+    virtual std::error_code once  (int signum) = 0;
+    virtual std::error_code stop  ()           = 0;
 
     void handle_signal (int signum) noexcept {
         ltry([&]{ listener->handle_signal(signum); });

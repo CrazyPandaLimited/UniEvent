@@ -11,16 +11,16 @@ struct UVSignal : UVHandle<SignalImpl, uv_signal_t> {
 
     int signum () const override { return uvh.signum; }
 
-    void start (int signum) override {
-        uvx_strict(uv_signal_start(&uvh, _call, signum));
+    std::error_code start (int signum) override {
+        return uvx_ce(uv_signal_start(&uvh, _call, signum));
     }
 
-    void once (int signum) override {
-        uvx_strict(uv_signal_start_oneshot(&uvh, _call, signum));
+    std::error_code once (int signum) override {
+        return uvx_ce(uv_signal_start_oneshot(&uvh, _call, signum));
     }
 
-    void stop () override {
-        uvx_strict(uv_signal_stop(&uvh));
+    std::error_code stop () override {
+        return uvx_ce(uv_signal_stop(&uvh));
     }
 
 private:

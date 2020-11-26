@@ -13,14 +13,14 @@ struct UVPoll : UVHandle<PollImpl, uv_poll_t> {
         uvx_strict(uv_poll_init(loop->uvloop, &uvh, fd));
     }
 
-    void start (int events) override {
-        uvx_strict(uv_poll_start(&uvh, events, [](uv_poll_t* p, int status, int events) {
+    std::error_code start (int events) override {
+        return uvx_ce(uv_poll_start(&uvh, events, [](uv_poll_t* p, int status, int events) {
             get_handle<UVPoll*>(p)->handle_poll(events, uvx_ce(status));
         }));
     }
 
-    void stop () override {
-        uvx_strict(uv_poll_stop(&uvh));
+    std::error_code stop () override {
+        return uvx_ce(uv_poll_stop(&uvh));
     }
 
     optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }

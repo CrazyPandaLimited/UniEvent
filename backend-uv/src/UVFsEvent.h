@@ -9,15 +9,15 @@ struct UVFsEvent : UVHandle<FsEventImpl, uv_fs_event_t> {
         uvx_strict(uv_fs_event_init(loop->uvloop, &uvh));
     }
 
-    void start (string_view path, unsigned flags) override {
+    std::error_code start (string_view path, unsigned flags) override {
         unsigned uv_flags = 0;
         if (flags & Flags::RECURSIVE) uv_flags |= UV_FS_EVENT_RECURSIVE;
         UE_NULL_TERMINATE(path, path_str);
-        uvx_strict(uv_fs_event_start(&uvh, on_fs_event, path_str, flags));
+        return uvx_ce(uv_fs_event_start(&uvh, on_fs_event, path_str, flags));
     }
 
-    void stop () override {
-        uvx_strict(uv_fs_event_stop(&uvh));
+    std::error_code stop () override {
+        return uvx_ce(uv_fs_event_stop(&uvh));
     }
 
 private:

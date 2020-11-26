@@ -5,6 +5,7 @@
 #include <panda/string.h>
 #include <panda/exception.h>
 #include <panda/string_view.h>
+#include <panda/excepted.h>
 
 namespace panda { namespace unievent {
 
@@ -96,6 +97,14 @@ extern const StreamerCategory     streamer_error_category;
 inline std::error_code make_error_code (errc          code) { return std::error_code((int)code, error_category); }
 inline std::error_code make_error_code (resolve_errc  code) { return std::error_code((int)code, resolve_error_category); }
 inline std::error_code make_error_code (streamer_errc code) { return std::error_code((int)code, streamer_error_category); }
+
+inline excepted<void, ErrorCode> make_excepted(const std::error_code& code) {
+    if (code) {
+        return make_unexpected(ErrorCode(code));
+    } else {
+        return {};
+    }
+}
 
 std::error_code make_ssl_error_code (int ssl_code);
 

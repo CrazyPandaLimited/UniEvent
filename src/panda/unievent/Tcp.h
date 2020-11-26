@@ -24,7 +24,7 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     const HandleType& type () const override;
 
-    virtual void open (sock_t socket, Ownership = Ownership::TRANSFER);
+    virtual excepted<void, ErrorCode> open (sock_t socket, Ownership = Ownership::TRANSFER);
     virtual excepted<void, ErrorCode> bind (const net::SockAddr&, unsigned flags = 0);
     virtual excepted<void, ErrorCode> bind (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
 
@@ -37,9 +37,9 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     net::SockAddr sockaddr () const { return impl()->sockaddr(); }
     net::SockAddr peeraddr () const { return impl()->peeraddr(); }
 
-    void set_nodelay              (bool enable)                     { impl()->set_nodelay(enable); }
-    void set_keepalive            (bool enable, unsigned int delay) { impl()->set_keepalive(enable, delay); }
-    void set_simultaneous_accepts (bool enable)                     { impl()->set_simultaneous_accepts(enable); }
+    excepted<void, ErrorCode> set_nodelay              (bool enable)                     { return make_excepted(impl()->set_nodelay(enable)); }
+    excepted<void, ErrorCode> set_keepalive            (bool enable, unsigned int delay) { return make_excepted(impl()->set_keepalive(enable, delay)); }
+    excepted<void, ErrorCode> set_simultaneous_accepts (bool enable)                     { return make_excepted(impl()->set_simultaneous_accepts(enable)); }
 
     int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
     void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }

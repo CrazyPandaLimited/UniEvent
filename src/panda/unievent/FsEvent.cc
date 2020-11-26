@@ -1,5 +1,6 @@
 #include "FsEvent.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType FsEvent::TYPE("fs_event");
 
@@ -7,14 +8,14 @@ const HandleType& FsEvent::type () const {
     return TYPE;
 }
 
-void FsEvent::start (const string_view& path, int flags, fs_event_fn callback) {
+excepted<void, panda::ErrorCode> FsEvent::start(const string_view& path, int flags, fs_event_fn callback) {
     if (callback) event.add(callback);
     _path = string(path);
-    impl()->start(path, flags);
+    return make_excepted(impl()->start(path, flags));
 }
 
-void FsEvent::stop () {
-    impl()->stop();
+excepted<void, panda::ErrorCode> FsEvent::stop() {
+    return make_excepted(impl()->stop());
 }
 
 void FsEvent::reset () {
@@ -33,3 +34,5 @@ void FsEvent::handle_fs_event (const string_view& file, int events, const std::e
     event(self, file, events, err);
     if (_listener) _listener->on_fs_event(self, file, events, err);
 }
+
+}}

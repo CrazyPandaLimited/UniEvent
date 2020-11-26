@@ -34,9 +34,9 @@ struct Signal : virtual BackendHandle, private backend::ISignalImplListener {
     int           signum  () const { return impl()->signum(); }
     const string& signame () const { return signame(signum()); }
 
-    virtual void start (int signum, signal_fn callback = {});
-    virtual void once  (int signum, signal_fn callback = {});
-    virtual void stop  ();
+    virtual excepted<void, ErrorCode> start (int signum, signal_fn callback = {});
+    virtual excepted<void, ErrorCode> once  (int signum, signal_fn callback = {});
+    virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;
     void clear () override;

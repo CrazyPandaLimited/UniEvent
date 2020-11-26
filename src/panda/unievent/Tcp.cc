@@ -21,13 +21,15 @@ backend::HandleImpl* Tcp::new_impl () {
     return loop()->impl()->new_tcp(this, domain);
 }
 
-void Tcp::open (sock_t sock, Ownership ownership) {
+excepted<void, ErrorCode> Tcp::open (sock_t sock, Ownership ownership) {
     if (ownership == Ownership::SHARE) sock = sock_dup(sock);
-    impl()->open(sock);
+    auto err = impl()->open(sock);
+    if (err) return make_unexpected(ErrorCode(err));
+
     if (peeraddr()) {
-        auto err = set_connect_result(true);
-        if (err) throw Error(err);
+        err = set_connect_result(true);
     }
+    return make_excepted(err);
 }
 
 excepted<void, ErrorCode> Tcp::bind (const net::SockAddr& addr, unsigned flags) {

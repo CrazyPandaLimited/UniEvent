@@ -35,8 +35,8 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
     IPollListener* event_listener () const           { return _listener; }
     void           event_listener (IPollListener* l) { _listener = l; }
 
-    virtual void start (int events, poll_fn callback = nullptr);
-    virtual void stop  ();
+    virtual excepted<void, ErrorCode> start (int events, poll_fn callback = nullptr);
+    virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;
     void clear () override;
