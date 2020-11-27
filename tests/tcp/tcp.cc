@@ -21,7 +21,7 @@ TEST_CASE("write to closed socket", "[tcp]") {
 
     AsyncTest test(2000, {"error"});
     TcpSP server = make_server(test.loop);
-    auto sa = server->sockaddr();
+    auto sa = server->sockaddr().value();
 
     TcpSP client = make_client(test.loop);
     client->connect(sa);
@@ -58,13 +58,13 @@ TEST_CASE("immediate disconnect", "[tcp]") {
     SECTION ("no server") {}
     SECTION ("first no server second with server") {
         server2 = make_server(test.loop);
-        sa2 = server2->sockaddr();
+        sa2 = server2->sockaddr().value();
     }
     SECTION ("with servers") {
         server1 = make_server(test.loop);
-        sa1 = server1->sockaddr();
+        sa1 = server1->sockaddr().value();
         server2 = make_server(test.loop);
-        sa2 = server2->sockaddr();
+        sa2 = server2->sockaddr().value();
     }
 
     TcpSP client = make_client(test.loop);
@@ -108,11 +108,11 @@ TEST_CASE("immediate client reset", "[tcp]") {
     SECTION ("no server") {}
     SECTION ("with server") {
         server = make_server(test.loop);
-        sa = server->sockaddr();
+        sa = server->sockaddr().value();
     }
     SECTION ("with nossl server") {
         server = make_basic_server(test.loop);
-        sa = server->sockaddr();
+        sa = server->sockaddr().value();
     }
     TcpSP client = make_client(test.loop);
 
@@ -141,7 +141,7 @@ TEST_CASE("immediate client write reset", "[tcp]") {
         test.loop->stop();
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     client->write("123");
     client->write_event.add([&](auto, auto& err, auto) {
         test.happens("w");
@@ -165,7 +165,7 @@ TEST_CASE("reset accepted connection", "[tcp]") {
         test.loop->stop();
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
 
     test.loop->run();
 }
@@ -204,7 +204,7 @@ TEST_CASE("server read", "[tcp]") {
         });
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     client->write("123");
 
     test.loop->run();
@@ -260,7 +260,7 @@ TEST_CASE("MEIACORE-734 ssl server backref", "[tcp]") {
     });
 
     TcpSP client = new Tcp(test.loop);
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     test.await(client->connect_event, "connect");
 
     server = nullptr;
@@ -297,7 +297,7 @@ TEST_CASE("MEIACORE-751 callback recursion", "[tcp]") {
 TEST_CASE("correct callback order", "[tcp]") {
     AsyncTest test(900, {"connect", "write"});
     TcpSP server = make_basic_server(test.loop);
-    SockAddr addr = server->sockaddr();
+    SockAddr addr = server->sockaddr().value();
 
     TcpSP client = new Tcp(test.loop);
     client->connect()->to(addr.ip(), addr.port())->on_connect([&](auto...) {
@@ -422,7 +422,7 @@ TEST_CASE("disconnect during ssl handshake", "[tcp]") {
     };
 
     TcpSP server = make_server(test.loop);
-    SockAddr sa = server->sockaddr();
+    SockAddr sa = server->sockaddr().value();
 
     TcpSP client = new Tcp(test.loop, AF_INET);
     client->connect(sa);
@@ -449,7 +449,7 @@ TEST_CASE("no on_read after read_stop", "[.][tcp]") {
         cl->read_stop();
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     test.await(server->connection_event, "conn");
 
     //idea: read 2 ssl packends in one tcp read
@@ -477,7 +477,7 @@ TEST_CASE("no on_read after read_stop", "[.][tcp]") {
 TEST_CASE("Stream::write range", "[tcp]") {
     AsyncTest test(2000, {"connect"});
     TcpSP server = make_server(test.loop);
-    net::SockAddr sa = server->sockaddr();
+    net::SockAddr sa = server->sockaddr().value();
 
     TcpSP client = make_client(test.loop);
     client->connect()->to(sa)->run();
@@ -507,7 +507,7 @@ TEST_CASE("write stack overflow", "[tcp]") {
 
     AsyncTest test(2000, {"connection"});
     TcpSP server = make_server(test.loop);
-    net::SockAddr sa = server->sockaddr();
+    net::SockAddr sa = server->sockaddr().value();
 
     TcpSP client = make_client(test.loop);
     client->connect(sa);
@@ -525,7 +525,7 @@ TEST_CASE("run in order", "[tcp]") {
     CHECK(s == "1");
 
     TcpSP server = make_server(test.loop);
-    auto sa = server->sockaddr();
+    auto sa = server->sockaddr().value();
 
     h->connect(sa);
     h->connect_event.add([&](auto...){
@@ -623,7 +623,7 @@ TEST_CASE("listen excepted error", "[tcp]") {
     TcpSP first_listener = make_server(test.loop);
 
     TcpSP second_listener = new Tcp(test.loop);;
-    second_listener->bind(first_listener->sockaddr());
+    second_listener->bind(first_listener->sockaddr().value());
     auto ret = second_listener->listen(1);
 
     REQUIRE_FALSE(ret.has_value());
@@ -633,13 +633,13 @@ TEST_CASE("listen excepted error", "[tcp]") {
 TEST_CASE("on_connection noclient", "[tcp]") {
     AsyncTest test(2000, {"conn"});
     TcpSP server = make_server(test.loop);
-    auto sa = server->sockaddr();
+    auto sa = server->sockaddr().value();
 
     TcpSP client = make_client(test.loop);
     client->connect(sa);
 
     TcpSP server2 = make_server(test.loop);
-    auto sa2 = server2->sockaddr();
+    auto sa2 = server2->sockaddr().value();
 
     TcpSP client2 = make_client(test.loop);
     client2->connect(sa2);

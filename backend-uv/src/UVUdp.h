@@ -50,11 +50,11 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         return {};
     }
 
-    net::SockAddr sockaddr () override {
+    excepted<net::SockAddr, std::error_code> sockaddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getsockname);
     }
 
-    net::SockAddr peeraddr () override {
+    excepted<net::SockAddr, std::error_code> peeraddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getpeername);
     }
 

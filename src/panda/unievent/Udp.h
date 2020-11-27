@@ -4,6 +4,7 @@
 #include "AddrInfo.h"
 #include "BackendHandle.h"
 #include "backend/UdpImpl.h"
+#include "SockAddrHelper.h"
 
 namespace panda { namespace unievent {
 
@@ -61,8 +62,8 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
-    net::SockAddr sockaddr () const { return impl()->sockaddr(); }
-    net::SockAddr peeraddr () const { return impl()->peeraddr(); }
+    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedError s) const { return handle_sockaddr(impl()->sockaddr(), s); }
+    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedError s) const { return handle_sockaddr(impl()->peeraddr(), s); }
 
     int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
     void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }

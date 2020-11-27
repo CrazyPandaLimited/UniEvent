@@ -56,7 +56,7 @@ static inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
     }
 
 template <class Handle, class Func>
-static inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
+static inline excepted<net::SockAddr, std::error_code> uvx_sockaddr (Handle uvhp, Func&& f) {
     net::SockAddr ret;
     int err;
     ret.assign_foreign([&](auto ptr, auto size_ptr){
@@ -64,8 +64,7 @@ static inline net::SockAddr uvx_sockaddr (Handle uvhp, Func&& f) {
         return !err;
     });
     if (err) {
-        if (err == UV_ENOTCONN || err == UV_EBADF || err == UV_EINVAL) return {};
-        throw Error(uvx_error(err));
+        return make_unexpected(uvx_ce(err));
     }
     return ret;
 }

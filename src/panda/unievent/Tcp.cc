@@ -114,7 +114,7 @@ void TcpConnectRequest::handle_event (const ErrorCode& err) {
 
 
 std::ostream& operator<< (std::ostream& os, const Tcp& tcp) {
-    return os << "local:" << tcp.sockaddr() << " peer:" << tcp.peeraddr() << " connected:" << (tcp.connected() ? "yes" : "no");
+    return os << "local:" << tcp.sockaddr().value_or(net::SockAddr{}) << " peer:" << tcp.peeraddr().value_or(net::SockAddr{})  << " connected:" << (tcp.connected() ? "yes" : "no");
 }
 
 std::ostream& operator<< (std::ostream& os, const TcpConnectRequest& r) {

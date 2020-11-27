@@ -94,7 +94,7 @@ TEST_CASE("client custom certificate", "[ssl]") {
         });
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     client->write("123");
     test.loop->run();
 }
@@ -120,7 +120,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
         test.loop->stop();
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     client->write("123");
     test.loop->run();
 }
@@ -147,7 +147,7 @@ TEST_CASE("server with different CA", "[ssl]") {
         test.loop->stop();
     });
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     client->write("123");
     test.loop->run();
 }
@@ -158,7 +158,7 @@ TEST_CASE("can't add filter when active", "[ssl]") {
     TcpSP client = make_client(test.loop);
     TcpSP server = make_server(test.loop);
 
-    client->connect(server->sockaddr());
+    client->connect(server->sockaddr().value());
     CHECK_THROWS( client->use_ssl() );
     variation.ssl = true;
 }

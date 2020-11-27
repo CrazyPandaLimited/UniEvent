@@ -24,7 +24,7 @@ SockAddr AsyncTest::get_refused_addr () {
             rs = new Tcp();
             rs->bind("127.0.0.1", 0);
         }
-        return rs->sockaddr();
+        return rs->sockaddr().value();
     #endif
 }
 

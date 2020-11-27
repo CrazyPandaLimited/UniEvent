@@ -34,7 +34,7 @@ TEST("connect with resolv request") {
 
     AsyncTest test(3000, {"resolve", "connection"});
     TcpSP server = make_server(test.loop);
-    net::SockAddr sa = server->sockaddr();
+    net::SockAddr sa = server->sockaddr().value();
 
     TcpSP client = make_client(test.loop);
     Resolver::RequestSP res_req = new Resolver::Request(test.loop->resolver());
@@ -104,7 +104,7 @@ TEST("connect timeout with real connection") {
     AsyncTest test(1000, {"connected1", "connected2"});
 
     TcpSP server = make_server(test.loop);
-    auto sa = server->sockaddr();
+    auto sa = server->sockaddr().value();
 
     SECTION("ordinary resolve") { test.loop->resolver()->cache_limit(0); }
     SECTION("cached resolve")   { }
@@ -138,7 +138,7 @@ TEST("connect timeout with real canceled connection") {
 
     AsyncTest test(50000, {"connected1", "connected2"});
     TcpSP server = make_server(test.loop);
-    auto sa = server->sockaddr();
+    auto sa = server->sockaddr().value();
     auto ip = sa.ip();
     auto port = sa.port();
     server->connection_event.add([](auto...) {});

@@ -40,8 +40,8 @@ struct UdpImpl : HandleImpl {
     virtual void            recv_stop  () = 0;
     virtual std::error_code send       (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl*) = 0;
 
-    virtual net::SockAddr sockaddr () = 0;
-    virtual net::SockAddr peeraddr () = 0;
+    virtual excepted<net::SockAddr, std::error_code> sockaddr () = 0;
+    virtual excepted<net::SockAddr, std::error_code> peeraddr () = 0;
 
     virtual optional<fh_t> fileno () const = 0;
 

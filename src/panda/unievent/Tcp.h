@@ -4,6 +4,7 @@
 #include "AddrInfo.h"
 #include "Resolver.h"
 #include "backend/TcpImpl.h"
+#include "SockAddrHelper.h"
 #include <iosfwd>
 
 namespace panda { namespace unievent {
@@ -34,8 +35,12 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     virtual void connect (const TcpConnectRequestSP&);
 
-    net::SockAddr sockaddr () const { return impl()->sockaddr(); }
-    net::SockAddr peeraddr () const { return impl()->peeraddr(); }
+    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedError error_strategy = NotConnectedError::Ignore) const {
+        return handle_sockaddr(impl()->sockaddr(), error_strategy);
+    }
+    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedError error_strategy = NotConnectedError::Ignore) const {
+        return handle_sockaddr(impl()->peeraddr(), error_strategy);
+    }
 
     excepted<void, ErrorCode> set_nodelay              (bool enable)                     { return make_excepted(impl()->set_nodelay(enable)); }
     excepted<void, ErrorCode> set_keepalive            (bool enable, unsigned int delay) { return make_excepted(impl()->set_keepalive(enable, delay)); }

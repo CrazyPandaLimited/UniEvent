@@ -61,7 +61,7 @@ TcpP2P make_tcp_pair (const LoopSP& loop, const SockAddr& sa) {
     TcpP2P ret;
     ret.server = make_server(loop, sa);
     ret.client = make_client(loop);
-    ret.client->connect(ret.server->sockaddr());
+    ret.client->connect(ret.server->sockaddr().value());
     return ret;
 }
 

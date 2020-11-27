@@ -28,11 +28,11 @@ struct UVTcp : UVStream<TcpImpl, uv_tcp_t> {
         return uvx_ce(err);
     }
 
-    net::SockAddr sockaddr () const override {
+    excepted<net::SockAddr, std::error_code> sockaddr () const override {
         return uvx_sockaddr(&uvh, &uv_tcp_getsockname);
     }
 
-    net::SockAddr peeraddr () const override {
+    excepted<net::SockAddr, std::error_code> peeraddr () const override {
         return uvx_sockaddr(&uvh, &uv_tcp_getpeername);
     }
 
