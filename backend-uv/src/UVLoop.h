@@ -25,8 +25,8 @@ struct UVLoop : LoopImpl {
 
     ~UVLoop () {
         _delayer.destroy();
-        run(RunMode::DEFAULT); // finish all closing handles
-        run(RunMode::DEFAULT); // finish all closing handles
+        run(RunMode::ONCE); // finish all closing handles
+        run(RunMode::ONCE); // finish all closing handles
         int err = uv_loop_close(uvloop);
         assert(!err); // unievent should have closed all handles
     }
