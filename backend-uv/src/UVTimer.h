@@ -17,8 +17,8 @@ struct UVTimer : UVHandle<TimerImpl, uv_timer_t> {
         uv_timer_stop(&uvh);
     }
 
-    void again () override {
-        uvx_strict(uv_timer_again(&uvh));
+    std::error_code again () override {
+        return uvx_ce(uv_timer_again(&uvh));
     }
 
     uint64_t repeat () const override {

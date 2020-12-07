@@ -14,7 +14,7 @@ struct WorkImpl {
 
     WorkImpl (LoopImpl* loop, IWorkImplListener* lst) : loop(loop), listener(lst) { panda_log_ctor(); }
 
-    virtual void queue () = 0;
+    virtual std::error_code queue () = 0;
 
     void handle_work () noexcept {
         loop->ltry([&]{ listener->handle_work(); });

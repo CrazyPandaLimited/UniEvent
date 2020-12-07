@@ -150,10 +150,10 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
-    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
-    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
-    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
-    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
+    excepted<int,  ErrorCode> recv_buffer_size () const { return make_excepted(impl()->recv_buffer_size()); }
+    excepted<int,  ErrorCode> send_buffer_size () const { return make_excepted(impl()->send_buffer_size()); }
+    excepted<void, ErrorCode> recv_buffer_size (int value) { return make_excepted(impl()->recv_buffer_size(value)); }
+    excepted<void, ErrorCode> send_buffer_size (int value) { return make_excepted(impl()->send_buffer_size(value)); }
 
 protected:
     Queue queue;

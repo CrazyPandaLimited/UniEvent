@@ -22,8 +22,8 @@ struct Tty : virtual Stream {
 
     fd_t fd () const { return _fd; }
 
-    virtual void    set_mode    (Mode);
-    virtual WinSize get_winsize ();
+    virtual excepted<void, ErrorCode>    set_mode(Mode);
+    virtual excepted<WinSize, ErrorCode> get_winsize ();
 
 protected:
     StreamSP create_connection () override;

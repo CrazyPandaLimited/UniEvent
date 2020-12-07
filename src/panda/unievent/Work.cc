@@ -1,5 +1,6 @@
 #include "Work.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 WorkSP Work::queue (const work_fn& wcb, const after_work_fn& awcb, const LoopSP& loop) {
     WorkSP ret = new Work(loop);
@@ -9,10 +10,11 @@ WorkSP Work::queue (const work_fn& wcb, const after_work_fn& awcb, const LoopSP&
     return ret;
 }
 
-void Work::queue () {
+excepted<void, panda::ErrorCode> Work::queue() {
     _loop->register_work(this);
-    impl()->queue();
+    auto err = impl()->queue();
     _active = true;
+    return make_excepted(err);
 }
 
 bool Work::cancel () {
@@ -37,3 +39,5 @@ void Work::handle_after_work (const std::error_code& err) {
     else if (_listener) _listener->on_after_work(self, err);
     else throw std::logic_error("after_work callback must be set");
 }
+
+}}

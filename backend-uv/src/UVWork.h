@@ -13,10 +13,10 @@ struct UVWork : WorkImpl {
         uvr.data = this;
     }
 
-    void queue () override {
+    std::error_code queue () override {
         auto err = uv_queue_work(uvr.loop, &uvr, on_work, on_after_work);
         if (!err) active = true;
-        uvx_strict(err);
+        return uvx_ce(err);
     }
 
     bool destroy () noexcept override {

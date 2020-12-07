@@ -13,8 +13,8 @@ struct TtyImpl : StreamImpl {
 
     TtyImpl (LoopImpl* loop, IStreamImplListener* lst) : StreamImpl(loop, lst) {}
 
-    virtual void    set_mode    (Mode) = 0;
-    virtual WinSize get_winsize ()     = 0;
+    virtual std::error_code set_mode (Mode) = 0;
+    virtual expected<WinSize, std::error_code> get_winsize () = 0;
 };
 
 }}}

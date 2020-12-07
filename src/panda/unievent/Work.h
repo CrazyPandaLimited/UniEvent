@@ -2,6 +2,8 @@
 #include "Loop.h"
 #include "backend/WorkImpl.h"
 #include <panda/memory.h>
+#include <panda/excepted.h>
+#include <panda/error.h>
 
 namespace panda { namespace unievent {
 
@@ -35,7 +37,7 @@ struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private
     IWorkListener* event_listener () const           { return _listener; }
     void           event_listener (IWorkListener* l) { _listener = l; }
 
-    virtual void queue  ();
+    virtual excepted<void, panda::ErrorCode> queue();
     virtual bool cancel ();
 
     ~Work () {

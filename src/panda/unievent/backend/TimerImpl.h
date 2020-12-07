@@ -14,9 +14,10 @@ struct TimerImpl : HandleImpl {
 
     virtual void     start  (uint64_t repeat, uint64_t initial) = 0;
     virtual void     stop   () noexcept = 0;
-    virtual void     again  () = 0;
     virtual uint64_t repeat () const = 0;
     virtual void     repeat (uint64_t repeat) = 0;
+
+    virtual std::error_code again() = 0;
 
     void handle_timer () noexcept {
         ltry([&]{ listener->handle_timer(); });

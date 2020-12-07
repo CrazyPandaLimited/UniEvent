@@ -1,6 +1,7 @@
 #include "Udp.h"
 #include "util.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType Udp::TYPE("udp");
 
@@ -22,61 +23,61 @@ panda::string Udp::buf_alloc (size_t cap) noexcept {
     }
 }
 
-void Udp::open (sock_t sock, Ownership ownership) {
+excepted<void, panda::ErrorCode> Udp::open(sock_t sock, Ownership ownership) {
     if (ownership == Ownership::SHARE) sock = sock_dup(sock);
-    impl()->open(sock);
+    return make_excepted(impl()->open(sock));
 }
 
-void Udp::bind (const net::SockAddr& sa, unsigned flags) {
-    impl()->bind(sa, flags);
+excepted<void, panda::ErrorCode> Udp::bind (const net::SockAddr& sa, unsigned flags) {
+    return make_excepted(impl()->bind(sa, flags));
 }
 
-void Udp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
+excepted<void, panda::ErrorCode> Udp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
     if (host == "*") return bind(broadcast_addr(port, hints), flags);
     auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    bind(ai.addr(), flags);
+    return bind(ai.addr(), flags);
 }
 
-void Udp::connect (const net::SockAddr& addr) {
-    impl()->connect(addr);
+excepted<void, panda::ErrorCode> Udp::connect (const net::SockAddr& addr) {
+    return make_excepted(impl()->connect(addr));
 }
 
-void Udp::connect (string_view host, uint16_t port, const AddrInfoHints& hints) {
+excepted<void, panda::ErrorCode> Udp::connect (string_view host, uint16_t port, const AddrInfoHints& hints) {
     auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    connect(ai.addr());
+    return connect(ai.addr());
 }
 
-void Udp::set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) {
-    impl()->set_membership(multicast_addr, interface_addr, membership);
+excepted<void, panda::ErrorCode> Udp::set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) {
+    return make_excepted(impl()->set_membership(multicast_addr, interface_addr, membership));
 }
 
-void Udp::set_multicast_loop (bool on) {
-    impl()->set_multicast_loop(on);
+excepted<void, panda::ErrorCode> Udp::set_multicast_loop (bool on) {
+    return make_excepted(impl()->set_multicast_loop(on));
 }
 
-void Udp::set_multicast_ttl (int ttl) {
-    impl()->set_multicast_ttl(ttl);
+excepted<void, panda::ErrorCode> Udp::set_multicast_ttl (int ttl) {
+    return make_excepted(impl()->set_multicast_ttl(ttl));
 }
 
-void Udp::set_multicast_interface (string_view interface_addr) {
-    impl()->set_multicast_interface(interface_addr);
+excepted<void, panda::ErrorCode> Udp::set_multicast_interface (string_view interface_addr) {
+    return make_excepted(impl()->set_multicast_interface(interface_addr));
 }
 
-void Udp::set_broadcast (bool on) {
-    impl()->set_broadcast(on);
+excepted<void, panda::ErrorCode> Udp::set_broadcast (bool on) {
+    return make_excepted(impl()->set_broadcast(on));
 }
 
-void Udp::set_ttl (int ttl) {
-    impl()->set_ttl(ttl);
+excepted<void, panda::ErrorCode> Udp::set_ttl (int ttl) {
+    return make_excepted(impl()->set_ttl(ttl));
 }
 
-void Udp::recv_start (receive_fn callback) {
+excepted<void, panda::ErrorCode> Udp::recv_start (receive_fn callback) {
     if (callback) receive_event.add(callback);
-    impl()->recv_start();
+    return make_excepted(impl()->recv_start());
 }
 
-void Udp::recv_stop () {
-    impl()->recv_stop();
+excepted<void, panda::ErrorCode> Udp::recv_stop () {
+    return make_excepted(impl()->recv_stop());
 }
 
 void Udp::send (const SendRequestSP& req) {
@@ -122,3 +123,5 @@ void Udp::handle_receive (string& buf, const net::SockAddr& sa, unsigned flags, 
     receive_event(self, buf, sa, flags, err);
     if (_listener) _listener->on_receive(self, buf, sa, flags, err);
 }
+
+}}

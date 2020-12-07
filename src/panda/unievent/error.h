@@ -106,6 +106,15 @@ inline excepted<void, ErrorCode> make_excepted(const std::error_code& code) {
     }
 }
 
+template <typename T>
+excepted<T, ErrorCode> make_excepted(const expected<T, std::error_code>& e) {
+    if (e.has_value()) {
+        return e.value();
+    } else {
+        return make_unexpected(e.error());
+    }
+}
+
 std::error_code make_ssl_error_code (int ssl_code);
 
 inline ErrorCode nest_error (const std::error_code& err, const ErrorCode& stack) {

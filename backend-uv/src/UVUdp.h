@@ -14,27 +14,27 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop->uvloop, &uvh) : uv_udp_init_ex(loop->uvloop, &uvh, domain));
     }
 
-    void open (sock_t sock) override {
-        uvx_strict(uv_udp_open(&uvh, sock));
+    std::error_code open (sock_t sock) override {
+        return uvx_ce(uv_udp_open(&uvh, sock));
     }
 
-    void bind (const net::SockAddr& addr, unsigned flags) override {
+    std::error_code bind (const net::SockAddr& addr, unsigned flags) override {
         unsigned uv_flags = 0;
         if (flags & Flags::IPV6ONLY)  uv_flags |= UV_UDP_IPV6ONLY;
         if (flags & Flags::REUSEADDR) uv_flags |= UV_UDP_REUSEADDR;
-        uvx_strict(uv_udp_bind(&uvh, addr.get(), uv_flags));
+        return uvx_ce(uv_udp_bind(&uvh, addr.get(), uv_flags));
     }
 
-    void connect (const net::SockAddr& addr) override {
-        uvx_strict(uv_udp_connect(&uvh, addr ? addr.get() : nullptr));
+    std::error_code connect (const net::SockAddr& addr) override {
+        return uvx_ce(uv_udp_connect(&uvh, addr ? addr.get() : nullptr));
     }
 
-    void recv_start () override {
-        uvx_strict(uv_udp_recv_start(&uvh, _buf_alloc, on_receive));
+    std::error_code recv_start () override {
+        return uvx_ce(uv_udp_recv_start(&uvh, _buf_alloc, on_receive));
     }
 
-    void recv_stop  () override {
-        uvx_strict(uv_udp_recv_stop(&uvh));
+    std::error_code recv_stop  () override {
+        return uvx_ce(uv_udp_recv_stop(&uvh));
     }
 
     std::error_code send (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl* _req) override {
@@ -60,12 +60,12 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
 
     optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }
 
-    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(uvhp()); }
-    void recv_buffer_size (int value) override { uvx_recv_buffer_size(uvhp(), value); }
-    int  send_buffer_size ()    const override { return uvx_send_buffer_size(uvhp()); }
-    void send_buffer_size (int value) override { uvx_send_buffer_size(uvhp(), value); }
+    expected<int, std::error_code> recv_buffer_size () const override { return uvx_recv_buffer_size(uvhp()); }
+    expected<int, std::error_code> send_buffer_size () const override { return uvx_send_buffer_size(uvhp()); }
+    std::error_code recv_buffer_size (int value) override { return uvx_recv_buffer_size(uvhp(), value); }
+    std::error_code send_buffer_size (int value) override { return uvx_send_buffer_size(uvhp(), value); }
 
-    void set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) override {
+    std::error_code set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) override {
         uv_membership uvmemb = uv_membership();
         switch (membership) {
             case Membership::LEAVE_GROUP : uvmemb = UV_LEAVE_GROUP; break;
@@ -73,28 +73,28 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         }
         UE_NULL_TERMINATE(multicast_addr, multicast_addr_cstr);
         UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
-        uvx_strict(uv_udp_set_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, uvmemb));
+        return uvx_ce(uv_udp_set_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, uvmemb));
     }
 
-    void set_multicast_loop (bool on) override {
-        uvx_strict(uv_udp_set_multicast_loop(&uvh, on));
+    std::error_code set_multicast_loop (bool on) override {
+        return uvx_ce(uv_udp_set_multicast_loop(&uvh, on));
     }
 
-    void set_multicast_ttl (int ttl) override {
-        uvx_strict(uv_udp_set_multicast_ttl(&uvh, ttl));
+    std::error_code set_multicast_ttl (int ttl) override {
+        return uvx_ce(uv_udp_set_multicast_ttl(&uvh, ttl));
     }
 
-    void set_multicast_interface (string_view interface_addr) override {
+    std::error_code set_multicast_interface (string_view interface_addr) override {
         UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
-        uvx_strict(uv_udp_set_multicast_interface(&uvh, interface_addr_cstr));
+        return uvx_ce(uv_udp_set_multicast_interface(&uvh, interface_addr_cstr));
     }
 
-    void set_broadcast (bool on) override {
-        uvx_strict(uv_udp_set_broadcast(&uvh, on));
+    std::error_code set_broadcast (bool on) override {
+        return uvx_ce(uv_udp_set_broadcast(&uvh, on));
     }
 
-    void set_ttl (int ttl) override {
-        uvx_strict(uv_udp_set_ttl(&uvh, ttl));
+    std::error_code set_ttl (int ttl) override {
+        return uvx_ce(uv_udp_set_ttl(&uvh, ttl));
     }
 
     SendRequestImpl* new_send_request (IRequestListener* l) override { return new UVSendRequest(this, l); }

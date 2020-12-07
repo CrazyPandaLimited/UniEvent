@@ -77,24 +77,32 @@ static inline optional<fh_t> uvx_fileno (const uv_handle_t* p) {
     throw Error(uvx_error(err));
 }
 
-static inline int uvx_recv_buffer_size (const uv_handle_t* p) {
+static inline expected<int, std::error_code> uvx_recv_buffer_size (const uv_handle_t* p) {
     int ret = 0;
-    uvx_strict(uv_recv_buffer_size((uv_handle_t*)p, &ret));
-    return ret;
+    auto err = uvx_ce(uv_recv_buffer_size((uv_handle_t*)p, &ret));
+    if (err) {
+        return make_unexpected(err);
+    } else {
+        return ret;
+    }
 }
 
-static inline void uvx_recv_buffer_size (uv_handle_t* p, int value) {
-    uvx_strict(uv_recv_buffer_size(p, &value));
+static inline std::error_code uvx_recv_buffer_size (uv_handle_t* p, int value) {
+    return uvx_ce(uv_recv_buffer_size(p, &value));
 }
 
-static inline int uvx_send_buffer_size (const uv_handle_t* p) {
+static inline expected<int, std::error_code> uvx_send_buffer_size (const uv_handle_t* p) {
     int ret = 0;
-    uvx_strict(uv_send_buffer_size((uv_handle_t*)p, &ret));
-    return ret;
+    auto err = uvx_ce(uv_send_buffer_size((uv_handle_t*)p, &ret));
+    if (err) {
+        return make_unexpected(err);
+    } else {
+        return ret;
+    }
 }
 
-static inline void uvx_send_buffer_size (uv_handle_t* p, int value) {
-    uvx_strict(uv_send_buffer_size(p, &value));
+static inline std::error_code uvx_send_buffer_size (uv_handle_t* p, int value) {
+    return uvx_ce(uv_send_buffer_size(p, &value));
 }
 
 }}}}

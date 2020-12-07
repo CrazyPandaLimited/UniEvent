@@ -66,10 +66,10 @@ struct UVStream : UVHandle<Base, UvReq> {
     bool   writable         () const noexcept override { return uv_is_writable(uvsp()); }
     size_t write_queue_size () const noexcept override { return uvsp()->write_queue_size; }
 
-    int  recv_buffer_size ()    const override { return uvx_recv_buffer_size(this->uvhp()); }
-    void recv_buffer_size (int value) override { uvx_recv_buffer_size(this->uvhp(), value); }
-    int  send_buffer_size ()    const override { return uvx_send_buffer_size(this->uvhp()); }
-    void send_buffer_size (int value) override { uvx_send_buffer_size(this->uvhp(), value); }
+    expected<int, std::error_code>  recv_buffer_size () const override { return uvx_recv_buffer_size(this->uvhp()); }
+    expected<int, std::error_code>  send_buffer_size () const override { return uvx_send_buffer_size(this->uvhp()); }
+    std::error_code recv_buffer_size (int value) override { return uvx_recv_buffer_size(this->uvhp(), value); }
+    std::error_code send_buffer_size (int value) override { return uvx_send_buffer_size(this->uvhp(), value); }
 
 protected:
     static void on_connect (uv_connect_t* p, int status) {

@@ -38,10 +38,10 @@ struct StreamImpl : HandleImpl {
 
     virtual optional<fh_t> fileno () const = 0;
 
-    virtual int  recv_buffer_size () const    = 0;
-    virtual void recv_buffer_size (int value) = 0;
-    virtual int  send_buffer_size () const    = 0;
-    virtual void send_buffer_size (int value) = 0;
+    virtual expected<int, std::error_code>  recv_buffer_size () const    = 0;
+    virtual expected<int, std::error_code>  send_buffer_size () const    = 0;
+    virtual std::error_code recv_buffer_size (int value) = 0;
+    virtual std::error_code send_buffer_size (int value) = 0;
 
     virtual bool   readable         () const noexcept = 0;
     virtual bool   writable         () const noexcept = 0;

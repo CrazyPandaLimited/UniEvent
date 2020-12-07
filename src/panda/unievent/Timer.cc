@@ -1,5 +1,6 @@
 #include "Timer.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType Timer::TYPE("timer");
 
@@ -16,9 +17,9 @@ void Timer::stop () {
     impl()->stop();
 }
 
-void Timer::again () {
+excepted<void, ErrorCode> Timer::again () {
     loop()->update_time();
-    impl()->again();
+    return make_excepted(impl()->again());
 }
 
 uint64_t Timer::repeat () const {
@@ -60,3 +61,5 @@ void Timer::handle_timer () {
     event(self);
     if (_listener) _listener->on_timer(self);
 }
+
+}}

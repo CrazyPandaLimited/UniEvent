@@ -46,11 +46,6 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     excepted<void, ErrorCode> set_keepalive            (bool enable, unsigned int delay) { return make_excepted(impl()->set_keepalive(enable, delay)); }
     excepted<void, ErrorCode> set_simultaneous_accepts (bool enable)                     { return make_excepted(impl()->set_simultaneous_accepts(enable)); }
 
-    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
-    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
-    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
-    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
-    
     optional<sock_t> socket () const {
         auto fh = fileno();
         if (!fh) return {};

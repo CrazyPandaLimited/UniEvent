@@ -46,15 +46,16 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
 
     string buf_alloc (size_t cap) noexcept override;
 
-    virtual void open       (sock_t socket, Ownership = Ownership::TRANSFER);
-    virtual void bind       (const net::SockAddr&, unsigned flags = 0);
-    virtual void bind       (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
-    virtual void connect    (const net::SockAddr&);
-    virtual void connect    (string_view host, uint16_t port, const AddrInfoHints& hints = defhints);
-    virtual void recv_start (receive_fn callback = nullptr);
-    virtual void recv_stop  ();
-    virtual void reset      () override;
-    virtual void clear      () override;
+    virtual void reset () override;
+    virtual void clear () override;
+
+    virtual excepted<void, ErrorCode> open       (sock_t socket, Ownership = Ownership::TRANSFER);
+    virtual excepted<void, ErrorCode> bind       (const net::SockAddr&, unsigned flags = 0);
+    virtual excepted<void, ErrorCode> bind       (string_view host, uint16_t port, const AddrInfoHints& hints = defhints, unsigned flags = 0);
+    virtual excepted<void, ErrorCode> connect    (const net::SockAddr&);
+    virtual excepted<void, ErrorCode> connect    (string_view host, uint16_t port, const AddrInfoHints& hints = defhints);
+    virtual excepted<void, ErrorCode> recv_start (receive_fn callback = nullptr);
+    virtual excepted<void, ErrorCode> recv_stop  ();
     virtual void send       (const SendRequestSP& req);
     /*INL*/ void send       (const string& data, const net::SockAddr& sa, send_fn callback = {});
     template <class It>
@@ -65,17 +66,17 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
     excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedError s) const { return handle_sockaddr(impl()->sockaddr(), s); }
     excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedError s) const { return handle_sockaddr(impl()->peeraddr(), s); }
 
-    int  recv_buffer_size () const    { return impl()->recv_buffer_size(); }
-    void recv_buffer_size (int value) { impl()->recv_buffer_size(value); }
-    int  send_buffer_size () const    { return impl()->send_buffer_size(); }
-    void send_buffer_size (int value) { impl()->send_buffer_size(value); }
+    excepted<int,  ErrorCode> recv_buffer_size () const { return make_excepted(impl()->recv_buffer_size()); }
+    excepted<int,  ErrorCode> send_buffer_size () const { return make_excepted(impl()->send_buffer_size()); }
+    excepted<void, ErrorCode> recv_buffer_size (int value) { return make_excepted(impl()->recv_buffer_size(value)); }
+    excepted<void, ErrorCode> send_buffer_size (int value) { return make_excepted(impl()->send_buffer_size(value)); }
 
-    void set_membership          (string_view multicast_addr, string_view interface_addr, Membership membership);
-    void set_multicast_loop      (bool on);
-    void set_multicast_ttl       (int ttl);
-    void set_multicast_interface (string_view interface_addr);
-    void set_broadcast           (bool on);
-    void set_ttl                 (int ttl);
+    excepted<void, ErrorCode> set_membership          (string_view multicast_addr, string_view interface_addr, Membership membership);
+    excepted<void, ErrorCode> set_multicast_loop      (bool on);
+    excepted<void, ErrorCode> set_multicast_ttl       (int ttl);
+    excepted<void, ErrorCode> set_multicast_interface (string_view interface_addr);
+    excepted<void, ErrorCode> set_broadcast           (bool on);
+    excepted<void, ErrorCode> set_ttl                 (int ttl);
 
     static const HandleType TYPE;
 

@@ -1,6 +1,7 @@
 #include "Tty.h"
 #include "uv.h"
-using namespace panda::unievent;
+
+namespace panda { namespace unievent {
 
 const HandleType Tty::TYPE("tty");
 
@@ -26,15 +27,22 @@ StreamSP Tty::create_connection () {
     return new Tty(_fd, loop());
 }
 
-void Tty::set_mode (Mode mode) {
-    impl()->set_mode(mode);
+excepted<void, panda::ErrorCode> Tty::set_mode(Mode mode) {
+    return make_excepted(impl()->set_mode(mode));
 }
 
-Tty::WinSize Tty::get_winsize () {
-    return impl()->get_winsize();
+excepted<Tty::WinSize, ErrorCode> Tty::get_winsize () {
+    auto ret = impl()->get_winsize();
+    if (ret.has_value()) {
+        return ret.value();
+    } else {
+        return make_unexpected(ret.error());
+    }
 }
 
 void Tty::on_reset () {
     read_stop();
     set_connect_result(true);
 }
+
+}}
