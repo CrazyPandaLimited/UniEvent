@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 PROJECT(unievent LANGUAGES CXX)
 
 set(LIB_TYPE CACHE STRING STATIC)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB_RECURSE libSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/panda/*.cc" "backend-uv/*.cc")
 add_library(${PROJECT_NAME} ${LIB_TYPE} ${libSource})
@@ -10,17 +11,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${pub_includes}>"
     $<INSTALL_INTERFACE:include>
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
-)
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/modules")
 message(STATUS modules ${CMAKE_MODULE_PATH})
 
 find_package(panda-lib REQUIRED)
-find_package(net-sockaddr REQUIRED)
+find_package(panda-net-sockaddr REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(c-ares REQUIRED)
 find_package(libuv REQUIRED)
