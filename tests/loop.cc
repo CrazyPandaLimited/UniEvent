@@ -185,6 +185,41 @@ TEST_CASE("loop", "[loop]") {
     if (ccnt != dcnt) CHECK(ccnt == dcnt);
 }
 
+TEST_CASE("track load average", "[loop]") {
+    AsyncTest test(2000, 2);
+    test.loop->track_load_average(1);
+    auto p = make_p2p(test.loop);
+    p.sconn->read_event.add([&](auto, auto, auto& err) {
+        test.happens();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    });
+    p.sconn->eof_event.add([&](auto){
+        test.happens();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        test.loop->stop();
+    });
+    p.client->write("epta");
+    p.client->disconnect();
+
+    auto t = Timer::once(1, [&](auto) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }, test.loop);
+
+    test.run();
+
+    CHECK(test.loop->get_load_average() > 0);
+}
+
+TEST_CASE("bench_monotonic", "[.]") {
+    struct timespec ts;
+    for (int i = 0; i < 10000000; ++i) clock_gettime(CLOCK_MONOTONIC, &ts);
+}
+
+TEST_CASE("bench_realtime", "[.]") {
+    struct timespec ts;
+    for (int i = 0; i < 10000000; ++i) clock_gettime(CLOCK_REALTIME, &ts);
+}
+
 #ifndef _WIN32
     #include <sys/types.h>
     #include <unistd.h>

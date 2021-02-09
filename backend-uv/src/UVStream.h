@@ -82,7 +82,9 @@ private:
     uv_stream_t* uvsp () const { return (uv_stream_t*)&this->uvh; }
 
     static void on_connection (uv_stream_t* p, int status) {
-        get_handle<UVStream*>(p)->handle_connection(uvx_ce(status));
+        auto h = get_handle<UVStream*>(p);
+        mark_load_average(h->loop);
+        h->handle_connection(uvx_ce(status));
     }
 
     static void _buf_alloc (uv_handle_t* p, size_t size, uv_buf_t* uvbuf) {
@@ -93,6 +95,7 @@ private:
     static void on_read (uv_stream_t* p, ssize_t nread, const uv_buf_t* uvbuf) {
         auto h   = get_handle<UVStream*>(p);
         auto buf = uvx_detach_buf(uvbuf);
+        mark_load_average(h->loop);
 
         ssize_t err = 0;
         if      (nread < 0) std::swap(err, nread);
@@ -109,12 +112,14 @@ private:
 
     static void on_write (uv_write_t* p, int status) {
         auto req = get_request<UVWriteRequest*>(p);
+        mark_load_average(req->handle->loop);
         req->active = false;
         req->handle_event(uvx_ce(status));
     }
 
     static void on_shutdown (uv_shutdown_t* p, int status) {
         auto req = get_request<UVShutdownRequest*>(p);
+        mark_load_average(req->handle->loop);
         req->active = false;
         req->handle_event(uvx_ce(status));
     }

@@ -67,6 +67,9 @@ struct Loop : Refcnt {
 
     Resolver* resolver ();
 
+    void   track_load_average (uint32_t for_last_n_seconds);
+    double get_load_average   () const;
+
     LoopImpl* impl () { return _impl; }
 
     void dump () const;

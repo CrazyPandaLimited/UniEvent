@@ -26,7 +26,8 @@ excepted<void, ErrorCode> Tcp::open (sock_t sock, Ownership ownership) {
     auto err = impl()->open(sock);
     if (err) return make_unexpected(ErrorCode(err));
 
-    if (peeraddr()) {
+    auto res = peeraddr();
+    if (res && res.value()) {
         err = set_connect_result(true);
     }
     return make_excepted(err);

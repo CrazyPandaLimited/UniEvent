@@ -15,7 +15,9 @@ struct UVPoll : UVHandle<PollImpl, uv_poll_t> {
 
     std::error_code start (int events) override {
         return uvx_ce(uv_poll_start(&uvh, events, [](uv_poll_t* p, int status, int events) {
-            get_handle<UVPoll*>(p)->handle_poll(events, uvx_ce(status));
+            auto h = get_handle<UVPoll*>(p);
+            mark_load_average(h->loop);
+            h->handle_poll(events, uvx_ce(status));
         }));
     }
 

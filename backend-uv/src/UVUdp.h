@@ -102,6 +102,7 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
 private:
     static void on_send (uv_udp_send_t* p, int status) {
         auto req = get_request<UVSendRequest*>(p);
+        mark_load_average(req->handle->loop);
         req->active = false;
         req->handle_event(uvx_ce(status));
     }
@@ -114,6 +115,7 @@ private:
     static void on_receive (uv_udp_t* p, ssize_t nread, const uv_buf_t* uvbuf, const struct sockaddr* addr, unsigned flags) {
         auto h   = get_handle<UVUdp*>(p);
         auto buf = uvx_detach_buf(uvbuf);
+        mark_load_average(h->loop);
 
         if (!nread && !addr) return; // nothing to read
 

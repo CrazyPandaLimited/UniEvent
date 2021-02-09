@@ -25,7 +25,9 @@ struct UVSignal : UVHandle<SignalImpl, uv_signal_t> {
 
 private:
     static void _call (uv_signal_t* p, int signum) {
-        get_handle<UVSignal*>(p)->handle_signal(signum);
+        auto h = get_handle<UVSignal*>(p);
+        mark_load_average(h->loop);
+        h->handle_signal(signum);
     }
 };
 

@@ -116,4 +116,12 @@ Resolver* Loop::resolver () {
     return _resolver.get();
 }
 
+void Loop::track_load_average (uint32_t nsec) {
+    _impl->track_load_average(nsec);
+}
+
+double Loop::get_load_average () const {
+    return _impl->get_load_average();
+}
+
 }}

@@ -1,6 +1,7 @@
 #pragma once
 #include "inc.h"
 #include "UVDelayer.h"
+#include "UVLATracker.h"
 #include <panda/unievent/backend/LoopImpl.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
@@ -8,7 +9,7 @@ namespace panda { namespace unievent { namespace backend { namespace uv {
 struct UVLoop : LoopImpl {
     uv_loop_t* uvloop;
 
-    UVLoop (Type type) : _delayer(this) {
+    UVLoop (Type type) : _delayer(this), _la_tracker() {
         switch (type) {
             case Type::GLOBAL:
                 uvloop = uv_default_loop();
@@ -25,6 +26,7 @@ struct UVLoop : LoopImpl {
 
     ~UVLoop () {
         _delayer.destroy();
+        if (_la_tracker) delete _la_tracker;
         run(RunMode::NOWAIT); // finish all closing handles
         run(RunMode::NOWAIT); // finish all closing handles
         int err = uv_loop_close(uvloop);
@@ -82,11 +84,29 @@ struct UVLoop : LoopImpl {
     uint64_t delay        (const delayed_fn& f, const iptr<Refcnt>& guard = {}) override { return _delayer.add(f, guard); }
     void     cancel_delay (uint64_t id)                                noexcept override { _delayer.cancel(id); }
 
+    void track_load_average (uint32_t nsec) override {
+        if (_la_tracker) delete _la_tracker;
+        if (nsec) _la_tracker = new UVLATracker(this, nsec);
+    }
+
+    double get_load_average () const override {
+        return _la_tracker ? _la_tracker->get() : 0.0f;
+    }
+
+    void mark_load_average () {
+        if (_la_tracker) _la_tracker->mark();
+    }
+
     void* get() override {return uvloop;}
 
 private:
-    uv_loop_t _uvloop_body;
-    UVDelayer _delayer;
+    uv_loop_t    _uvloop_body;
+    UVDelayer    _delayer;
+    UVLATracker* _la_tracker;
 };
+
+static inline void mark_load_average (LoopImpl* loop) {
+    static_cast<UVLoop*>(loop)->mark_load_average();
+}
 
 }}}}

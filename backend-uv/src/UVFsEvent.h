@@ -22,11 +22,13 @@ struct UVFsEvent : UVHandle<FsEventImpl, uv_fs_event_t> {
 
 private:
     static void on_fs_event (uv_fs_event_t* p, const char* filename, int uv_events, int status) {
+        auto h = get_handle<UVFsEvent*>(p);
+        mark_load_average(h->loop);
         auto sv = (status || !filename) ? string_view() : string_view(filename);
         int events = 0;
         if (uv_events & UV_RENAME) events |= Event::RENAME;
         if (uv_events & UV_CHANGE) events |= Event::CHANGE;
-        get_handle<UVFsEvent*>(p)->handle_fs_event(sv, events, uvx_ce(status));
+        h->handle_fs_event(sv, events, uvx_ce(status));
     }
 };
 
