@@ -46,7 +46,7 @@ protected:
                 cb();
             }
         }, [&] { // return remaining callbacks to pool (if exception is thrown)
-            if (i < sz) callbacks.insert(callbacks.begin(), reserve.begin() + (sz-i), reserve.end());
+            if (i < sz) callbacks.insert(callbacks.begin(), reserve.begin() + i, reserve.end());
             reserve.clear();
         });
     }
