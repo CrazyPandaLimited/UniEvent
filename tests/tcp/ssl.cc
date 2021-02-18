@@ -162,3 +162,13 @@ TEST_CASE("can't add filter when active", "[ssl]") {
     CHECK_THROWS( client->use_ssl() );
     variation.ssl = true;
 }
+
+TEST_CASE("SslContext from cert&key", "[ssl]") {
+    auto res = SslContext::create("tests/cert/ca.pem", "tests/cert/ca.key");
+    REQUIRE(res);
+    CHECK(res.value());
+
+    res = SslContext::create("tests/cert/ca.pem", "tests/cert/ca2.key");
+    REQUIRE(!res);
+    CHECK(res.error().category() == openssl_error_category);
+}

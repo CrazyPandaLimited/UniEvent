@@ -6,11 +6,9 @@
 #include "StreamFilter.h"
 #include "BackendHandle.h"
 #include "SslContext.h"
+#include "ssl/forward.h"
 #include "backend/StreamImpl.h"
 #include <panda/excepted.h>
-
-struct ssl_st;        typedef ssl_st SSL;
-struct ssl_method_st; typedef ssl_method_st SSL_METHOD;
 
 namespace panda { namespace unievent {
 

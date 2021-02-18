@@ -2,15 +2,20 @@
 #include <utility>
 #include <cstdint>
 #include <stdexcept>
-#include <panda/refcnt.h>
+#include <system_error>
+#include "ssl/forward.h"
+#include <panda/string.h>
+#include <panda/excepted.h>
 
 struct ssl_ctx_st;    typedef ssl_ctx_st SSL_CTX;
 
 namespace panda { namespace unievent {
 
 struct SslContext {
-    SslContext (SSL_CTX*) noexcept;
+    static excepted<SslContext, std::error_code> create (string cert_file, string key_file, const SSL_METHOD* = nullptr);
+
     SslContext () noexcept                        : ctx(nullptr) {}
+    SslContext (SSL_CTX*) noexcept;
     SslContext (const SslContext& other) noexcept : SslContext(other.ctx) {}
     SslContext (SslContext&& other) noexcept      : ctx(nullptr) { std::swap(ctx, other.ctx); }
 
@@ -31,10 +36,5 @@ struct SslContext {
 
     SSL_CTX* ctx = nullptr;
 };
-
-
-inline void refcnt_inc(SslContext* ptr) { ptr->retain(); }
-inline void refcnt_dec(SslContext* ptr) { ptr->release(); }
-inline std::uint32_t refcnt_get(SslContext*) { throw std::runtime_error("unsupported operation"); }
 
 }}
