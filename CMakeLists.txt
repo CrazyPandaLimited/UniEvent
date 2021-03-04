@@ -3,6 +3,12 @@ PROJECT(unievent LANGUAGES CXX)
 
 set(LIB_TYPE CACHE STRING STATIC)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(UNIEVENT_BUILD_TESTS OFF)
+if (${UNIEVENT_BUILD_TESTS})
+    set(EXCLUDE_TEST)
+else()
+    set(EXCLUDE_TEST EXCLUDE_FROM_ALL)
+endif()
 
 file(GLOB_RECURSE libSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/panda/*.cc" "backend-uv/*.cc")
 add_library(${PROJECT_NAME} ${LIB_TYPE} ${libSource})
@@ -36,19 +42,21 @@ target_link_libraries(unievent-tests PUBLIC Catch2::Catch2)
 
 #ctest
 enable_testing()
-add_library(test-lib STATIC tests/lib/test.cc)
+add_library(test-lib STATIC EXCLUDE_FROM_ALL tests/lib/test.cc)
 target_compile_definitions(test-lib PRIVATE CATCH_CONFIG_MAIN)
 target_link_libraries(test-lib Catch2::Catch2 ${PROJECT_NAME})
 list(FILTER testSource EXCLUDE REGEX "lib")
 foreach(tobj ${testSource})
     get_filename_component(tname ${tobj} NAME_WE)
-    add_executable(t_${tname} ${tobj})
+    add_executable(t_${tname} ${EXCLUDE_TEST} ${tobj})
     target_link_libraries(t_${tname} test-lib)
     add_test(NAME ${tobj} COMMAND t_${tname} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endforeach()
 
 #install
-install(DIRECTORY src DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY backend-uv/src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY backend-uv/include/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-targets ARCHIVE DESTINATION lib)
 
 install(EXPORT ${PROJECT_NAME}-targets
