@@ -1,11 +1,8 @@
 #include "../lib/test.h"
-
-#include <openssl/err.h>
-#include <openssl/dh.h>
 #include <openssl/ssl.h>
-#include <openssl/conf.h>
-#include <openssl/engine.h>
 
+#define TESTS_PREFIX "tcp-ssl: "
+#define TESTS_TAG    "[tcp-ssl]"
 
 static SslContext get_client_context(string name) {
     auto ctx = SSL_CTX_new(SSLv23_client_method());
@@ -65,7 +62,7 @@ static SslContext get_server_context(string ca_name) {
 }
 
 
-TEST_CASE("client custom certificate", "[ssl]") {
+TEST("client custom certificate") {
     AsyncTest test(10000, {"c", "r"});
     variation.ssl = true;
 
@@ -99,7 +96,7 @@ TEST_CASE("client custom certificate", "[ssl]") {
     test.loop->run();
 }
 
-TEST_CASE("default client w/o certificate", "[ssl]") {
+TEST("default client w/o certificate") {
     AsyncTest test(2000, 0);
     variation.ssl = true;
 
@@ -125,7 +122,7 @@ TEST_CASE("default client w/o certificate", "[ssl]") {
     test.loop->run();
 }
 
-TEST_CASE("server with different CA", "[ssl]") {
+TEST("server with different CA") {
     AsyncTest test(2000, 0);
     variation.ssl = true;
 
@@ -152,7 +149,7 @@ TEST_CASE("server with different CA", "[ssl]") {
     test.loop->run();
 }
 
-TEST_CASE("can't add filter when active", "[ssl]") {
+TEST("can't add filter when active") {
     variation.ssl = false;
     AsyncTest test(1000);
     TcpSP client = make_client(test.loop);
@@ -163,7 +160,21 @@ TEST_CASE("can't add filter when active", "[ssl]") {
     variation.ssl = true;
 }
 
-TEST_CASE("SslContext from cert&key", "[ssl]") {
+TEST("try use server without certificate") {
+    TcpSP server = new Tcp();
+    server->bind("localhost", 0);
+
+    SECTION("use_ssl after listen") {
+        server->listen(1);
+        REQUIRE_THROWS(server->use_ssl());
+    }
+    SECTION("use_ssl before listen") {
+        server->use_ssl();
+        REQUIRE_THROWS(server->listen(1));
+    }
+}
+
+TEST("SslContext from cert&key") {
     auto res = SslContext::create("tests/cert/ca.pem", "tests/cert/ca.key");
     REQUIRE(res);
     CHECK(res.value());
@@ -171,4 +182,35 @@ TEST_CASE("SslContext from cert&key", "[ssl]") {
     res = SslContext::create("tests/cert/ca.pem", "tests/cert/ca2.key");
     REQUIRE(!res);
     CHECK(res.error().category() == openssl_error_category);
+}
+
+TEST("disconnect during ssl handshake") {
+    variation.ssl = true;
+
+    AsyncTest test(2000, {"done"});
+    CallbackDispatcher<void()> killed;
+
+    struct TcpTracer : Tcp {
+        CallbackDispatcher<void()>& killed;
+
+        TcpTracer(CallbackDispatcher<void()>& killed, LoopSP loop) : Tcp(loop), killed(killed) {}
+
+        ~TcpTracer() {
+            killed();
+
+        }
+    };
+
+    TcpSP server = make_server(test.loop);
+    SockAddr sa = server->sockaddr().value();
+
+    TcpSP client = new Tcp(test.loop, AF_INET);
+    client->connect(sa);
+
+    server->connection_factory = [&](auto&){
+        client->reset();
+        return new TcpTracer(killed, test.loop);
+    };
+
+    test.await(killed, "done");
 }

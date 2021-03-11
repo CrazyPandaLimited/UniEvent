@@ -1,6 +1,7 @@
 #include "streamer.h"
 
-#define TEST(name) TEST_CASE("streamer-basic: " name, "[streamer-basic]")
+#define TESTS_PREFIX "streamer-basic: "
+#define TESTS_TAG    "[streamer-basic]"
 
 TEST("normal") {
     AsyncTest test(3000, 1);

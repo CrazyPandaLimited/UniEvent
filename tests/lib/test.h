@@ -14,6 +14,11 @@ using ms  = std::chrono::milliseconds;
 using sec = std::chrono::seconds;
 using panda::net::SockAddr;
 
+#define TEST(...)             PANDA_PP_VFUNC(TEST_IMPL, __VA_ARGS__)
+#define TEST_IMPL1(name)      TEST_CASE(TESTS_PREFIX name, TESTS_TAG)
+#define TEST_IMPL2(name, tag) TEST_CASE(TESTS_PREFIX name, TESTS_TAG tag)
+
+
 constexpr std::chrono::milliseconds operator""_ms (unsigned long long val) { return std::chrono::milliseconds(val); }
 constexpr std::chrono::seconds      operator""_s  (unsigned long long val) { return std::chrono::seconds(val); }
 

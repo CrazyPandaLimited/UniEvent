@@ -1,7 +1,8 @@
 #include "../lib/test.h"
 #include <thread>
 
-#define TEST(name, ...) TEST_CASE("tcp-connect: " name, "[tcp-connect]" __VA_ARGS__)
+#define TESTS_PREFIX "tcp-connect: "
+#define TESTS_TAG    "[tcp-connect]"
 
 TEST("sync connect error") {
     variation = GENERATE(values(ssl_buf_vars));
@@ -45,7 +46,7 @@ TEST("connect with resolv request") {
     SECTION("host in") {
         res_req->node(sa.ip())->port(sa.port());
     }
-    SECTION("host overwirite") {
+    SECTION("host overwrite") {
         con_req->to(sa.ip(), sa.port());
     }
     SECTION("host conflict") {

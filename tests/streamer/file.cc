@@ -1,7 +1,8 @@
 #include "streamer.h"
 #include <panda/unievent/streamer/File.h>
 
-#define TEST(name) TEST_CASE("streamer-file: " name, "[streamer-file]")
+#define TESTS_PREFIX "streamer-file: "
+#define TESTS_TAG    "[streamer-file]"
 
 using namespace panda::unievent::streamer;
 
