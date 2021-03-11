@@ -15,7 +15,6 @@ namespace panda { namespace unievent {
 AddrInfo      sync_resolve   (backend::Backend* be, string_view host, uint16_t port = 0, const AddrInfoHints& hints = {}, bool use_cache = true);
 net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& = {});
 
-
 fd_t   file_dup  (fd_t);
 sock_t sock_dup  (sock_t);
 sock_t fd2sock   (fd_t);
@@ -34,8 +33,14 @@ excepted<void,   std::error_code> close       (sock_t sock);
 excepted<net::SockAddr, std::error_code> getsockname (sock_t sock);
 excepted<net::SockAddr, std::error_code> getpeername (sock_t sock);
 
-excepted<std::array<sock_t,2>, std::error_code> socketpair      (int domain, int type, int protocol);
-excepted<std::array<sock_t,2>, std::error_code> inet_socketpair (int type, int protocol);
+struct SocketPairFlags {
+    static constexpr int nonblock_pipe = 1;
+};
+
+excepted<std::array<sock_t,2>, std::error_code> socketpair (int type = SOCK_STREAM,
+                                                            int protocol = PF_UNSPEC,
+                                                            int flags1 = SocketPairFlags::nonblock_pipe,
+                                                            int flags2 = SocketPairFlags::nonblock_pipe);
 
 int           getpid           ();
 int           getppid          ();

@@ -4,7 +4,8 @@
 #include <set>
 #include <panda/log.h>
 
-#define TEST(name) TEST_CASE("resolver: " name, "[resolver]")
+#define TESTS_PREFIX "resolver: "
+#define TESTS_TAG    "[resolver]"
 
 namespace {
     static int dcnt = 0;

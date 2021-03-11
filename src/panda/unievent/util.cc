@@ -61,75 +61,13 @@ excepted<void, std::error_code> listen (sock_t sock, int backlog) {
     return {};
 }
 
-excepted<std::array<sock_t,2>, std::error_code> inet_socketpair (int type, int protocol) {
+excepted<std::array<sock_t,2>, std::error_code> socketpair (int type, int protocol, int flags1, int flags2) {
     std::array<sock_t,2> socks;
-    int domain = AF_INET;
-    auto rets = socket(domain, type, protocol);
-    if (!rets) return make_unexpected(rets.error());
-    auto lsock = rets.value();
-
-    auto ret = bind(lsock, net::SockAddr::Inet4::sockaddr_loopback);
-    if (!ret) {
-        close(lsock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
-    ret = listen(lsock, 1);
-    if (!ret) {
-        close(lsock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
-    auto retsa = getsockname(lsock);
-    if (!retsa) {
-        close(lsock).nevermind();
-        return make_unexpected(retsa.error());
-    }
-    auto sa = retsa.value();
-
-    rets = socket(domain, type, protocol);
-    if (!rets) {
-        close(lsock).nevermind();
-        return make_unexpected(rets.error());
-    }
-    auto csock = socks[1] = rets.value();
-
-    ret = setblocking(csock, false);
-    if (!ret) {
-        close(lsock).nevermind();
-        close(csock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
-    ret = connect(csock, sa);
-    if (!ret && ret.error() != std::errc::resource_unavailable_try_again) {
-        close(lsock).nevermind();
-        close(csock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
-    rets = accept(lsock);
-    if (!rets) {
-        close(lsock).nevermind();
-        close(csock).nevermind();
-        return make_unexpected(ret.error());
-    }
-    auto ssock = socks[0] = rets.value();
-
-    ret = close(lsock);
-    if (!ret) {
-        close(csock).nevermind();
-        close(ssock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
-    ret = setblocking(csock, true);
-    if (!ret) {
-        close(csock).nevermind();
-        close(ssock).nevermind();
-        return make_unexpected(ret.error());
-    }
-
+    int uv_flags1 = 0, uv_flags2 = 0;
+    if (flags1 & SocketPairFlags::nonblock_pipe) uv_flags1 |= UV_NONBLOCK_PIPE;
+    if (flags2 & SocketPairFlags::nonblock_pipe) uv_flags2 |= UV_NONBLOCK_PIPE;
+    auto err = uv_socketpair(type, protocol, socks.data(), flags1, flags2);
+    if (err) return make_unexpected(uvx_error(err));
     return socks;
 }
 

@@ -54,6 +54,12 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(socket().value(), level, optname, optval, optlen); }
 
+    static excepted<std::pair<TcpSP, TcpSP>, ErrorCode>
+    pair (const LoopSP& = Loop::default_loop(), int type = SOCK_STREAM, int proto = PF_UNSPEC);
+
+    static excepted<std::pair<TcpSP, TcpSP>, ErrorCode>
+    pair (const TcpSP&, const TcpSP&, int type = SOCK_STREAM, int proto = PF_UNSPEC);
+
 protected:
     StreamSP create_connection () override;
 

@@ -1,11 +1,14 @@
 #include "lib/test.h"
 
-TEST_CASE("hostname", "[misc]") {
+#define TESTS_PREFIX "util: "
+#define TESTS_TAG    "[util]"
+
+TEST("hostname") {
     auto h = hostname();
     CHECK(h);
 }
 
-TEST_CASE("get_rss", "[misc]") {
+TEST("get_rss") {
     auto rss = get_rss();
     CHECK(rss > 0);
     std::vector<int> v;
@@ -14,17 +17,17 @@ TEST_CASE("get_rss", "[misc]") {
     CHECK(new_rss > rss);
 }
 
-TEST_CASE("get_free_memory", "[misc]") {
+TEST("get_free_memory") {
     auto val = get_free_memory();
     CHECK(val > 0);
 }
 
-TEST_CASE("get_total_memory", "[misc]") {
+TEST("get_total_memory") {
     auto val = get_total_memory();
     CHECK(val > get_free_memory());
 }
 
-TEST_CASE("cpu_info", "[misc]") {
+TEST("cpu_info") {
     auto list = cpu_info();
     CHECK(list.size() > 0);
     for (size_t i = 0; i < list.size(); ++i) {
@@ -45,7 +48,7 @@ static string phys_to_str (const char (&a)[N]) {
     return ret;
 }
 
-TEST_CASE("interface info", "[misc]") {
+TEST("interface info") {
     auto list = interface_info();
     if (!list.size()) return;
 
@@ -63,7 +66,35 @@ TEST_CASE("interface info", "[misc]") {
     CHECK(found_local);
 }
 
-TEST_CASE("get_rusage", "[.][misc]") {
+TEST("get_rusage", "[.]") {
     auto rusage = get_rusage();
     CHECK(rusage.maxrss > 0);
+}
+
+TEST("socketpair") {
+    AsyncTest test(1000, 2);
+    auto res = socketpair();
+    REQUIRE(res);
+    auto fds = res.value();
+
+    TcpSP t1 = new Tcp(test.loop);
+    TcpSP t2 = new Tcp(test.loop);
+
+    t1->open(fds[0]);
+    t2->open(fds[1]);
+
+    t1->write("hello");
+    t2->read_event.add([&](auto...){
+        test.happens();
+        t2->write("world");
+    });
+
+    t1->read_event.add([&](auto...){
+        test.happens();
+        t1->reset();
+        t2->reset();
+    });
+
+    test.run();
+    SUCCEED("ok");
 }

@@ -110,10 +110,6 @@ excepted<void, std::error_code> close (sock_t sock) {
     return {};
 }
 
-excepted<std::array<sock_t,2>, std::error_code> socketpair (int, int type, int protocol) {
-    return inet_socketpair(type, protocol);
-}
-
 excepted<net::SockAddr, std::error_code> getsockname (sock_t sock) {
     net::SockAddr ret;
     int sz = sizeof(ret);

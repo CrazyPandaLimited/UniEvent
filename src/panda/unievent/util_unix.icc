@@ -69,13 +69,6 @@ excepted<void, std::error_code> close (sock_t sock) {
     return {};
 }
 
-excepted<std::array<sock_t,2>, std::error_code> socketpair (int domain, int type, int protocol) {
-    sock_t fds[2];
-    auto status = ::socketpair(domain, type, protocol, fds);
-    if (status != 0) return make_unexpected(last_sys_error());
-    return std::array<sock_t,2>{fds[0], fds[1]};
-}
-
 excepted<net::SockAddr, std::error_code> getsockname (sock_t sock) {
     net::SockAddr ret;
     socklen_t sz = sizeof(ret);

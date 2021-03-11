@@ -113,6 +113,27 @@ void TcpConnectRequest::handle_event (const ErrorCode& err) {
     ConnectRequest::handle_event(err);
 }
 
+excepted<std::pair<TcpSP, TcpSP>, ErrorCode> Tcp::pair (const LoopSP& loop, int type, int protocol) {
+    return pair(new Tcp(loop), new Tcp(loop), type, protocol);
+}
+
+excepted<std::pair<TcpSP, TcpSP>, ErrorCode> Tcp::pair (const TcpSP& h1, const TcpSP& h2, int type, int protocol) {
+    std::pair<TcpSP, TcpSP> p = {h1, h2};
+
+    auto spres = panda::unievent::socketpair(type, protocol);
+    if (!spres) return make_unexpected<ErrorCode>(spres.error());
+    auto fds = spres.value();
+
+    auto res = p.first->open(fds[0]);
+    if (res) res = p.second->open(fds[1]);
+    if (res) return p;
+
+    p.first->reset();
+    p.second->reset();
+    panda::unievent::close(fds[0]).nevermind();
+    panda::unievent::close(fds[1]).nevermind();
+    return make_unexpected(res.error());
+}
 
 std::ostream& operator<< (std::ostream& os, const Tcp& tcp) {
     return os << "local:" << tcp.sockaddr().value_or(net::SockAddr{}) << " peer:" << tcp.peeraddr().value_or(net::SockAddr{})  << " connected:" << (tcp.connected() ? "yes" : "no");
