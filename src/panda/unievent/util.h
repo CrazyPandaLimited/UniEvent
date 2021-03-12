@@ -99,6 +99,15 @@ struct ResourceUsage {
 
 ResourceUsage get_rusage ();
 
+struct UtsName {
+    string sysname;
+    string release;
+    string version;
+    string machine;
+};
+
+excepted<UtsName, std::error_code> uname ();
+
 const HandleType& guess_type (fd_t);
 
 std::error_code sys_error           (int syserr);
