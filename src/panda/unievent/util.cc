@@ -84,6 +84,10 @@ excepted<std::pair<fd_t,fd_t>, std::error_code> pipe (int read_flags, int write_
 int getpid  () { return uv_os_getpid(); }
 int getppid () { return uv_os_getppid(); }
 
+uint64_t hrtime () {
+    return uv_hrtime();
+}
+
 TimeVal gettimeofday () {
     TimeVal ret;
     uv_timeval64_t tv;

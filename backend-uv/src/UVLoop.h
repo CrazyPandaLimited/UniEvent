@@ -1,15 +1,15 @@
 #pragma once
 #include "inc.h"
 #include "UVDelayer.h"
-#include "UVLATracker.h"
 #include <panda/unievent/backend/LoopImpl.h>
+#include <panda/unievent/backend/LAMetrics.h>
 
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
-struct UVLoop : LoopImpl {
+struct UVLoop : LoopImpl, IMetricsProvider {
     uv_loop_t* uvloop;
 
-    UVLoop (Type type) : _delayer(this), _la_tracker() {
+    UVLoop (Type type) : _delayer(this) {
         switch (type) {
             case Type::GLOBAL:
                 uvloop = uv_default_loop();
@@ -26,7 +26,7 @@ struct UVLoop : LoopImpl {
 
     ~UVLoop () {
         _delayer.destroy();
-        if (_la_tracker) delete _la_tracker;
+        _la_metrics.reset();
         run(RunMode::NOWAIT); // finish all closing handles
         run(RunMode::NOWAIT); // finish all closing handles
         int err = uv_loop_close(uvloop);
@@ -85,16 +85,19 @@ struct UVLoop : LoopImpl {
     void     cancel_delay (uint64_t id)                                noexcept override { _delayer.cancel(id); }
 
     void track_load_average (uint32_t nsec) override {
-        if (_la_tracker) delete _la_tracker;
-        if (nsec) _la_tracker = new UVLATracker(this, nsec);
+        _la_metrics.reset();
+        if (nsec) {
+            uvx_strict(uv_loop_configure(uvloop, UV_METRICS_IDLE_TIME));
+            _la_metrics = std::make_unique<LAMetrics>(this, this, nsec);
+        }
     }
 
     double get_load_average () const override {
-        return _la_tracker ? _la_tracker->get() : 0.0f;
+        return _la_metrics ? _la_metrics->get() : 0.0f;
     }
 
-    void mark_load_average () {
-        if (_la_tracker) _la_tracker->mark();
+    uint64_t get_metrics_idle_time () const override {
+        return uv_metrics_idle_time(uvloop);
     }
 
     void* get() override {return uvloop;}
@@ -102,11 +105,8 @@ struct UVLoop : LoopImpl {
 private:
     uv_loop_t    _uvloop_body;
     UVDelayer    _delayer;
-    UVLATracker* _la_tracker;
+    LAMetricsPtr _la_metrics;
 };
 
-static inline void mark_load_average (LoopImpl* loop) {
-    static_cast<UVLoop*>(loop)->mark_load_average();
-}
 
 }}}}
