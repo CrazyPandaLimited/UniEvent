@@ -70,6 +70,15 @@ TEST_HIDDEN("get_rusage") {
     CHECK(rusage.maxrss > 0);
 }
 
+TEST("uname") {
+    auto info = uname().value();
+    CHECK(info.sysname);
+    WARN(info.release);
+    WARN(info.version);
+    WARN(info.machine);
+    SUCCEED();
+}
+
 TEST("socketpair") {
     AsyncTest test(1000, 2);
     auto res = socketpair();

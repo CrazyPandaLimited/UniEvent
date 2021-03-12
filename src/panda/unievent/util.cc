@@ -15,10 +15,6 @@
     #include "util_unix.icc"
 #endif
 
-#ifdef __unix__
-    #include <sys/utsname.h>
-#endif
-
 using panda::net::SockAddr;
 
 namespace panda { namespace unievent {
@@ -206,6 +202,18 @@ ResourceUsage get_rusage () {
     return ret;
 }
 
+excepted<UtsName, std::error_code> uname () {
+    uv_utsname_t buf;
+    auto err = uv_os_uname(&buf);
+    if (err) return make_unexpected(uvx_error(err));
+    return UtsName{
+        string((char*)buf.sysname),
+        string((char*)buf.release),
+        string((char*)buf.version),
+        string((char*)buf.machine)
+    };
+}
+
 const HandleType& guess_type (fd_t file) {
     auto uvt = uv_guess_handle(file);
     switch (uvt) {
@@ -308,17 +316,14 @@ std::ostream& operator<< (std::ostream& os, const TimeVal&  v) { return os << v.
 std::ostream& operator<< (std::ostream& os, const TimeSpec& v) { return os << v.get(); }
 
 Wsl::Version is_wsl() {
-#ifdef __unix__
-    utsname buf;
-    memset(&buf, 0, sizeof buf);
-    int ret = uname(&buf);
-    if (ret == 0) {
-        if (strstr(buf.release, "Microsoft"))
-            return Wsl::_1;
-        else if (strstr(buf.release, "microsoft"))
-            return Wsl::_2;
+    #ifdef __unix__
+    auto ret = uname();
+    if (ret) {
+        auto info = ret.value();
+        if      (info.release.find("Microsoft") != string::npos) return Wsl::_1;
+        else if (info.release.find("microsoft") != string::npos) return Wsl::_2;
     }
-#endif
+    #endif
     return Wsl::NOT;
 }
 
