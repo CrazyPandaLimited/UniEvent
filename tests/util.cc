@@ -1,7 +1,6 @@
 #include "lib/test.h"
 
-#define TESTS_PREFIX "util: "
-#define TESTS_TAG    "[util]"
+TEST_PREFIX("util: ", "[util]");
 
 TEST("hostname") {
     auto h = hostname();
@@ -66,7 +65,7 @@ TEST("interface info") {
     CHECK(found_local);
 }
 
-TEST("get_rusage", "[.]") {
+TEST_HIDDEN("get_rusage") {
     auto rusage = get_rusage();
     CHECK(rusage.maxrss > 0);
 }
@@ -80,8 +79,8 @@ TEST("socketpair") {
     TcpSP t1 = new Tcp(test.loop);
     TcpSP t2 = new Tcp(test.loop);
 
-    t1->open(fds[0]);
-    t2->open(fds[1]);
+    t1->open(fds.first);
+    t2->open(fds.second);
 
     t1->write("hello");
     t2->read_event.add([&](auto...){
@@ -93,6 +92,29 @@ TEST("socketpair") {
         test.happens();
         t1->reset();
         t2->reset();
+    });
+
+    test.run();
+    SUCCEED("ok");
+}
+
+TEST("pipe pair") {
+    AsyncTest test(1000, 1);
+    auto res = pipe();
+    REQUIRE(res);
+    auto fds = res.value();
+
+    PipeSP reader = new Pipe(test.loop);
+    PipeSP writer = new Pipe(test.loop);
+
+    reader->open(fds.first, Pipe::Mode::readable);
+    writer->open(fds.second, Pipe::Mode::writable);
+
+    writer->write("hello");
+    reader->read_event.add([&](auto...){
+        test.happens();
+        reader->reset();
+        writer->reset();
     });
 
     test.run();

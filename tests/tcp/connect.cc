@@ -1,8 +1,7 @@
 #include "../lib/test.h"
 #include <thread>
 
-#define TESTS_PREFIX "tcp-connect: "
-#define TESTS_TAG    "[tcp-connect]"
+TEST_PREFIX("tcp-connect: ", "[tcp-connect]");
 
 TEST("sync connect error") {
     variation = GENERATE(values(ssl_buf_vars));

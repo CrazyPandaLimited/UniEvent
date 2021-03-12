@@ -47,6 +47,18 @@ struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
     void pending_instances (int count) override {
         uv_pipe_pending_instances(&uvh, count);
     }
+
+    int pending_count () const override {
+        // uv has wrong API, it receives non-const uv_pipe_t while func is just a getter, so we cast it to make our API const
+        return uv_pipe_pending_count(const_cast<uv_pipe_t*>(&uvh));
+    }
+
+    std::error_code chmod (int mode) override {
+        int uv_mode = 0;
+        if (mode & Mode::readable) uv_mode |= UV_READABLE;
+        if (mode & Mode::writable) uv_mode |= UV_WRITABLE;
+        return uvx_ce(uv_pipe_chmod(&uvh, uv_mode));
+    }
 };
 
 }}}}

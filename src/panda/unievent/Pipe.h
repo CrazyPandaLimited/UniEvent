@@ -8,6 +8,8 @@ struct IPipeListener     : IStreamListener     {};
 struct IPipeSelfListener : IStreamSelfListener {};
 
 struct Pipe : virtual Stream {
+    using Mode = backend::PipeImpl::Mode;
+
     static const HandleType TYPE;
 
     Pipe (Loop* loop = Loop::default_loop(), bool ipc = false) : _ipc(ipc) {
@@ -23,16 +25,22 @@ struct Pipe : virtual Stream {
 
     bool ipc () const { return _ipc; }
 
-    virtual excepted<void, ErrorCode> open(fd_t file, Ownership ownership = Ownership::TRANSFER, bool connected = false);
-    virtual excepted<void, ErrorCode> bind(string_view name);
+    virtual excepted<void, ErrorCode> open (fd_t, int mode, Ownership = Ownership::TRANSFER);
+    virtual excepted<void, ErrorCode> bind (string_view name);
 
     virtual PipeConnectRequestSP connect (const PipeConnectRequestSP& req);
     /*INL*/ PipeConnectRequestSP connect (const string& name, connect_fn callback = nullptr);
 
     virtual void pending_instances (int count);
+    virtual int  pending_count     () const;
 
     optional<string> sockname () const { return impl()->sockname(); }
     optional<string> peername () const { return impl()->peername(); }
+
+    virtual excepted<void, ErrorCode> chmod (int mode);
+
+    static excepted<std::pair<PipeSP,PipeSP>, ErrorCode> pair (const LoopSP& = Loop::default_loop());
+    static excepted<std::pair<PipeSP,PipeSP>, ErrorCode> pair (const PipeSP&, const PipeSP&);
 
 protected:
     StreamSP create_connection () override;

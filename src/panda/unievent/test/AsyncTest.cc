@@ -76,14 +76,24 @@ void AsyncTest::set_expected (const std::vector<string>& v) {
     expected = v;
 }
 
-void AsyncTest::run        () { loop->run(); }
-void AsyncTest::run_once   () { loop->run_once(); }
-void AsyncTest::run_nowait () { loop->run_nowait(); }
+bool AsyncTest::run        () { return loop->run(); }
+bool AsyncTest::run_once   () { return loop->run_once(); }
+bool AsyncTest::run_nowait () { return loop->run_nowait(); }
 
 void AsyncTest::happens (string event) {
     if (event) {
         happened.push_back(event);
     }
+}
+
+bool AsyncTest::wait (uint64_t timeout) {
+    bool by_timer = false;
+    TimerSP timer = Timer::once(timeout, [&](Timer*) {
+        by_timer = true;
+        loop->stop();
+    }, loop); (void)timer;
+    run();
+    return by_timer;
 }
 
 std::string AsyncTest::generate_report() {
@@ -131,10 +141,11 @@ bool AsyncTest::happened_as_expected() {
     return true;
 }
 
-sp<Timer> AsyncTest::create_timeout(uint64_t timeout) {
-    auto ret = timer_once(timeout, loop, [&]() {
+TimerSP AsyncTest::create_timeout(uint64_t timeout) {
+    if (!timeout) return nullptr;
+    auto ret = Timer::once(timeout, [&](auto&) {
         throw Error("AsyncTest timeout", *this);
-    });
+    }, loop);
     ret->weak(true);
     return ret;
 }

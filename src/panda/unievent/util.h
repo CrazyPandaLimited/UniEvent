@@ -33,14 +33,15 @@ excepted<void,   std::error_code> close       (sock_t sock);
 excepted<net::SockAddr, std::error_code> getsockname (sock_t sock);
 excepted<net::SockAddr, std::error_code> getpeername (sock_t sock);
 
-struct SocketPairFlags {
+struct PairFlags {
     static constexpr int nonblock_pipe = 1;
 };
 
-excepted<std::array<sock_t,2>, std::error_code> socketpair (int type = SOCK_STREAM,
-                                                            int protocol = PF_UNSPEC,
-                                                            int flags1 = SocketPairFlags::nonblock_pipe,
-                                                            int flags2 = SocketPairFlags::nonblock_pipe);
+excepted<std::pair<sock_t,sock_t>, std::error_code>
+socketpair (int type = SOCK_STREAM, int protocol = PF_UNSPEC, int flags1 = PairFlags::nonblock_pipe, int flags2 = PairFlags::nonblock_pipe);
+
+excepted<std::pair<fd_t,fd_t>, std::error_code>
+pipe (int read_flags = PairFlags::nonblock_pipe, int write_flags = PairFlags::nonblock_pipe);
 
 int           getpid           ();
 int           getppid          ();
