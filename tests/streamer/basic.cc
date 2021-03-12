@@ -1,7 +1,6 @@
 #include "streamer.h"
 
-#define TESTS_PREFIX "streamer-basic: "
-#define TESTS_TAG    "[streamer-basic]"
+TEST_PREFIX("streamer-basic: ", "[streamer-basic]");
 
 TEST("normal") {
     AsyncTest test(3000, 1);

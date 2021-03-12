@@ -1,7 +1,6 @@
 #include "lib/test.h"
 
-#define TESTS_PREFIX "regression: "
-#define TESTS_TAG    "[regression]"
+TEST_PREFIX("regression: ", "[regression]");
 
 //TODO: this test should have been failing before fix, but it did not
 //TODO: find a way to reproduce SRV-1273 from UniEvent

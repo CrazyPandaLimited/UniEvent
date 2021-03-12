@@ -69,7 +69,7 @@ subtest 'open connected socket' => sub {
     connect($sock, $sa) or die "$!";
     
     my $client = new UniEvent::Pipe($l);
-    $client->open($sock);
+    $client->open($sock, UE::Pipe::MODE_READABLE | UE::Pipe::MODE_WRITABLE);
     close($sock);
     undef $sock;
     

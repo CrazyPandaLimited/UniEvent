@@ -3,8 +3,7 @@
 using std::cout;
 using std::endl;
 
-#define TESTS_PREFIX "tcp-base: "
-#define TESTS_TAG    "[tcp-base]"
+TEST_PREFIX("tcp-base: ", "[tcp-base]");
 
 TEST("immediate client reset") {
     variation = GENERATE(values(ssl_vars));
@@ -129,7 +128,7 @@ TEST("disconnection should be caught as EOF") {
     test.run();
 }
 
-TEST("no on_read after read_stop", "[.]") {
+TEST_HIDDEN("no on_read after read_stop") {
     bool old_ssl = variation.ssl;
     variation.ssl = true;
     AsyncTest test(2000, {"conn", "read", "read"});

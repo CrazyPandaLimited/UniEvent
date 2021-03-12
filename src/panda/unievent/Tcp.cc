@@ -124,14 +124,14 @@ excepted<std::pair<TcpSP, TcpSP>, ErrorCode> Tcp::pair (const TcpSP& h1, const T
     if (!spres) return make_unexpected<ErrorCode>(spres.error());
     auto fds = spres.value();
 
-    auto res = p.first->open(fds[0]);
-    if (res) res = p.second->open(fds[1]);
+    auto res = p.first->open(fds.first);
+    if (res) res = p.second->open(fds.second);
     if (res) return p;
 
     p.first->reset();
     p.second->reset();
-    panda::unievent::close(fds[0]).nevermind();
-    panda::unievent::close(fds[1]).nevermind();
+    panda::unievent::close(fds.first).nevermind();
+    panda::unievent::close(fds.second).nevermind();
     return make_unexpected(res.error());
 }
 

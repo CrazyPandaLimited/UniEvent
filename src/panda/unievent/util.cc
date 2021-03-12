@@ -61,14 +61,24 @@ excepted<void, std::error_code> listen (sock_t sock, int backlog) {
     return {};
 }
 
-excepted<std::array<sock_t,2>, std::error_code> socketpair (int type, int protocol, int flags1, int flags2) {
-    std::array<sock_t,2> socks;
+excepted<std::pair<sock_t,sock_t>, std::error_code> socketpair (int type, int protocol, int flags1, int flags2) {
+    sock_t fds[2];
     int uv_flags1 = 0, uv_flags2 = 0;
-    if (flags1 & SocketPairFlags::nonblock_pipe) uv_flags1 |= UV_NONBLOCK_PIPE;
-    if (flags2 & SocketPairFlags::nonblock_pipe) uv_flags2 |= UV_NONBLOCK_PIPE;
-    auto err = uv_socketpair(type, protocol, socks.data(), flags1, flags2);
+    if (flags1 & PairFlags::nonblock_pipe) uv_flags1 |= UV_NONBLOCK_PIPE;
+    if (flags2 & PairFlags::nonblock_pipe) uv_flags2 |= UV_NONBLOCK_PIPE;
+    auto err = uv_socketpair(type, protocol, fds, flags1, flags2);
     if (err) return make_unexpected(uvx_error(err));
-    return socks;
+    return std::pair<sock_t,sock_t>{fds[0], fds[1]};
+}
+
+excepted<std::pair<fd_t,fd_t>, std::error_code> pipe (int read_flags, int write_flags) {
+    fd_t fds[2];
+    int uv_read_flags = 0, uv_write_flags = 0;
+    if (read_flags & PairFlags::nonblock_pipe) uv_read_flags |= UV_NONBLOCK_PIPE;
+    if (write_flags & PairFlags::nonblock_pipe) uv_write_flags |= UV_NONBLOCK_PIPE;
+    auto err = uv_pipe(fds, uv_read_flags, uv_write_flags);
+    if (err) return make_unexpected(uvx_error(err));
+    return std::pair<fd_t,fd_t>{fds[0], fds[1]};
 }
 
 int getpid  () { return uv_os_getpid(); }

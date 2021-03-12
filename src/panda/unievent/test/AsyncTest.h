@@ -12,10 +12,11 @@ using panda::string;
 
 struct AsyncTest {
     using SockAddr = panda::net::SockAddr;
-    LoopSP loop;
+    LoopSP              loop;
     std::vector<string> expected;
     std::vector<string> happened;
-    TimerSP timer;
+    size_t              counter = 0;
+    TimerSP             timer;
 
     struct Error : std::runtime_error {
         Error(std::string msg, AsyncTest& test);
@@ -31,25 +32,24 @@ struct AsyncTest {
     void set_expected (unsigned);
     void set_expected (const std::vector<string>&);
 
-    void run        ();
-    void run_once   ();
-    void run_nowait ();
-    void happens    (string event = "<event>");
+    bool run        ();
+    bool run_once   ();
+    bool run_nowait ();
 
-    template<typename F>
-    static TimerSP timer_once (uint64_t timeout, Loop* loop, F&& f) {
-        TimerSP timer = new Timer(loop);
-        timer->once(timeout);
-        timer->event.add([f](Timer* t) {
-            t->stop();
-            f();
+    void happens (string event = "<event>");
+
+    template <typename Ret, typename...Args>
+    void happens_when (CallbackDispatcher<Ret(Args...)>& dispatcher, string event = "<event>") {
+        dispatcher.add([this, event](auto&&...){
+            happens(event);
         });
-        return timer;
     }
 
-    template<typename F>
-    TimerSP timer_once (uint64_t timeout, F&& f) {
-        return timer_once(timeout, loop, std::forward<F>(f));
+    template <typename Ret, typename...Args>
+    void count_events (CallbackDispatcher<Ret(Args...)>& dispatcher, string event = "<event>") {
+        dispatcher.add([this](auto&&...){
+            counter++;
+        });
     }
 
     template <class T> static inline T _await_copy (T arg) { return arg; }
@@ -136,15 +136,7 @@ struct AsyncTest {
         return by_timer;
     }
 
-    bool wait(uint64_t timeout) {
-        bool by_timer = false;
-        TimerSP timer = Timer::once(timeout, [&](Timer*) {
-            by_timer = true;
-            loop->stop();
-        }, loop); (void)timer;
-        run();
-        return by_timer;
-    }
+    bool wait (uint64_t timeout);
 
 protected:
     virtual std::string generate_report ();

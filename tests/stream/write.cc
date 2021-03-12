@@ -3,8 +3,7 @@
 using std::cout;
 using std::endl;
 
-#define TESTS_PREFIX "tcp-write: "
-#define TESTS_TAG    "[tcp-write]"
+TEST_PREFIX("stream-write: ", "[stream-write]");
 
 TEST("write without connection") {
     variation = GENERATE(values(ssl_vars));

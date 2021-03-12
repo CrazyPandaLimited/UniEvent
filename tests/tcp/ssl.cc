@@ -1,8 +1,7 @@
 #include "../lib/test.h"
 #include <openssl/ssl.h>
 
-#define TESTS_PREFIX "tcp-ssl: "
-#define TESTS_TAG    "[tcp-ssl]"
+TEST_PREFIX("tcp-ssl: ", "[tcp-ssl]");
 
 static SslContext get_client_context(string name) {
     auto ctx = SSL_CTX_new(SSLv23_client_method());

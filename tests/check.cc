@@ -1,72 +1,68 @@
 #include "lib/test.h"
 
-TEST_CASE("check", "[check]") {
-    auto l = Loop::default_loop();
-    AsyncTest test(5000, {}, l);
-    int cnt = 0;
+TEST_PREFIX("check: ", "[check]");
 
-    SECTION("start/stop/reset") {
-        CheckSP h = new Check;
-        CHECK(h->type() == Check::TYPE);
+TEST("start/stop/reset") {
+    AsyncTest test(5000);
 
-        h->event.add([&](auto){ cnt++; });
-        h->start();
-        CHECK(l->run_nowait());
-        CHECK(cnt == 1);
+    CheckSP h = new Check(test.loop);
+    CHECK(h->type() == Check::TYPE);
 
-        h->stop();
-        CHECK(!l->run_nowait());
-        CHECK(cnt == 1);
+    test.count_events(h->event);
+    h->start();
+    CHECK(test.run_nowait());
+    CHECK(test.counter == 1);
 
-        h->start();
-        CHECK(l->run_nowait());
-        CHECK(cnt == 2);
+    h->stop();
+    CHECK(!test.run_nowait());
+    CHECK(test.counter == 1);
 
-        h->reset();
-        CHECK(!l->run_nowait());
-        CHECK(cnt == 2);
-    }
+    h->start();
+    CHECK(test.run_nowait());
+    CHECK(test.counter == 2);
 
-    SECTION("runs after prepare") {
-        PrepareSP p = new Prepare;
-        p->start([&](auto){ cnt++; });
-        CheckSP c = new Check;
-        c->start([&](auto) {
-            CHECK(cnt == 1);
-            cnt += 10;
-        });
-        l->run_nowait();
-        CHECK(cnt == 11);
-    }
+    h->reset();
+    CHECK(!test.run_nowait());
+    CHECK(test.counter == 2);
+}
 
-    SECTION("call_now") {
-        CheckSP h = new Check;
-        h->event.add([&](auto){ cnt++; });
-        for (int i = 0; i < 5; ++i) h->call_now();
-        CHECK(cnt == 5);
+TEST("runs after prepare") {
+    AsyncTest test(5000, {"p", "c"});
+    PrepareSP p = new Prepare(test.loop);
+    CheckSP   c = new Check(test.loop);
+    p->start([&](auto){ test.happens("p"); });
+    c->start([&](auto){ test.happens("c"); });
+    test.run_nowait();
+}
+
+TEST("call_now") {
+    AsyncTest test(5000, 5);
+    CheckSP h = new Check(test.loop);
+    test.happens_when(h->event);
+    for (int i = 0; i < 5; ++i) h->call_now();
+}
+
+TEST("event listener") {
+    AsyncTest test(5000);
+    auto s = [&](auto lst) {
+        CheckSP h = new Check(test.loop);
+        h->event_listener(&lst);
+        h->event.add([&](auto){ lst.cnt += 10; });
+        h->call_now();
+        CHECK(lst.cnt == 11);
     };
-
-    SECTION("event listener") {
-        auto s = [](auto lst) {
-            CheckSP h = new Check;
-            h->event_listener(&lst);
-            h->event.add([&](auto){ lst.cnt += 10; });
-            h->call_now();
-            CHECK(lst.cnt == 11);
+    SECTION("std") {
+        struct Lst : ICheckListener {
+            int cnt = 0;
+            void on_check (const CheckSP&) override { ++cnt; }
         };
-        SECTION("std") {
-            struct Lst : ICheckListener {
-                int cnt = 0;
-                void on_check (const CheckSP&) override { ++cnt; }
-            };
-            s(Lst());
-        }
-        SECTION("self") {
-            struct Lst : ICheckSelfListener {
-                int cnt = 0;
-                void on_check () override { ++cnt; }
-            };
-            s(Lst());
-        }
+        s(Lst());
+    }
+    SECTION("self") {
+        struct Lst : ICheckSelfListener {
+            int cnt = 0;
+            void on_check () override { ++cnt; }
+        };
+        s(Lst());
     }
 }
