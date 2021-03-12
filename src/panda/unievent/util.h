@@ -45,6 +45,7 @@ pipe (int read_flags = PairFlags::nonblock_pipe, int write_flags = PairFlags::no
 
 int           getpid           ();
 int           getppid          ();
+uint64_t      hrtime           ();
 TimeVal       gettimeofday     ();
 panda::string hostname         ();
 size_t        get_rss          ();

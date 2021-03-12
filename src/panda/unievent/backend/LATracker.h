@@ -3,6 +3,19 @@
 #include <panda/unievent/backend/TimerImpl.h>
 #include <panda/unievent/backend/PrepareImpl.h>
 
+// SHOULD BE REFACTORED IF NEED, MOVED HERE FROM UV
+
+void mark_load_average () {
+    if (_la_tracker) _la_tracker->mark();
+}
+
+static inline void mark_load_average (LoopImpl* loop) {
+    static_cast<UVLoop*>(loop)->mark_load_average();
+}
+
+// + on every action from loop
+mark_load_average(h->loop);
+
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 static const int LA_INTERVALS = 10;
@@ -80,10 +93,7 @@ private:
     }
 
     static double now () {
-        struct timespec ts;
-        int status = clock_gettime(CLOCK_MONOTONIC, &ts);
-        assert(status == 0);
-        return (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000;
+        return (double)panda::unievent::hrtime() / 1000000000;
     }
 };
 
