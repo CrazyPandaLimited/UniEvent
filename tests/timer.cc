@@ -78,9 +78,12 @@ TEST("due_in") {
     SECTION("normal") {
         t->start(10);
         CHECK_APPROX(t->due_in(), 10, 1);
+        auto now = test.loop->now();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         test.loop->update_time();
-        CHECK_APPROX(t->due_in(), 8, 1);
+        if (test.loop->now() - now <= 3) { // protect from insane sleep
+            CHECK_APPROX(t->due_in(), 8, 1);
+        }
     }
     SECTION("expired") {
         t->start(1);
