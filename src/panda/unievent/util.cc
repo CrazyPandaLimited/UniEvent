@@ -62,7 +62,7 @@ excepted<std::pair<sock_t,sock_t>, std::error_code> socketpair (int type, int pr
     int uv_flags1 = 0, uv_flags2 = 0;
     if (flags1 & PairFlags::nonblock_pipe) uv_flags1 |= UV_NONBLOCK_PIPE;
     if (flags2 & PairFlags::nonblock_pipe) uv_flags2 |= UV_NONBLOCK_PIPE;
-    auto err = uv_socketpair(type, protocol, fds, flags1, flags2);
+    auto err = uv_socketpair(type, protocol, fds, uv_flags1, uv_flags2);
     if (err) return make_unexpected(uvx_error(err));
     return std::pair<sock_t,sock_t>{fds[0], fds[1]};
 }
