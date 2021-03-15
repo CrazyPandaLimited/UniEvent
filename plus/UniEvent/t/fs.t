@@ -345,6 +345,23 @@ subtest 'xs-sync' => sub {
         ok Fs::isfile($file2);
         ok !Fs::exists($file);
     };
+    
+    subtest "mkdtemp" => sub {
+        my $dir = Fs::mkdtemp(var("tmpXXXXXX"));
+        ok $dir;
+        ok Fs::isdir($dir);
+    };
+
+    subtest "mkstemp" => sub {
+        my $ret = Fs::mkstemp(var("tmpXXXXXX"));
+        ok $ret;
+        ok $ret->[0];
+        ok $ret->[1];
+        ok Fs::isfile($ret->[0]);
+        Fs::write($ret->[1], "hello world");
+        Fs::close($ret->[1]);
+        is Fs::stat($ret->[0])->[STAT_SIZE], 11;
+    };
 };
 
 ######################### ASYNC ###############################
@@ -634,6 +651,28 @@ subtest 'xs-async' => sub {
         $l->run();
         ok !Fs::exists($file);
         ok Fs::isfile($file2);
+    };
+    
+    subtest "mkdtemp" => sub {
+        my ($path, $err);
+        Fs::mkdtemp(var("tmpXXXXXX"), sub { ($path, $err) = @_; $happened++ });
+        $l->run();
+        ok !$err;
+        ok $path;
+        ok Fs::isdir($path);
+    };
+
+    subtest "mkstemp" => sub {
+        my ($path, $fd, $err);
+        Fs::mkstemp(var("tmpXXXXXX"), sub { ($path, $fd, $err) = @_; $happened++ });
+        $l->run();
+        ok !$err;
+        ok $path;
+        ok Fs::isfile($path);
+
+        Fs::write($fd, "hello world");
+        Fs::close($fd);
+        is Fs::stat($path)->[STAT_SIZE], 11;
     };
 };
 
