@@ -16,6 +16,7 @@ struct TimerImpl : HandleImpl {
     virtual void     stop   () noexcept = 0;
     virtual uint64_t repeat () const = 0;
     virtual void     repeat (uint64_t repeat) = 0;
+    virtual uint64_t due_in () const = 0;
 
     virtual std::error_code again() = 0;
 

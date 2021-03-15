@@ -19,6 +19,8 @@ static int64_t get_time() {
     REQUIRE(diff >= EXPECTED);             \
 } while(0)
 
+#define CHECK_APPROX(val, expected, dev) CHECK(abs((long)val - (long)expected) <= dev)
+
 TEST("static once") {
     AsyncTest test(1000, 1);
     auto t0 = get_time();
@@ -65,5 +67,28 @@ TEST("event listener") {
             void on_timer () override { ++cnt; }
         };
         s(Lst());
+    }
+}
+
+TEST("due_in") {
+    AsyncTest test(1000, 0);
+    TimerSP t = new Timer(test.loop);
+    test.loop->update_time();
+
+    SECTION("normal") {
+        t->start(10);
+        CHECK_APPROX(t->due_in(), 10, 1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        test.loop->update_time();
+        CHECK_APPROX(t->due_in(), 8, 1);
+    }
+    SECTION("expired") {
+        t->start(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        test.loop->update_time();
+        CHECK(t->due_in() == 0);
+    }
+    SECTION("non armed") {
+        CHECK(t->due_in() == 0);
     }
 }

@@ -39,6 +39,7 @@ struct Timer : virtual BackendHandle, private backend::ITimerImplListener {
     virtual void     stop   ();
     virtual uint64_t repeat () const;
     virtual void     repeat (uint64_t repeat);
+    virtual uint64_t due_in () const;
 
     virtual excepted<void, ErrorCode> again();
 

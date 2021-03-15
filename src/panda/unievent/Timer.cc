@@ -26,6 +26,10 @@ uint64_t Timer::repeat () const {
     return impl()->repeat();
 }
 
+uint64_t Timer::due_in () const {
+    return impl()->due_in();
+}
+
 void Timer::repeat (uint64_t repeat) {
     impl()->repeat(repeat);
 }
