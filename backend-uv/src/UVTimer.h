@@ -29,6 +29,10 @@ struct UVTimer : UVHandle<TimerImpl, uv_timer_t> {
         uv_timer_set_repeat(&uvh, repeat);
     }
 
+    uint64_t due_in () const override {
+        return uv_timer_get_due_in(&uvh);
+    }
+
 private:
     static void _call (uv_timer_t* p) {
         get_handle<UVTimer*>(p)->handle_timer();
