@@ -104,12 +104,18 @@ struct Fs {
         size_t      len;
     };
 
+    struct path_fd_t {
+        string path;
+        fd_t   fd;
+    };
+
     using fn          = function<void(const std::error_code&, const RequestSP&)>;
     using bool_fn     = function<void(bool, const std::error_code&, const RequestSP&)>;
     using open_fn     = function<void(fd_t, const std::error_code&, const RequestSP&)>;
     using scandir_fn  = function<void(const DirEntries&, const std::error_code&, const RequestSP&)>;
     using stat_fn     = function<void(const FStat&, const std::error_code&, const RequestSP&)>;
     using string_fn   = function<void(string&, const std::error_code&, const RequestSP&)>;
+    using path_fd_fn  = function<void(string&, fd_t fd, const std::error_code&, const RequestSP&)>;
     using sendfile_fn = function<void(size_t, const std::error_code&, const RequestSP&)>;
 
     static FileType ftype (uint64_t mode);
@@ -141,6 +147,7 @@ struct Fs {
     static ex<void>       touch    (string_view, int mode = DEFAULT_FILE_MODE);
     static ex<void>       utime    (string_view, double atime, double mtime);
     static ex<void>       utime    (fd_t,        double atime, double mtime);
+    static ex<void>       lutime   (string_view, double atime, double mtime);
     static ex<void>       chown    (string_view, uid_t uid, gid_t gid);
     static ex<void>       lchown   (string_view, uid_t uid, gid_t gid);
     static ex<void>       chown    (fd_t,        uid_t uid, gid_t gid);
@@ -152,6 +159,7 @@ struct Fs {
     static ex<string>     realpath (string_view);
     static ex<void>       copyfile (string_view src, string_view dst, int flags = 0);
     static ex<string>     mkdtemp  (string_view);
+    static ex<path_fd_t>  mkstemp  (string_view);
     static ex<string>     read     (fd_t, size_t length, int64_t offset = -1);
     static ex<void>       write    (fd_t fd, const string_view& buf, int64_t offset = -1) { return write(fd, &buf, &buf+1, offset); }
 
@@ -196,6 +204,7 @@ struct Fs {
     static RequestSP touch    (string_view, int mode, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP utime    (string_view, double atime, double mtime, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP utime    (fd_t, double atime, double mtime, const fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP lutime   (string_view, double atime, double mtime, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP chown    (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP lchown   (string_view, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP chown    (fd_t, uid_t uid, gid_t gid, const fn&, const LoopSP& = Loop::default_loop());
@@ -207,6 +216,7 @@ struct Fs {
     static RequestSP realpath (string_view, const string_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP copyfile (string_view src, string_view dst, int flags, const fn&, const LoopSP& = Loop::default_loop());
     static RequestSP mkdtemp  (string_view, const string_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP mkstemp  (string_view, const path_fd_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP read     (fd_t, size_t size, int64_t offset, const string_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP write    (fd_t fd, const string_view& buf, int64_t offset, const fn& cb, const LoopSP& loop) { return _write(fd, {string(buf)}, offset, cb, loop); }
 
@@ -256,6 +266,7 @@ struct Fs {
         void touch    (string_view, int mode, const fn&);
         void utime    (string_view, double atime, double mtime, const fn&);
         void utime    (double atime, double mtime, const fn&);
+        void lutime   (string_view, double atime, double mtime, const fn&);
         void chown    (string_view, uid_t uid, gid_t gid, const fn&);
         void lchown   (string_view, uid_t uid, gid_t gid, const fn&);
         void chown    (uid_t uid, gid_t gid, const fn&);
@@ -267,6 +278,7 @@ struct Fs {
         void realpath (string_view, const string_fn&);
         void copyfile (string_view src, string_view dst, int flags, const fn&);
         void mkdtemp  (string_view, const string_fn&);
+        void mkstemp  (string_view, const path_fd_fn&);
         void read     (size_t size, int64_t offset, const string_fn&);
 
         void write (const string_view& buf, int64_t offset, const fn& cb) { _write({string(buf)}, offset, cb); }

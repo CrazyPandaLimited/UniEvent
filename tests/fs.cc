@@ -411,6 +411,23 @@ TEST("rename") {
     }
 }
 
+TEST("mkdtemp") {
+    Test t;
+    auto ret = Fs::mkdtemp(t.path("tmpXXXXXX")).value();
+    CHECK(ret != "");
+    CHECK(Fs::isdir(ret));
+}
+
+TEST("mkstemp") {
+    Test t;
+    auto ret = Fs::mkstemp(t.path("tmpXXXXXX")).value();
+    CHECK(ret.path != "");
+    CHECK(Fs::exists(ret.path));
+    Fs::write(ret.fd, "hello world");
+    Fs::close(ret.fd);
+    CHECK(Fs::stat(ret.path).value().size == 11);
+}
+
 }
 
 namespace async {
@@ -725,6 +742,32 @@ TEST("rename") {
     t.run();
     CHECK(!Fs::exists(t.file));
     CHECK(Fs::isfile(t.file2));
+}
+
+TEST("mkdtemp") {
+    Test t(2000, 1);
+    Fs::mkdtemp(t.path("tmpXXXXXX"), [&](auto& path, auto& err, auto&){
+        REQUIRE(!err);
+        CHECK(path != "");
+        CHECK(Fs::isdir(path));
+        t.happens();
+    }, t.loop);
+    t.run();
+}
+
+TEST("mkstemp") {
+    Test t(2000, 1);
+    Fs::mkstemp(t.path("tmpXXXXXX"), [&](auto& path, auto fd, auto& err, auto&){
+        REQUIRE(!err);
+        CHECK(path != "");
+        CHECK(Fs::exists(path));
+        t.happens();
+
+        Fs::write(fd, "hello world");
+        Fs::close(fd);
+        CHECK(Fs::stat(path).value().size == 11);
+    }, t.loop);
+    t.run();
 }
 
 }

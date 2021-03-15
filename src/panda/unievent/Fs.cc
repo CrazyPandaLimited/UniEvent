@@ -367,6 +367,14 @@ ex<void> Fs::utime (fd_t fd, double atime, double mtime) {
     return {};
 }
 
+ex<void> Fs::lutime (string_view path, double atime, double mtime) {
+    UE_NULL_TERMINATE(path, path_str);
+    UEFS_SYNC({
+        uv_fs_lutime(nullptr, &uvr, path_str, atime, mtime, nullptr);
+    }, {});
+    return {};
+}
+
 ex<void> Fs::chown (string_view path, uid_t uid, gid_t gid) {
     UE_NULL_TERMINATE(path, path_str);
     UEFS_SYNC({
@@ -495,6 +503,18 @@ ex<string> Fs::mkdtemp (string_view path) {
     return ret;
 }
 
+ex<Fs::path_fd_t> Fs::mkstemp (string_view path) {
+    path_fd_t ret;
+    UE_NULL_TERMINATE(path, path_str);
+    UEFS_SYNC({
+        uv_fs_mkstemp(nullptr, &uvr, path_str, nullptr);
+    }, {
+        ret.path.assign(uvr.path);
+        ret.fd = (fd_t)uvr.result;
+    });
+    return ret;
+}
+
 /* ===============================================================================================
    =================================== ASYNC STATIC API ==========================================
    =============================================================================================== */
@@ -532,6 +552,7 @@ Fs::RequestSP Fs::chmod    (fd_t f, int mode, const fn& cb, const LoopSP& l)    
 Fs::RequestSP Fs::touch    (string_view path, int mode, const fn& cb, const LoopSP& l)                          { UEFS_ASYNC_S(ret->touch(path, mode, cb)); }
 Fs::RequestSP Fs::utime    (string_view path, double atime, double mtime, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_S(ret->utime(path, atime, mtime, cb)); }
 Fs::RequestSP Fs::utime    (fd_t f, double atime, double mtime, const fn& cb, const LoopSP& l)                  { UEFS_ASYNC_SFD(ret->utime(atime, mtime, cb)); }
+Fs::RequestSP Fs::lutime   (string_view path, double atime, double mtime, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_S(ret->lutime(path, atime, mtime, cb)); }
 Fs::RequestSP Fs::chown    (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->chown(path, uid, gid, cb)); }
 Fs::RequestSP Fs::lchown   (string_view path, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)              { UEFS_ASYNC_S(ret->lchown(path, uid, gid, cb)); }
 Fs::RequestSP Fs::chown    (fd_t f, uid_t uid, gid_t gid, const fn& cb, const LoopSP& l)                        { UEFS_ASYNC_SFD(ret->chown(uid, gid, cb)); }
@@ -543,6 +564,7 @@ Fs::RequestSP Fs::readlink (string_view path, const string_fn& cb, const LoopSP&
 Fs::RequestSP Fs::realpath (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->realpath(path, cb)); }
 Fs::RequestSP Fs::copyfile (string_view src, string_view dst, int flags, const fn& cb, const LoopSP& l)         { UEFS_ASYNC_S(ret->copyfile(src, dst, flags, cb)); }
 Fs::RequestSP Fs::mkdtemp  (string_view path, const string_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->mkdtemp(path, cb)); }
+Fs::RequestSP Fs::mkstemp  (string_view path, const path_fd_fn& cb, const LoopSP& l)                            { UEFS_ASYNC_S(ret->mkstemp(path, cb)); }
 Fs::RequestSP Fs::read     (fd_t f, size_t size, int64_t off, const string_fn& cb, const LoopSP& l)             { UEFS_ASYNC_SFD(ret->read(size, off, cb)); }
 Fs::RequestSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const fn& cb, const LoopSP& l)        { UEFS_ASYNC_SFD(ret->_write(std::move(v), off, cb)); }
 
@@ -572,10 +594,11 @@ Fs::RequestSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const 
         else     _err = ret.error();                            \
     }, cb_code);
 
-#define UEFS_ASYNC_VOID(call_expr) UEFS_ASYNC(call_expr, {}, cb(_err, this))
-#define UEFS_ASYNC_STAT(call_expr) UEFS_ASYNC(call_expr, (_stat = *std::move(ret)), cb(_stat, _err, this))
-#define UEFS_ASYNC_BOOL(call_expr) UEFS_ASYNC_RAW( { _bool = call_expr; }, cb(_bool, _err, this))
-#define UEFS_ASYNC_STR(call_expr)  UEFS_ASYNC(call_expr, (_string = *std::move(ret)), cb(_string, _err, this))
+#define UEFS_ASYNC_VOID(call_expr)    UEFS_ASYNC(call_expr, {}, cb(_err, this))
+#define UEFS_ASYNC_STAT(call_expr)    UEFS_ASYNC(call_expr, (_stat = *std::move(ret)), cb(_stat, _err, this))
+#define UEFS_ASYNC_BOOL(call_expr)    UEFS_ASYNC_RAW( { _bool = call_expr; }, cb(_bool, _err, this))
+#define UEFS_ASYNC_STR(call_expr)     UEFS_ASYNC(call_expr, (_string = *std::move(ret)), cb(_string, _err, this))
+#define UEFS_ASYNC_PATH_FD(call_expr) UEFS_ASYNC(call_expr, { _string = std::move(ret.value().path); _fd = ret.value().fd; }, cb(_string, _fd, _err, this))
 
 void Fs::Request::mkdir      (string_view _path, int mode, const fn& cb) { auto path = string(_path); UEFS_ASYNC_VOID(Fs::mkdir(path, mode)); }
 void Fs::Request::rmdir      (string_view _path, const fn& cb)           { auto path = string(_path); UEFS_ASYNC_VOID(Fs::rmdir(path)); }
@@ -603,6 +626,7 @@ void Fs::Request::chmod    (int mode, const fn& cb)                             
 void Fs::Request::touch    (string_view _path, int mode, const fn& cb)                         { auto path = string(_path); UEFS_ASYNC_VOID(Fs::touch(path, mode)); }
 void Fs::Request::utime    (string_view _path, double atime, double mtime, const fn& cb)       { auto path = string(_path); UEFS_ASYNC_VOID(Fs::utime(path, atime, mtime)); }
 void Fs::Request::utime    (double atime, double mtime, const fn& cb)                          { UEFS_ASYNC_VOID(Fs::utime(_fd, atime, mtime)); }
+void Fs::Request::lutime   (string_view _path, double atime, double mtime, const fn& cb)       { auto path = string(_path); UEFS_ASYNC_VOID(Fs::lutime(path, atime, mtime)); }
 void Fs::Request::chown    (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::chown(path, uid, gid)); }
 void Fs::Request::lchown   (string_view _path, uid_t uid, gid_t gid, const fn& cb)             { auto path = string(_path); UEFS_ASYNC_VOID(Fs::lchown(path, uid, gid)); }
 void Fs::Request::chown    (uid_t uid, gid_t gid, const fn& cb)                                { UEFS_ASYNC_VOID(Fs::chown(_fd, uid, gid)); }
@@ -614,6 +638,7 @@ void Fs::Request::readlink (string_view _path, const string_fn& cb)             
 void Fs::Request::realpath (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::realpath(path)); }
 void Fs::Request::copyfile (string_view _src, string_view _dst, int flags, const fn& cb)       { auto src = string(_src); auto dst = string(_dst); UEFS_ASYNC_VOID(Fs::copyfile(src, dst, flags)); }
 void Fs::Request::mkdtemp  (string_view _path, const string_fn& cb)                            { auto path = string(_path); UEFS_ASYNC_STR(Fs::mkdtemp(path)); }
+void Fs::Request::mkstemp  (string_view _path, const path_fd_fn& cb)                           { auto path = string(_path); UEFS_ASYNC_PATH_FD(Fs::mkstemp(path)); }
 void Fs::Request::read     (size_t size, int64_t off, const string_fn& cb)                     { UEFS_ASYNC_STR(Fs::read(_fd, size, off)); }
 void Fs::Request::_write   (std::vector<string>&& v, int64_t off, const fn& cb)                {
     UEFS_ASYNC_RAW({
