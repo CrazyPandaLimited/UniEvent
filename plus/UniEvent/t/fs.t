@@ -217,6 +217,13 @@ subtest 'xs-sync' => sub {
             Fs::close($fd);
         };
     };
+    
+    subtest "statfs" => sub {
+        my $ret = Fs::statfs("/");
+        ok $ret->[STATFS_TYPE];
+        ok $ret->[STATFS_BSIZE];
+        ok $ret->[STATFS_BLOCKS];
+    } unless win32();
 
     subtest "exists/isfile/isdir" => sub {
         ok !Fs::exists($file);
@@ -468,6 +475,16 @@ subtest 'xs-async' => sub {
             Fs::close($fd);
         };
     };
+    
+    subtest "statfs" => sub {
+        my ($info, $err);
+        Fs::statfs("/", sub { ($info, $err) = @_; $happened++ });
+        $l->run;
+        ok !$err;
+        ok $info->[STATFS_TYPE];
+        ok $info->[STATFS_BSIZE];
+        ok $info->[STATFS_BLOCKS];
+    } unless win32();
 
     subtest "exists/isfile/isdir" => sub {
         $expected = 9;
