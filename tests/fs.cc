@@ -241,6 +241,17 @@ TEST("stat") {
     }
 }
 
+TEST("statfs") {
+    if (win32) return;
+    Test t;
+    auto ret = Fs::statfs("/");
+    REQUIRE(ret);
+    auto val = ret.value();
+    CHECK(val.type);
+    CHECK(val.bsize);
+    CHECK(val.blocks);
+}
+
 TEST("exists/isfile/isdir") {
     Test t;
     CHECK(!Fs::exists(t.file));
@@ -553,6 +564,18 @@ TEST("stat") {
         t.run();
         Fs::close(fd);
     }
+}
+
+TEST("statfs") {
+    if (win32) return;
+    Test t(10000, 1);
+    Fs::statfs("/", [&](auto& info, auto& err, auto&){
+        t.happens();
+        CHECK(info.type);
+        CHECK(info.bsize);
+        CHECK(info.blocks);
+    }, t.loop);
+    t.run();
 }
 
 TEST("exists/isfile/isdir") {

@@ -87,6 +87,17 @@ struct Fs {
         bool operator!= (const FStat& oth) const { return !operator==(oth); }
     };
 
+    struct FsInfo {
+        uint64_t type;
+        uint64_t bsize;
+        uint64_t blocks;
+        uint64_t bfree;
+        uint64_t bavail;
+        uint64_t files;
+        uint64_t ffree;
+        uint64_t spare[4];
+    };
+
     struct DirEntry {
         DirEntry (const string& name, FileType type) : _name(name), _type(type) {}
 
@@ -114,6 +125,7 @@ struct Fs {
     using open_fn     = function<void(fd_t, const std::error_code&, const RequestSP&)>;
     using scandir_fn  = function<void(const DirEntries&, const std::error_code&, const RequestSP&)>;
     using stat_fn     = function<void(const FStat&, const std::error_code&, const RequestSP&)>;
+    using statfs_fn   = function<void(const FsInfo&, const std::error_code&, const RequestSP&)>;
     using string_fn   = function<void(string&, const std::error_code&, const RequestSP&)>;
     using path_fd_fn  = function<void(string&, fd_t fd, const std::error_code&, const RequestSP&)>;
     using sendfile_fn = function<void(size_t, const std::error_code&, const RequestSP&)>;
@@ -133,6 +145,7 @@ struct Fs {
     static ex<FStat>      stat     (string_view);
     static ex<FStat>      stat     (fd_t);
     static ex<FStat>      lstat    (string_view);
+    static ex<FsInfo>     statfs   (string_view);
     static bool           exists   (string_view);
     static bool           isfile   (string_view);
     static bool           isdir    (string_view);
@@ -190,6 +203,7 @@ struct Fs {
     static RequestSP stat     (string_view, const stat_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP stat     (fd_t, const stat_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP lstat    (string_view, const stat_fn&, const LoopSP& = Loop::default_loop());
+    static RequestSP statfs   (string_view, const statfs_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP exists   (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP isfile   (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
     static RequestSP isdir    (string_view, const bool_fn&, const LoopSP& = Loop::default_loop());
@@ -252,6 +266,7 @@ struct Fs {
         void stat     (string_view, const stat_fn&);
         void stat     (const stat_fn&);
         void lstat    (string_view, const stat_fn&);
+        void statfs   (string_view, const statfs_fn&);
         void exists   (string_view, const bool_fn&);
         void isfile   (string_view, const bool_fn&);
         void isdir    (string_view, const bool_fn&);
@@ -299,6 +314,7 @@ struct Fs {
         std::error_code _err;
         DirEntries      _dir_entries;
         FStat           _stat;
+        FsInfo          _fs_info;
         size_t          _size;
         string          _string;
 

@@ -268,6 +268,25 @@ ex<Fs::FStat> Fs::lstat (string_view path) {
     return ret;
 }
 
+ex<Fs::FsInfo> Fs::statfs (string_view path) {
+    FsInfo ret;
+    UE_NULL_TERMINATE(path, path_str);
+    UEFS_SYNC({
+        uv_fs_statfs(nullptr, &uvr, path_str, nullptr);
+    }, {
+        auto uval = (uv_statfs_t*)uvr.ptr;
+        ret.type   = uval->f_type;
+        ret.bsize  = uval->f_bsize;
+        ret.blocks = uval->f_blocks;
+        ret.bfree  = uval->f_bfree;
+        ret.bavail = uval->f_bavail;
+        ret.files  = uval->f_files;
+        ret.ffree  = uval->f_ffree;
+        memcpy(ret.spare, uval->f_spare, sizeof(uval->f_spare));
+    });
+    return ret;
+}
+
 bool Fs::exists (string_view file) {
     return (bool)stat(file);
 }
@@ -538,6 +557,7 @@ Fs::RequestSP Fs::close    (fd_t f, const fn& cb, const LoopSP& l)              
 Fs::RequestSP Fs::stat     (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->stat(path, cb)); }
 Fs::RequestSP Fs::stat     (fd_t f, const stat_fn& cb, const LoopSP& l)                                         { UEFS_ASYNC_SFD(ret->stat(cb)); }
 Fs::RequestSP Fs::lstat    (string_view path, const stat_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->lstat(path, cb)); }
+Fs::RequestSP Fs::statfs   (string_view path, const statfs_fn& cb, const LoopSP& l)                             { UEFS_ASYNC_S(ret->statfs(path, cb)); }
 Fs::RequestSP Fs::exists   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->exists(path, cb)); }
 Fs::RequestSP Fs::isfile   (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isfile(path, cb)); }
 Fs::RequestSP Fs::isdir    (string_view path, const bool_fn& cb, const LoopSP& l)                               { UEFS_ASYNC_S(ret->isdir(path, cb)); }
@@ -612,6 +632,7 @@ void Fs::Request::close    (const fn& cb)                                       
 void Fs::Request::stat     (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::stat(path)); }
 void Fs::Request::stat     (const stat_fn& cb)                                                 { UEFS_ASYNC_STAT(Fs::stat(_fd)); }
 void Fs::Request::lstat    (string_view _path, const stat_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_STAT(Fs::lstat(path)); }
+void Fs::Request::statfs   (string_view _path, const statfs_fn& cb)                            { auto path = string(_path); UEFS_ASYNC(Fs::statfs(path), (_fs_info = *std::move(ret)), cb(_fs_info, _err, this)); }
 void Fs::Request::exists   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::exists(path)); }
 void Fs::Request::isfile   (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isfile(path)); }
 void Fs::Request::isdir    (string_view _path, const bool_fn& cb)                              { auto path = string(_path); UEFS_ASYNC_BOOL(Fs::isdir(path)); }
