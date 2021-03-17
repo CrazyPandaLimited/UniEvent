@@ -108,13 +108,6 @@ struct UtsName {
 
 excepted<UtsName, std::error_code> uname ();
 
-const HandleType& guess_type (fd_t);
-
-std::error_code sys_error           (int syserr);
-std::error_code last_sys_error      ();
-std::error_code last_sys_sock_error ();
-std::error_code uvx_error           (int uverr);
-
 struct Wsl {
     enum Version {
         NOT = 0,
@@ -125,9 +118,38 @@ struct Wsl {
 
 Wsl::Version is_wsl();
 
-//inline bool inet_looks_like_ipv6 (const char* src) {
-//    while (*src) if (*src++ == ':') return true;
-//    return false;
-//}
+
+struct RandomRequest;
+using RandomRequestSP = iptr<RandomRequest>;
+
+struct RandomRequest : Work, private IWorkSelfListener {
+    using random_fn = function<void(string&, const std::error_code&, const RandomRequestSP&)>;
+
+    random_fn cb;
+
+    RandomRequest (const random_fn&, const LoopSP& = Loop::default_loop());
+
+    void start (size_t);
+
+private:
+    size_t          _len = 0;
+    std::error_code _err;
+    string          _result;
+
+    void on_work       () override;
+    void on_after_work (const std::error_code&) override;
+};
+
+excepted<string, std::error_code> get_random (size_t len);
+
+RandomRequestSP get_random (size_t len, const RandomRequest::random_fn&, const LoopSP& = Loop::default_loop());
+
+
+const HandleType& guess_type (fd_t);
+
+std::error_code sys_error           (int syserr);
+std::error_code last_sys_error      ();
+std::error_code last_sys_sock_error ();
+std::error_code uvx_error           (int uverr);
 
 }}

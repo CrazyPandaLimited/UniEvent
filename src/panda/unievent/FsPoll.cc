@@ -8,7 +8,7 @@ FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched(), _listener() {
     fsr   = new Fs::Request(loop);
     timer = new Timer(loop);
     timer->event.add([this](auto) {
-        if (fsr->busy()) return; // filesystem has not yet completed the request -> skip one cycle
+        if (fsr->active()) return; // filesystem has not yet completed the request -> skip one cycle
         this->do_stat();
     });
 }
@@ -22,7 +22,7 @@ void FsPoll::start (string_view path, unsigned int interval, const fs_poll_fn& c
     if (callback) poll_event.add(callback);
     _path = string(path);
     timer->start(interval);
-    if (fsr->busy()) fsr = new Fs::Request(loop()); // previous fspoll task has not yet been completed -> forget FSR and create new one
+    if (fsr->active()) fsr = new Fs::Request(loop()); // previous fspoll task has not yet been completed -> forget FSR and create new one
     do_stat();
 }
 
