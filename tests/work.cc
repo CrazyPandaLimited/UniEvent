@@ -15,8 +15,11 @@ TEST("main") {
         CHECK(std::this_thread::get_id() == main_id);
         test.happens("aw");
     };
+    CHECK_FALSE(w->active());
     w->queue();
+    CHECK(w->active());
     test.run();
+    CHECK_FALSE(w->active());
 }
 
 TEST("cancel") {
