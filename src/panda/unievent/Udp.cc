@@ -8,7 +8,7 @@ const HandleType Udp::TYPE("udp");
 AddrInfoHints Udp::defhints = AddrInfoHints(AF_UNSPEC, SOCK_DGRAM, 0, 0);
 
 backend::HandleImpl* Udp::new_impl () {
-    return loop()->impl()->new_udp(this, domain);
+    return loop()->impl()->new_udp(this, domain, flags);
 }
 
 const HandleType& Udp::type () const {
@@ -51,6 +51,10 @@ excepted<void, panda::ErrorCode> Udp::set_membership (string_view multicast_addr
     return make_excepted(impl()->set_membership(multicast_addr, interface_addr, membership));
 }
 
+excepted<void, panda::ErrorCode> Udp::set_source_membership (string_view multicast_addr, string_view interface_addr, string_view source_addr, Membership membership) {
+    return make_excepted(impl()->set_source_membership(multicast_addr, interface_addr, source_addr, membership));
+}
+
 excepted<void, panda::ErrorCode> Udp::set_multicast_loop (bool on) {
     return make_excepted(impl()->set_multicast_loop(on));
 }
@@ -81,11 +85,13 @@ excepted<void, panda::ErrorCode> Udp::recv_stop () {
 }
 
 void Udp::send (const SendRequestSP& req) {
+    for (const auto& buf : req->bufs) _sq_size += buf.length();
     req->set(this);
     queue.push(req);
 }
 
 void SendRequest::exec () {
+    for (const auto& buf : bufs) handle->_sq_size -= buf.length();
     auto err = handle->impl()->send(bufs, addr, impl());
     if (err) delay([=]{ cancel(err); });
 }

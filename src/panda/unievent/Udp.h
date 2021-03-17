@@ -34,9 +34,9 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
     CallbackDispatcher<receive_fptr> receive_event;
     CallbackDispatcher<send_fptr>    send_event;
 
-    Udp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC) : domain(domain), _listener() {
+    Udp (const LoopSP& loop = Loop::default_loop(), int domain = AF_UNSPEC, int flags = 0) : domain(domain), flags(flags) {
         panda_log_ctor();
-        _init(loop, loop->impl()->new_udp(this, domain));
+        _init(loop, loop->impl()->new_udp(this, domain, flags));
     }
 
     const HandleType& type () const override;
@@ -57,9 +57,9 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
     virtual excepted<void, ErrorCode> recv_start (receive_fn callback = nullptr);
     virtual excepted<void, ErrorCode> recv_stop  ();
     virtual void send       (const SendRequestSP& req);
-    /*INL*/ void send       (const string& data, const net::SockAddr& sa, send_fn callback = {});
+    /*INL*/ void send       (const string& data, const net::SockAddr& sa = {}, send_fn callback = {});
     template <class It>
-    /*INL*/ void send       (It begin, It end, const net::SockAddr& sa, send_fn callback = {});
+    /*INL*/ void send       (It begin, It end, const net::SockAddr& sa = {}, send_fn callback = {});
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
@@ -72,11 +72,15 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
     excepted<void, ErrorCode> send_buffer_size (int value) { return make_excepted(impl()->send_buffer_size(value)); }
 
     excepted<void, ErrorCode> set_membership          (string_view multicast_addr, string_view interface_addr, Membership membership);
+    excepted<void, ErrorCode> set_source_membership   (string_view multicast_addr, string_view interface_addr, string_view source_addr, Membership membership);
     excepted<void, ErrorCode> set_multicast_loop      (bool on);
     excepted<void, ErrorCode> set_multicast_ttl       (int ttl);
     excepted<void, ErrorCode> set_multicast_interface (string_view interface_addr);
     excepted<void, ErrorCode> set_broadcast           (bool on);
     excepted<void, ErrorCode> set_ttl                 (int ttl);
+
+    bool   using_recvmmsg  () const { return flags & Flags::RECVMMSG; }
+    size_t send_queue_size () const { return _sq_size + impl()->send_queue_size(); }
 
     static const HandleType TYPE;
 
@@ -85,8 +89,10 @@ private:
     static AddrInfoHints defhints;
 
     int           domain;
+    int           flags;
     Queue         queue;
-    IUdpListener* _listener;
+    IUdpListener* _listener = nullptr;
+    size_t        _sq_size  = 0;
 
     UdpImpl* impl () const { return static_cast<UdpImpl*>(BackendHandle::impl()); }
 
@@ -104,7 +110,7 @@ struct SendRequest : Request, AllocatedObject<SendRequest> {
 
     SendRequest () {}
 
-    SendRequest (const string& data) {
+    explicit SendRequest (const string& data) {
         bufs.push_back(data);
     }
 

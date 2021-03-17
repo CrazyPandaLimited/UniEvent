@@ -259,6 +259,26 @@ void RandomRequest::start (size_t len) {
     queue();
 }
 
+char** setup_args (int argc, char** argv) {
+    return uv_setup_args(argc, argv);
+}
+
+excepted<string, std::error_code> get_process_title () {
+    for (auto i : {256, 1024, 4096}) {
+        string ret(i);
+        auto err = uv_get_process_title(ret.buf(), i);
+        if (!err) return ret;
+        if (err != UV_ENOBUFS) return make_unexpected(uvx_error(err));
+    }
+    return ""; // too long or setup_args() hasn't been called
+}
+
+excepted<void, std::error_code> set_process_title (string_view title) {
+    auto err = uv_set_process_title(string(title).c_str());
+    if (err) return make_unexpected(uvx_error(err));
+    return {};
+}
+
 const HandleType& guess_type (fd_t file) {
     auto uvt = uv_guess_handle(file);
     switch (uvt) {

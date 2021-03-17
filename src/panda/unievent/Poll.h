@@ -18,8 +18,10 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
     using poll_fn = panda::function<poll_fptr>;
 
     enum {
-      READABLE = 1,
-      WRITABLE = 2
+      READABLE    = 1,
+      WRITABLE    = 2,
+      PRIORITIZED = 4,
+      DISCONNECT  = 8,
     };
 
     struct Socket { sock_t val; };
