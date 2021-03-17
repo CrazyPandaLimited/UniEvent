@@ -56,8 +56,6 @@ char** setup_args (int argc, char** argv);
 excepted<string, std::error_code> get_process_title ();
 excepted<void,   std::error_code> set_process_title (string_view);
 
-excepted<UtsName, std::error_code> uname ();
-
 struct InterfaceAddress {
     string        name;
     char          phys_addr[6];
@@ -111,6 +109,8 @@ struct UtsName {
     string version;
     string machine;
 };
+
+excepted<UtsName, std::error_code> uname ();
 
 struct Wsl {
     enum Version {
