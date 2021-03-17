@@ -243,13 +243,10 @@ struct Fs {
 
     // async object methods
     struct Request : Work, AllocatedObject<Request> {
-        Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _busy(), _fd() {}
-        ~Request () { assert(!_busy); }
+        Request  (const LoopSP& loop = Loop::default_loop()) : Work(loop), _fd() {}
 
         using AllocatedObject<Request>::operator new;
         using AllocatedObject<Request>::operator delete;
-
-        bool busy () const { return _busy; }
 
         fd_t fd () const  { return _fd; }
         void fd (fd_t fd) { _fd = fd; }
@@ -307,8 +304,6 @@ struct Fs {
 
     private:
         friend Fs;
-
-        bool            _busy;
         bool            _bool;
         fd_t            _fd;
         std::error_code _err;

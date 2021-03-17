@@ -70,3 +70,22 @@ TEST("event listener") {
         s(Lst());
     }
 }
+
+TEST("double queue") {
+    AsyncTest test(10000, {"w", "aw", "w", "aw"});
+    WorkSP w = new Work(test.loop);
+    w->work_cb = [&](Work*) {
+        test.happens("w");
+    };
+    w->after_work_cb = [&](auto, auto& err) {
+        test.happens("aw");
+    };
+    w->queue();
+    CHECK_THROWS(w->queue());
+    test.run();
+
+    // after completing, queue() works again
+    w->queue();
+    CHECK_THROWS(w->queue());
+    test.run();
+}

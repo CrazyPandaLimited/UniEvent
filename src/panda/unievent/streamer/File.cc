@@ -31,7 +31,7 @@ void FileInput::stop () {
 
 ErrorCode FileInput::start_reading () {
     pause = false;
-    if (!fsreq->busy()) do_read();
+    if (!fsreq->active()) do_read();
     return {};
 }
 

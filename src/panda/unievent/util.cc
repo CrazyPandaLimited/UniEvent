@@ -214,6 +214,51 @@ excepted<UtsName, std::error_code> uname () {
     };
 }
 
+Wsl::Version is_wsl() {
+    #ifdef __unix__
+    auto ret = uname();
+    if (ret) {
+        auto info = ret.value();
+        if      (info.release.find("Microsoft") != string::npos) return Wsl::_1;
+        else if (info.release.find("microsoft") != string::npos) return Wsl::_2;
+    }
+    #endif
+    return Wsl::NOT;
+}
+
+excepted<string, std::error_code> get_random (size_t len) {
+    string ret(len);
+    auto err = uv_random(nullptr, nullptr, ret.buf(), len, 0, nullptr);
+    if (err) return make_unexpected(uvx_error(err));
+    ret.length(len);
+    return ret;
+}
+
+RandomRequestSP get_random (size_t len, const RandomRequest::random_fn& cb, const LoopSP& loop) {
+    RandomRequestSP req = new RandomRequest(cb, loop);
+    req->start(len);
+    return req;
+}
+
+RandomRequest::RandomRequest (const random_fn& cb, const LoopSP& loop) : Work(loop), cb(cb) {
+    event_listener(this);
+}
+
+void RandomRequest::on_work () {
+    auto res = get_random(_len);
+    if (res) _result = res.value();
+    else     _err    = res.error();
+}
+
+void RandomRequest::on_after_work (const std::error_code& err) {
+    cb(_result, err ? err : _err, this);
+}
+
+void RandomRequest::start (size_t len) {
+    _len = len;
+    queue();
+}
+
 const HandleType& guess_type (fd_t file) {
     auto uvt = uv_guess_handle(file);
     switch (uvt) {
@@ -314,17 +359,5 @@ std::error_code uvx_error (int uverr) {
 
 std::ostream& operator<< (std::ostream& os, const TimeVal&  v) { return os << v.get(); }
 std::ostream& operator<< (std::ostream& os, const TimeSpec& v) { return os << v.get(); }
-
-Wsl::Version is_wsl() {
-    #ifdef __unix__
-    auto ret = uname();
-    if (ret) {
-        auto info = ret.value();
-        if      (info.release.find("Microsoft") != string::npos) return Wsl::_1;
-        else if (info.release.find("microsoft") != string::npos) return Wsl::_2;
-    }
-    #endif
-    return Wsl::NOT;
-}
 
 }}

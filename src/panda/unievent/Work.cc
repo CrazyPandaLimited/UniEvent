@@ -11,10 +11,12 @@ WorkSP Work::queue (const work_fn& wcb, const after_work_fn& awcb, const LoopSP&
 }
 
 excepted<void, panda::ErrorCode> Work::queue() {
+    if (_active) return make_excepted(make_error_code(std::errc::operation_in_progress));
     _loop->register_work(this);
     auto err = impl()->queue();
+    if (err) return make_excepted(err);
     _active = true;
-    return make_excepted(err);
+    return {};
 }
 
 bool Work::cancel () {

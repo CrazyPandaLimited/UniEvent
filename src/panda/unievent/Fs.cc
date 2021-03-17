@@ -593,12 +593,9 @@ Fs::RequestSP Fs::_write   (fd_t f, std::vector<string>&& v, int64_t off, const 
    =============================================================================================== */
 
 #define UEFS_ASYNC_RAW(work_code, after_work_code) { \
-    if (_busy) throw Error("cannot start request while processing another");    \
-    _busy = true;                                    \
     work_cb = [=](auto) { work_code  };              \
     after_work_cb = [=](auto&, auto& err) {          \
         if (err) _err = err;                         \
-        _busy = false;                               \
         after_work_code;                             \
         _err.clear();                                \
         _dir_entries.clear();                        \

@@ -30,25 +30,28 @@ struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private
 
     static WorkSP queue (const work_fn&, const after_work_fn&, const LoopSP& = Loop::default_loop());
 
-    Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop), _impl(), _listener(), _active() {}
+    Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop) {}
 
     const LoopSP& loop () const { return _loop; }
 
     IWorkListener* event_listener () const           { return _listener; }
     void           event_listener (IWorkListener* l) { _listener = l; }
 
+    bool active () const { return _active; }
+
     virtual excepted<void, panda::ErrorCode> queue();
     virtual bool cancel ();
 
     ~Work () {
+        assert(!_active);
         if (_impl) assert(_impl->destroy());
     }
 
 private:
     LoopSP         _loop;
-    WorkImpl*      _impl;
-    IWorkListener* _listener;
-    bool           _active;
+    WorkImpl*      _impl     = nullptr;
+    IWorkListener* _listener = nullptr;
+    bool           _active   = false;
 
     void handle_work       () override;
     void handle_after_work (const std::error_code& err) override;
