@@ -90,6 +90,20 @@ subtest 'get_rusage' => sub {
     }
 };
 
+subtest 'get_random' => sub {
+    my $s = UE::get_random(10);
+    ok $s;
+    undef $s;
+    
+    my $err;
+    my $req = UE::get_random(10, sub { ($s, $err) = @_; });
+    ok !$s;
+    ok $req->active;
+    UE::Loop::default->run;
+    ok !$err;
+    ok $s;
+};
+
 subtest 'guess_type' => sub {
     # 0 is stdin ant it may be Tty for terminal and Pipe for redirected input (happens on jenkins)
     # UPDATE: and .... Fs on freebsd-vmware ???!!!!   Test disabled

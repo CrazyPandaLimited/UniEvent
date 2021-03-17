@@ -375,6 +375,14 @@ subtest 'xs-sync' => sub {
 subtest 'xs-async' => sub {
     $async_mode = 1;
     
+    subtest "fs request" => sub {
+        my $req = Fs::mkdtemp(var("tmpXXXXXX"), sub { $happened++ });
+        isa_ok $req, 'UniEvent::Request::Fs';
+        isa_ok $req, 'UniEvent::Work';
+        ok $req->active;
+        $l->run();
+    };
+    
     subtest "mkdir" => sub {
         subtest "ok" => sub {
             Fs::mkdir($dir, 0755, $success, $l);

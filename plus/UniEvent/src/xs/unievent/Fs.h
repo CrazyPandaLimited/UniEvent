@@ -1,5 +1,6 @@
 #pragma once
 #include <xs.h>
+#include "Work.h"
 #include <panda/unievent/Fs.h>
 
 namespace xs {
@@ -24,8 +25,8 @@ template <> struct Typemap<panda::unievent::Fs::path_fd_t> : TypemapBase<panda::
     static panda::unievent::Fs::path_fd_t in (const Array&);
 };
 
-template <class TYPE> struct Typemap<panda::unievent::Fs::Request*, TYPE> : TypemapObject<panda::unievent::Fs::Request*, TYPE, ObjectTypeRefcntPtr, ObjectStorageMGBackref> {
-    static panda::string package () { return "UniEvent::Fs::Request"; }
+template <class TYPE> struct Typemap<panda::unievent::Fs::Request*, TYPE> : Typemap<panda::unievent::Work*, TYPE> {
+    static panda::string package () { return "UniEvent::Request::Fs"; }
 };
 
 }
