@@ -445,6 +445,14 @@ namespace async {
 
 TEST_PREFIX("fs-async: ", "[fs]");
 
+TEST("fs request") {
+    Test t(2000);
+    auto req = Fs::mkdtemp(t.path("tmpXXXXXX"), [](auto&&...){}, t.loop);
+    CHECK(req->active());
+    t.run();
+    CHECK_FALSE(req->active());
+}
+
 TEST("mkdir") {
     Test t(10000, 1);
     SECTION("ok") {
