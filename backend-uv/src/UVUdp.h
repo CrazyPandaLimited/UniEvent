@@ -10,8 +10,18 @@ struct UVSendRequest : UVRequest<SendRequestImpl, uv_udp_send_t>, AllocatedObjec
 };
 
 struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
-    UVUdp (UVLoop* loop, IUdpImplListener* lst, int domain) : UVHandle<UdpImpl, uv_udp_t>(loop, lst) {
-        uvx_strict(domain == AF_UNSPEC ? uv_udp_init(loop->uvloop, &uvh) : uv_udp_init_ex(loop->uvloop, &uvh, domain));
+    UVUdp (UVLoop* loop, IUdpImplListener* lst, int domain, int flags) : UVHandle<UdpImpl, uv_udp_t>(loop, lst) {
+        int uv_flags = domain;
+        if (flags & Flags::RECVMMSG) uv_flags |= UV_UDP_RECVMMSG;
+
+        int ret;
+        if (uv_flags == AF_UNSPEC) {
+            ret = uv_udp_init(loop->uvloop, &uvh);
+        } else {
+            ret = uv_udp_init_ex(loop->uvloop, &uvh, uv_flags);
+        }
+
+        uvx_strict(ret);
     }
 
     std::error_code open (sock_t sock) override {
@@ -40,7 +50,7 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
     std::error_code send (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl* _req) override {
         auto req = static_cast<UVSendRequest*>(_req);
         UVX_FILL_BUFS(bufs, uvbufs);
-        auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.get(), on_send);
+        auto err = uv_udp_send(&req->uvr, &uvh, uvbufs, bufs.size(), addr.family() == AF_UNSPEC ? nullptr : addr.get(), on_send);
         if (err) return uvx_error(err);
         req->active = true;
         // &uvh.write_queue == uvh.write_queue[0]
@@ -76,6 +86,18 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         return uvx_ce(uv_udp_set_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, uvmemb));
     }
 
+    std::error_code set_source_membership (string_view multicast_addr, string_view interface_addr, string_view source_addr, Membership membership) override {
+        uv_membership uvmemb = uv_membership();
+        switch (membership) {
+            case Membership::LEAVE_GROUP : uvmemb = UV_LEAVE_GROUP; break;
+            case Membership::JOIN_GROUP  : uvmemb = UV_JOIN_GROUP;  break;
+        }
+        UE_NULL_TERMINATE(multicast_addr, multicast_addr_cstr);
+        UE_NULL_TERMINATE(interface_addr, interface_addr_cstr);
+        UE_NULL_TERMINATE(source_addr, source_addr_cstr);
+        return uvx_ce(uv_udp_set_source_membership(&uvh, multicast_addr_cstr, interface_addr_cstr, source_addr_cstr, uvmemb));
+    }
+
     std::error_code set_multicast_loop (bool on) override {
         return uvx_ce(uv_udp_set_multicast_loop(&uvh, on));
     }
@@ -95,6 +117,10 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
 
     std::error_code set_ttl (int ttl) override {
         return uvx_ce(uv_udp_set_ttl(&uvh, ttl));
+    }
+
+    size_t send_queue_size () const noexcept override {
+        return uvh.send_queue_size;
     }
 
     SendRequestImpl* new_send_request (IRequestListener* l) override { return new UVSendRequest(this, l); }

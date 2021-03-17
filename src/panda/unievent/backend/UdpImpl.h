@@ -15,9 +15,12 @@ struct SendRequestImpl : RequestImpl { using RequestImpl::RequestImpl; };
 
 struct UdpImpl : HandleImpl {
     struct Flags {
-        static const constexpr int PARTIAL   = 1;
-        static const constexpr int IPV6ONLY  = 2;
-        static const constexpr int REUSEADDR = 4;
+        static constexpr int PARTIAL    = 1;
+        static constexpr int IPV6ONLY   = 2;
+        static constexpr int REUSEADDR  = 4;
+        static constexpr int MMSG_CHUNK = 8;
+        static constexpr int MMSG_FREE  = 16;
+        static constexpr int RECVMMSG   = 256;
     };
 
     enum class Membership {
@@ -51,11 +54,14 @@ struct UdpImpl : HandleImpl {
     virtual std::error_code send_buffer_size (int value) = 0;
 
     virtual std::error_code set_membership          (string_view multicast_addr, string_view interface_addr, Membership m) = 0;
+    virtual std::error_code set_source_membership   (string_view multicast_addr, string_view interface_addr, string_view source_addr, Membership m) = 0;
     virtual std::error_code set_multicast_loop      (bool on) = 0;
     virtual std::error_code set_multicast_ttl       (int ttl) = 0;
     virtual std::error_code set_multicast_interface (string_view interface_addr) = 0;
     virtual std::error_code set_broadcast           (bool on) = 0;
     virtual std::error_code set_ttl                 (int ttl) = 0;
+
+    virtual size_t send_queue_size () const noexcept = 0;
 
     void handle_receive (string& buf, const net::SockAddr& addr, unsigned flags, const std::error_code& err) {
         ltry([&]{ listener->handle_receive(buf, addr, flags, err); });
