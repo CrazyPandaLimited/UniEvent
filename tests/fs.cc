@@ -247,7 +247,6 @@ TEST("statfs") {
     auto ret = Fs::statfs("/");
     REQUIRE(ret);
     auto val = ret.value();
-    CHECK(val.type);
     CHECK(val.bsize);
     CHECK(val.blocks);
 }
@@ -579,7 +578,6 @@ TEST("statfs") {
     Test t(10000, 1);
     Fs::statfs("/", [&](auto& info, auto& err, auto&){
         t.happens();
-        CHECK(info.type);
         CHECK(info.bsize);
         CHECK(info.blocks);
     }, t.loop);
