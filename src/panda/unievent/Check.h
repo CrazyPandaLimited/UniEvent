@@ -21,6 +21,8 @@ struct Check : virtual BackendHandle, private backend::ICheckImplListener {
 
     CallbackDispatcher<check_fptr> event;
 
+    static CheckSP create (const check_fn&, const LoopSP& = Loop::default_loop());
+
     Check (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_check(this));
     }
@@ -30,7 +32,7 @@ struct Check : virtual BackendHandle, private backend::ICheckImplListener {
     ICheckListener* event_listener () const            { return _listener; }
     void            event_listener (ICheckListener* l) { _listener = l; }
 
-    virtual void start (check_fn callback = nullptr);
+    virtual void start (const check_fn& callback = {});
     virtual void stop  ();
 
     void reset () override;

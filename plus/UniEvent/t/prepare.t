@@ -46,4 +46,12 @@ subtest 'event listener' => sub {
     is $cnt, 11, "listener&event called";
 };
 
+subtest 'static ctor' => sub {
+    my $i;
+    my $h1 = UE::Prepare->create(sub {$i++});
+    my $h2 = UE::prepare sub {$i+=10};
+    $l->run_nowait;
+    is $i, 11;
+};
+
 done_testing();

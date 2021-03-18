@@ -30,6 +30,8 @@ struct FsPoll : virtual Handle {
     CallbackDispatcher<fs_poll_fptr>  poll_event;
     CallbackDispatcher<fs_start_fptr> start_event;
 
+    static FsPollSP create (string_view path, unsigned int interval, const fs_poll_fn&, const LoopSP& = Loop::default_loop());
+
     FsPoll (const LoopSP& loop = Loop::default_loop());
 
     const HandleType& type () const override;
@@ -44,7 +46,7 @@ struct FsPoll : virtual Handle {
     void set_weak   () override { timer->weak(true); }
     void unset_weak () override { timer->weak(false); }
 
-    virtual void start (string_view path, unsigned int interval = 1000, const fs_poll_fn& callback = {});
+    virtual void start (string_view path, unsigned int interval = 1000, const fs_poll_fn& = {});
     virtual void stop  ();
 
     void reset () override;

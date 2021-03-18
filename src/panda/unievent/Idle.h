@@ -21,6 +21,8 @@ struct Idle : virtual BackendHandle, private backend::IIdleImplListener {
 
     CallbackDispatcher<idle_fptr> event;
 
+    static IdleSP create (const idle_fn&, const LoopSP& = Loop::default_loop());
+
     Idle (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_idle(this));
     }
@@ -30,7 +32,7 @@ struct Idle : virtual BackendHandle, private backend::IIdleImplListener {
     IIdleListener* event_listener () const           { return _listener; }
     void           event_listener (IIdleListener* l) { _listener = l; }
 
-    virtual void start (idle_fn callback = nullptr);
+    virtual void start (const idle_fn& = {});
     virtual void stop  ();
 
     void reset () override;

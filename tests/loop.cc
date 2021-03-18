@@ -199,7 +199,7 @@ TEST("track load average") {
     p.client->write("epta");
     p.client->disconnect();
 
-    auto t = Timer::once(1, [&](auto) {
+    auto t = Timer::create_once(1, [&](auto) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }, test.loop);
 

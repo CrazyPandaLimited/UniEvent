@@ -12,7 +12,7 @@ TEST("UniEvent SRV-1273") {
     std::vector<TcpSP> clients;
     size_t counter = 0;
 
-    auto client_timer = unievent::Timer::start(30, [&](TimerSP) {
+    auto client_timer = Timer::create(30, [&](TimerSP) {
         if (++counter == 10) {
             test.loop->stop();
         }

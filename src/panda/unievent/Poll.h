@@ -29,15 +29,18 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
 
     CallbackDispatcher<poll_fptr> event;
 
-    Poll (Socket sock, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
-    Poll (Fd       fd, const LoopSP& loop = Loop::default_loop(), Ownership ownership = Ownership::TRANSFER);
+    static PollSP create (Socket, int events, const poll_fn&, const LoopSP& = Loop::default_loop(), Ownership = Ownership::TRANSFER);
+    static PollSP create (Fd    , int events, const poll_fn&, const LoopSP& = Loop::default_loop(), Ownership = Ownership::TRANSFER);
+
+    Poll (Socket, const LoopSP& = Loop::default_loop(), Ownership = Ownership::TRANSFER);
+    Poll (Fd    , const LoopSP& = Loop::default_loop(), Ownership = Ownership::TRANSFER);
 
     const HandleType& type () const override;
 
     IPollListener* event_listener () const           { return _listener; }
     void           event_listener (IPollListener* l) { _listener = l; }
 
-    virtual excepted<void, ErrorCode> start (int events, poll_fn callback = nullptr);
+    virtual excepted<void, ErrorCode> start (int events, const poll_fn& = {});
     virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;

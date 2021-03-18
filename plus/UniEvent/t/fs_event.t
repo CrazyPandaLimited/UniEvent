@@ -57,8 +57,7 @@ subtest 'file tracking' => sub {
     };
     subtest 'contents' => sub {
         Fs::touch($file);
-        my $h = cr $file;
-        $h->event->add(cb(CHANGE, 'file', "file content"));
+        my $h = UE::FsEvent->create($file, 0, cb(CHANGE, 'file', "file content"));
         my $t = UE::Timer->once(0.001, sub { fchange($file) });
         $l->run;
         check_call_cnt(1);
@@ -66,8 +65,7 @@ subtest 'file tracking' => sub {
     };
     subtest 'rename' => sub {
         Fs::touch($file);
-        my $h = cr;
-        $h->start($file, 0, cb(RENAME, 'file', "file rename"));
+        my $h = UE::fs_event $file, 0, cb(RENAME, 'file', "file rename");
         my $t = UE::Timer->once(0.001, sub { Fs::rename($file, $file2) });
         $l->run;
         check_call_cnt(1);

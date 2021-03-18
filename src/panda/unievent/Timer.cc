@@ -4,11 +4,24 @@ namespace panda { namespace unievent {
 
 const HandleType Timer::TYPE("timer");
 
+TimerSP Timer::create (uint64_t repeat, const timer_fn& cb, const LoopSP& loop) {
+    TimerSP timer = new Timer(loop);
+    timer->start(repeat, cb);
+    return timer;
+}
+
+TimerSP Timer::create_once (uint64_t initial, const timer_fn& cb, const LoopSP& loop) {
+    TimerSP timer = new Timer(loop);
+    timer->once(initial, cb);
+    return timer;
+}
+
 const HandleType& Timer::type () const {
     return TYPE;
 }
 
-void Timer::start (uint64_t repeat, uint64_t initial) {
+void Timer::start (uint64_t repeat, uint64_t initial, const timer_fn& cb) {
+    if (cb) event.add(cb);
     loop()->update_time();
     impl()->start(repeat, initial);
 }
@@ -32,20 +45,6 @@ uint64_t Timer::due_in () const {
 
 void Timer::repeat (uint64_t repeat) {
     impl()->repeat(repeat);
-}
-
-TimerSP Timer::once (uint64_t initial, timer_fn cb, const LoopSP& loop) {
-    TimerSP timer = new Timer(loop);
-    timer->event.add(cb);
-    timer->once(initial);
-    return timer;
-}
-
-TimerSP Timer::start (uint64_t repeat, timer_fn cb, const LoopSP& loop) {
-    TimerSP timer = new Timer(loop);
-    timer->event.add(cb);
-    timer->start(repeat);
-    return timer;
 }
 
 void Timer::reset () {

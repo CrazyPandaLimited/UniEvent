@@ -22,6 +22,9 @@ struct Signal : virtual BackendHandle, private backend::ISignalImplListener {
 
     CallbackDispatcher<signal_fptr> event;
 
+    SignalSP create      (int signum, const signal_fn&, const LoopSP& = Loop::default_loop());
+    SignalSP create_once (int signum, const signal_fn&, const LoopSP& = Loop::default_loop());
+
     Signal (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_signal(this));
     }
@@ -34,16 +37,14 @@ struct Signal : virtual BackendHandle, private backend::ISignalImplListener {
     int           signum  () const { return impl()->signum(); }
     const string& signame () const { return signame(signum()); }
 
-    virtual excepted<void, ErrorCode> start (int signum, signal_fn callback = {});
-    virtual excepted<void, ErrorCode> once  (int signum, signal_fn callback = {});
+    virtual excepted<void, ErrorCode> start (int signum, const signal_fn& = {});
+    virtual excepted<void, ErrorCode> once  (int signum, const signal_fn& = {});
     virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;
     void clear () override;
 
     void call_now (int signum) { handle_signal(signum); }
-
-    static SignalSP watch (int signum, signal_fn cb, const LoopSP& loop = Loop::default_loop());
 
     static const string& signame (int signum);
 

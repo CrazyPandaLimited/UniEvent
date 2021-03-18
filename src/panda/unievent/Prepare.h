@@ -21,6 +21,8 @@ struct Prepare : virtual BackendHandle, private backend::IPrepareImplListener {
 
     CallbackDispatcher<prepare_fptr> event;
 
+    static PrepareSP create (const prepare_fn&, const LoopSP& = Loop::default_loop());
+
     Prepare (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_prepare(this));
     }
@@ -30,7 +32,7 @@ struct Prepare : virtual BackendHandle, private backend::IPrepareImplListener {
     IPrepareListener* event_listener () const              { return _listener; }
     void              event_listener (IPrepareListener* l) { _listener = l; }
 
-    virtual void start (prepare_fn callback = nullptr);
+    virtual void start (const prepare_fn& = {});
     virtual void stop  ();
 
     void reset () override;

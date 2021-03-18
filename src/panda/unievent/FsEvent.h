@@ -22,6 +22,8 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventImplListener {
     
     CallbackDispatcher<fs_event_fptr> event;
 
+    static FsEventSP create (const string_view& path, int flags, const fs_event_fn&, const LoopSP& = Loop::default_loop());
+
     FsEvent (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_fs_event(this));
     }
@@ -33,7 +35,7 @@ struct FsEvent : virtual BackendHandle, private backend::IFsEventImplListener {
 
     const string& path () const { return _path; }
 
-    virtual excepted<void, ErrorCode> start (const string_view& path, int flags = 0, fs_event_fn callback = nullptr);
+    virtual excepted<void, ErrorCode> start (const string_view& path, int flags = 0, const fs_event_fn& = {});
     virtual excepted<void, ErrorCode> stop  ();
 
     void reset () override;

@@ -3,6 +3,12 @@ using namespace panda::unievent;
 
 const HandleType FsPoll::TYPE("fs_poll");
 
+FsPollSP FsPoll::create (string_view path, unsigned int interval, const fs_poll_fn& cb, const LoopSP& loop) {
+    FsPollSP h = new FsPoll(loop);
+    h->start(path, interval, cb);
+    return h;
+}
+
 FsPoll::FsPoll (const LoopSP& loop) : prev(), fetched(), _listener() {
     _init(loop);
     fsr   = new Fs::Request(loop);
