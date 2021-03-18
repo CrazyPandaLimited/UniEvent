@@ -4,10 +4,10 @@
 
 namespace xs { namespace unievent {
 
-using namespace panda::unievent;
-
-struct DLoopSP : xs::nn<LoopSP> {
-    using Super = typename xs::nn<LoopSP>;
+struct DLoopSP : xs::nn<panda::unievent::LoopSP> {
+    using LoopSP = panda::unievent::LoopSP;
+    using Loop   = panda::unievent::Loop;
+    using Super  = typename xs::nn<LoopSP>;
     using Super::Super;
 
     LoopSP& operator-> () {
