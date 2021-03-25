@@ -36,10 +36,11 @@ struct StreamImpl : HandleImpl {
     virtual std::error_code write      (const std::vector<string>& bufs, WriteRequestImpl*) = 0;
     virtual void            shutdown   (ShutdownRequestImpl*) = 0;
 
-    virtual optional<fh_t> fileno () const = 0;
+    virtual expected<fh_t, std::error_code> fileno () const = 0;
 
-    virtual expected<int, std::error_code>  recv_buffer_size () const    = 0;
-    virtual expected<int, std::error_code>  send_buffer_size () const    = 0;
+    virtual expected<int, std::error_code> recv_buffer_size () const = 0;
+    virtual expected<int, std::error_code> send_buffer_size () const = 0;
+
     virtual std::error_code recv_buffer_size (int value) = 0;
     virtual std::error_code send_buffer_size (int value) = 0;
 

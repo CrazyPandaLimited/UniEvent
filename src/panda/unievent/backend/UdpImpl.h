@@ -43,10 +43,10 @@ struct UdpImpl : HandleImpl {
     virtual std::error_code recv_stop  () = 0;
     virtual std::error_code send       (const std::vector<string>& bufs, const net::SockAddr& addr, SendRequestImpl*) = 0;
 
-    virtual excepted<net::SockAddr, std::error_code> sockaddr () = 0;
-    virtual excepted<net::SockAddr, std::error_code> peeraddr () = 0;
+    virtual expected<net::SockAddr, std::error_code> sockaddr () = 0;
+    virtual expected<net::SockAddr, std::error_code> peeraddr () = 0;
 
-    virtual optional<fh_t> fileno () const = 0;
+    virtual expected<fh_t, std::error_code> fileno () const = 0;
 
     virtual expected<int, std::error_code>  recv_buffer_size () const = 0;
     virtual expected<int, std::error_code>  send_buffer_size () const = 0;

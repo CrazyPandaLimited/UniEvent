@@ -3,6 +3,8 @@
 #include <iosfwd>
 #include <stdint.h>
 #include <type_traits>
+#include <panda/error.h>
+#include <panda/excepted.h>
 #if defined(_WIN32)
     #include <winsock2.h>
 #endif
@@ -81,6 +83,18 @@ void scope_guard (F1&& code, F2&& guard) {
         throw;
     }
     guard();
+}
+
+template <class T>
+inline excepted<T, ErrorCode> handle_fd_excepted (const expected<T, std::error_code>& r) {
+    if (r.has_value()) return r.value();
+
+    std::error_code err = r.error();
+    if (err == std::errc::not_connected || err == std::errc::bad_file_descriptor || err == std::errc::invalid_argument) {
+        return T();
+    }
+
+    return make_unexpected(err);
 }
 
 }}
