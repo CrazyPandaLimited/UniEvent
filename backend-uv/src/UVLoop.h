@@ -61,9 +61,10 @@ struct UVLoop : LoopImpl, IMetricsProvider {
         return uvloop->stop_flag;
     }
 
-    void handle_fork () override {
+    excepted<void, std::error_code> handle_fork () override {
         int err = uv_loop_fork(uvloop);
-        if (err) throw Error(uvx_error(err));
+        if (err) return make_unexpected(uvx_error(err));
+        return {};
     }
 
     TimerImpl*   new_timer     (ITimerImplListener*)                      override;
