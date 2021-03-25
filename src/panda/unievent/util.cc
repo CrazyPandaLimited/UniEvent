@@ -19,14 +19,17 @@ using panda::net::SockAddr;
 
 namespace panda { namespace unievent {
 
-AddrInfo sync_resolve (backend::Backend* be, string_view host, uint16_t port, const AddrInfoHints& hints, bool use_cache) {
+excepted<AddrInfo, std::error_code> sync_resolve (backend::Backend* be, string_view host, uint16_t port, const AddrInfoHints& hints, bool use_cache) {
     auto l = SyncLoop::get(be);
     AddrInfo ai;
-    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->use_cache(use_cache)->on_resolve([&ai](const AddrInfo& res, const std::error_code& err, const Resolver::RequestSP&) {
-        if (err) throw Error(err);
-        ai = res;
+    std::error_code error;
+    l->resolver()->resolve()->node(string(host))->port(port)->hints(hints)->use_cache(use_cache)->on_resolve([&ai, &error](const AddrInfo& res, const std::error_code& err, const Resolver::RequestSP&) {
+        if (err) error = err;
+        else     ai = res;
     })->run();
     l->run();
+
+    if (error) return make_unexpected(error);
     return ai;
 }
 
@@ -84,34 +87,34 @@ uint64_t hrtime () {
     return uv_hrtime();
 }
 
-TimeVal gettimeofday () {
+excepted<TimeVal, std::error_code> gettimeofday () {
     TimeVal ret;
     uv_timeval64_t tv;
     auto err = uv_gettimeofday(&tv);
-    if (err) throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
     ret.sec  = tv.tv_sec;
     ret.usec = tv.tv_usec;
     return ret;
 }
 
-string hostname () {
+excepted<string, std::error_code> hostname () {
     string ret(20);
     size_t len = ret.capacity();
     int err = uv_os_gethostname(ret.buf(), &len);
     if (err) {
-        if (err != UV_ENOBUFS) throw Error(uvx_error(err));
+        if (err != UV_ENOBUFS) return make_unexpected(uvx_error(err));
         ret.reserve(len);
         err = uv_os_gethostname(ret.buf(), &len);
-        if (err) throw Error(uvx_error(err));
+        if (err) return make_unexpected(uvx_error(err));
     }
     ret.length(len);
     return ret;
 }
 
-size_t get_rss () {
+excepted<size_t, std::error_code> get_rss () {
     size_t rss;
     int err = uv_resident_set_memory(&rss);
-    if (err) throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
     return rss;
 }
 
@@ -123,11 +126,11 @@ uint64_t get_total_memory () {
     return uv_get_total_memory();
 }
 
-std::vector<InterfaceAddress> interface_info () {
+excepted<std::vector<InterfaceAddress>, std::error_code> interface_info () {
     uv_interface_address_t* uvlist;
     int cnt;
     int err = uv_interface_addresses(&uvlist, &cnt);
-    if (err) throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
 
     std::vector<InterfaceAddress> ret;
     ret.reserve(cnt);
@@ -148,11 +151,11 @@ std::vector<InterfaceAddress> interface_info () {
     return ret;
 }
 
-std::vector<CpuInfo> cpu_info () {
+excepted<std::vector<CpuInfo>, std::error_code> cpu_info () {
     uv_cpu_info_t* uvlist;
     int cnt;
     int err = uv_cpu_info(&uvlist, &cnt);
-    if (err) throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
 
     std::vector<CpuInfo> ret;
     ret.reserve(cnt);
@@ -174,10 +177,10 @@ std::vector<CpuInfo> cpu_info () {
     return ret;
 }
 
-ResourceUsage get_rusage () {
+excepted<ResourceUsage, std::error_code> get_rusage () {
     uv_rusage_t d;
     int err = uv_getrusage(&d);
-    if (err) throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
 
     ResourceUsage ret;
     ret.utime.sec  = d.ru_utime.tv_sec;

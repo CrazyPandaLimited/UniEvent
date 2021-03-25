@@ -8,11 +8,11 @@ TEST("hostname") {
 }
 
 TEST("get_rss") {
-    auto rss = get_rss();
+    auto rss = get_rss().value();
     CHECK(rss > 0);
     std::vector<int> v;
     for (int i = 0; i < 100000; ++i) v.push_back(1);
-    auto new_rss = get_rss();
+    auto new_rss = get_rss().value();
     CHECK(new_rss > rss);
 }
 
@@ -27,7 +27,7 @@ TEST("get_total_memory") {
 }
 
 TEST("cpu_info") {
-    auto list = cpu_info();
+    auto list = cpu_info().value();
     CHECK(list.size() > 0);
     for (size_t i = 0; i < list.size(); ++i) {
         auto& row = list[i];
@@ -48,7 +48,7 @@ static string phys_to_str (const char (&a)[N]) {
 }
 
 TEST("interface info") {
-    auto list = interface_info();
+    auto list = interface_info().value();
     if (!list.size()) return;
 
     bool found_local = false;
@@ -66,7 +66,7 @@ TEST("interface info") {
 }
 
 TEST_HIDDEN("get_rusage") {
-    auto rusage = get_rusage();
+    auto rusage = get_rusage().value();
     CHECK(rusage.maxrss > 0);
 }
 
