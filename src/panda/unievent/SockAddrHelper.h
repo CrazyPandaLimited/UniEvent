@@ -1,31 +1,27 @@
 #pragma once
-
 #include <panda/excepted.h>
 #include <panda/error.h>
 #include <panda/net/sockaddr.h>
 
-namespace panda {
-namespace unievent {
+namespace panda { namespace unievent {
 
-enum class NotConnectedError {
+enum class NotConnectedStrategy {
     Ignore,
-    Process
+    Error
 };
 
-inline excepted<net::SockAddr, ErrorCode> handle_sockaddr(const excepted<net::SockAddr, std::error_code>& r, NotConnectedError strategy) {
-    if (strategy == NotConnectedError::Process) {
-        return r.map_error([](const auto& e) { return ErrorCode(e); });
-    }
-    if (r.has_value()) {
-        return r.value();
-    }
+template <class T>
+inline excepted<T, ErrorCode> handle_sockexc (const excepted<T, std::error_code>& r, NotConnectedStrategy strategy) {
+    if (r.has_value()) return r.value();
+
     std::error_code err = r.error();
-    if (err == std::errc::not_connected || err == std::errc::bad_file_descriptor || err == std::errc::invalid_argument) {
-        return net::SockAddr{};
-    };
+    if (strategy == NotConnectedStrategy::Ignore &&
+        (err == std::errc::not_connected || err == std::errc::bad_file_descriptor || err == std::errc::invalid_argument)
+    ) {
+        return {};
+    }
+
     return make_unexpected(err);
 }
 
-}
-
-}
+}}

@@ -18,8 +18,8 @@ struct PipeImpl : StreamImpl {
 
     virtual std::error_code connect (string_view name, ConnectRequestImpl* req) = 0;
 
-    virtual optional<string> sockname () const = 0;
-    virtual optional<string> peername () const = 0;
+    virtual excepted<string, std::error_code> sockname () const = 0;
+    virtual excepted<string, std::error_code> peername () const = 0;
 
     virtual void pending_instances (int count) = 0;
     virtual int  pending_count     () const    = 0;

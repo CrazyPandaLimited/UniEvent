@@ -13,7 +13,7 @@ subtest 'client-server' => sub {
     $srv->listen();
     
     like($srv->sockname, qr#pipe1#);
-    is $srv->peername, undef;
+    ok !$srv->peername;
     
     my $conn;
     
