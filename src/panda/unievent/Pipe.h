@@ -1,5 +1,6 @@
 #pragma once
 #include "Stream.h"
+#include "SockAddrHelper.h"
 #include "backend/PipeImpl.h"
 
 namespace panda { namespace unievent {
@@ -34,8 +35,12 @@ struct Pipe : virtual Stream {
     virtual void pending_instances (int count);
     virtual int  pending_count     () const;
 
-    optional<string> sockname () const { return impl()->sockname(); }
-    optional<string> peername () const { return impl()->peername(); }
+    excepted<string, ErrorCode> sockname (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
+        return handle_sockexc(impl()->sockname(), strategy);
+    }
+    excepted<string, ErrorCode> peername (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
+        return handle_sockexc(impl()->peername(), strategy);
+    }
 
     virtual excepted<void, ErrorCode> chmod (int mode);
 

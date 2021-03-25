@@ -35,7 +35,7 @@ TEST("cancel") {
 
 TEST("factory") {
     AsyncTest test(10000, 2);
-    auto r = Work::queue(
+    auto r = Work::create(
         [&](Work*) { test.happens(); },
         [&](const WorkSP&, const std::error_code&) { test.happens(); },
         test.loop

@@ -25,7 +25,7 @@ TEST("static once") {
     AsyncTest test(1000, 1);
     auto t0 = get_time();
     int timeout = 30;
-    auto timer = Timer::once(timeout, [&](auto) {
+    auto timer = Timer::create_once(timeout, [&](auto) {
         test.happens();
         REQUIRE_ELAPSED(t0, timeout);
     }, test.loop);
@@ -37,7 +37,7 @@ TEST("static repeat") {
     int timeout = 30;
     auto t0 = get_time();
     size_t counter = 3;
-    auto timer = Timer::start(timeout, [&](auto& t) {
+    auto timer = Timer::create(timeout, [&](auto& t) {
         test.happens();
         REQUIRE_ELAPSED(t0, timeout);
         if (--counter == 0) t->stop();

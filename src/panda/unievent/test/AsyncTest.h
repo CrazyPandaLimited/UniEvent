@@ -127,7 +127,7 @@ struct AsyncTest {
     template <typename T>
     bool await_not (T&& f, uint64_t timeout) {
         bool by_timer = false;
-        TimerSP timer = Timer::once(timeout, [&](Timer*) {
+        TimerSP timer = Timer::create_once(timeout, [&](Timer*) {
             by_timer = true;
             loop->stop();
         }, loop); (void)timer;

@@ -33,7 +33,7 @@ sub test_resolve {
     
     my $i = 0;
     
-    # resolve external address reseveral times because sometimes it may fail
+    # resolve external address several times because sometimes it may fail
     $resolver->resolve({
         node       => $host,
         use_cache  => $cached,

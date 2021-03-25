@@ -6,7 +6,7 @@ TEST("simple") {
     bool called = false;
     AsyncTest test(200, {"timer"});
 
-    auto timer = Timer::once(10, [&](auto) {
+    auto timer = Timer::create_once(10, [&](auto) {
         called = true;
     }, test.loop);
     auto res = test.await(timer->event, "timer");
@@ -19,7 +19,7 @@ TEST("dispatcher") {
     AsyncTest test(200, {"dispatched"});
 
     CallbackDispatcher<void(int)> d;
-    auto timer1 = Timer::once(10, [&](auto) {
+    auto timer1 = Timer::create_once(10, [&](auto) {
         called = true;
         d(10);
     }, test.loop);
@@ -35,12 +35,12 @@ TEST("multi") {
     AsyncTest test(200, {});
 
     CallbackDispatcher<void(void)> d1;
-    auto timer1 = Timer::once(10, [&](auto) {
+    auto timer1 = Timer::create_once(10, [&](auto) {
         called++;
         d1();
     }, test.loop);
     CallbackDispatcher<void(void)> d2;
-    auto timer2 = Timer::once(20, [&](auto) {
+    auto timer2 = Timer::create_once(20, [&](auto) {
         called++;
         d2();
     }, test.loop);
@@ -58,7 +58,7 @@ TEST("delay") {
         test.happens("call");
         test.loop->stop();
     });
-    TimerSP timer = Timer::once(50, [&](auto){
+    TimerSP timer = Timer::create_once(50, [&](auto){
         test.loop->stop();
     }, test.loop);
     test.run();

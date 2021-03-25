@@ -3,11 +3,17 @@ using namespace panda::unievent;
 
 const HandleType Idle::TYPE("idle");
 
+IdleSP Idle::create (const idle_fn& cb, const LoopSP& loop) {
+    IdleSP h = new Idle(loop);
+    h->start(cb);
+    return h;
+}
+
 const HandleType& Idle::type () const {
     return TYPE;
 }
 
-void Idle::start (idle_fn callback) {
+void Idle::start (const idle_fn& callback) {
     if (callback) event.add(callback);
     impl()->start();
 }

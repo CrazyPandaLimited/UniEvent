@@ -63,8 +63,8 @@ struct Udp : virtual BackendHandle, AllocatedObject<Udp>, private backend::IUdpI
 
     optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
 
-    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedError s) const { return handle_sockaddr(impl()->sockaddr(), s); }
-    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedError s) const { return handle_sockaddr(impl()->peeraddr(), s); }
+    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedStrategy s = NotConnectedStrategy::Ignore) const { return handle_sockexc(impl()->sockaddr(), s); }
+    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedStrategy s = NotConnectedStrategy::Ignore) const { return handle_sockexc(impl()->peeraddr(), s); }
 
     excepted<int,  ErrorCode> recv_buffer_size () const { return make_excepted(impl()->recv_buffer_size()); }
     excepted<int,  ErrorCode> send_buffer_size () const { return make_excepted(impl()->send_buffer_size()); }

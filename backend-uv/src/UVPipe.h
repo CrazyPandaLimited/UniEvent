@@ -5,16 +5,17 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 template <class Func>
-static inline optional<string> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
+static inline excepted<string, std::error_code> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
     size_t len = 0;
     int err = f(uvhp, nullptr, &len);
-    if (err) {
-        if (err == UV_EBADF || err == UV_ENOTCONN) return {};
-        if (err != UV_ENOBUFS) throw Error(uvx_error(err));
-    }
+    if (err && err != UV_ENOBUFS) return make_unexpected(uvx_error(err));
+
     panda::string ret(len);
     ret[0] = 0; /* prevent valgrind complains */
-    uvx_strict(f(uvhp, ret.buf(), &len));
+    err = f(uvhp, ret.buf(), &len);
+
+    if (err) return make_unexpected(uvx_error(err));
+
     ret.length(len);
     return ret;
 }
@@ -41,8 +42,8 @@ struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
         return {};
     }
 
-    optional<string> sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
-    optional<string> peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
+    excepted<string, std::error_code> sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
+    excepted<string, std::error_code> peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
 
     void pending_instances (int count) override {
         uv_pipe_pending_instances(&uvh, count);

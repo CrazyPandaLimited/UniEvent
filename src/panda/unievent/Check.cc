@@ -7,7 +7,13 @@ const HandleType& Check::type () const {
     return TYPE;
 }
 
-void Check::start (check_fn callback) {
+CheckSP Check::create (const check_fn& cb, const LoopSP& loop) {
+    CheckSP h = new Check(loop);
+    h->start(cb);
+    return h;
+}
+
+void Check::start (const check_fn& callback) {
     if (callback) event.add(callback);
     impl()->start();
 }

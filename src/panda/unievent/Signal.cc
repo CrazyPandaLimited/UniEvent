@@ -96,24 +96,30 @@ static bool _init = init();
 
 const HandleType Signal::TYPE("signal");
 
+SignalSP Signal::create (int signum, const signal_fn& cb, const LoopSP& loop) {
+    SignalSP h = new Signal(loop);
+    h->start(signum, cb);
+    return h;
+}
+
+SignalSP Signal::create_once (int signum, const signal_fn& cb, const LoopSP& loop) {
+    SignalSP h = new Signal(loop);
+    h->once(signum, cb);
+    return h;
+}
+
 const HandleType& Signal::type () const {
     return TYPE;
 }
 
-excepted<void, ErrorCode> Signal::start (int signum, signal_fn callback) {
+excepted<void, ErrorCode> Signal::start (int signum, const signal_fn& callback) {
     if (callback) event.add(callback);
     return make_excepted(impl()->start(signum));
 }
 
-excepted<void, ErrorCode> Signal::once (int signum, signal_fn callback) {
+excepted<void, ErrorCode> Signal::once (int signum, const signal_fn& callback) {
     if (callback) event.add(callback);
     return make_excepted(impl()->once(signum));
-}
-
-SignalSP Signal::watch (int signum, signal_fn callback, const LoopSP& loop) {
-    SignalSP h = new Signal(loop);
-    h->start(signum, callback);
-    return h;
 }
 
 excepted<void, ErrorCode> Signal::stop () {

@@ -4,11 +4,17 @@ namespace panda { namespace unievent {
 
 const HandleType FsEvent::TYPE("fs_event");
 
+FsEventSP FsEvent::create (const string_view& path, int flags, const fs_event_fn& cb, const LoopSP& loop) {
+    FsEventSP h = new FsEvent(loop);
+    h->start(path, flags, cb);
+    return h;
+}
+
 const HandleType& FsEvent::type () const {
     return TYPE;
 }
 
-excepted<void, panda::ErrorCode> FsEvent::start(const string_view& path, int flags, fs_event_fn callback) {
+excepted<void, panda::ErrorCode> FsEvent::start(const string_view& path, int flags, const fs_event_fn& callback) {
     if (callback) event.add(callback);
     _path = string(path);
     return make_excepted(impl()->start(path, flags));

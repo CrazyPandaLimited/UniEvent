@@ -3,8 +3,9 @@
 #include "forward.h"
 #include <vector>
 #include <exception>
-#include <panda/function.h>
 #include <panda/log.h>
+#include <panda/excepted.h>
+#include <panda/function.h>
 
 namespace panda { namespace unievent { namespace backend {
 
@@ -27,10 +28,11 @@ struct LoopImpl {
         return ret;
     }
 
-    virtual bool _run        (RunMode) = 0; // returns false if there are no more active handles
-    virtual void stop        () = 0;
-    virtual bool stopped     () const = 0;
-    virtual void handle_fork () = 0;
+    virtual bool _run    (RunMode) = 0; // returns false if there are no more active handles
+    virtual void stop    () = 0;
+    virtual bool stopped () const = 0;
+
+    virtual excepted<void, std::error_code> handle_fork () = 0;
 
     virtual TimerImpl*   new_timer     (ITimerImplListener*)                      = 0;
     virtual PrepareImpl* new_prepare   (IPrepareImplListener*)                    = 0;

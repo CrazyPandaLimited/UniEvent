@@ -2,7 +2,7 @@
 
 namespace panda { namespace unievent {
 
-WorkSP Work::queue (const work_fn& wcb, const after_work_fn& awcb, const LoopSP& loop) {
+WorkSP Work::create (const work_fn& wcb, const after_work_fn& awcb, const LoopSP& loop) {
     WorkSP ret = new Work(loop);
     ret->work_cb = wcb;
     ret->after_work_cb = awcb;

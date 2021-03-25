@@ -5,6 +5,18 @@ namespace panda { namespace unievent {
 
 const HandleType Poll::TYPE("poll");
 
+PollSP Poll::create (Socket sock, int events, const poll_fn& cb, const LoopSP& loop, Ownership ownership) {
+    PollSP h = new Poll(sock, loop, ownership);
+    h->start(events, cb);
+    return h;
+}
+
+PollSP Poll::create (Fd fd, int events, const poll_fn& cb, const LoopSP& loop, Ownership ownership) {
+    PollSP h = new Poll(fd, loop, ownership);
+    h->start(events, cb);
+    return h;
+}
+
 Poll::Poll (Socket sock, const LoopSP& loop, Ownership ownership) : _listener() {
     if (ownership == Ownership::SHARE) sock.val = sock_dup(sock.val);
     _init(loop, loop->impl()->new_poll_sock(this, sock.val));
@@ -19,7 +31,7 @@ const HandleType& Poll::type () const {
     return TYPE;
 }
 
-excepted<void, ErrorCode> Poll::start (int events, poll_fn callback) {
+excepted<void, ErrorCode> Poll::start (int events, const poll_fn& callback) {
     if (callback) event.add(callback);
     return make_excepted(impl()->start(events));
 }

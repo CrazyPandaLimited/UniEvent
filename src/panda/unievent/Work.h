@@ -28,7 +28,7 @@ struct Work : Refcnt, IntrusiveChainNode<WorkSP>, AllocatedObject<Work>, private
     work_fn       work_cb;
     after_work_fn after_work_cb;
 
-    static WorkSP queue (const work_fn&, const after_work_fn&, const LoopSP& = Loop::default_loop());
+    static WorkSP create (const work_fn&, const after_work_fn&, const LoopSP& = Loop::default_loop());
 
     Work (const LoopSP& loop = Loop::default_loop()) : _loop(loop) {}
 

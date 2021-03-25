@@ -229,7 +229,7 @@ void Resolver::resolve (const RequestSP& req) {
 
     if (req->_timeout) {
         auto reqp = req.get();
-        req->timer = Timer::once(req->_timeout, [this, reqp](auto&){
+        req->timer = Timer::create_once(req->_timeout, [this, reqp](auto&){
             panda_log_notice(logmod, this << " dns timed out req:" << reqp << " [" << reqp->_node << ":" << reqp->_service << "]");
             reqp->cancel(make_error_code(std::errc::timed_out));
         }, _loop);

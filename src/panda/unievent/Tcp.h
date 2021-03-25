@@ -35,11 +35,11 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     virtual void connect (const TcpConnectRequestSP&);
 
-    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedError error_strategy = NotConnectedError::Ignore) const {
-        return handle_sockaddr(impl()->sockaddr(), error_strategy);
+    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
+        return handle_sockexc(impl()->sockaddr(), strategy);
     }
-    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedError error_strategy = NotConnectedError::Ignore) const {
-        return handle_sockaddr(impl()->peeraddr(), error_strategy);
+    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
+        return handle_sockexc(impl()->peeraddr(), strategy);
     }
 
     excepted<void, ErrorCode> set_nodelay              (bool enable)                     { return make_excepted(impl()->set_nodelay(enable)); }

@@ -22,6 +22,9 @@ struct Timer : virtual BackendHandle, private backend::ITimerImplListener {
 
     CallbackDispatcher<timer_fptr> event;
 
+    static TimerSP create      (uint64_t repeat, const timer_fn&, const LoopSP& = Loop::default_loop());
+    static TimerSP create_once (uint64_t initial, const timer_fn&, const LoopSP& = Loop::default_loop());
+
     Timer (const LoopSP& loop = Loop::default_loop()) : _listener() {
         _init(loop, loop->impl()->new_timer(this));
     }
@@ -31,11 +34,11 @@ struct Timer : virtual BackendHandle, private backend::ITimerImplListener {
     ITimerListener* event_listener () const            { return _listener; }
     void            event_listener (ITimerListener* l) { _listener = l; }
 
-    void once     (uint64_t initial) { start(0, initial); }
-    void start    (uint64_t repeat)  { start(repeat, repeat); }
-    void call_now ()                 { handle_timer(); }
+    void once     (uint64_t initial, const timer_fn& cb = {}) { start(0, initial, cb); }
+    void start    (uint64_t repeat,  const timer_fn& cb = {}) { start(repeat, repeat, cb); }
+    void call_now ()                                          { handle_timer(); }
 
-    virtual void     start  (uint64_t repeat, uint64_t initial);
+    virtual void     start  (uint64_t repeat, uint64_t initial, const timer_fn& cb = {});
     virtual void     stop   ();
     virtual uint64_t repeat () const;
     virtual void     repeat (uint64_t repeat);
@@ -45,9 +48,6 @@ struct Timer : virtual BackendHandle, private backend::ITimerImplListener {
 
     void reset () override;
     void clear () override;
-
-    static TimerSP once  (uint64_t initial, timer_fn cb, const LoopSP& loop = Loop::default_loop());
-    static TimerSP start (uint64_t repeat,  timer_fn cb, const LoopSP& loop = Loop::default_loop());
 
 private:
     ITimerListener* _listener;

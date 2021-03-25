@@ -88,7 +88,7 @@ void AsyncTest::happens (string event) {
 
 bool AsyncTest::wait (uint64_t timeout) {
     bool by_timer = false;
-    TimerSP timer = Timer::once(timeout, [&](Timer*) {
+    auto timer = Timer::create_once(timeout, [&](Timer*) {
         by_timer = true;
         loop->stop();
     }, loop); (void)timer;
@@ -143,7 +143,7 @@ bool AsyncTest::happened_as_expected() {
 
 TimerSP AsyncTest::create_timeout(uint64_t timeout) {
     if (!timeout) return nullptr;
-    auto ret = Timer::once(timeout, [&](auto&) {
+    auto ret = Timer::create_once(timeout, [&](auto&) {
         throw Error("AsyncTest timeout", *this);
     }, loop);
     ret->weak(true);

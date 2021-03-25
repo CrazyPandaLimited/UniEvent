@@ -3,11 +3,17 @@ using namespace panda::unievent;
 
 const HandleType Prepare::TYPE("prepare");
 
+PrepareSP Prepare::create (const prepare_fn& cb, const LoopSP& loop) {
+    PrepareSP h = new Prepare(loop);
+    h->start(cb);
+    return h;
+}
+
 const HandleType& Prepare::type () const {
     return TYPE;
 }
 
-void Prepare::start (prepare_fn callback) {
+void Prepare::start (const prepare_fn& callback) {
     if (callback) event.add(callback);
     impl()->start();
 }
