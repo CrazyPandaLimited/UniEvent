@@ -48,8 +48,8 @@ struct UdpImpl : HandleImpl {
 
     virtual expected<fh_t, std::error_code> fileno () const = 0;
 
-    virtual expected<int, std::error_code>  recv_buffer_size () const = 0;
-    virtual expected<int, std::error_code>  send_buffer_size () const = 0;
+    virtual expected<int, std::error_code> recv_buffer_size () const = 0;
+    virtual expected<int, std::error_code> send_buffer_size () const = 0;
     virtual std::error_code recv_buffer_size (int value) = 0;
     virtual std::error_code send_buffer_size (int value) = 0;
 

@@ -41,11 +41,7 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
     excepted<void, ErrorCode> set_keepalive            (bool enable, unsigned int delay) { return make_excepted(impl()->set_keepalive(enable, delay)); }
     excepted<void, ErrorCode> set_simultaneous_accepts (bool enable)                     { return make_excepted(impl()->set_simultaneous_accepts(enable)); }
 
-    optional<sock_t> socket () const {
-        auto fh = fileno();
-        if (!fh) return {};
-        return (sock_t)fh.value();
-    }
+    excepted<sock_t, ErrorCode> socket () const;
 
     void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(socket().value(), level, optname, optval, optlen); }
 
