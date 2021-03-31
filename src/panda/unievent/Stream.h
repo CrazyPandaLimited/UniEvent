@@ -146,7 +146,7 @@ struct Stream : virtual BackendHandle, protected backend::IStreamImplListener {
 
     Filters& filters () { return _filters; }
 
-    optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
+    excepted<fh_t, ErrorCode> fileno () const { return _impl ? handle_fd_excepted(impl()->fileno()) : fh_t(); }
 
     excepted<int,  ErrorCode> recv_buffer_size () const { return make_excepted(impl()->recv_buffer_size()); }
     excepted<int,  ErrorCode> send_buffer_size () const { return make_excepted(impl()->send_buffer_size()); }

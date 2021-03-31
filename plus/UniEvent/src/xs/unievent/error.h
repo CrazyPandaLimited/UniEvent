@@ -9,18 +9,3 @@ template <class TYPE> struct Typemap<panda::unievent::Error*, TYPE*> : TypemapOb
 };
 
 }
-
-#define UE_EXCEPTED_VOID(code)  do {                         \
-    auto ret = code;                                        \
-    if (GIMME_V == G_VOID) {                                \
-        if (!ret) panda::exthrow(ret.error());              \
-        XSRETURN_EMPTY;                                     \
-    }                                                       \
-    XPUSHs(boolSV(ret));                                    \
-    if (GIMME_V == G_ARRAY) {                               \
-        if (ret) XPUSHs(&PL_sv_undef);                      \
-        else     mXPUSHs(xs::out(ret.error()).detach());    \
-        XSRETURN(2);                                        \
-    }                                                       \
-    XSRETURN(1);                                            \
-} while(false)

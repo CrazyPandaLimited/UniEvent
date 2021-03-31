@@ -367,8 +367,14 @@ ex<void> Fs::chmod (fd_t fd, int mode) {
 }
 
 ex<void> Fs::touch (string_view file, int mode) {
-    if (exists(file)) return utime(file, gettimeofday().get(), gettimeofday().get());
-    else              return open(file, OpenFlags::RDWR | OpenFlags::CREAT, mode).and_then([](fd_t fd){ return close(fd); });
+    if (exists(file)) {
+        auto res = gettimeofday();
+        if (!res) return make_unexpected(res.error());
+        return utime(file, res.value().get(), res.value().get());
+    }
+    else {
+        return open(file, OpenFlags::RDWR | OpenFlags::CREAT, mode).and_then([](fd_t fd){ return close(fd); });
+    }
 }
 
 ex<void> Fs::utime (string_view path, double atime, double mtime) {

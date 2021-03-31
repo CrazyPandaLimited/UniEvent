@@ -5,7 +5,7 @@
 namespace panda { namespace unievent { namespace backend { namespace uv {
 
 template <class Func>
-static inline excepted<string, std::error_code> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
+static inline expected<string, std::error_code> uvx_sockname (const uv_pipe_t* uvhp, Func&& f) {
     size_t len = 0;
     int err = f(uvhp, nullptr, &len);
     if (err && err != UV_ENOBUFS) return make_unexpected(uvx_error(err));
@@ -42,8 +42,8 @@ struct UVPipe : UVStream<PipeImpl, uv_pipe_t> {
         return {};
     }
 
-    excepted<string, std::error_code> sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
-    excepted<string, std::error_code> peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
+    expected<string, std::error_code> sockname () const override { return uvx_sockname(&uvh, &uv_pipe_getsockname); }
+    expected<string, std::error_code> peername () const override { return uvx_sockname(&uvh, &uv_pipe_getpeername); }
 
     void pending_instances (int count) override {
         uv_pipe_pending_instances(&uvh, count);

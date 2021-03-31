@@ -45,8 +45,15 @@ excepted<void, ErrorCode> Tcp::bind (const net::SockAddr& addr, unsigned flags) 
 
 excepted<void, ErrorCode> Tcp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
     if (host == "*") return bind(broadcast_addr(port, hints), flags);
-    auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    return bind(ai.addr(), flags);
+    auto res = sync_resolve(loop()->backend(), host, port, hints);
+    if (!res) return make_unexpected<ErrorCode>(res.error());
+    return bind(res.value().addr(), flags);
+}
+
+excepted<sock_t, ErrorCode> Tcp::socket () const {
+    auto res = fileno();
+    if (!res) return make_unexpected(res.error());
+    return (sock_t)res.value();
 }
 
 StreamSP Tcp::create_connection () {

@@ -48,7 +48,7 @@ struct Poll : virtual BackendHandle, private backend::IPollImplListener {
 
     void call_now (int events, const std::error_code& err = {}) { handle_poll(events, err); }
 
-    optional<fh_t> fileno () const { return _impl ? impl()->fileno() : optional<fh_t>(); }
+    excepted<fh_t, ErrorCode> fileno () const { return _impl ? handle_fd_excepted(impl()->fileno()) : fh_t(); }
 
     static const HandleType TYPE;
 

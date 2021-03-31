@@ -24,7 +24,7 @@ struct UVPoll : UVHandle<PollImpl, uv_poll_t> {
         return uvx_ce(uv_poll_stop(&uvh));
     }
 
-    optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }
+    expected<fh_t, std::error_code> fileno () const override { return uvx_fileno(uvhp()); }
 };
 
 }}}}

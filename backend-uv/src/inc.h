@@ -56,7 +56,7 @@ static inline string uvx_detach_buf (const uv_buf_t* uvbuf) {
     }
 
 template <class Handle, class Func>
-static inline excepted<net::SockAddr, std::error_code> uvx_sockaddr (Handle uvhp, Func&& f) {
+static inline expected<net::SockAddr, std::error_code> uvx_sockaddr (Handle uvhp, Func&& f) {
     net::SockAddr ret;
     int err;
     ret.assign_foreign([&](auto ptr, auto size_ptr){
@@ -69,12 +69,11 @@ static inline excepted<net::SockAddr, std::error_code> uvx_sockaddr (Handle uvhp
     return ret;
 }
 
-static inline optional<fh_t> uvx_fileno (const uv_handle_t* p) {
+static inline expected<fh_t, std::error_code> uvx_fileno (const uv_handle_t* p) {
     uv_os_fd_t fd; //should be compatible type
     int err = uv_fileno(p, &fd);
-    if (!err) return {fd};
-    if (err == UV_EBADF) return {};
-    throw Error(uvx_error(err));
+    if (err) return make_unexpected(uvx_error(err));
+    return {fd};
 }
 
 static inline expected<int, std::error_code> uvx_recv_buffer_size (const uv_handle_t* p) {

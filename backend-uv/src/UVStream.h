@@ -60,7 +60,7 @@ struct UVStream : UVHandle<Base, UvReq> {
         req->active = true;
     }
 
-    optional<fh_t> fileno () const override { return uvx_fileno(this->uvhp()); }
+    expected<fh_t, std::error_code> fileno () const override { return uvx_fileno(this->uvhp()); }
 
     bool   readable         () const noexcept override { return uv_is_readable(uvsp()); }
     bool   writable         () const noexcept override { return uv_is_writable(uvsp()); }

@@ -34,8 +34,9 @@ excepted<void, panda::ErrorCode> Udp::bind (const net::SockAddr& sa, unsigned fl
 
 excepted<void, panda::ErrorCode> Udp::bind (string_view host, uint16_t port, const AddrInfoHints& hints, unsigned flags) {
     if (host == "*") return bind(broadcast_addr(port, hints), flags);
-    auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    return bind(ai.addr(), flags);
+    auto res = sync_resolve(loop()->backend(), host, port, hints);
+    if (!res) return make_unexpected<ErrorCode>(res.error());
+    return bind(res.value().addr(), flags);
 }
 
 excepted<void, panda::ErrorCode> Udp::connect (const net::SockAddr& addr) {
@@ -43,8 +44,9 @@ excepted<void, panda::ErrorCode> Udp::connect (const net::SockAddr& addr) {
 }
 
 excepted<void, panda::ErrorCode> Udp::connect (string_view host, uint16_t port, const AddrInfoHints& hints) {
-    auto ai = sync_resolve(loop()->backend(), host, port, hints);
-    return connect(ai.addr());
+    auto res = sync_resolve(loop()->backend(), host, port, hints);
+    if (!res) return make_unexpected<ErrorCode>(res.error());
+    return connect(res.value().addr());
 }
 
 excepted<void, panda::ErrorCode> Udp::set_membership (string_view multicast_addr, string_view interface_addr, Membership membership) {

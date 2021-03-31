@@ -4,7 +4,6 @@
 #include "AddrInfo.h"
 #include "Resolver.h"
 #include "backend/TcpImpl.h"
-#include "SockAddrHelper.h"
 #include <iosfwd>
 
 namespace panda { namespace unievent {
@@ -35,22 +34,14 @@ struct Tcp : virtual Stream, AllocatedObject<Tcp> {
 
     virtual void connect (const TcpConnectRequestSP&);
 
-    excepted<net::SockAddr, ErrorCode> sockaddr (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
-        return handle_sockexc(impl()->sockaddr(), strategy);
-    }
-    excepted<net::SockAddr, ErrorCode> peeraddr (NotConnectedStrategy strategy = NotConnectedStrategy::Ignore) const {
-        return handle_sockexc(impl()->peeraddr(), strategy);
-    }
+    excepted<net::SockAddr, ErrorCode> sockaddr () const { return handle_fd_excepted(impl()->sockaddr()); }
+    excepted<net::SockAddr, ErrorCode> peeraddr () const { return handle_fd_excepted(impl()->peeraddr()); }
 
     excepted<void, ErrorCode> set_nodelay              (bool enable)                     { return make_excepted(impl()->set_nodelay(enable)); }
     excepted<void, ErrorCode> set_keepalive            (bool enable, unsigned int delay) { return make_excepted(impl()->set_keepalive(enable, delay)); }
     excepted<void, ErrorCode> set_simultaneous_accepts (bool enable)                     { return make_excepted(impl()->set_simultaneous_accepts(enable)); }
 
-    optional<sock_t> socket () const {
-        auto fh = fileno();
-        if (!fh) return {};
-        return (sock_t)fh.value();
-    }
+    excepted<sock_t, ErrorCode> socket () const;
 
     void setsockopt (int level, int optname, const void* optval, int optlen) { unievent::setsockopt(socket().value(), level, optname, optval, optlen); }
 

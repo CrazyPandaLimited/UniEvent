@@ -14,7 +14,7 @@ struct PollImpl : HandleImpl {
 
     PollImpl (LoopImpl* loop, IPollImplListener* lst) : HandleImpl(loop), listener(lst) {}
 
-    virtual optional<fh_t> fileno () const = 0;
+    virtual expected<fh_t, std::error_code> fileno () const = 0;
 
     virtual std::error_code start (int events) = 0;
     virtual std::error_code stop  ()           = 0;

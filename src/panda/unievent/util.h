@@ -12,7 +12,8 @@
 
 namespace panda { namespace unievent {
 
-AddrInfo      sync_resolve   (backend::Backend* be, string_view host, uint16_t port = 0, const AddrInfoHints& hints = {}, bool use_cache = true);
+excepted<AddrInfo, std::error_code> sync_resolve (backend::Backend*, string_view host, uint16_t port = 0, const AddrInfoHints& = {}, bool use_cache = true);
+
 net::SockAddr broadcast_addr (uint16_t port, const AddrInfoHints& = {});
 
 fd_t   file_dup  (fd_t);
@@ -46,11 +47,12 @@ pipe (int read_flags = PairFlags::nonblock_pipe, int write_flags = PairFlags::no
 int           getpid           ();
 int           getppid          ();
 uint64_t      hrtime           ();
-TimeVal       gettimeofday     ();
-panda::string hostname         ();
-size_t        get_rss          ();
 uint64_t      get_free_memory  ();
 uint64_t      get_total_memory ();
+
+excepted<TimeVal, std::error_code> gettimeofday ();
+excepted<string,  std::error_code> hostname     ();
+excepted<size_t,  std::error_code> get_rss      ();
 
 char** setup_args (int argc, char** argv);
 excepted<string, std::error_code> get_process_title ();
@@ -64,7 +66,7 @@ struct InterfaceAddress {
     net::SockAddr netmask;
 };
 
-std::vector<InterfaceAddress> interface_info ();
+excepted<std::vector<InterfaceAddress>, std::error_code> interface_info ();
 
 
 struct CpuInfo {
@@ -79,7 +81,7 @@ struct CpuInfo {
     } cpu_times;
 };
 
-std::vector<CpuInfo> cpu_info ();
+excepted<std::vector<CpuInfo>, std::error_code> cpu_info ();
 
 
 struct ResourceUsage {
@@ -101,7 +103,7 @@ struct ResourceUsage {
    uint64_t nivcsw;   /* involuntary context switches */
 };
 
-ResourceUsage get_rusage ();
+excepted<ResourceUsage, std::error_code> get_rusage ();
 
 struct UtsName {
     string sysname;

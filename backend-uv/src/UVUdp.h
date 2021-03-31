@@ -60,15 +60,15 @@ struct UVUdp : UVHandle<UdpImpl, uv_udp_t> {
         return {};
     }
 
-    excepted<net::SockAddr, std::error_code> sockaddr () override {
+    expected<net::SockAddr, std::error_code> sockaddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getsockname);
     }
 
-    excepted<net::SockAddr, std::error_code> peeraddr () override {
+    expected<net::SockAddr, std::error_code> peeraddr () override {
         return uvx_sockaddr(&uvh, &uv_udp_getpeername);
     }
 
-    optional<fh_t> fileno () const override { return uvx_fileno(uvhp()); }
+    expected<fh_t, std::error_code> fileno () const override { return uvx_fileno(uvhp()); }
 
     expected<int, std::error_code> recv_buffer_size () const override { return uvx_recv_buffer_size(uvhp()); }
     expected<int, std::error_code> send_buffer_size () const override { return uvx_send_buffer_size(uvhp()); }
