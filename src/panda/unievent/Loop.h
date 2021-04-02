@@ -65,7 +65,7 @@ struct Loop : Refcnt {
         impl()->cancel_delay(id);
     }
 
-    Resolver* resolver ();
+    const ResolverSP& resolver ();
 
     void   track_load_average (uint32_t for_last_n_seconds);
     double get_load_average   () const;

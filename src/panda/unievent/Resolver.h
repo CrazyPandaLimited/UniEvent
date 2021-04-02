@@ -84,7 +84,8 @@ struct Resolver : Refcnt, private backend::ITimerImplListener {
         void mark_bad_address (const CacheKey&, const net::SockAddr&);
     };
 
-    static ResolverSP create_loop_resolver (const LoopSP& loop);
+    static ResolverSP create_loop_resolver  (const LoopSP& loop);
+    static void       disable_loop_resolver (Resolver*);
 
     Resolver (const LoopSP& loop = Loop::default_loop(), uint32_t exptime = DEFAULT_CACHE_EXPIRATION_TIME, size_t limit = DEFAULT_CACHE_LIMIT)
         : Resolver(loop, Config(exptime, limit)) {}

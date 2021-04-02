@@ -1,8 +1,5 @@
 #include "lib/test.h"
 #include <thread>
-#include <sstream>
-#include <set>
-#include <panda/log.h>
 
 TEST_PREFIX("resolver: ", "[resolver]");
 
@@ -402,4 +399,11 @@ TEST("mark bad address") {
     CHECK(ai_size(v.resolver->find(node)) == cnt);
     v.resolver->cache().mark_bad_address(node, net::SockAddr::Inet4("1.1.1.1", 0)); // must be ignored, because this sockaddr is not current addr
     CHECK(ai_size(v.resolver->find(node)) == cnt);
+}
+
+TEST("resolver does not crash the loop resolver is held and the loop is gone") {
+    LoopSP loop = new Loop();
+    ResolverSP resolver = loop->resolver();
+    loop.reset();
+    CHECK_THROWS_AS(resolver->resolve("localhost", [&](auto...) {}), Error);
 }
