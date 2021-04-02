@@ -171,6 +171,14 @@ ResolverSP Resolver::create_loop_resolver (const LoopSP& loop) {
     return new Resolver(Config(), loop.get());
 }
 
+void Resolver::disable_loop_resolver (Resolver* r) {
+    r->reset();
+    r->workers.clear();
+    r->dns_roll_timer->destroy();
+    r->dns_roll_timer = nullptr;
+    r->_loop = nullptr;
+}
+
 Resolver::Resolver (const LoopSP& loop, const Config& cfg) : Resolver(cfg, loop.get()) {
     _loop_hold = loop;
 }
@@ -185,7 +193,7 @@ Resolver::Resolver (const Config& cfg, Loop* loop) : _loop(loop), cfg(cfg) {
 Resolver::~Resolver () {
     for (auto& w : workers) assert(!w || !w->request);
     assert(!queue.size());
-    dns_roll_timer->destroy();
+    if (dns_roll_timer) dns_roll_timer->destroy();
 }
 
 void Resolver::handle_timer () {
@@ -203,6 +211,7 @@ void Resolver::add_worker () {
 }
 
 void Resolver::resolve (const RequestSP& req) {
+    if (!_loop) throw Error("using loop resolver after it's loop death");
     if (req->_port) req->_service = string::from_number(req->_port);
     panda_log_notice(logmod, this << " start resolving req:" << req.get() << " [" << req->_node << ":" << req->_service << "] use_cache:" << req->_use_cache);
     req->_resolver = this;

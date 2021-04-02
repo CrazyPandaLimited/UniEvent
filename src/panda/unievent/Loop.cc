@@ -84,7 +84,10 @@ Loop::Loop (Backend* backend, LoopImpl::Type type) {
 Loop::~Loop () {
     panda_log_dtor();
     unregister_loop(this);
-    _resolver = nullptr;
+    if (_resolver) {
+        Resolver::disable_loop_resolver(_resolver);
+        _resolver = nullptr;
+    }
     assert(!_handles.size());
     delete _impl;
 }
@@ -111,9 +114,9 @@ void Loop::dump () const {
     }
 }
 
-Resolver* Loop::resolver () {
+const ResolverSP& Loop::resolver () {
     if (!_resolver) _resolver = Resolver::create_loop_resolver(this); // does not hold strong backref to loop
-    return _resolver.get();
+    return _resolver;
 }
 
 void Loop::track_load_average (uint32_t nsec) {

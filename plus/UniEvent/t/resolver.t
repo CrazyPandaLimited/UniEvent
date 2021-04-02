@@ -26,6 +26,13 @@ subtest 'cancel' => sub {
     $l->run;
 };
 
+subtest 'save&use loop resolver after loop is dead' => sub {
+    my $loop = UE::Loop->new;
+    my $resolver = $loop->resolver;
+    undef $loop;
+    dies_ok { $resolver->resolve('localhost', sub {}) };
+};
+
 sub test_resolve {
     my $cached = shift;
     my $resolver = new UniEvent::Resolver();
