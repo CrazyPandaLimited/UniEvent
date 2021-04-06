@@ -19,9 +19,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/modules" PARENT_SCOPE)
-message(STATUS modules ${CMAKE_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(panda-lib REQUIRED)
 find_package(panda-net-sockaddr REQUIRED)
