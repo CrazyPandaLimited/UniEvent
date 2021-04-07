@@ -27,7 +27,7 @@ private:
 };
 
 struct FileOutput : Streamer::IOutput {
-    FileOutput (string_view path) : path(string(path)) {}
+    FileOutput (string_view path, int mode = Fs::DEFAULT_FILE_MODE) : path(string(path)), mode(mode) {}
 
     ErrorCode start (const LoopSP&)      override;
     void      stop  ()                   override;
@@ -37,6 +37,7 @@ struct FileOutput : Streamer::IOutput {
 
 private:
     string             path;
+    int                mode;
     LoopSP             loop;
     fd_t               fd;
     Fs::RequestSP      fsreq;
