@@ -4,6 +4,8 @@ use MyTest;
 use UniEvent::Fs;
 use UniEvent::Error;
 
+test_catch '[fs]';
+
 BEGIN { *Fs:: = *UniEvent::Fs:: }
 
 my $vdir  = var("");

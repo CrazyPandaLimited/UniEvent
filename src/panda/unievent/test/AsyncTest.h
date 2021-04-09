@@ -46,7 +46,7 @@ struct AsyncTest {
     }
 
     template <typename Ret, typename...Args>
-    void count_events (CallbackDispatcher<Ret(Args...)>& dispatcher, string event = "<event>") {
+    void count_events (CallbackDispatcher<Ret(Args...)>& dispatcher) {
         dispatcher.add([this](auto&&...){
             counter++;
         });

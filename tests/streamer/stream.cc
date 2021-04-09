@@ -20,7 +20,7 @@ namespace {
 
     TcpP2P make_pair (const LoopSP& loop, size_t amount, size_t count) {
         auto p = make_p2p(loop);
-        int cnt = 0;
+        size_t cnt = 0;
         TimerSP t = new Timer(loop);
         t->event.add([=](auto...) mutable {
             p.client->write(string(amount, 'x'));
@@ -110,7 +110,7 @@ TEST("file in stream out with busy buffer") {
 
     s->start();
 
-    int count = 0;
+    size_t count = 0;
     p.client->read_event.add([&count](auto&, auto& data, auto& err) {
         if (err) throw err;
         count += data.length();

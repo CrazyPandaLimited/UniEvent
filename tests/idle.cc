@@ -39,7 +39,7 @@ TEST("runs rarely when loop is high loaded") {
     h->start();
     test.run();
 
-    int low_loaded_cnt = test.counter;
+    auto low_loaded_cnt = test.counter;
     test.counter = 0;
 
     std::vector<TimerSP> v;
@@ -52,7 +52,7 @@ TEST("runs rarely when loop is high loaded") {
     test.run();
     CHECK(test.counter < low_loaded_cnt); // runs rarely
 
-    int high_loaded_cnt = test.counter;
+    auto high_loaded_cnt = test.counter;
     test.counter = 0;
     v.clear();
     test.run();

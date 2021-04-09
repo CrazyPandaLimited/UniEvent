@@ -576,7 +576,7 @@ TEST("stat") {
 TEST("statfs") {
     if (win32) return;
     Test t(10000, 1);
-    Fs::statfs("/", [&](auto& info, auto& err, auto&){
+    Fs::statfs("/", [&](auto& info, auto&, auto&){
         t.happens();
         CHECK(info.bsize);
         CHECK(info.blocks);
