@@ -5,17 +5,19 @@
 
 namespace panda { namespace unievent {
 
-const ErrorCategory        error_category;
-const ResolveErrorCategory resolve_error_category;
-const SslErrorCategory     ssl_error_category;
-const OpenSslErrorCategory openssl_error_category;
-const StreamerCategory     streamer_error_category;
+const ErrorCategory         error_category;
+const ResolveErrorCategory  resolve_error_category;
+const SslErrorCategory      ssl_error_category;
+const OpenSslErrorCategory  openssl_error_category;
+const StreamerErrorCategory streamer_error_category;
 
-const char* ErrorCategory::name        () const throw() { return "unievent"; }
-const char* ResolveErrorCategory::name () const throw() { return "unievent-resolve"; }
-const char* SslErrorCategory::name     () const throw() { return "unievent-ssl"; }
-const char* OpenSslErrorCategory::name () const throw() { return "unievent-openssl"; }
-const char* StreamerCategory::name     () const throw() { return "unievent-streamer"; }
+
+const char* ErrorCategory::name         () const throw() { return "unievent"; }
+const char* ResolveErrorCategory::name  () const throw() { return "unievent-resolve"; }
+const char* SslErrorCategory::name      () const throw() { return "unievent-ssl"; }
+const char* OpenSslErrorCategory::name  () const throw() { return "unievent-openssl"; }
+const char* StreamerErrorCategory::name () const throw() { return "unievent-streamer"; }
+
 
 std::string ErrorCategory::message (int condition) const throw() {
     switch ((errc)condition) {
@@ -63,13 +65,14 @@ std::string OpenSslErrorCategory::message (int condition) const throw() {
     return std::string(buf, strlen(buf));
 }
 
-std::string StreamerCategory::message (int condition) const throw() {
+std::string StreamerErrorCategory::message (int condition) const throw() {
     switch ((streamer_errc)condition) {
         case streamer_errc::read_error  : return "streamer read error";
         case streamer_errc::write_error : return "streamer write error";
     }
     return {};
 }
+
 
 std::error_code make_ssl_error_code (int ssl_code) {
     if (ssl_code != SSL_ERROR_SSL) return std::error_code(ssl_code, ssl_error_category);
