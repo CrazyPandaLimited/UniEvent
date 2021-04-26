@@ -3,6 +3,8 @@ use lib 't/lib';
 use MyTest;
 use UniEvent::Error;
 
+test_catch '[resolver]';
+
 my $l = UniEvent::Loop->default_loop();
 
 subtest 'not cached' => \&test_resolve, 0;

@@ -43,7 +43,7 @@ void FileInput::stop_reading () {
 
 ErrorCode FileOutput::start (const LoopSP& loop) {
     this->loop = loop;
-    fsreq = Fs::open(path, Fs::OpenFlags::WRONLY | Fs::OpenFlags::TRUNC | Fs::OpenFlags::CREAT, Fs::DEFAULT_FILE_MODE, [this](fd_t fd, const std::error_code& err, const Fs::RequestSP&) {
+    fsreq = Fs::open(path, Fs::OpenFlags::WRONLY | Fs::OpenFlags::TRUNC | Fs::OpenFlags::CREAT, mode, [this](fd_t fd, const std::error_code& err, const Fs::RequestSP&) {
         if (err) return handle_write(err);
         this->fd = fd;
         opened = true;

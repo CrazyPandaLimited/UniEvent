@@ -2,6 +2,8 @@ use 5.016;
 use warnings;
 use lib 't/lib'; use MyTest;
 
+test_catch '[loop]';
+
 subtest 'basic' => sub {
     my $loop = UniEvent::Loop->new();
     is ref $loop, 'UniEvent::Loop';

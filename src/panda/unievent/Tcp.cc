@@ -84,31 +84,24 @@ void TcpConnectRequest::finalize_connect () {
         return;
     }
 
-    if (!resolve_request) {
-        resolve_request = handle->loop()->resolver()->resolve();
-    }
-    if (host) {
-        resolve_request->node(host);
-    }
-    if (port) {
-        resolve_request->port(port);
-    }
-
+    resolve_request = handle->loop()->resolver()->resolve();
     resolve_request
-       ->hints(hints)
-       ->use_cache(cached)
-       ->on_resolve([this](const AddrInfo& res, const std::error_code& res_err, const Resolver::RequestSP) {
-           resolve_request = nullptr;
-           if (res_err) return cancel(nest_error(errc::resolve_error, res_err));
-           addr = res.addr();
-           auto err = handle->impl()->connect(addr, impl());
-           if (err) cancel(err);
-       });
-    resolve_request->run();
+        ->node(host)
+        ->port(port)
+        ->hints(hints)
+        ->use_cache(cached)
+        ->on_resolve([this](const AddrInfo& res, const std::error_code& res_err, const Resolver::RequestSP) {
+            resolve_request = nullptr;
+            if (res_err) return cancel(nest_error(errc::resolve_error, res_err));
+            addr = res.addr();
+            auto err = handle->impl()->connect(addr, impl());
+            if (err) cancel(err);
+        })
+        ->run();
 }
 
 void TcpConnectRequest::handle_event (const ErrorCode& err) {
-    if (err && !(err & std::errc::operation_canceled) && cached) {
+    if (err && !(err & std::errc::operation_canceled) && host && cached) {
         handle->loop()->resolver()->cache().mark_bad_address(Resolver::CacheKey(host, panda::to_string(port), hints), addr);
     }
 

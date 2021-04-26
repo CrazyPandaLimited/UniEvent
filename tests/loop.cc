@@ -187,7 +187,7 @@ TEST("track load average") {
     AsyncTest test(2000, 2);
     test.loop->track_load_average(1);
     auto p = make_p2p(test.loop);
-    p.sconn->read_event.add([&](auto, auto, auto& err) {
+    p.sconn->read_event.add([&](auto, auto, auto&) {
         test.happens();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     });

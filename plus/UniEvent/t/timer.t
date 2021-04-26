@@ -2,6 +2,8 @@ use 5.012;
 use warnings;
 use lib 't/lib'; use MyTest;
 
+test_catch '[timer]';
+
 my $l = UniEvent::Loop->default;
 
 subtest 'once timer' => sub {

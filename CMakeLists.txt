@@ -19,9 +19,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/modules")
-message(STATUS modules ${CMAKE_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(panda-lib REQUIRED)
 find_package(panda-net-sockaddr REQUIRED)
@@ -60,6 +58,7 @@ install(DIRECTORY backend-uv/include/ DESTINATION include FILES_MATCHING PATTERN
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-targets ARCHIVE DESTINATION lib)
 
 install(EXPORT ${PROJECT_NAME}-targets
-    FILE ${PROJECT_NAME}-config.cmake
+    FILE ${PROJECT_NAME}-targets.cmake
     DESTINATION lib/cmake/${PROJECT_NAME}
 )
+install(FILES ${PROJECT_NAME}-config.cmake DESTINATION lib/cmake/${PROJECT_NAME})

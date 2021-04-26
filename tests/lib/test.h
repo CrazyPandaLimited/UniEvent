@@ -77,7 +77,7 @@ TcpP2P make_p2p          (const LoopSP& loop, const SockAddr& sa = SockAddr::Ine
 struct VariationReseter : Catch::TestEventListenerBase {
     using TestEventListenerBase::TestEventListenerBase; // inherit constructor
 
-    void testCaseStarting( Catch::TestCaseInfo const& testInfo ) override {
+    void testCaseStarting(const Catch::TestCaseInfo&) override {
         variation = {};
     }
 };

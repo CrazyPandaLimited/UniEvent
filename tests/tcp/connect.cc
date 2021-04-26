@@ -29,35 +29,6 @@ TEST("sync connect error") {
     REQUIRE(err & std::errc::operation_canceled);
 }
 
-TEST("connect with resolv request") {
-    variation = GENERATE(values(ssl_buf_vars));
-
-    AsyncTest test(3000, {"resolve", "connection"});
-    TcpSP server = make_server(test.loop);
-    net::SockAddr sa = server->sockaddr().value();
-
-    TcpSP client = make_client(test.loop);
-    Resolver::RequestSP res_req = new Resolver::Request(test.loop->resolver());
-    res_req->on_resolve([&](auto...){
-        test.happens("resolve");
-    });
-    TcpConnectRequestSP con_req = client->connect();
-    SECTION("host in") {
-        res_req->node(sa.ip())->port(sa.port());
-    }
-    SECTION("host overwrite") {
-        con_req->to(sa.ip(), sa.port());
-    }
-    SECTION("host conflict") {
-        auto blackhole = test.get_blackhole_addr();
-        res_req->node(blackhole.ip())->port(blackhole.port());
-        con_req->to(sa.ip(), sa.port());
-    }
-
-    con_req->to(res_req)->run();
-    test.await(server->connection_event, "connection");
-}
-
 TEST("connect to nowhere") {
     variation = GENERATE(values(ssl_buf_vars));
 

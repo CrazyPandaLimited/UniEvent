@@ -3,6 +3,8 @@ use warnings;
 use Socket;
 use lib 't/lib'; use MyTest;
 
+test_catch '[pipe]';
+
 use constant PIPE_PATH => MyTest::pipe "pipe1";
 
 subtest 'client-server' => sub {

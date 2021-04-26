@@ -80,7 +80,7 @@ TEST("double queue") {
     w->work_cb = [&](Work*) {
         test.happens("w");
     };
-    w->after_work_cb = [&](auto, auto& err) {
+    w->after_work_cb = [&](auto, auto&) {
         test.happens("aw");
     };
     w->queue();

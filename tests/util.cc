@@ -131,8 +131,8 @@ TEST("pipe pair") {
 }
 
 TEST("random") {
-    int blocks = 5;
-    int size   = 32;
+    size_t blocks = 5;
+    size_t size   = 32;
     auto ret = get_random(blocks*size);
     REQUIRE((bool)ret);
     auto s = ret.value();
@@ -140,8 +140,8 @@ TEST("random") {
     CHECK(s.size() == blocks*size);
 
     // there is not too much we can check. At least check that we have some different data inside string
-    for (int i = 0 ; i < blocks; ++i) {
-        for (int j = 0 ; j < blocks; ++j) {
+    for (size_t i = 0 ; i < blocks; ++i) {
+        for (size_t j = 0 ; j < blocks; ++j) {
             if (i == j) continue;
             CHECK(memcmp(s.data() + i*size, s.data() + j*size, size) != 0);
         }
@@ -150,7 +150,7 @@ TEST("random") {
 
 TEST("random async") {
     AsyncTest test(5000, 1);
-    get_random(20, [&](auto& s, auto& err, auto){
+    get_random(20, [&](auto& s, auto&, auto){
         test.happens();
         CHECK(s.size() == 20);
     }, test.loop);
