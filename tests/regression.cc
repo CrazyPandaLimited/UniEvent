@@ -1,5 +1,10 @@
 #include "lib/test.h"
+#include "panda/log/log.h"
+#include "panda/unievent/forward.h"
+#include "panda/unievent/log.h"
+#include "uv.h"
 #include <catch2/generators/catch_generators.hpp>
+
 
 TEST_PREFIX("regression: ", "[regression]");
 
@@ -85,4 +90,35 @@ TEST("MEIACORE-751 callback recursion") {
 
     test.loop->run();
     REQUIRE(counter == 5);
+}
+
+#include <unistd.h>
+#include <csignal>
+
+void nosignal(uv_signal_t*, int){}
+void nohandle(uv_handle_t*){}
+
+TEST_CASE("MEIACORE-1839 signal remove", "signal") {
+    AsyncTest test(2000);
+    SignalSP s = new Signal(test.loop);
+
+    LoopSP loop = new Loop();
+    SignalSP child_sig = new Signal(loop);
+    child_sig->start(SIGCHLD, [&](auto, int) {
+        panda_log_warn(unievent::panda_log_module, "child caught");
+    });
+
+    s->start(SIGCHLD, [&](auto, int) {
+        panda_log_warn(unievent::panda_log_module, "caught");
+        if (auto chl = fork()) {
+
+        } else {
+            s.reset();
+            child_sig.reset();
+            loop->run();
+        }
+    });
+    auto pid = ::getpid();
+    kill(pid, SIGCHLD);
+    test.run();
 }
