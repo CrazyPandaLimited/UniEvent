@@ -6,7 +6,7 @@ UniEvent - Object-oriented, fast and extendable event loop abstraction framework
 
 UniEvent can be built using CMake. There are several dependencies. Make sure that [find_package](https://cmake.org/cmake/help/latest/command/find_package.html) can find it:
 
-* [panda-lib](https://github.com/CrazyPandaLimited/panda-lib/tree/master/clib)
+* [panda-lib](https://github.com/CrazyPandaLimited/panda-lib)
 * [panda-net-sockaddr](https://github.com/CrazyPandaLimited/Net-SockAddr)
 * [c-ares](https://github.com/c-ares/c-ares)
 * [libuv](https://github.com/libuv/libuv)
@@ -40,7 +40,7 @@ UniEvent is designed to support multiple backends (libuv is the only implemented
 
 ## Memory Management and Lifetime
 
-All dynamic objects are managed using [panda::iptr](https://github.com/CrazyPandaLimited/panda-lib/blob/master/clib/doc/refcnt.md#iptr). Never delete objects manually because it can be references to them inside of the framework.
+All dynamic objects are managed using [panda::iptr](https://github.com/CrazyPandaLimited/panda-lib/blob/master/doc/refcnt.md#iptr). Never delete objects manually because it can be references to them inside of the framework.
 
 All the types that suppose to be used as heap allocated have private destrucor. It prevents any kind of lifetime errors.
 
@@ -111,7 +111,7 @@ Each handle object binds to a specific loop upon creation. Re-binding a handle t
 
 ## Events
 
-All events are dispatched using [CallbackDispatcher](https://github.com/CrazyPandaLimited/panda-lib/blob/master/clib/doc/CallbackDispatcher.md). Usually there is a member called `event` on the handles that have only one event to dispatch. In other cases event-members hass suffix `_event` in names, e.g. `read_event`, `connect_event`, etc.
+All events are dispatched using [CallbackDispatcher](https://github.com/CrazyPandaLimited/panda-lib/blob/master/doc/CallbackDispatcher.md). Usually there is a member called `event` on the handles that have only one event to dispatch. In other cases event-members hass suffix `_event` in names, e.g. `read_event`, `connect_event`, etc.
 
 All the events has a source handle as a first argument. For example, `read_event` has first argument `StreamSP` that points to a stream that dispatched an event.
 
