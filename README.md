@@ -4,7 +4,9 @@ UniEvent - Object-oriented, fast and extendable event loop abstraction framework
 
 # Build and Install
 
-UniEvent can be built using CMake. There are several dependencies. Make sure that [find_package](https://cmake.org/cmake/help/latest/command/find_package.html) can find it:
+Full build manual [here](doc/build.md)
+
+UniEvent can be built using CMake. There are several dependencies. All can be installed with CMake.
 
 * [panda-lib](https://github.com/CrazyPandaLimited/panda-lib)
 * [panda-net-sockaddr](https://github.com/CrazyPandaLimited/Net-SockAddr)
@@ -13,22 +15,6 @@ UniEvent can be built using CMake. There are several dependencies. Make sure tha
 * OpenSSL
 
 OpenSSL doesn't have its own CMake package but CMake can find it if it is installed in system.
-Also `libuv` can be installed in system and UniEvent finds it. To build with tests [Catch2](https://github.com/catchorg/Catch2) is also required.
-
-The easiest way to use libuv is to clone all the repositories to a folder and add all of it using `add_subdirectory`:
-
-```CMake
-add_subdirectory(deps/panda-lib)
-add_subdirectory(deps/net-sockaddr)
-add_subdirectory(c-ares)
-add_subdirectory(catch2)
-
-add_subdirectory(unievent)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC unievent)
-```
-
-You can alse build all dependencies separetly. In this case make sure that CMAKE_PREFIX_PATH is set to correct folder.
 
 By default UniEvent is a static library. To build a dynamic library set CMake variable `LIB_TYPE` to `dynamic`.
 
