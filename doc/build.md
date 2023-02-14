@@ -40,8 +40,9 @@ cmake --build . -j
 cmake --build . --target install
 ```
 
-For c-ares set `CARES_SHARED` or `CARES_STATIC` to `ON` as described [abowe](#c-ares)
-``bash
+For c-ares set `CARES_SHARED` or `CARES_STATIC` to `ON` as described [above](#c-ares)
+
+```bash
 cmake -DCMAKE_INSTALL_PREFIX=/home/user/somewhere -DCARES_STATIC=ON ..
 ```
 
