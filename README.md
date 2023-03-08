@@ -153,6 +153,15 @@ Event listener is convenient when some object makes use of several handles and w
     void on_connect(const StreamSP&, const ErrorCode&, const ConnectRequestSP&) {}
 ```
 
+## Event Exceptions
+
+See [error handling policy](https://github.com/CrazyPandaLimited/panda-lib/blob/master/doc/error.md) to understand the place of exceptions in the library.
+UniEvent catch all exceptions from event callbacks. It neither ignores them nor passes to any other callback. After any exception is thrown loop stops and rethrow the original exception from Loop::run. So any exception forces loop to stop and it is expected to terminate the whole. You can catch it and run the loop again although. Loop object is correct and fully operational after `stop()` caused by an exception.
+
+Some events can be trigered by a destructor. I.e, `remove_handle_event` is called from `~Handle()`. Since all destructors are `noexcept(true)` you should not throw any exception from `remove_handle_event` listeners.
+
+See detailed information in the documentation of the corresponding classes.
+
 ## Holding Handles
 
 UniEvent does not hold a strong reference for created handle objects. You must hold them by yourself otherwise no events will be watched for.
@@ -240,6 +249,38 @@ UniEvent provides a wide variety of cross-platform sync and async file system op
     Loop::default_loop()->run();
 ```
 See [Fs](doc/fs.md) for details.
+
+## Fork
+
+UniEvent is completely fork-aware. It automatically does all the stuff needed after fork.
+You can just fork() and run any loop after that including the ones that were in use in the master process.
+
+However keep in mind, that if you run the same loop in child process that was running in master process, you should probably remove the master's
+process event handles to avoid double execution. This is especially important for I/O handles like tcp, udp, pipe and so on, because no usable
+behaviour will occur if you watch for the same descriptior with 2 or more different handles.
+
+That's why it is often more convenient to run different loop in child process than to remove all master's recources from the same loop.
+```cpp
+    # master
+    LoopSP loop  = new Loop();
+    TimerSP timer = Timer::create(1000, [](TimerSP){}, loop);
+    TcpSP tcp   = new Tcp();
+    //...
+
+    fork();
+
+    #child
+    LoopSP child_loop = new Loop();
+    //...add events
+    child_loop->run();
+```
+
+## Threads
+
+Event loops and handles are **NOT thread-safe**, you can't run or access the same loop/handles in different threads.
+The only exception is `unievent::Async` handle which is thread-safe and designed for inter-thread communication.
+
+`Loop::default_loop` is thread-local (different in each thread), so you can safely create handles and run default loop in each thread.
 
 ## Utility Functions
 
