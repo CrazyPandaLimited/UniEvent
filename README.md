@@ -179,6 +179,19 @@ Correct way is
     Loop::default_loop->run();
 ```
 
+The important exception for this rule are streams with request queues (i.e. Tcp). If a request is in progress the handle that created this request is alive till the end of request processing.
+
+```cpp
+{
+    TcpSP client = new Tcp();
+    client->connect("127.0.0.1", 8080);
+    client->write("q");
+}
+// client is still alive. it will die after write("q") succeeds or fails
+```
+
+See [Request Queue](#request-queue) for more information about this feature.
+
 Usually you have an object to place a refence to handle to. However sometimes it is convenient to capture handle in callback. Keep in mind that if you do this
 
 ```cpp
@@ -216,6 +229,32 @@ Or you can remove callback from the timer handle.
         }
     });
 ```
+
+## Request Queue
+
+All classes that interit Stream (Tcp, Pipe, Tty) support request queue. It means that you can call methods one after another without waiting of result of previous.
+Usual situation is connect somwhere then write data and then close the connection. Traditional way is chain of callbacks:
+
+```cpp
+TcpSP client = new Tcp();
+client->connect("127.0.0.1", 8080);
+client->connect_event.add([client](auto, auto, auto) {
+    client->write("q", [&](auto, auto& err, auto) {
+        client->disconnect();
+    });
+});
+```
+
+Nested callbacks are hard to control and process errors. It is also an ugly code.  The solution is internal queue.
+
+```cpp
+TcpSP client = new Tcp();
+client->connect("127.0.0.1", 8080);
+client->write("q");
+client->disconnet();
+```
+
+Actual `write` won't start until `connect` request finishes, and `disconenct` closes connection only after all data from write is sent. If any step fails all callbacks from other requests receives `std::errc::operation_canceled` as ErrorCode. The queue also holds a strong reference to `Stream` so it won't be deleted untill all requests are processed even if all other referens are lost.
 
 ## Async DNS
 
