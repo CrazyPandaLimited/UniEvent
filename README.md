@@ -83,7 +83,7 @@ There are a number of different handle classes to watch for different events lik
 Each handle object binds to a specific loop upon creation. Re-binding a handle to a different loop object after creation is not supported. A handle will watch for events as soon as you run the loop it was bound to.
 
 * [Timer handle](doc/timer.md) invokes callback periodically at some interval (may be fractional).
-* [TCP handles](tcp.md) are used to represent both TCP streams and servers.
+* [TCP handles](doc/tcp.md) are used to represent both TCP streams and servers.
 * [Signal handle](doc/signal.md) watches for signal events.
 * [Idle handle](doc/idle.md) invokes callback when the loop is idle, i.e. there are no new events after polling for i/o, timer, etc. On each loop iteration.
 * [Prepare handle](doc/prepare.md) will run the given callback once per loop iteration, right before polling for i/o.
