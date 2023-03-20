@@ -125,7 +125,7 @@ struct MyListener : IStreamListener {
 ```
 Be carefull with the lifetime. Handles expect a raw pointer and does not own listeners.
 
-The parameters are the same as for callback version (first param is the event listener object itself, of course, second is the handle object, and other params are according to event documentation).
+The parameters are the same as for callback version.
 
 
 Event listener does not disable callbacks, i.e. if both event listener object and callbacks are set to a handle, both will be called (first callbacks, then event listener's method).

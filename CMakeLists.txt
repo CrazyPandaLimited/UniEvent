@@ -11,6 +11,7 @@ PROJECT(unievent LANGUAGES CXX)
 set(LIB_TYPE CACHE STRING STATIC)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(UNIEVENT_FETCH_DEPS OFF)
 option(UNIEVENT_TESTS OFF)
 option(UNIEVENT_TESTS_IN_ALL ${NOT_SUBPROJECT})
 
@@ -20,8 +21,11 @@ else()
     set(EXCLUDE_TEST EXCLUDE_FROM_ALL)
 endif()
 
-
 set(UNIEVENT_UV_TARGET libuv::uv_a CACHE STRING "CMake target name of libuv")
+
+if (${UNIEVENT_FETCH_DEPS})
+    include(FetchDeps.cmake)
+endif()
 
 file(GLOB_RECURSE libSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/panda/*.cc" "backend-uv/*.cc")
 add_library(${PROJECT_NAME} ${LIB_TYPE} ${libSource})
@@ -67,7 +71,9 @@ file(GLOB_RECURSE testSource RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "tests/*.cc")
 add_library(unievent-tests STATIC EXCLUDE_FROM_ALL ${testSource})
 target_link_libraries(unievent-tests PUBLIC ${PROJECT_NAME})
 
-find_package(Catch2)
+if (NOT TARGET Catch2::Catch2)
+    find_package(Catch2)
+endif()
 target_link_libraries(unievent-tests PUBLIC Catch2::Catch2)
 
 #ctest
