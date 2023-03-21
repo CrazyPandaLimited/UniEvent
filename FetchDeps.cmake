@@ -5,6 +5,7 @@ set(panda-net-sockaddr_repository https://github.com/CrazyPandaLimited/Net-SockA
 set(cares_repository https://github.com/c-ares/c-ares.git)
 set(cares_repository_tag main)
 set(libuv_repository https://github.com/libuv/libuv.git)
+set(libuv_repository_tag v1.41.0)
 
 set(Catch2_repository https://github.com/catchorg/Catch2.git)
 set(Catch2_repository_tag devel)
@@ -19,14 +20,12 @@ if (${UNIEVENT_TESTS})
 endif()
 
 foreach(dep ${deps})
-    if (NOT ${dep}_POPULATED)
-        if (NOT DEFINED ${${dep}_repository_tag})
-            set (${${dep}_repository_tag} master)
-        endif()
-        FetchContent_Declare(${dep}
-            GIT_REPOSITORY ${${dep}_repository}
-            GIT_TAG ${${dep}_repository_tag}
-        )
-        FetchContent_MakeAvailable(${dep})
-    endif ()
+    if (NOT DEFINED ${${dep}_repository_tag})
+        set (${${dep}_repository_tag} master)
+    endif()
+    FetchContent_Declare(${dep}
+        GIT_REPOSITORY ${${dep}_repository}
+        GIT_TAG ${${dep}_repository_tag}
+    )
 endforeach()
+FetchContent_MakeAvailable(${deps})

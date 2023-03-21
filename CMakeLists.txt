@@ -53,6 +53,7 @@ if (NOT TARGET ${UNIEVENT_UV_TARGET})
     if (TARGET uv_a)
         message(STATUS "using uv_a")
         add_library(${UNIEVENT_UV_TARGET} ALIAS uv_a)
+        set(EXPORT_UV_TARGET uv_a) # hack for old uv versions that did not export targets in install. remove after uv update
     else()
         find_package(libuv REQUIRED)
     endif()
@@ -93,7 +94,7 @@ endif() # if (UNIEVENT_TESTS)
 install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY backend-uv/src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY backend-uv/include/ DESTINATION include FILES_MATCHING PATTERN "*.h")
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-targets ARCHIVE DESTINATION lib)
+install(TARGETS ${PROJECT_NAME} ${EXPORT_UV_TARGET} EXPORT ${PROJECT_NAME}-targets ARCHIVE DESTINATION lib)
 
 install(EXPORT ${PROJECT_NAME}-targets
     FILE ${PROJECT_NAME}-targets.cmake
