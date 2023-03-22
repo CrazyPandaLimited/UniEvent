@@ -267,7 +267,7 @@ TEST("bad example") {
         TcpSP client = make_client(test.loop);
         client->connect(sa);
         client->connect_event.add([&, client](auto, auto, auto) {
-            client->write("q", [&](auto, auto& err, auto) {
+            client->write("q", [&](auto, auto, auto) {
                 test.happens("write");
                 client->disconnect();
             });
