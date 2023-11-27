@@ -37,7 +37,7 @@ TEST("normal input") {
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
         if (err) WARN(err);
-        CHECK(!err);
+        CHECK_FALSE(err);
         test.happens();
     });
     test.run();
@@ -52,7 +52,7 @@ TEST("pause input") {
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
         if (err) WARN(err);
-        CHECK(!err);
+        CHECK_FALSE(err);
         test.happens();
     });
     test.run();
@@ -70,7 +70,7 @@ TEST("normal output") {
     s->start();
     s->finish_event.add([&](const ErrorCode& err) {
         if (err) WARN(err);
-        CHECK(!err);
+        CHECK_FALSE(err);
         test.happens();
     });
     test.run();
